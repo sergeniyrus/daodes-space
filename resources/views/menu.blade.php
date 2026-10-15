@@ -78,6 +78,12 @@
                     <span class="mobile-chapter-title">{{ __('menu.mailer') }}</span>
                 </a>
             </div>
+<div class="mobile-chapter-container">
+                <a href="{{ url('https://ai.daodes.space/') }}" class="mobile-chapter-header" target="_blank" rel="noopener noreferrer">
+                    <span class="mobile-chapter-title">{{ __('ai') }}</span>
+                </a>
+            </div>
+
 
             <!-- Админка: Организации -->
             <div class="mobile-chapter-container">

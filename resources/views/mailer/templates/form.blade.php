@@ -135,18 +135,18 @@
     @endif
 
     <!-- CodeMirror: стили -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/dracula.min.css">
+    <link rel="stylesheet" href="{{ asset("vendor/codemirror/") }}codemirror.min.css">
+    <link rel="stylesheet" href="{{ asset("vendor/codemirror/") }}theme/dracula.min.css">
 
     <!-- CodeMirror: ядро и режимы -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/xml/xml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/css/css.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="{{ asset("vendor/codemirror/") }}codemirror.min.js"></script>
+    <script src="{{ asset("vendor/codemirror/") }}mode/xml/xml.min.js"></script>
+    <script src="{{ asset("vendor/codemirror/") }}mode/css/css.min.js"></script>
+    <script src="{{ asset("vendor/codemirror/") }}mode/htmlmixed/htmlmixed.min.js"></script>
 
     <!-- 🔥 Обязательно для кастомной подсветки -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/mode/multiplex.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/edit/closetag.min.js"></script>
+    <script src="{{ asset("vendor/codemirror/") }}addon/mode/multiplex.min.js"></script>
+    <script src="{{ asset("vendor/codemirror/") }}addon/edit/closetag.min.js"></script>
 
     @verbatim
     <script>
