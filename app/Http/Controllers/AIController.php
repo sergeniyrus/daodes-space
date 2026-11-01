@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Symfony\Component\Process\Process;
 
 require_once base_path('ai/engine/approval_queue.php');
 
@@ -22,6 +21,8 @@ class AIController extends Controller
 
         } catch (\Throwable $e) {
 
+            report($e);
+
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage(),
@@ -30,7 +31,9 @@ class AIController extends Controller
     }
 
     /**
-     * Одобрение патча и запуск применения.
+     * Одобрение патча.
+     *
+     * Фактическое применение выполняет локальный AI Runner.
      */
     public function approve(Request $request)
     {
@@ -42,12 +45,17 @@ class AIController extends Controller
 
         try {
 
-            // Одобряем только pending.
-            \ApprovalQueue::transition(
+            $item = \ApprovalQueue::transition(
                 $id,
                 'pending',
                 'approved'
             );
+
+            return response()->json([
+                'status' => $item['status'],
+                'message' => 'Patch approved. Waiting for local AI Runner.',
+                'patch_id' => $id,
+            ]);
 
         } catch (\Throwable $e) {
 
@@ -55,91 +63,6 @@ class AIController extends Controller
                 'status' => 'error',
                 'message' => $e->getMessage(),
             ], 409);
-        }
-
-        try {
-
-            $script = base_path('ai/engine/run_apply.php');
-
-            if (!is_file($script)) {
-                throw new \RuntimeException(
-                    'AI apply script not found.'
-                );
-            }
-
-            // Запускаем применение по ID, а не через временный diff-файл.
-            $process = new Process([
-                PHP_BINARY,
-                $script,
-                $id,
-            ]);
-
-            $process->setTimeout(180);
-
-            $process->run();
-
-            if (!$process->isSuccessful()) {
-
-                return response()->json([
-                    'status' => 'failed',
-                    'message' => 'Patch application failed.',
-                    'output' => $process->getOutput(),
-                    'error' => $process->getErrorOutput(),
-                    'patch_id' => $id,
-                ], 500);
-            }
-
-            $item = \ApprovalQueue::find($id);
-
-            return response()->json([
-                'status' => $item['status'] ?? 'unknown',
-                'message' => 'Patch processed successfully.',
-                'patch_id' => $id,
-                'output' => $process->getOutput(),
-            ]);
-
-        } catch (\Throwable $e) {
-
-            // Если процесс не смог завершиться,
-            // не оставляем патч в бесконечном состоянии approved/applying.
-            try {
-
-                $item = \ApprovalQueue::find($id);
-
-                if ($item !== null) {
-
-                    $currentStatus = $item['status'] ?? null;
-
-                    if ($currentStatus === 'approved') {
-
-                        \ApprovalQueue::transition(
-                            $id,
-                            'approved',
-                            'failed'
-                        );
-
-                    } elseif ($currentStatus === 'applying') {
-
-                        \ApprovalQueue::transition(
-                            $id,
-                            'applying',
-                            'failed'
-                        );
-                    }
-                }
-
-            } catch (\Throwable $queueError) {
-
-                report($queueError);
-            }
-
-            report($e);
-
-            return response()->json([
-                'status' => 'failed',
-                'message' => $e->getMessage(),
-                'patch_id' => $id,
-            ], 500);
         }
     }
 
@@ -156,7 +79,6 @@ class AIController extends Controller
 
         try {
 
-            // Отклонять можно только pending.
             \ApprovalQueue::transition(
                 $id,
                 'pending',

@@ -4,9 +4,10 @@ return [
     'ollama_url' => 'http://127.0.0.1:11434',
 
     'models' => [
-        'code' => 'qwen2.5-coder:7b',
-        'architecture' => 'qwen3:8b',
-    ],
+    'code' => 'deepseek-coder:6.7b',
+    'architecture' => 'qwen3:8b',
+    'embedding' => 'nomic-embed-text:latest',
+],
 
     'project_root' => '/home/sergeniyrus/www/daodes',
 

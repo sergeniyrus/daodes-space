@@ -1,10 +1,12 @@
-
 <?php
 
 require_once __DIR__ . '/approval_queue.php';
 
 class PatchApplier
 {
+    /**
+     * Получение корня проекта.
+     */
     private static function projectRoot(): string
     {
         $config = require __DIR__ . '/config.php';
@@ -57,6 +59,7 @@ class PatchApplier
      */
     public static function applyApprovedById(string $id): void
     {
+        // Одновременно зарезервировать патч может только один процесс.
         $item = ApprovalQueue::claimForApply($id);
 
         try {
@@ -112,6 +115,7 @@ class PatchApplier
 
     /**
      * Фактическое применение.
+     *
      * Разрешено только для патча со статусом applying,
      * полученного через applyApprovedById().
      */
@@ -169,12 +173,49 @@ class PatchApplier
 
         $patchRoot = $patch['project_root'] ?? null;
 
-        if (!is_string($patchRoot) || realpath($patchRoot) !== $root) {
+        if (
+            !is_string($patchRoot) ||
+            realpath($patchRoot) !== $root
+        ) {
             throw new RuntimeException(
                 'Patch project root does not match configured project root.'
             );
         }
     }
+
+    /**
+ * Создание или открытие файла блокировки применения.
+ *
+ * Существующие файлы не подвергаются chmod:
+ * блокировка может принадлежать другому пользователю.
+ */
+private static function openApplyLock(string $lockFile)
+{
+    $previousUmask = umask(0002);
+
+    try {
+        $lock = fopen($lockFile, 'c');
+    } finally {
+        umask($previousUmask);
+    }
+
+    if ($lock === false) {
+        throw new RuntimeException(
+            'Unable to open AI apply lock.'
+        );
+    }
+
+    if (!is_writable($lockFile)) {
+        fclose($lock);
+
+        throw new RuntimeException(
+            'AI apply lock is not writable by the current user. ' .
+            'Check ownership, group and permissions.'
+        );
+    }
+
+    return $lock;
+}
 
     /**
      * Безопасное применение unified diff.
@@ -193,13 +234,7 @@ class PatchApplier
 
         $lockFile = $storage . '/ai_apply.lock';
 
-        $lock = fopen($lockFile, 'c');
-
-        if ($lock === false) {
-            throw new RuntimeException(
-                'Unable to open AI apply lock.'
-            );
-        }
+        $lock = self::openApplyLock($lockFile);
 
         if (!flock($lock, LOCK_EX)) {
             fclose($lock);
@@ -219,6 +254,13 @@ class PatchApplier
                 ['rev-parse', '--show-toplevel']
             );
 
+            if ($gitRoot['code'] !== 0) {
+                throw new RuntimeException(
+                    "Unable to determine Git repository root:\n" .
+                    $gitRoot['output']
+                );
+            }
+
             if (realpath(trim($gitRoot['output'])) !== $root) {
                 throw new RuntimeException(
                     'Git repository root does not match project root.'
@@ -228,8 +270,19 @@ class PatchApplier
             // Не затрагиваем существующие изменения пользователя.
             $status = self::runGit(
                 $root,
-                ['status', '--porcelain', '--untracked-files=all']
+                [
+                    'status',
+                    '--porcelain',
+                    '--untracked-files=all',
+                ]
             );
+
+            if ($status['code'] !== 0) {
+                throw new RuntimeException(
+                    "Unable to check Git working tree:\n" .
+                    $status['output']
+                );
+            }
 
             if (trim($status['output']) !== '') {
                 throw new RuntimeException(
@@ -244,6 +297,13 @@ class PatchApplier
                 ['rev-parse', 'HEAD']
             );
 
+            if ($headResult['code'] !== 0) {
+                throw new RuntimeException(
+                    "Unable to determine original Git HEAD:\n" .
+                    $headResult['output']
+                );
+            }
+
             $originalHead = trim($headResult['output']);
 
             if ($originalHead === '') {
@@ -252,6 +312,7 @@ class PatchApplier
                 );
             }
 
+            // Создаём временный файл патча.
             $temporaryFile = tempnam(
                 $storage,
                 'ai_patch_'
@@ -296,9 +357,40 @@ class PatchApplier
                 ['rev-parse', 'HEAD']
             );
 
+            if ($currentHead['code'] !== 0) {
+                throw new RuntimeException(
+                    "Unable to recheck Git HEAD:\n" .
+                    $currentHead['output']
+                );
+            }
+
             if (trim($currentHead['output']) !== $originalHead) {
                 throw new RuntimeException(
                     'Git HEAD changed during patch validation.'
+                );
+            }
+
+            // Повторно проверяем рабочую директорию.
+            $currentStatus = self::runGit(
+                $root,
+                [
+                    'status',
+                    '--porcelain',
+                    '--untracked-files=all',
+                ]
+            );
+
+            if ($currentStatus['code'] !== 0) {
+                throw new RuntimeException(
+                    "Unable to recheck Git working tree:\n" .
+                    $currentStatus['output']
+                );
+            }
+
+            if (trim($currentStatus['output']) !== '') {
+                throw new RuntimeException(
+                    "Git working tree changed during patch validation.\n" .
+                    $currentStatus['output']
                 );
             }
 
@@ -312,25 +404,8 @@ class PatchApplier
             );
 
             if ($apply['code'] !== 0) {
-
-                // Восстанавливаем только при неизменном HEAD.
-                $headAfterFailure = self::runGit(
-                    $root,
-                    ['rev-parse', 'HEAD']
-                );
-
-                if (trim($headAfterFailure['output']) === $originalHead) {
-
-                    self::runGit(
-                        $root,
-                        [
-                            'reset',
-                            '--hard',
-                            $originalHead,
-                        ]
-                    );
-
-                }
+                // Не выполняем git reset --hard:
+                // он может уничтожить чужие изменения.
 
                 throw new RuntimeException(
                     "Git patch application failed:\n" .
@@ -340,7 +415,10 @@ class PatchApplier
 
         } finally {
 
-            if ($temporaryFile !== null && file_exists($temporaryFile)) {
+            if (
+                $temporaryFile !== null &&
+                file_exists($temporaryFile)
+            ) {
                 unlink($temporaryFile);
             }
 
@@ -350,7 +428,9 @@ class PatchApplier
     }
 
     /**
-     * Выполнение Git-команды без shell-интерполяции аргументов.
+     * Выполнение Git-команды.
+     *
+     * Аргументы экранируются отдельно.
      */
     private static function runGit(
         string $root,
@@ -390,7 +470,10 @@ class PatchApplier
             ['rev-parse', 'HEAD']
         );
 
-        if ($result['code'] !== 0 || trim($result['output']) === '') {
+        if (
+            $result['code'] !== 0 ||
+            trim($result['output']) === ''
+        ) {
             throw new RuntimeException(
                 'Unable to establish Git backup point.'
             );
@@ -399,6 +482,7 @@ class PatchApplier
 
     /**
      * Сохранено для совместимости.
+     *
      * Не выполняем безусловный reset HEAD~1.
      */
     private static function rollback(): void

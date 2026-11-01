@@ -35,3 +35,11 @@ public/img/svg
 
 continue.config.js
 
+# DAODES AI runtime
+/storage/ai_patch_queue.json
+/storage/ai_patch_queue.json.lock
+/storage/ai_apply.lock
+/storage/ai_runner.log
+
+# Temporary AI patch files
+/storage/ai_patch_*
