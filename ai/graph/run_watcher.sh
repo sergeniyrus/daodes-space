@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROJECT="/var/www/daodes"
+PROJECT="/home/sergeniyrus/www/daodes"
 
 echo "[DAODES GRAPH WATCHER STARTED]"
 

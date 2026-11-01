@@ -4,7 +4,7 @@ require_once __DIR__ . '/approval_queue.php';
 
 class PatchApplier
 {
-    private static string $projectRoot = '/var/www/daodes';
+    private static string $projectRoot = '/home/sergeniyrus/www/daodes';
 
     /**
      * Вместо прямого apply → отправляем в очередь на approval

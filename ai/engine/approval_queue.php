@@ -2,7 +2,7 @@
 
 class ApprovalQueue
 {
-    private static string $queueFile = '/var/www/daodes/storage/ai_patch_queue.json';
+    private static string $queueFile = '/home/sergeniyrus/www/daodes/storage/ai_patch_queue.json';
 
     public static function add(array $patch): void
     {

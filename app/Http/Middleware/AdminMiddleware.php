@@ -10,8 +10,11 @@ class AdminMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Проверяем, авторизован ли пользователь и имеет ли уровень доступа 3
-        if (!auth()->check() || auth()->user()->access_level != 3) {
+        if (!auth()->check()) {
+            abort(401, 'Необходима авторизация.');
+        }
+
+        if ((int) auth()->user()->access_level !== 3) {
             abort(403, 'Доступ запрещен — только для администраторов.');
         }
 

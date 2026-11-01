@@ -20,7 +20,7 @@ DAODES — проект на Laravel 11, использующий PHP 8.2+ и л
 
 Основная директория проекта:
 
-`/var/www/daodes/`
+`/home/sergeniyrus/www/daodes/`
 
 Рабочая директория разработки:
 

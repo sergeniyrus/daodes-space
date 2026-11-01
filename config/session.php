@@ -170,7 +170,7 @@ return [
     */
 
     'secure' => env('SESSION_SECURE_COOKIE',true),
-'same_site' => 'none',
+//'same_site' => 'none',
     /*
     |--------------------------------------------------------------------------
     | HTTP Access Only
@@ -199,9 +199,9 @@ return [
     |
     */
 
-    // 'same_site' => env('SESSION_SAME_SITE', 'lax'),
+     'same_site' => env('SESSION_SAME_SITE', 'lax'),
 
-    'same_site' => env('SESSION_SAME_SITE', 'none'), // Или 'lax', если куки не должны отправляться в межсайтовых запросах
+    //'same_site' => env('SESSION_SAME_SITE', 'none'), // Или 'lax', если куки не должны отправляться в межсайтовых запросах
 
     /*
     |--------------------------------------------------------------------------

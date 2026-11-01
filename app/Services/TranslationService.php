@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\Log;
 class TranslationService
 {
     // Указываем путь к исполняемому файлу Python скрипта
-    protected string $pythonScriptPath = '/var/www/daodes/public/argos-translate/translate_text.py';
-    protected string $virtualEnvPath = '/var/www/daodes/public/myenv/bin/activate'; // Путь к вашему виртуальному окружению
+    protected string $pythonScriptPath = '/home/sergeniyrus/www/daodes/public/argos-translate/translate_text.py';
+    protected string $virtualEnvPath = '/home/sergeniyrus/www/daodes/public/myenv/bin/activate'; // Путь к вашему виртуальному окружению
 
     public function translate(string $text, string $from, string $to): ?string
     {
@@ -17,7 +17,7 @@ class TranslationService
         $escapedText = escapeshellarg($text);
 
         // Команда для активации виртуальной среды и запуска Python скрипта
-        $command = "/var/www/daodes/public/myenv/bin/python3 {$this->pythonScriptPath} {$from} {$to} {$escapedText}";
+        $command = "/home/sergeniyrus/www/daodes/public/myenv/bin/python3 {$this->pythonScriptPath} {$from} {$to} {$escapedText}";
 
 
         // Логируем команду для отладки

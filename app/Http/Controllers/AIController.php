@@ -27,7 +27,7 @@ class AIController extends Controller
                     json_encode($item['patch'], JSON_PRETTY_PRINT)
                 );
 
-                exec("php /var/www/daodes/ai/engine/run_apply.php " . base_path('ai_last_patch.txt'));
+                exec("php /home/sergeniyrus/www/daodes/ai/engine/run_apply.php " . base_path('ai_last_patch.txt'));
 
                 $item['status'] = 'approved';
             }

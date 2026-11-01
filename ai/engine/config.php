@@ -8,9 +8,9 @@ return [
         'architecture' => 'qwen3:8b',
     ],
 
-    'project_root' => '/var/www/daodes',
+    'project_root' => '/home/sergeniyrus/www/daodes',
 
-    'rules_path' => '/var/www/daodes/ai/rules',
+    'rules_path' => '/home/sergeniyrus/www/daodes/ai/rules',
 
     'max_context_files' => 40,
 
