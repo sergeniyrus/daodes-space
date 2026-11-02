@@ -28,7 +28,7 @@
             width: 1920px;
             height: 1080px;
             position: relative;
-            background-image: url("{{ asset('images/shawarma.jpeg') }}");
+            background-image: url("{{ asset('images/tv1.png') }}");
             background-size: cover;
             background-position: center center;
             background-repeat: no-repeat;
@@ -105,11 +105,11 @@
 
         .menu-item {
             display: grid;
-            grid-template-columns: 900px 100px 100px 250px;
+            grid-template-columns: 900px 90px 150px 250px;
             gap: 0px;
             align-items: center;
                           /* было 68px */
-            padding: 10px 0 0 70px;
+            padding: 30px 0 0 70px;
         }
 
         .item-info {
@@ -129,7 +129,7 @@
         }
 
         .item-name {
-            font-size: 30px;           /* было 26px */
+            font-size: 34px;           /* было 26px */
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 1.5px;
@@ -138,7 +138,7 @@
         }
 
         .item-weight {
-            font-size: 30px;           /* было 22px */
+            font-size: 34px;           /* было 22px */
             font-weight: 700;
             color: #c9c9c0;
             white-space: nowrap;
@@ -146,7 +146,7 @@
         }
 
         .item-description {
-            font-size: 20px;           /* было 14px */
+            font-size: 26px;           /* было 14px */
             color: #d4d0c4;
             margin-top: 4px;
             text-shadow: 0 2px 6px rgba(0,0,0,0.85);
@@ -172,6 +172,8 @@
 
         .price-value.large {
             color: #ffd27a;
+            text-shadow: 0 3px 10px rgba(0,0,0,0.85);
+            white-space: nowrap;
         }
 
         .empty-menu {
