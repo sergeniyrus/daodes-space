@@ -33,7 +33,7 @@ app/Console/Commands/MergeAdminLang.php
 public/img/svg
 .gitignore
 
-continue.config.js
+
 
 # DAODES AI runtime
 /storage/ai_patch_queue.json

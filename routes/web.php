@@ -41,6 +41,8 @@ use App\Http\Controllers\{
     UserKeyController,
     SeedSetupController,
     MessageController,
+    TV1Controller,
+    TV2Controller,
 };
 
 use App\Http\Controllers\Admin\AppVersionAdminController;
@@ -49,6 +51,11 @@ use App\Http\Controllers\AppDownloadController;
 
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationMenuController;
+
+
+Route::get('/tv1', [TV1Controller::class, 'index'])->name('tv1');
+
+Route::get('/tv2', [TV2Controller::class, 'index'])->name('tv2');
 
 
 /*
