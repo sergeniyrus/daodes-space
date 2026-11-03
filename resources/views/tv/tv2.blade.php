@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Меню — TV2</title>
+    <title>Ёлки-Иголки — TV2</title>
 
     <style>
         * {
@@ -17,9 +17,8 @@
         body {
             margin: 0;
             width: 100%;
-            min-height: 100%;
+            height: 100%;
             font-family: Arial, Helvetica, sans-serif;
-            /* background: #101714; */
             color: #fff;
             overflow: hidden;
         }
@@ -37,179 +36,219 @@
             min-height: 600px;
             overflow: hidden;
 
-            background:url('/images/tv2.png') center / cover no-repeat;
+            background: url('/images/tv2.png?v=2') center / cover no-repeat;
         }
 
         .tv-content {
             width: 100%;
             height: 100%;
-            padding: 35px 55px 25px;
+            padding: 35px 50px;
 
             display: flex;
             flex-direction: column;
         }
 
-        /* HEADER */
+        /* MAIN COLUMNS */
 
-        .tv-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .menu-columns {
+            flex: 1;
+            min-height: 0;
 
-            margin-bottom: 25px;
-            flex-shrink: 0;
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, calc((100% - 36px) / 3 + 200px))
+                minmax(0, calc((100% - 36px) / 3 - 100px))
+                minmax(0, calc((100% - 36px) / 3 - 100px));
+
+            gap: 18px;
         }
 
-        .tv-title {
+        /* COLUMN LAYOUT */
+
+        .menu-column {
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* CENTRAL COLUMN — 75 / 25 */
+
+        .middle-column {
+            display: grid;
+            grid-template-rows: 7fr 3fr;
+            gap: 18px;
+            overflow: hidden;
+        }
+
+        /* RIGHT COLUMN — 50 / 50 */
+
+        .right-column {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 18px;
+            overflow: hidden;
+        }
+
+        /* CATEGORY */
+
+        .menu-section {
+            min-width: 0;
+            min-height: 0;
+
+            display: flex;
+            flex-direction: column;
+
+            padding: 14px;
+
+            border: 1px solid rgba(218, 183, 111, 0.35);
+            border-radius: 15px;
+
+            background: rgba(8, 22, 17, 0.72);
+
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+
+            overflow: hidden;
+        }
+
+        /* CATEGORY HEADER */
+
+        .section-header {
+            flex-shrink: 0;
+
+            margin-bottom: 14px;
+            padding: 5px 5px 12px;
+
+            border-bottom: 1px solid rgba(218, 183, 111, 0.4);
+        }
+
+        .section-title {
             margin: 0;
 
-            font-size: clamp(28px, 2.4vw, 48px);
+            font-size: clamp(20px, 1.55vw, 30px);
+            line-height: 1.2;
+
             font-weight: 900;
-            letter-spacing: 2px;
 
             color: #ffd27a;
             text-transform: uppercase;
         }
 
-        .tv-subtitle {
-            margin-top: 7px;
+        /* CATEGORY ITEMS */
 
-            font-size: clamp(14px, 1vw, 19px);
-            color: #b8c9c0;
-            letter-spacing: 2px;
-        }
-
-        .tv-logo {
-            font-size: clamp(20px, 1.5vw, 30px);
-            font-weight: 900;
-
-            color: #d7b56d;
-            letter-spacing: 3px;
-        }
-
-        /* MENU */
-
-        .menu-pages {
-            position: relative;
+        .section-items {
             flex: 1;
             min-height: 0;
-        }
 
-        .menu-page {
-            position: absolute;
-            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
 
-            display: none;
+            gap: 8px;
 
-            grid-template-columns:
-                repeat(var(--columns), minmax(0, 1fr));
-
-            grid-template-rows:
-                repeat(var(--rows), minmax(0, 1fr));
-
-            grid-auto-flow: column;
-
-            gap: 12px;
-        }
-
-        .menu-page.active {
-            display: grid;
+            overflow: hidden;
         }
 
         /* MENU CARD */
 
         .menu-card {
+            flex: 0 0 auto;
+
             min-width: 0;
             min-height: 0;
 
             display: flex;
-            align-items: center;
+            align-items: stretch;
 
-            gap: 12px;
-            padding: 10px;
+            padding: 9px 12px;
 
-            border: 1px solid rgba(218, 183, 111, 0.25);
-            border-radius: 12px;
+            border: 1px solid rgba(218, 183, 111, 0.22);
+            border-radius: 10px;
 
-            background: rgba(15, 28, 23, 0.88);
+            background: rgba(15, 28, 23, 0.92);
 
-            box-shadow:
-                0 3px 12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
 
             overflow: hidden;
         }
-
-        /* IMAGE */
-
-        .item-image {
-            flex: 0 0 82px;
-
-            width: 82px;
-            height: 82px;
-
-            border-radius: 9px;
-            overflow: hidden;
-
-            background: rgba(255, 255, 255, 0.06);
-
-            border: 1px solid rgba(255, 255, 255, 0.12);
-        }
-
-        .item-image img {
-            display: block;
-
-            width: 100%;
-            height: 100%;
-
-            object-fit: cover;
-        }
-
-        .image-placeholder {
-            width: 100%;
-            height: 100%;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            text-align: center;
-
-            font-size: 11px;
-            line-height: 1.4;
-
-            color: #83958c;
-        }
-
-        /* DISH INFO */
 
         .item-info {
+            width: 100%;
             min-width: 0;
-            flex: 1;
 
             display: flex;
             flex-direction: column;
-            justify-content: center;
+        }
+
+        /* DISH HEADING */
+
+        .item-heading {
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+
+            gap: 8px;
+            min-width: 0;
+
+            margin-bottom: 5px;
         }
 
         .item-name {
-            font-size: clamp(13px, 0.95vw, 18px);
-            line-height: 1.15;
+            min-width: 0;
+
+            font-size: clamp(15px, 1.05vw, 22px);
+            line-height: 1.2;
             font-weight: 900;
 
-            color: #f3e6ca;
-
-            margin-bottom: 4px;
-
-            overflow-wrap: anywhere;
+            color: #76d8fb;
         }
 
+        .item-heading .item-name {
+            flex: 1 1 auto;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* WEIGHT */
+
+        .item-inline-weight {
+            flex-shrink: 0;
+
+            font-size: clamp(12px, 0.78vw, 15px);
+            font-weight: 700;
+
+            color: #a8cfc2;
+            white-space: nowrap;
+        }
+
+        /* PRICE */
+
+        .item-inline-price {
+            flex-shrink: 0;
+
+            font-size: clamp(16px, 1.1vw, 23px);
+            font-weight: 900;
+
+            color: #ffd27a;
+            white-space: nowrap;
+        }
+
+        /* DESCRIPTION */
+
         .item-description {
-            font-size: 11px;
-            line-height: 1.2;
+            margin-bottom: 5px;
 
-            color: #9eb0a6;
+            font-size: clamp(12px, 0.78vw, 15px);
+            line-height: 1.35;
 
-            margin-bottom: 4px;
+            color: #b8c9c0;
 
             overflow: hidden;
 
@@ -221,11 +260,12 @@
         /* VARIANTS */
 
         .item-variants {
+            margin-top: auto;
+
             display: flex;
             flex-direction: column;
 
             gap: 3px;
-            margin-top: 3px;
         }
 
         .variant-row {
@@ -233,21 +273,27 @@
             align-items: center;
             justify-content: space-between;
 
-            gap: 8px;
+            gap: 10px;
             min-width: 0;
         }
 
         .item-weight {
-            font-size: clamp(11px, 0.75vw, 14px);
+            min-width: 0;
+
+            font-size: clamp(12px, 0.78vw, 15px);
             font-weight: 700;
 
-            color: #91b9ad;
+            color: #a8cfc2;
 
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .item-price {
-            font-size: clamp(15px, 1.1vw, 21px);
+            flex-shrink: 0;
+
+            font-size: clamp(16px, 1.1vw, 23px);
             font-weight: 900;
 
             color: #ffd27a;
@@ -259,7 +305,69 @@
             font-size: 0.75em;
         }
 
-        /* EMPTY */
+        /* COMPACT PRODUCTS */
+
+        .menu-card.compact-card {
+            padding: 7px 12px;
+            min-height: 0;
+        }
+
+        .compact-card .item-info {
+            justify-content: center;
+        }
+
+        .compact-card .item-heading {
+            margin-bottom: 0;
+        }
+
+        /* SETS */
+
+        .menu-card.set-card {
+            padding: 7px 12px;
+        }
+
+        .set-card .item-heading {
+            margin-bottom: 3px;
+        }
+
+        .set-card .item-name {
+            flex: 1 1 auto;
+        }
+
+        .set-card .item-inline-weight,
+        .set-card .item-inline-price {
+            flex-shrink: 0;
+        }
+
+        /* SAUCES — COMPACT */
+
+        .middle-column .menu-section:last-child .section-header {
+            margin-bottom: 8px;
+            padding-bottom: 7px;
+        }
+
+        .middle-column .menu-section:last-child .section-title {
+            font-size: clamp(17px, 1.2vw, 23px);
+        }
+
+        .middle-column .menu-section:last-child .section-items {
+            gap: 5px;
+        }
+
+        .middle-column .menu-section:last-child .menu-card {
+            padding: 5px 9px;
+        }
+
+        .middle-column .menu-section:last-child .item-name {
+            font-size: clamp(13px, 0.9vw, 18px);
+        }
+
+        .middle-column .menu-section:last-child .item-inline-price,
+        .middle-column .menu-section:last-child .item-price {
+            font-size: clamp(14px, 0.95vw, 19px);
+        }
+
+        /* EMPTY MENU */
 
         .menu-empty {
             width: 100%;
@@ -275,29 +383,6 @@
             color: #ffd27a;
         }
 
-        /* FOOTER */
-
-        .tv-footer {
-            flex-shrink: 0;
-
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            margin-top: 18px;
-            padding-top: 12px;
-
-            border-top: 1px solid rgba(218, 183, 111, 0.25);
-
-            color: #9eb0a6;
-            font-size: 14px;
-        }
-
-        .page-indicator {
-            color: #ffd27a;
-            font-weight: 700;
-        }
-
         /* RESPONSIVE */
 
         @media (max-width: 1200px) {
@@ -306,19 +391,36 @@
                 padding: 25px;
             }
 
-            .menu-page {
-                gap: 8px;
+            .menu-columns {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 10px;
             }
 
-            .item-image {
-                flex-basis: 65px;
-                width: 65px;
-                height: 65px;
+            .middle-column,
+            .right-column {
+                gap: 10px;
+            }
+
+            .menu-section {
+                padding: 10px;
             }
 
             .menu-card {
-                gap: 8px;
-                padding: 7px;
+                padding: 8px 10px;
+            }
+
+            .item-name {
+                font-size: 15px;
+            }
+
+            .item-price,
+            .item-inline-price {
+                font-size: 16px;
+            }
+
+            .item-inline-weight,
+            .item-weight {
+                font-size: 12px;
             }
         }
 
@@ -326,6 +428,7 @@
 
             html,
             body {
+                height: auto;
                 overflow: auto;
             }
 
@@ -336,393 +439,457 @@
             }
 
             .tv-content {
-                padding: 18px;
+                padding: 15px;
             }
 
-            .menu-pages {
-                flex: none;
-            }
-
-            .menu-page,
-            .menu-page.active {
-                position: relative;
-
-                display: grid;
-
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                grid-template-rows: auto;
-
-                grid-auto-flow: row;
-
-                gap: 8px;
-            }
-
-            .menu-page:not(.active) {
-                display: none;
-            }
-
-            .menu-card {
-                min-height: 105px;
-            }
-
-            .tv-footer {
-                margin-top: 15px;
-            }
-        }
-
-        @media (max-width: 480px) {
-
-            .menu-page,
-            .menu-page.active {
+            .menu-columns {
                 grid-template-columns: 1fr;
             }
 
-            .tv-header {
-                align-items: flex-start;
-                gap: 10px;
+            .menu-section {
+                min-height: auto;
             }
 
-            .tv-logo {
-                font-size: 16px;
+            .section-items {
+                overflow: visible;
+            }
+
+            .middle-column {
+                grid-template-rows: auto auto;
+                overflow: visible;
+            }
+
+            .right-column {
+                grid-template-rows: auto auto;
+                overflow: visible;
+            }
+
+            .menu-card {
+                min-height: 0;
             }
         }
+
     </style>
 </head>
 
 <body>
 
-@php
-
-    /*
-    |--------------------------------------------------------------------------
-    | ГРУППИРОВКА ТОВАРОВ
-    |--------------------------------------------------------------------------
-    | Наггетсы куриные 5 шт -> Наггетсы куриные
-    | Наггетсы куриные 9 шт -> Наггетсы куриные
-    |
-    | Вес, количество штук и цена остаются отдельными вариантами.
-    */
-
-    $groupedItems = $menuItems
-        ->groupBy(function ($item) {
-
-            $name = trim($item->name);
-
-            $name = preg_replace(
-                '/\s+\d+\s*шт\.?$/ui',
-                '',
-                $name
-            );
-
-            return mb_strtolower(trim($name));
-        })
-        ->map(function ($items) {
-
-            $first = $items->first();
-
-            $descriptionItem = $items->first(function ($item) {
-                return !empty($item->description);
-            });
-
-            $displayName = preg_replace(
-                '/\s+\d+\s*шт\.?$/ui',
-                '',
-                trim($first->name)
-            );
-
-            return (object) [
-                'name' => $displayName,
-                'description' => $descriptionItem?->description,
-                'variants' => $items->sortBy('id')->values(),
-            ];
-        })
-        ->values();
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | АВТОМАТИЧЕСКОЕ РАЗДЕЛЕНИЕ НА СТРАНИЦЫ
-    |--------------------------------------------------------------------------
-    */
-
-    $maxColumns = 4;
-    $maxRows = 7;
-
-    $maxItemsPerPage = $maxColumns * $maxRows;
-
-    $menuPages = $groupedItems->chunk($maxItemsPerPage);
-
-    $totalPages = $menuPages->count();
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | АВТОМАТИЧЕСКИЙ РАСЧЁТ СТОЛБЦОВ И СТРОК
-    |--------------------------------------------------------------------------
-    */
-
-    $pageLayouts = [];
-
-    foreach ($menuPages as $pageIndex => $pageItems) {
-
-        $count = $pageItems->count();
+    @php
 
         /*
-         * Подбираем наиболее компактную сетку.
-         *
-         * При равном количестве строк предпочитаем
-         * сетку с большим количеством столбцов,
-         * чтобы карточки были шире.
-         */
+        |--------------------------------------------------------------------------
+        | РАЗДЕЛЕНИЕ ТОВАРОВ ПО MENU_SECTION_ID
+        |--------------------------------------------------------------------------
+        */
 
-        $bestColumns = 1;
-        $bestRows = $count;
+        // Соусы — строго по ID раздела 29.
+        $sauceItems = $menuItems->filter(function ($item) {
+            return (int) $item->menu_section_id === 29;
+        });
 
-        $bestDifference = PHP_INT_MAX;
+        // Все остальные товары.
+        $regularItems = $menuItems->reject(function ($item) {
+            return (int) $item->menu_section_id === 29;
+        });
 
-        for ($columns = 1; $columns <= $maxColumns; $columns++) {
 
-            $rows = (int) ceil($count / $columns);
+        /*
+        |--------------------------------------------------------------------------
+        | ГРУППИРОВКА ОБЫЧНЫХ ТОВАРОВ
+        |--------------------------------------------------------------------------
+        */
 
-            if ($rows > $maxRows) {
-                continue;
-            }
+        $groupedItems = $regularItems
 
-            $difference = abs($columns - $rows);
+            ->groupBy(function ($item) {
 
-            if (
-                $difference < $bestDifference ||
-                (
-                    $difference === $bestDifference &&
-                    $columns > $bestColumns
-                )
-            ) {
+                $name = trim($item->name);
 
-                $bestDifference = $difference;
+                $name = preg_replace('/\s+\d+\s*шт\.?$/ui', '', $name);
 
-                $bestColumns = $columns;
-                $bestRows = $rows;
-            }
-        }
+                return mb_strtolower(trim($name));
 
-        $pageLayouts[$pageIndex] = [
-            'columns' => $bestColumns,
-            'rows' => $bestRows,
-            'count' => $count,
+            })
+
+            ->map(function ($items) {
+
+                $first = $items->first();
+
+                $descriptionItem = $items->first(function ($item) {
+                    return !empty($item->description);
+                });
+
+                $displayName = preg_replace(
+                    '/\s+\d+\s*шт\.?$/ui',
+                    '',
+                    trim($first->name)
+                );
+
+                return (object) [
+
+                    'name' => $displayName,
+
+                    'description' => $descriptionItem?->description,
+
+                    'variants' => $items->sortBy('id')->values(),
+
+                ];
+
+            })
+
+            ->values();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ГРУППИРОВКА СОУСОВ
+        |--------------------------------------------------------------------------
+        */
+
+        $groupedSauces = $sauceItems
+
+            ->groupBy(function ($item) {
+
+                $name = trim($item->name);
+
+                $name = preg_replace('/\s+\d+\s*шт\.?$/ui', '', $name);
+
+                // Убираем слово "Соус" для корректной группировки.
+                $name = preg_replace('/^соус\s+/ui', '', $name);
+
+                return mb_strtolower(trim($name));
+
+            })
+
+            ->map(function ($items) {
+
+                $first = $items->first();
+
+                $descriptionItem = $items->first(function ($item) {
+                    return !empty($item->description);
+                });
+
+                $displayName = preg_replace(
+                    '/\s+\d+\s*шт\.?$/ui',
+                    '',
+                    trim($first->name)
+                );
+
+                // Убираем слово "Соус" только из отображаемого названия.
+                $displayName = preg_replace(
+                    '/^соус\s+/ui',
+                    '',
+                    $displayName
+                );
+
+                return (object) [
+
+                    'name' => $displayName,
+
+                    'description' => $descriptionItem?->description,
+
+                    'variants' => $items->sortBy('id')->values(),
+
+                ];
+
+            })
+
+            ->values();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | TV2 — КАТЕГОРИИ
+        |--------------------------------------------------------------------------
+        */
+
+        $menuSections = collect([
+
+            'snacks' => [
+
+                'title' => 'Наборы и закуски',
+
+                'items' => $groupedItems->filter(function ($item) {
+
+                    return preg_match(
+                        '/набор\s*№?\s*[1-5]|арахис|гренк|фисташк/ui',
+                        $item->name
+                    );
+
+                })->values(),
+
+            ],
+
+            'hot' => [
+
+                'title' => 'Горячие закуски',
+
+                'items' => $groupedItems->filter(function ($item) {
+
+                    return preg_match(
+                        '/картофель|наггет|стрипс|сырные\s+палоч/ui',
+                        $item->name
+                    );
+
+                })->values(),
+
+            ],
+
+            'sauces' => [
+
+                'title' => 'Соусы',
+
+                'items' => $groupedSauces,
+
+            ],
+
+            'pancakes' => [
+
+                'title' => 'Блины и сырники',
+
+                'items' => $groupedItems->filter(function ($item) {
+
+                    return preg_match(
+                        '/блин|сырник/ui',
+                        $item->name
+                    );
+
+                })->values(),
+
+            ],
+
+            'sandwiches' => [
+
+                'title' => 'Сэндвичи',
+
+                'items' => $groupedItems->filter(function ($item) {
+
+                    return preg_match(
+                        '/сэндвич|сендвич|sandwich/ui',
+                        $item->name
+                    );
+
+                })->values(),
+
+            ],
+
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | КОЛОНКИ И ПОРЯДОК СЕКЦИЙ
+        |--------------------------------------------------------------------------
+        */
+
+        $menuColumns = [
+
+            [
+                'class' => 'left-column',
+                'sections' => ['snacks'],
+            ],
+
+            [
+                'class' => 'middle-column',
+                'sections' => ['hot', 'sauces'],
+            ],
+
+            [
+                'class' => 'right-column',
+                'sections' => ['pancakes', 'sandwiches'],
+            ],
+
         ];
-    }
 
-@endphp
-
-
-<div class="tv-screen">
-
-    <div class="tv-content">
-
-        <!-- HEADER -->
-
-        <header class="tv-header">
-
-            <div>
-
-                <h1 class="tv-title">
-                    Меню
-                </h1>
-
-                <div class="tv-subtitle">
-                    ЗАКУСКИ И БЛЮДА
-                </div>
-
-            </div>
-
-            <div class="tv-logo">
-                DAODES
-            </div>
-
-        </header>
+    @endphp
 
 
-        <!-- MENU -->
+    <div class="tv-screen">
 
-        <main class="menu-pages">
+        <div class="tv-content">
 
-            @forelse($menuPages as $pageIndex => $pageItems)
+            <main class="menu-columns">
 
-                <section
-                    class="menu-page {{ $pageIndex === 0 ? 'active' : '' }}"
-                    data-page="{{ $pageIndex }}"
-                    style="
-                        --columns: {{ $pageLayouts[$pageIndex]['columns'] }};
-                        --rows: {{ $pageLayouts[$pageIndex]['rows'] }};
-                    "
-                >
+                @foreach ($menuColumns as $column)
 
-                    @foreach($pageItems as $item)
+                    <div class="menu-column {{ $column['class'] }}">
 
-                        <article class="menu-card">
+                        @foreach ($column['sections'] as $sectionKey)
 
-                            <!-- IMAGE -->
+                            @if ($menuSections->has($sectionKey))
 
-                            <div class="item-image">
+                                @php
+                                    $section = $menuSections->get($sectionKey);
+                                @endphp
 
-                                <div class="image-placeholder">
-                                    Фото<br>блюда
-                                </div>
+                                <section class="menu-section">
 
-                            </div>
+                                    {{-- CATEGORY HEADER --}}
+
+                                    <header class="section-header">
+
+                                        <h2 class="section-title">
+                                            {{ $section['title'] }}
+                                        </h2>
+
+                                    </header>
 
 
-                            <!-- INFO -->
+                                    {{-- CATEGORY ITEMS --}}
 
-                            <div class="item-info">
+                                    <div class="section-items">
 
-                                <div class="item-name">
-                                    {{ $item->name }}
-                                </div>
+                                        @foreach ($section['items'] as $item)
 
-                                @if($item->description)
+                                            @php
 
-                                    <div class="item-description">
-                                        {{ $item->description }}
+                                                $isSet = preg_match(
+                                                    '/набор\s*№?\s*[1-5]/ui',
+                                                    $item->name
+                                                );
+
+                                                $isSmallSnack = preg_match(
+                                                    '/арахис|фисташк|гренк/ui',
+                                                    $item->name
+                                                );
+
+                                                $hasDescription = !empty($item->description);
+
+                                                $singleVariant = $item->variants->count() === 1;
+
+                                                $firstVariant = $item->variants->first();
+
+                                                $compactCard = !$hasDescription && $singleVariant;
+
+                                            @endphp
+
+                                            <article class="menu-card
+                                                {{ $compactCard ? 'compact-card' : '' }}
+                                                {{ $isSet ? 'set-card' : '' }}
+                                                {{ $isSmallSnack ? 'compact-card' : '' }}">
+
+                                                <div class="item-info">
+
+                                                    {{-- NAME + WEIGHT + PRICE --}}
+
+                                                    @if ($isSet || ($compactCard && !$hasDescription))
+
+                                                        <div class="item-heading">
+
+                                                            <div class="item-name">
+                                                                {{ $item->name }}
+                                                            </div>
+
+                                                            @if ($singleVariant)
+
+                                                                <span class="item-inline-weight">
+
+                                                                    {{ $firstVariant->weight }}
+                                                                    {{ $firstVariant->unit }}
+
+                                                                    @if (preg_match('/\s+(\d+)\s*шт\.?$/ui', $firstVariant->name, $matches))
+                                                                        · {{ $matches[1] }} шт.
+                                                                    @endif
+
+                                                                </span>
+
+                                                                <span class="item-inline-price">
+
+                                                                    {{ number_format((float) $firstVariant->price, 0, ',', ' ') }}
+
+                                                                    <span class="currency">₽</span>
+
+                                                                </span>
+
+                                                            @endif
+
+                                                        </div>
+
+                                                    @else
+
+                                                        <div class="item-heading">
+
+                                                            <div class="item-name">
+                                                                {{ $item->name }}
+                                                            </div>
+
+                                                        </div>
+
+                                                    @endif
+
+
+                                                    {{-- DESCRIPTION --}}
+
+                                                    @if ($hasDescription)
+
+                                                        <div class="item-description">
+                                                            {{ $item->description }}
+                                                        </div>
+
+                                                    @endif
+
+
+                                                    {{-- VARIANTS --}}
+
+                                                    @if (!$compactCard && (!$isSet || !$singleVariant))
+
+                                                        <div class="item-variants">
+
+                                                            @foreach ($item->variants as $variant)
+
+                                                                <div class="variant-row">
+
+                                                                    <span class="item-weight">
+
+                                                                        {{ $variant->weight }}
+                                                                        {{ $variant->unit }}
+
+                                                                        @if (preg_match('/\s+(\d+)\s*шт\.?$/ui', $variant->name, $matches))
+                                                                            · {{ $matches[1] }} шт.
+                                                                        @endif
+
+                                                                    </span>
+
+                                                                    <span class="item-price">
+
+                                                                        {{ number_format((float) $variant->price, 0, ',', ' ') }}
+
+                                                                        <span class="currency">₽</span>
+
+                                                                    </span>
+
+                                                                </div>
+
+                                                            @endforeach
+
+                                                        </div>
+
+                                                    @endif
+
+                                                </div>
+
+                                            </article>
+
+                                        @endforeach
+
                                     </div>
 
-                                @endif
+                                </section>
 
+                            @endif
 
-                                <!-- VARIANTS -->
+                        @endforeach
 
-                                <div class="item-variants">
+                    </div>
 
-                                    @foreach($item->variants as $variant)
+                @endforeach
 
-                                        <div class="variant-row">
+            </main>
 
-                                            <span class="item-weight">
-
-                                                {{ $variant->weight }}
-                                                {{ $variant->unit }}
-
-                                                @if(preg_match('/\s+(\d+)\s*шт\.?$/ui', $variant->name, $matches))
-
-                                                    · {{ $matches[1] }} шт.
-
-                                                @endif
-
-                                            </span>
-
-
-                                            <span class="item-price">
-
-                                                {{ number_format((float) $variant->price, 0, ',', ' ') }}
-
-                                                <span class="currency">
-                                                    ₽
-                                                </span>
-
-                                            </span>
-
-                                        </div>
-
-                                    @endforeach
-
-                                </div>
-
-                            </div>
-
-                        </article>
-
-                    @endforeach
-
-                </section>
-
-            @empty
-
-                <div class="menu-empty">
-                    Меню временно недоступно
-                </div>
-
-            @endforelse
-
-        </main>
-
-
-        <!-- FOOTER -->
-
-        <footer class="tv-footer">
-
-            <div>
-                Приятного аппетита!
-            </div>
-
-            <div class="page-indicator">
-
-                <span id="currentPage">1</span>
-
-                /
-
-                <span id="totalPages">
-                    {{ $totalPages }}
-                </span>
-
-            </div>
-
-        </footer>
+        </div>
 
     </div>
 
-</div>
-
-
-<!-- PAGE SWITCHING -->
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-
-        const pages = document.querySelectorAll('.menu-page');
-
-        const currentPageElement = document.getElementById('currentPage');
-
-        if (!pages.length) {
-            return;
-        }
-
-        let currentPage = 0;
-
-        const switchInterval = 12000;
-
-        function showPage(index) {
-
-            pages.forEach(function (page, pageIndex) {
-
-                page.classList.toggle(
-                    'active',
-                    pageIndex === index
-                );
-
-            });
-
-            currentPageElement.textContent = index + 1;
-
-        }
-
-        if (pages.length > 1) {
-
-            setInterval(function () {
-
-                currentPage++;
-
-                if (currentPage >= pages.length) {
-                    currentPage = 0;
-                }
-
-                showPage(currentPage);
-
-            }, switchInterval);
-
-        }
-
-    });
-</script>
-
 </body>
+
 </html>

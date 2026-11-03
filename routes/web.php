@@ -43,6 +43,7 @@ use App\Http\Controllers\{
     MessageController,
     TV1Controller,
     TV2Controller,
+    TV3Controller,
 };
 
 use App\Http\Controllers\Admin\AppVersionAdminController;
@@ -56,6 +57,8 @@ use App\Http\Controllers\OrganizationMenuController;
 Route::get('/tv1', [TV1Controller::class, 'index'])->name('tv1');
 
 Route::get('/tv2', [TV2Controller::class, 'index'])->name('tv2');
+
+Route::get('/tv3', [TV3Controller::class, 'index'])->name('tv3');
 
 
 /*

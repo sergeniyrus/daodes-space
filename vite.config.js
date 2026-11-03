@@ -1,3 +1,4 @@
+
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import fs from 'fs';
@@ -16,14 +17,13 @@ export default defineConfig({
                 'resources/css/ckeditor.css',
                 'resources/css/category.css',
                 'resources/css/chat_index.css',
-                'resources/css/chat_show.css',                
+                'resources/css/chat_show.css',
                 'resources/css/organizations.css',
-                'resources/css/chat_index.css',
-                'resources/css/chat_show.css',                
+
                 'resources/js/app.js',
                 'resources/js/bt_top.js',
                 'resources/js/chat_index.js',
-                'resources/js/chat/index.js',                
+                'resources/js/chat/index.js',
                 'resources/js/category-modal.js',
                 'resources/js/category-submit.js',
                 'resources/js/ckeditor-init.js',
@@ -31,51 +31,63 @@ export default defineConfig({
                 'resources/js/cropper-init.js',
                 'resources/js/form-validation.js',
                 'resources/js/image-uploader.js',
-
             ],
-            refresh: true,
+
+            refresh: [
+                'resources/views/**',
+                'resources/images/**',
+                'public/images/**',
+                'app/Livewire/**',
+                'app/View/Components/**',
+                'lang/**',
+                'resources/lang/**',
+                'routes/**',
+            ],
         }),
     ],
+
     server: {
-        
         https: {
-            key: fs.readFileSync(path.resolve(__dirname, 'storage/certs/privkey.pem')),
-            cert: fs.readFileSync(path.resolve(__dirname, 'storage/certs/fullchain.pem')),
+            key: fs.readFileSync(
+                path.resolve(__dirname, 'storage/certs/privkey.pem')
+            ),
+            cert: fs.readFileSync(
+                path.resolve(__dirname, 'storage/certs/fullchain.pem')
+            ),
         },
+
         host: '0.0.0.0',
         port: 5173,
         strictPort: true,
+
         hmr: {
             protocol: 'wss',
             host: 'daodes.space',
             clientPort: 443,
-            path: '/vite-hmr'
+            path: '/vite-hmr',
         },
+
         cors: true,
+
         headers: {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-            'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type, Authorization'
+            'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type, Authorization',
         },
-        // proxy: {
-        //     '/api': {
-        //         target: 'https://daodes.space',  // Полный URL бэкенда
-        //         changeOrigin: true,
-        //         secure: false,
-        //         ws: true
-        //     }
-        // },
+
         watch: {
             usePolling: true,
-            interval: 1000
-        }
+            interval: 300,
+        },
     },
+
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, './resources/js')
-        }
+            '@': path.resolve(__dirname, './resources/js'),
+        },
     },
+
     optimizeDeps: {
-        include: ['lodash', 'axios']
-    }
+        include: ['lodash', 'axios'],
+    },
 });
