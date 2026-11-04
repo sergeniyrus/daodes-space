@@ -482,14 +482,14 @@
         |--------------------------------------------------------------------------
         */
 
-        // Соусы — строго по ID раздела 29.
+        // Соусы — строго по ID раздела 14.
         $sauceItems = $menuItems->filter(function ($item) {
-            return (int) $item->menu_section_id === 29;
+            return (int) $item->menu_section_id === 14;
         });
 
         // Все остальные товары.
         $regularItems = $menuItems->reject(function ($item) {
-            return (int) $item->menu_section_id === 29;
+            return (int) $item->menu_section_id === 14;
         });
 
 

@@ -47,13 +47,13 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 1320px;   /* было 1140px */
+            width: 1920px;   /* было 1140px */
             height: 1080px;
             padding: 0;
         }
 
         .brand-placeholder {
-            height: 200px;
+            height: 80px;
         }
 
         /* ===== Шапка таблицы ===== */

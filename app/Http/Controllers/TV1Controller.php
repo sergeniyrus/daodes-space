@@ -27,6 +27,6 @@ class TV1Controller extends Controller
                 'sort_order',
             ]);
 
-        return view('tv1.index', compact('menuItems'));
+        return view('tv.tv1', compact('menuItems'));
     }
 }
