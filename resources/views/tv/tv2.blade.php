@@ -42,7 +42,7 @@
         .tv-content {
             width: 100%;
             height: 100%;
-            padding: 35px 50px;
+            padding: 30px 30px;
 
             display: flex;
             flex-direction: column;
@@ -76,21 +76,23 @@
             flex-direction: column;
         }
 
-        /* CENTRAL COLUMN — 75 / 25 */
+        /* CENTRAL COLUMN — 70 / 30 */
 
         .middle-column {
-            display: grid;
+            display: flex;
+    flex-direction: column;
             grid-template-rows: 7fr 3fr;
-            gap: 18px;
+            gap: 10px;
             overflow: hidden;
         }
 
-        /* RIGHT COLUMN — 50 / 50 */
+        /* RIGHT COLUMN — 45 / 55 */
 
         .right-column {
-            display: grid;
-            grid-template-rows: 1fr 1fr;
-            gap: 18px;
+            display: flex;
+    flex-direction: column;
+            grid-template-rows: 60fr 40fr;
+            gap: 10px;
             overflow: hidden;
         }
 
@@ -475,234 +477,91 @@
 <body>
 
     @php
-
         /*
-        |--------------------------------------------------------------------------
-        | РАЗДЕЛЕНИЕ ТОВАРОВ ПО MENU_SECTION_ID
-        |--------------------------------------------------------------------------
-        */
+         * Группируем строки menu_items в карточки блюд.
+         * Одинаковые названия и варианты с количеством "N шт." попадают
+         * в одну карточку, а вес/цена остаются отдельными вариантами.
+         */
+        $buildSectionItems = function ($sectionId) use ($menuItems) {
+            return $menuItems
+                ->where('menu_section_id', $sectionId)
+                ->groupBy(function ($item) use ($sectionId) {
+                    $name = trim($item->name);
 
-        // Соусы — строго по ID раздела 14.
-        $sauceItems = $menuItems->filter(function ($item) {
-            return (int) $item->menu_section_id === 14;
-        });
+                    if ($sectionId === 14) {
+                        $name = preg_replace('/^Соус\s+/ui', '', $name);
+                    }
 
-        // Все остальные товары.
-        $regularItems = $menuItems->reject(function ($item) {
-            return (int) $item->menu_section_id === 14;
-        });
+                    $name = preg_replace('/\s+\d+\s*шт\.?$/ui', '', $name);
 
+                    return mb_strtolower(trim($name));
+                })
+                ->map(function ($variants) use ($sectionId) {
+                    $firstVariant = $variants->first();
+                    $name = trim($firstVariant->name);
 
-        /*
-        |--------------------------------------------------------------------------
-        | ГРУППИРОВКА ОБЫЧНЫХ ТОВАРОВ
-        |--------------------------------------------------------------------------
-        */
+                    if ($sectionId === 14) {
+                        $name = preg_replace('/^Соус\s+/ui', '', $name);
+                    }
 
-        $groupedItems = $regularItems
+                    $name = preg_replace('/\s+\d+\s*шт\.?$/ui', '', $name);
 
-            ->groupBy(function ($item) {
+                    $description = $variants->first(function ($variant) {
+                        return !empty($variant->description);
+                    });
 
-                $name = trim($item->name);
+                    return (object) [
+                        'name' => trim($name),
+                        'description' => $description ? $description->description : null,
+                        'variants' => $variants->values(),
+                    ];
+                })
+                ->values();
+        };
 
-                $name = preg_replace('/\s+\d+\s*шт\.?$/ui', '', $name);
-
-                return mb_strtolower(trim($name));
-
-            })
-
-            ->map(function ($items) {
-
-                $first = $items->first();
-
-                $descriptionItem = $items->first(function ($item) {
-                    return !empty($item->description);
-                });
-
-                $displayName = preg_replace(
-                    '/\s+\d+\s*шт\.?$/ui',
-                    '',
-                    trim($first->name)
-                );
-
-                return (object) [
-
-                    'name' => $displayName,
-
-                    'description' => $descriptionItem?->description,
-
-                    'variants' => $items->sortBy('id')->values(),
-
-                ];
-
-            })
-
-            ->values();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | ГРУППИРОВКА СОУСОВ
-        |--------------------------------------------------------------------------
-        */
-
-        $groupedSauces = $sauceItems
-
-            ->groupBy(function ($item) {
-
-                $name = trim($item->name);
-
-                $name = preg_replace('/\s+\d+\s*шт\.?$/ui', '', $name);
-
-                // Убираем слово "Соус" для корректной группировки.
-                $name = preg_replace('/^соус\s+/ui', '', $name);
-
-                return mb_strtolower(trim($name));
-
-            })
-
-            ->map(function ($items) {
-
-                $first = $items->first();
-
-                $descriptionItem = $items->first(function ($item) {
-                    return !empty($item->description);
-                });
-
-                $displayName = preg_replace(
-                    '/\s+\d+\s*шт\.?$/ui',
-                    '',
-                    trim($first->name)
-                );
-
-                // Убираем слово "Соус" только из отображаемого названия.
-                $displayName = preg_replace(
-                    '/^соус\s+/ui',
-                    '',
-                    $displayName
-                );
-
-                return (object) [
-
-                    'name' => $displayName,
-
-                    'description' => $descriptionItem?->description,
-
-                    'variants' => $items->sortBy('id')->values(),
-
-                ];
-
-            })
-
-            ->values();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | TV2 — КАТЕГОРИИ
-        |--------------------------------------------------------------------------
-        */
-
-        $menuSections = collect([
-
-            'snacks' => [
-
+        $menuSections = [
+            10 => [
+                'id' => 10,
                 'title' => 'Наборы и закуски',
-
-                'items' => $groupedItems->filter(function ($item) {
-
-                    return preg_match(
-                        '/набор\s*№?\s*[1-5]|арахис|гренк|фисташк/ui',
-                        $item->name
-                    );
-
-                })->values(),
-
+                'items' => $buildSectionItems(10),
             ],
-
-            'hot' => [
-
+            15 => [
+                'id' => 15,
                 'title' => 'Горячие закуски',
-
-                'items' => $groupedItems->filter(function ($item) {
-
-                    return preg_match(
-                        '/картофель|наггет|стрипс|сырные\s+палоч/ui',
-                        $item->name
-                    );
-
-                })->values(),
-
+                'items' => $buildSectionItems(15),
             ],
-
-            'sauces' => [
-
+            14 => [
+                'id' => 14,
                 'title' => 'Соусы',
-
-                'items' => $groupedSauces,
-
+                'items' => $buildSectionItems(14),
             ],
-
-            'pancakes' => [
-
-                'title' => 'Блины и сырники',
-
-                'items' => $groupedItems->filter(function ($item) {
-
-                    return preg_match(
-                        '/блин|сырник/ui',
-                        $item->name
-                    );
-
-                })->values(),
-
+            16 => [
+                'id' => 16,
+                'title' => 'Блины, сырники и вафли',
+                'items' => $buildSectionItems(16),
             ],
-
-            'sandwiches' => [
-
+            17 => [
+                'id' => 17,
                 'title' => 'Сэндвичи',
-
-                'items' => $groupedItems->filter(function ($item) {
-
-                    return preg_match(
-                        '/сэндвич|сендвич|sandwich/ui',
-                        $item->name
-                    );
-
-                })->values(),
-
+                'items' => $buildSectionItems(17),
             ],
-
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | КОЛОНКИ И ПОРЯДОК СЕКЦИЙ
-        |--------------------------------------------------------------------------
-        */
-
-        $menuColumns = [
-
-            [
-                'class' => 'left-column',
-                'sections' => ['snacks'],
-            ],
-
-            [
-                'class' => 'middle-column',
-                'sections' => ['hot', 'sauces'],
-            ],
-
-            [
-                'class' => 'right-column',
-                'sections' => ['pancakes', 'sandwiches'],
-            ],
-
         ];
 
+        $menuColumns = [
+            [
+                'class' => 'left-column',
+                'sections' => [10],
+            ],
+            [
+                'class' => 'middle-column',
+                'sections' => [15, 14],
+            ],
+            [
+                'class' => 'right-column',
+                'sections' => [16, 17],
+            ],
+        ];
     @endphp
-
 
     <div class="tv-screen">
 
@@ -714,169 +573,147 @@
 
                     <div class="menu-column {{ $column['class'] }}">
 
-                        @foreach ($column['sections'] as $sectionKey)
+                        @foreach ($column['sections'] as $sectionId)
 
-                            @if ($menuSections->has($sectionKey))
+                            @php
+                                $section = $menuSections[$sectionId];
+                            @endphp
 
-                                @php
-                                    $section = $menuSections->get($sectionKey);
-                                @endphp
+                            <section class="menu-section">
 
-                                <section class="menu-section">
+                                {{-- CATEGORY HEADER --}}
 
-                                    {{-- CATEGORY HEADER --}}
+                                <header class="section-header">
+                                    <h2 class="section-title">
+                                        {{ $section['title'] }}
+                                    </h2>
+                                </header>
 
-                                    <header class="section-header">
+                                {{-- CATEGORY ITEMS --}}
 
-                                        <h2 class="section-title">
-                                            {{ $section['title'] }}
-                                        </h2>
+                                <div class="section-items">
 
-                                    </header>
+                                    @forelse ($section['items'] as $item)
 
+                                        @php
+                                            $isSet = preg_match(
+                                                '/набор\s*№?\s*[1-5]/ui',
+                                                $item->name
+                                            );
 
-                                    {{-- CATEGORY ITEMS --}}
+                                            $isSmallSnack = preg_match(
+                                                '/арахис|фисташк|гренк|сухарик/ui',
+                                                $item->name
+                                            );
 
-                                    <div class="section-items">
+                                            $hasDescription = !empty($item->description);
+                                            $singleVariant = $item->variants->count() === 1;
+                                            $firstVariant = $item->variants->first();
+                                            $compactCard = !$hasDescription && $singleVariant;
+                                        @endphp
 
-                                        @foreach ($section['items'] as $item)
+                                        <article class="menu-card
+                                            {{ $compactCard ? 'compact-card' : '' }}
+                                            {{ $isSet ? 'set-card' : '' }}
+                                            {{ $isSmallSnack ? 'compact-card' : '' }}">
 
-                                            @php
+                                            <div class="item-info">
 
-                                                $isSet = preg_match(
-                                                    '/набор\s*№?\s*[1-5]/ui',
-                                                    $item->name
-                                                );
+                                                {{-- NAME + WEIGHT + PRICE --}}
 
-                                                $isSmallSnack = preg_match(
-                                                    '/арахис|фисташк|гренк/ui',
-                                                    $item->name
-                                                );
+                                                @if ($isSet || ($compactCard && !$hasDescription))
 
-                                                $hasDescription = !empty($item->description);
+                                                    <div class="item-heading">
 
-                                                $singleVariant = $item->variants->count() === 1;
+                                                        <div class="item-name">
+                                                            {{ $item->name }}
+                                                        </div>
 
-                                                $firstVariant = $item->variants->first();
+                                                        @if ($singleVariant)
 
-                                                $compactCard = !$hasDescription && $singleVariant;
+                                                            <span class="item-inline-weight">
+                                                                {{ $firstVariant->weight }}
+                                                                {{ $firstVariant->unit }}
 
-                                            @endphp
+                                                                @if (preg_match('/\s+(\d+)\s*шт\.?$/ui', $firstVariant->name, $matches))
+                                                                    · {{ $matches[1] }} шт.
+                                                                @endif
+                                                            </span>
 
-                                            <article class="menu-card
-                                                {{ $compactCard ? 'compact-card' : '' }}
-                                                {{ $isSet ? 'set-card' : '' }}
-                                                {{ $isSmallSnack ? 'compact-card' : '' }}">
+                                                            <span class="item-inline-price">
+                                                                {{ number_format((float) $firstVariant->price, 0, ',', ' ') }}
+                                                                <span class="currency">₽</span>
+                                                            </span>
 
-                                                <div class="item-info">
+                                                        @endif
 
-                                                    {{-- NAME + WEIGHT + PRICE --}}
+                                                    </div>
 
-                                                    @if ($isSet || ($compactCard && !$hasDescription))
+                                                @else
 
-                                                        <div class="item-heading">
+                                                    <div class="item-heading">
+                                                        <div class="item-name">
+                                                            {{ $item->name }}
+                                                        </div>
+                                                    </div>
 
-                                                            <div class="item-name">
-                                                                {{ $item->name }}
-                                                            </div>
+                                                @endif
 
-                                                            @if ($singleVariant)
+                                                {{-- DESCRIPTION --}}
 
-                                                                <span class="item-inline-weight">
+                                                @if ($hasDescription)
+                                                    <div class="item-description">
+                                                        {{ $item->description }}
+                                                    </div>
+                                                @endif
 
-                                                                    {{ $firstVariant->weight }}
-                                                                    {{ $firstVariant->unit }}
+                                                {{-- VARIANTS --}}
 
-                                                                    @if (preg_match('/\s+(\d+)\s*шт\.?$/ui', $firstVariant->name, $matches))
+                                                @if (!$compactCard && (!$isSet || !$singleVariant))
+
+                                                    <div class="item-variants">
+
+                                                        @foreach ($item->variants as $variant)
+
+                                                            <div class="variant-row">
+
+                                                                <span class="item-weight">
+                                                                    {{ $variant->weight }}
+                                                                    {{ $variant->unit }}
+
+                                                                    @if (preg_match('/\s+(\d+)\s*шт\.?$/ui', $variant->name, $matches))
                                                                         · {{ $matches[1] }} шт.
                                                                     @endif
-
                                                                 </span>
 
-                                                                <span class="item-inline-price">
-
-                                                                    {{ number_format((float) $firstVariant->price, 0, ',', ' ') }}
-
+                                                                <span class="item-price">
+                                                                    {{ number_format((float) $variant->price, 0, ',', ' ') }}
                                                                     <span class="currency">₽</span>
-
                                                                 </span>
 
-                                                            @endif
-
-                                                        </div>
-
-                                                    @else
-
-                                                        <div class="item-heading">
-
-                                                            <div class="item-name">
-                                                                {{ $item->name }}
                                                             </div>
 
-                                                        </div>
+                                                        @endforeach
 
-                                                    @endif
+                                                    </div>
 
+                                                @endif
 
-                                                    {{-- DESCRIPTION --}}
+                                            </div>
 
-                                                    @if ($hasDescription)
+                                        </article>
 
-                                                        <div class="item-description">
-                                                            {{ $item->description }}
-                                                        </div>
+                                    @empty
 
-                                                    @endif
+                                        <div class="menu-empty">
+                                            Раздел пока пуст
+                                        </div>
 
+                                    @endforelse
 
-                                                    {{-- VARIANTS --}}
+                                </div>
 
-                                                    @if (!$compactCard && (!$isSet || !$singleVariant))
-
-                                                        <div class="item-variants">
-
-                                                            @foreach ($item->variants as $variant)
-
-                                                                <div class="variant-row">
-
-                                                                    <span class="item-weight">
-
-                                                                        {{ $variant->weight }}
-                                                                        {{ $variant->unit }}
-
-                                                                        @if (preg_match('/\s+(\d+)\s*шт\.?$/ui', $variant->name, $matches))
-                                                                            · {{ $matches[1] }} шт.
-                                                                        @endif
-
-                                                                    </span>
-
-                                                                    <span class="item-price">
-
-                                                                        {{ number_format((float) $variant->price, 0, ',', ' ') }}
-
-                                                                        <span class="currency">₽</span>
-
-                                                                    </span>
-
-                                                                </div>
-
-                                                            @endforeach
-
-                                                        </div>
-
-                                                    @endif
-
-                                                </div>
-
-                                            </article>
-
-                                        @endforeach
-
-                                    </div>
-
-                                </section>
-
-                            @endif
+                            </section>
 
                         @endforeach
 

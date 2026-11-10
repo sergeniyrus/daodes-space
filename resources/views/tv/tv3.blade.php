@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 
@@ -102,11 +101,12 @@
             min-height: 0;
         }
 
-        /* FIRST COLUMN — НЕ МЕНЯЕМ */
+        /* FIRST COLUMN — ВАРИМ САМИ + БЕЗАЛКОГОЛЬНЫЕ */
 
         .left-column {
-            display: grid;
-            grid-template-rows: 2fr 4fr;
+            display: flex;
+            flex-direction: column;
+
             gap: 18px;
             overflow: hidden;
         }
@@ -116,23 +116,27 @@
         .middle-column {
             display: flex;
             flex-direction: column;
+
+            gap: 18px;
             overflow: hidden;
         }
 
         /* THIRD COLUMN — COFFEE + DESSERTS */
 
         .coffee-column {
-            display: grid;
-            grid-template-rows: 7fr 3fr;
+            display: flex;
+            flex-direction: column;
+
             gap: 18px;
             overflow: hidden;
         }
 
-        /* FOURTH COLUMN — BEER + CONFECTIONERY */
+        /* FOURTH COLUMN — BEER */
 
         .beer-column {
-            display: grid;
-            grid-template-rows: 1fr 1fr;
+            display: flex;
+            flex-direction: column;
+
             gap: 18px;
             overflow: hidden;
         }
@@ -245,7 +249,7 @@
             gap: 8px;
             min-width: 0;
 
-            margin-bottom: 4px;
+            margin-bottom: 5px;
         }
 
         .item-name {
@@ -274,7 +278,7 @@
             display: flex;
             flex-direction: column;
 
-            gap: 2px;
+            gap: 3px;
         }
 
         .variant-row {
@@ -282,7 +286,7 @@
             align-items: center;
             justify-content: space-between;
 
-            gap: 8px;
+            gap: 10px;
             min-width: 0;
         }
 
@@ -321,10 +325,10 @@
         ========================================================= */
 
         .item-description {
-            margin-bottom: 4px;
+            margin-bottom: 5px;
 
             font-size: var(--font-description);
-            line-height: 1.3;
+            line-height: 1.35;
 
             color: var(--color-text);
 
@@ -340,7 +344,7 @@
         ========================================================= */
 
         .menu-card.compact-card {
-            padding: var(--card-padding);
+            padding: 7px 12px;
         }
 
         .compact-card .item-info {
@@ -492,16 +496,14 @@
                 grid-template-columns:
                     minmax(0, 0.85fr)
                     minmax(0, 1fr)
-                    minmax(0, 0.6fr)
-                    minmax(0, 0.55fr);
+                    minmax(0, 0.7fr)
+                    minmax(0, 0.65fr);
 
                 gap: 10px;
             }
 
-            .left-column {
-                gap: 10px;
-            }
-
+            .left-column,
+            .middle-column,
             .coffee-column,
             .beer-column {
                 gap: 10px;
@@ -554,11 +556,7 @@
                 overflow: visible;
             }
 
-            .left-column {
-                grid-template-rows: auto auto;
-                overflow: visible;
-            }
-
+            .left-column,
             .middle-column,
             .coffee-column,
             .beer-column {
@@ -585,19 +583,15 @@
 <body>
 
     @php
-
         /*
         |--------------------------------------------------------------------------
-        | ГРУППИРОВКА НАПИТКОВ ПО РАЗДЕЛУ И НАЗВАНИЮ
+        | ГРУППИРОВКА ТОВАРОВ ПО РАЗДЕЛУ И НАЗВАНИЮ
         |--------------------------------------------------------------------------
         */
-
         $groupedItems = $menuItems
-
             ->groupBy(function ($item) {
                 return (int) $item->menu_section_id . '|' . mb_strtolower(trim($item->name));
             })
-
             ->map(function ($items) {
                 $first = $items->first();
 
@@ -607,100 +601,78 @@
 
                 return (object) [
                     'name' => trim($first->name),
-
                     'menu_section_id' => (int) $first->menu_section_id,
-
-                    'description' => $descriptionItem?->description,
-
-                    'variants' => $items
-                        ->sortBy(function ($item) {
-                            return (float) $item->weight;
-                        })
-                        ->values(),
+                    'description' => $descriptionItem ? $descriptionItem->description : null,
+                    'variants' => $items->sortBy(function ($item) {
+                        return (float) $item->weight;
+                    })->values(),
                 ];
             })
-
             ->values();
 
         /*
         |--------------------------------------------------------------------------
-        | TV3 — КАТЕГОРИИ НАПИТКОВ И ДОПОЛНИТЕЛЬНЫХ ТОВАРОВ
+        | КАТЕГОРИИ TV3
         |--------------------------------------------------------------------------
         */
-
-        $menuSections = collect([
+        $menuSections = [
             'homemade' => [
                 'id' => 5,
                 'title' => 'Варим сами',
+                'items' => collect(),
             ],
-
             'cocktails' => [
                 'id' => 6,
                 'title' => 'Коктейли',
+                'items' => collect(),
+                'milkshake_flavors' => collect(),
             ],
-
             'soft' => [
                 'id' => 7,
                 'title' => 'Безалкогольные напитки',
+                'items' => collect(),
             ],
-
             'coffee' => [
                 'id' => 11,
                 'title' => 'Кофе и чай',
+                'items' => collect(),
             ],
-
             'desserts' => [
                 'id' => 8,
                 'title' => 'Десерты',
+                'items' => collect(),
             ],
-
             'beer' => [
                 'id' => 12,
                 'title' => 'Пиво и квас',
+                'items' => collect(),
             ],
-
             'confectionery' => [
                 'id' => 13,
                 'title' => 'Кондитерские изделия',
+                'items' => collect(),
             ],
-        ]);
+        ];
 
         /*
         |--------------------------------------------------------------------------
-        | РАСПРЕДЕЛЕНИЕ ТОВАРОВ ПО КАТЕГОРИЯМ
+        | НАПОЛНЕНИЕ КАТЕГОРИЙ И ОСОБАЯ ОБРАБОТКА МОЛОЧНОГО КОКТЕЙЛЯ
         |--------------------------------------------------------------------------
         */
-
-        $menuSections = $menuSections->map(function ($section, $sectionKey) use ($groupedItems) {
-
-            $section['items'] = $groupedItems
-
+        foreach ($menuSections as $sectionKey => $section) {
+            $sectionItems = $groupedItems
                 ->filter(function ($item) use ($section) {
                     return (int) $item->menu_section_id === (int) $section['id'];
                 })
-
                 ->values();
 
-            /*
-            |--------------------------------------------------------------------------
-            | МОЛОЧНЫЙ КОКТЕЙЛЬ И ЕГО ВКУСЫ
-            |--------------------------------------------------------------------------
-            */
-
             if ($sectionKey === 'cocktails') {
-
-                $section['milkshake_flavors'] = $section['items']
-
+                $milkshakeFlavors = $sectionItems
                     ->filter(function ($item) {
                         $name = mb_strtolower(trim($item->name));
-
                         return $name !== 'молочный коктейль' && $name !== 'мохито';
                     })
-
                     ->map(function ($item) {
-
-                        // Убираем повторение слов "Молочный коктейль" из названий вкусов.
-
                         $flavor = preg_replace(
                             '/^молочный\s+коктейль[\s\-–—:]*/iu',
                             '',
@@ -709,167 +681,124 @@
 
                         return trim($flavor);
                     })
-
                     ->filter(function ($flavor) {
                         return $flavor !== '';
                     })
-
                     ->unique()
                     ->values();
 
-                // Убираем вкусы из отдельных карточек.
-
-                $section['items'] = $section['items']
-
+                $sectionItems = $sectionItems
                     ->reject(function ($item) {
                         $name = mb_strtolower(trim($item->name));
-
                         return $name !== 'молочный коктейль' && $name !== 'мохито';
                     })
-
                     ->values();
+
+                $section['milkshake_flavors'] = $milkshakeFlavors;
             }
 
-            return $section;
-        });
+            $section['items'] = $sectionItems;
+            $menuSections[$sectionKey] = $section;
+        }
 
         /*
         |--------------------------------------------------------------------------
-        | КОЛОНКИ И ПОРЯДОК СЕКЦИЙ
+        | ЧЕТЫРЕ КОЛОНКИ
+        | КОНДИТЕРСКИЕ ИЗДЕЛИЯ ВРЕМЕННО НЕ ВЫВОДИМ
         |--------------------------------------------------------------------------
         */
-
         $menuColumns = [
             [
                 'class' => 'left-column',
                 'sections' => ['homemade', 'soft'],
             ],
-
             [
                 'class' => 'middle-column',
                 'sections' => ['cocktails'],
             ],
-
             [
                 'class' => 'coffee-column',
                 'sections' => ['coffee', 'desserts'],
             ],
-
             [
                 'class' => 'beer-column',
-                'sections' => ['beer', 'confectionery'],
+                'sections' => ['beer'],
             ],
         ];
-
     @endphp
 
-
     <div class="tv-screen">
-
         <div class="tv-content">
-
             <main class="menu-columns">
 
                 @foreach ($menuColumns as $column)
-
                     <div class="menu-column {{ $column['class'] }}">
 
                         @foreach ($column['sections'] as $sectionKey)
+                            @php
+                                $section = $menuSections[$sectionKey] ?? null;
+                            @endphp
 
-                            @if ($menuSections->has($sectionKey))
-
-                                @php
-                                    $section = $menuSections->get($sectionKey);
-                                @endphp
-
-                                <section class="menu-section {{ $sectionKey }}-section">
-
-                                    {{-- CATEGORY HEADER --}}
+                            @if ($section)
+                                <section class="menu-section {{ $sectionKey }}-section {{ $sectionKey === 'cocktails' ? 'cocktails-section' : '' }}">
 
                                     <header class="section-header">
-
                                         <h2 class="section-title">
                                             {{ $section['title'] }}
                                         </h2>
-
                                     </header>
-
-
-                                    {{-- CATEGORY ITEMS --}}
 
                                     <div class="section-items">
 
-                                        @foreach ($section['items'] as $item)
+                                        @forelse ($section['items'] as $item)
 
                                             @php
-
                                                 $hasDescription = !empty($item->description);
 
-                                                $isMilkshake =
-                                                    $sectionKey === 'cocktails' &&
-                                                    mb_strtolower(trim($item->name)) === 'молочный коктейль';
+                                                $isMilkshake = $sectionKey === 'cocktails'
+                                                    && mb_strtolower(trim($item->name)) === 'молочный коктейль';
 
-                                                $isBeer =
-                                                    $sectionKey === 'beer' &&
-                                                    $hasDescription &&
-                                                    preg_match('/\d+(?:[,.]\d+)?\s*%/u', $item->description);
+                                                $isBeer = $sectionKey === 'beer'
+                                                    && $hasDescription
+                                                    && preg_match('/\d+(?:[,.]\d+)?\s*%/u', $item->description);
 
-                                                $compactCard =
-                                                    !$hasDescription &&
-                                                    !$isMilkshake &&
-                                                    $item->variants->count() === 1;
-
+                                                $compactCard = !$hasDescription
+                                                    && !$isMilkshake
+                                                    && $item->variants->count() === 1;
                                             @endphp
-
-
-                                            {{-- MILKSHAKE CARD --}}
 
                                             @if ($isMilkshake)
 
                                                 <article class="menu-card milkshake-card">
-
                                                     <div class="item-info">
 
                                                         <div class="item-heading">
-
                                                             <div class="item-name">
                                                                 Молочный коктейль
                                                             </div>
-
                                                         </div>
 
-
-                                                        {{-- PRICES FOR 300 AND 500 ML --}}
-
                                                         <div class="item-variants">
-
                                                             @foreach ($item->variants as $variant)
-
                                                                 <div class="variant-row">
 
                                                                     <span class="item-weight">
-                                                                        {{ $variant->weight }} {{ $variant->unit }}
+                                                                        @if ($variant->weight !== null)
+                                                                            {{ $variant->weight }}
+                                                                        @endif
+                                                                        {{ $variant->unit }}
                                                                     </span>
 
                                                                     <span class="item-price">
-
                                                                         {{ number_format((float) $variant->price, 0, ',', ' ') }}
-
                                                                         <span class="currency">₽</span>
-
                                                                     </span>
 
                                                                 </div>
-
                                                             @endforeach
-
                                                         </div>
 
-
-                                                        {{-- FLAVORS WITHOUT REPEATING THE PRODUCT NAME --}}
-
                                                         @if ($section['milkshake_flavors']->isNotEmpty())
-
                                                             <div class="milkshake-flavors">
 
                                                                 <div class="milkshake-label">
@@ -877,28 +806,20 @@
                                                                 </div>
 
                                                                 @foreach ($section['milkshake_flavors'] as $flavor)
-
                                                                     <div class="milkshake-flavor">
                                                                         {{ $flavor }}
                                                                     </div>
-
                                                                 @endforeach
 
                                                             </div>
-
                                                         @endif
 
                                                     </div>
-
                                                 </article>
-
-
-                                                {{-- SINGLE VARIANT WITHOUT DESCRIPTION --}}
 
                                             @elseif ($compactCard)
 
                                                 <article class="menu-card compact-card">
-
                                                     <div class="item-info">
 
                                                         <div class="compact-row">
@@ -908,39 +829,26 @@
                                                             </span>
 
                                                             <span class="item-weight">
-
                                                                 @if ($item->variants->first()->weight !== null)
                                                                     {{ $item->variants->first()->weight }}
                                                                 @endif
-
                                                                 {{ $item->variants->first()->unit }}
-
                                                             </span>
 
                                                             <span class="item-price">
-
                                                                 {{ number_format((float) $item->variants->first()->price, 0, ',', ' ') }}
-
                                                                 <span class="currency">₽</span>
-
                                                             </span>
 
                                                         </div>
 
                                                     </div>
-
                                                 </article>
-
-
-                                                {{-- REGULAR CARD WITH DESCRIPTION OR MULTIPLE VARIANTS --}}
 
                                             @else
 
                                                 <article class="menu-card {{ $isBeer ? 'beer-card' : '' }}">
-
                                                     <div class="item-info">
-
-                                                        {{-- PRODUCT NAME --}}
 
                                                         <div class="item-heading">
 
@@ -948,88 +856,66 @@
                                                                 {{ $item->name }}
                                                             </div>
 
-                                                            {{-- BEER ALCOHOL PERCENTAGE --}}
-
                                                             @if ($isBeer)
-
                                                                 <span class="beer-percent">
                                                                     {{ $item->description }}
                                                                 </span>
-
                                                             @endif
 
                                                         </div>
 
-
-                                                        {{-- DESCRIPTION FOR NON-BEER PRODUCTS --}}
-
                                                         @if ($hasDescription && !$isBeer)
-
                                                             <div class="item-description">
                                                                 {{ $item->description }}
                                                             </div>
-
                                                         @endif
-
-
-                                                        {{-- ALL VARIANTS UNDER ONE NAME --}}
 
                                                         <div class="item-variants">
 
                                                             @foreach ($item->variants as $variant)
-
                                                                 <div class="variant-row">
 
                                                                     <span class="item-weight">
-
                                                                         @if ($variant->weight !== null)
                                                                             {{ $variant->weight }}
                                                                         @endif
-
                                                                         {{ $variant->unit }}
-
                                                                     </span>
 
                                                                     <span class="item-price">
-
                                                                         {{ number_format((float) $variant->price, 0, ',', ' ') }}
-
                                                                         <span class="currency">₽</span>
-
                                                                     </span>
 
                                                                 </div>
-
                                                             @endforeach
 
                                                         </div>
 
                                                     </div>
-
                                                 </article>
 
                                             @endif
 
-                                        @endforeach
+                                        @empty
+
+                                            <div class="menu-empty">
+                                                Скоро в меню
+                                            </div>
+
+                                        @endforelse
 
                                     </div>
-
                                 </section>
-
                             @endif
 
                         @endforeach
-
                     </div>
-
                 @endforeach
 
             </main>
-
         </div>
-
     </div>
 
 </body>
-
 </html>

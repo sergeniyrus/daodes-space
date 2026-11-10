@@ -9,7 +9,7 @@ class TV2Controller extends Controller
     public function index()
     {
         $menuItems = DB::table('menu_items')
-            ->whereIn('menu_section_id', [10, 14])
+            ->whereIn('menu_section_id', [10, 14, 15, 16, 17])
             ->where('is_active', 1)
             ->orderBy('menu_section_id', 'asc')
             ->orderBy('sort_order', 'asc')
