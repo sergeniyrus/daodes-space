@@ -1,432 +1,197 @@
 <?php
 
+/**
+ * Общая файловая очередь AI Engine.
+ *
+ * Все операции чтения/изменения синхронизируются отдельным lock-файлом.
+ * Запись JSON выполняется во временный файл с последующим rename().
+ */
 class ApprovalQueue
 {
-    /**
-     * Путь к файлу очереди.
-     */
-    private static function queueFile(): string
+    private static function storageDirectory(): string
     {
-        $projectRoot = dirname(__DIR__, 2);
+        $configured = getenv('DAODES_STORAGE_PATH');
 
-        return $projectRoot . '/storage/ai_patch_queue.json';
+        return rtrim(
+            $configured ?: dirname(__DIR__, 2) . '/storage',
+            DIRECTORY_SEPARATOR
+        );
     }
 
-    /**
-     * Путь к файлу блокировки очереди.
-     */
+    private static function queueFile(): string
+    {
+        return self::storageDirectory() . '/ai_patch_queue.json';
+    }
+
     private static function lockFile(): string
     {
         return self::queueFile() . '.lock';
     }
 
-    /**
- * Создание или открытие файла с групповыми правами.
- *
- * Новые файлы создаются с учётом umask 0002.
- * Существующие файлы не подвергаются chmod,
- * поскольку могут принадлежать другому пользователю.
- */
-private static function createWritableFile(
-    string $file,
-    string $mode
-) {
-    $previousUmask = umask(0002);
+    public static function add(array $patch): array
+    {
+        return self::withLock(LOCK_EX, function () use ($patch) {
+            $queue = self::readQueue();
 
-    try {
-        $handle = fopen($file, $mode);
-    } finally {
-        umask($previousUmask);
+            $item = [
+                'id' => 'patch_' . bin2hex(random_bytes(16)),
+                'status' => 'pending',
+                'created_at' => date(DATE_ATOM),
+                'updated_at' => date(DATE_ATOM),
+                'patch' => $patch,
+            ];
+
+            $queue[] = $item;
+            self::writeQueue($queue);
+
+            return $item;
+        });
     }
 
-    if ($handle === false) {
-        throw new RuntimeException(
-            'Unable to open AI queue file: ' . $file
-        );
+    public static function load(): array
+    {
+        return self::withLock(LOCK_SH, function () {
+            return self::readQueue();
+        });
     }
 
-    if (!is_writable($file)) {
-        fclose($handle);
-
-        throw new RuntimeException(
-            'AI queue file is not writable: ' .
-            $file .
-            '. Check ownership, group and permissions.'
-        );
-    }
-
-    return $handle;
-}
-
-    /**
-     * Выполнение операции с блокировкой очереди.
-     */
-    private static function withLock(
-        bool $exclusive,
-        callable $callback
-    ): mixed {
-        $directory = dirname(self::queueFile());
-
-        if (!is_dir($directory)) {
-            $previousUmask = umask(0002);
-
-            try {
-                $created = mkdir($directory, 0775, true);
-            } finally {
-                umask($previousUmask);
-            }
-
-            if (!$created && !is_dir($directory)) {
-                throw new RuntimeException(
-                    'Unable to create AI queue directory.'
-                );
+    public static function find(string $id): ?array
+    {
+        foreach (self::load() as $item) {
+            if (($item['id'] ?? null) === $id) {
+                return $item;
             }
         }
 
-        $lock = self::createWritableFile(
-            self::lockFile(),
-            'c'
-        );
+        return null;
+    }
 
-        $lockType = $exclusive ? LOCK_EX : LOCK_SH;
+    /**
+     * $expectedStatus обеспечивает compare-and-set:
+     * только один запрос сможет перевести pending -> applying.
+     */
+    public static function updateStatus(
+        string $id,
+        string $status,
+        ?string $expectedStatus = null
+    ): bool {
+        $allowed = ['pending', 'applying', 'applied', 'rejected', 'failed'];
 
-        if (!flock($lock, $lockType)) {
-            fclose($lock);
+        if (!in_array($status, $allowed, true)) {
+            throw new InvalidArgumentException('Недопустимый статус патча.');
+        }
 
-            throw new RuntimeException(
-                'Unable to lock AI queue.'
-            );
+        return self::withLock(LOCK_EX, function () use ($id, $status, $expectedStatus) {
+            $queue = self::readQueue();
+            $found = false;
+
+            foreach ($queue as &$item) {
+                if (($item['id'] ?? null) !== $id) {
+                    continue;
+                }
+
+                if (
+                    $expectedStatus !== null &&
+                    ($item['status'] ?? null) !== $expectedStatus
+                ) {
+                    unset($item);
+                    return false;
+                }
+
+                $item['status'] = $status;
+                $item['updated_at'] = date(DATE_ATOM);
+                $found = true;
+                break;
+            }
+
+            unset($item);
+
+            if ($found) {
+                self::writeQueue($queue);
+            }
+
+            return $found;
+        });
+    }
+
+    private static function withLock(int $mode, callable $callback)
+    {
+        $directory = self::storageDirectory();
+
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new RuntimeException('Не удалось создать каталог storage для AI Engine.');
+        }
+
+        $handle = fopen(self::lockFile(), 'c');
+
+        if ($handle === false) {
+            throw new RuntimeException('Не удалось открыть lock-файл очереди AI Engine.');
         }
 
         try {
+            if (!flock($handle, $mode)) {
+                throw new RuntimeException('Не удалось заблокировать очередь AI Engine.');
+            }
+
             return $callback();
         } finally {
-            flock($lock, LOCK_UN);
-            fclose($lock);
+            flock($handle, LOCK_UN);
+            fclose($handle);
         }
     }
 
-    /**
-     * Чтение очереди без повторного получения блокировки.
-     */
-    private static function loadUnlocked(): array
+    private static function readQueue(): array
     {
         $file = self::queueFile();
 
-        if (!file_exists($file)) {
+        if (!is_file($file)) {
             return [];
         }
 
         $contents = file_get_contents($file);
 
         if ($contents === false) {
+            throw new RuntimeException('Не удалось прочитать очередь AI Engine.');
+        }
+
+        if (trim($contents) === '') {
+            return [];
+        }
+
+        $queue = json_decode($contents, true);
+
+        if (!is_array($queue) || json_last_error() !== JSON_ERROR_NONE) {
             throw new RuntimeException(
-                'Unable to read AI queue.'
+                'Файл очереди AI Engine содержит повреждённый JSON. Файл не перезаписан.'
             );
         }
 
-        try {
-            $queue = json_decode(
-                $contents,
-                true,
-                512,
-                JSON_THROW_ON_ERROR
-            );
-        } catch (JsonException $e) {
-            throw new RuntimeException(
-                'AI queue contains invalid JSON: ' .
-                $e->getMessage(),
-                0,
-                $e
-            );
-        }
-
-        if (!is_array($queue)) {
-            throw new RuntimeException(
-                'AI queue must contain a JSON array.'
-            );
-        }
-
-        return $queue;
+        return array_values(array_filter($queue, 'is_array'));
     }
 
-    /**
-     * Атомарное сохранение очереди.
-     */
-    private static function saveUnlocked(array $queue): void
+    private static function writeQueue(array $queue): void
     {
         $file = self::queueFile();
+        $temporary = $file . '.' . bin2hex(random_bytes(6)) . '.tmp';
 
         $json = json_encode(
-            $queue,
-            JSON_PRETTY_PRINT |
-            JSON_UNESCAPED_UNICODE |
-            JSON_UNESCAPED_SLASHES |
-            JSON_THROW_ON_ERROR
+            array_values($queue),
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
 
-        $temporaryFile = $file .
-            '.tmp.' .
-            bin2hex(random_bytes(8));
-
-        $previousUmask = umask(0002);
-
-        try {
-            $written = file_put_contents(
-                $temporaryFile,
-                $json,
-                LOCK_EX
-            );
-        } finally {
-            umask($previousUmask);
+        if ($json === false) {
+            throw new RuntimeException('Не удалось сериализовать очередь AI Engine.');
         }
 
-        if ($written === false) {
-            throw new RuntimeException(
-                'Unable to write temporary AI queue.'
-            );
+        if (file_put_contents($temporary, $json, LOCK_EX) === false) {
+            throw new RuntimeException('Не удалось записать временный файл очереди.');
         }
 
-        if (!chmod($temporaryFile, 0664)) {
-            @unlink($temporaryFile);
-
-            throw new RuntimeException(
-                'Unable to set permissions on temporary AI queue.'
-            );
+        if (!rename($temporary, $file)) {
+            @unlink($temporary);
+            throw new RuntimeException('Не удалось атомарно обновить очередь AI Engine.');
         }
 
-        if (!rename($temporaryFile, $file)) {
-            @unlink($temporaryFile);
-
-            throw new RuntimeException(
-                'Unable to replace AI queue file.'
-            );
-        }
-    }
-
-    /**
-     * Разрешённые переходы статусов.
-     */
-    private static function allowedTransitions(): array
-    {
-        return [
-            'pending' => [
-                'approved',
-                'rejected',
-            ],
-
-            'approved' => [
-                'applying',
-            ],
-
-            'applying' => [
-                'applied',
-                'failed',
-            ],
-
-            'rejected' => [],
-
-            'applied' => [],
-
-            'failed' => [],
-        ];
-    }
-
-    /**
-     * Проверка допустимости перехода.
-     */
-    private static function validateTransition(
-        string $expectedStatus,
-        string $newStatus
-    ): void {
-        $transitions = self::allowedTransitions();
-
-        if (!isset($transitions[$expectedStatus])) {
-            throw new InvalidArgumentException(
-                'Invalid current AI patch status: ' .
-                $expectedStatus
-            );
-        }
-
-        if (!in_array(
-            $newStatus,
-            $transitions[$expectedStatus],
-            true
-        )) {
-            throw new InvalidArgumentException(
-                'Transition from ' .
-                $expectedStatus .
-                ' to ' .
-                $newStatus .
-                ' is not allowed.'
-            );
-        }
-    }
-
-    /**
-     * Добавление патча в очередь.
-     */
-    public static function add(array $patch): array
-    {
-        $diff = $patch['diff'] ?? null;
-
-        if (!is_string($diff) || trim($diff) === '') {
-            throw new InvalidArgumentException(
-                'Cannot add an empty patch to the queue.'
-            );
-        }
-
-        return self::withLock(true, function () use ($patch, $diff) {
-
-            $queue = self::loadUnlocked();
-
-            $now = date('Y-m-d H:i:s');
-
-            $item = [
-                'id' => bin2hex(random_bytes(16)),
-                'status' => 'pending',
-                'created_at' => $now,
-                'updated_at' => $now,
-                'sha256' => hash('sha256', $diff),
-                'patch' => $patch,
-            ];
-
-            $queue[] = $item;
-
-            self::saveUnlocked($queue);
-
-            return $item;
-        });
-    }
-
-    /**
-     * Получение всей очереди.
-     */
-    public static function load(): array
-    {
-        return self::withLock(false, function () {
-            return self::loadUnlocked();
-        });
-    }
-
-    /**
-     * Получение патча по ID.
-     */
-    public static function find(string $id): ?array
-    {
-        return self::withLock(false, function () use ($id) {
-
-            $queue = self::loadUnlocked();
-
-            foreach ($queue as $item) {
-                if (($item['id'] ?? null) === $id) {
-                    return $item;
-                }
-            }
-
-            return null;
-        });
-    }
-
-    /**
-     * Строгий переход статуса.
-     */
-    public static function transition(
-        string $id,
-        string $expectedStatus,
-        string $newStatus
-    ): array {
-        self::validateTransition(
-            $expectedStatus,
-            $newStatus
-        );
-
-        return self::withLock(true, function () use (
-            $id,
-            $expectedStatus,
-            $newStatus
-        ) {
-
-            $queue = self::loadUnlocked();
-
-            foreach ($queue as &$item) {
-
-                if (($item['id'] ?? null) !== $id) {
-                    continue;
-                }
-
-                $currentStatus = $item['status'] ?? null;
-
-                if ($currentStatus !== $expectedStatus) {
-                    throw new RuntimeException(
-                        'Invalid status transition: expected ' .
-                        $expectedStatus .
-                        ', current status is ' .
-                        ($currentStatus ?? 'unknown')
-                    );
-                }
-
-                $item['status'] = $newStatus;
-                $item['updated_at'] = date('Y-m-d H:i:s');
-
-                $updatedItem = $item;
-
-                unset($item);
-
-                self::saveUnlocked($queue);
-
-                return $updatedItem;
-            }
-
-            unset($item);
-
-            throw new RuntimeException(
-                'AI patch not found: ' . $id
-            );
-        });
-    }
-
-    /**
-     * Совместимость со старым API.
-     *
-     * Теперь метод не обходит проверку переходов.
-     */
-    public static function updateStatus(
-        string $id,
-        string $status
-    ): void {
-        $item = self::find($id);
-
-        if ($item === null) {
-            throw new RuntimeException(
-                'AI patch not found: ' . $id
-            );
-        }
-
-        $currentStatus = $item['status'] ?? null;
-
-        if (!is_string($currentStatus)) {
-            throw new RuntimeException(
-                'AI patch has an invalid current status.'
-            );
-        }
-
-        self::transition(
-            $id,
-            $currentStatus,
-            $status
-        );
-    }
-
-    /**
-     * Резервирование одобренного патча для применения.
-     */
-    public static function claimForApply(string $id): array
-    {
-        return self::transition(
-            $id,
-            'approved',
-            'applying'
-        );
+        @chmod($file, 0660);
     }
 }

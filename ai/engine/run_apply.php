@@ -1,37 +1,22 @@
-
 <?php
 
-if (PHP_SAPI !== 'cli') {
-    http_response_code(403);
-    exit("CLI access only.\n");
-}
+$projectRoot = dirname(__DIR__, 2);
 
+require_once $projectRoot . '/vendor/autoload.php';
 require_once __DIR__ . '/apply_patch.php';
 
-$id = $argv[1] ?? null;
+$patchFile = $argv[1] ?? null;
 
-if (!is_string($id) || !preg_match('/^[a-f0-9]{32}$/', $id)) {
-    fwrite(STDERR, "Invalid or missing patch ID.\n");
+if (!$patchFile) {
+    fwrite(STDERR, "Usage: php ai/engine/run_apply.php /absolute/path/to/patch.json\n");
     exit(1);
 }
 
 try {
+    $queued = PatchApplier::apply($patchFile);
 
-    echo "Starting approved patch application...\n";
-    echo "Patch ID: {$id}\n";
-
-    PatchApplier::applyApprovedById($id);
-
-    echo "DONE.\n";
-
-    exit(0);
-
-} catch (Throwable $e) {
-
-    fwrite(
-        STDERR,
-        "PATCH APPLY ERROR: " . $e->getMessage() . "\n"
-    );
-
+    echo "Patch queued for approval: " . $queued['id'] . PHP_EOL;
+} catch (Throwable $exception) {
+    fwrite(STDERR, "Queue error: " . $exception->getMessage() . PHP_EOL);
     exit(1);
 }

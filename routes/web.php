@@ -44,6 +44,7 @@ use App\Http\Controllers\{
     TV1Controller,
     TV2Controller,
     TV3Controller,
+    AIController,
 };
 
 use App\Http\Controllers\Admin\AppVersionAdminController;
@@ -52,6 +53,12 @@ use App\Http\Controllers\AppDownloadController;
 
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationMenuController;
+
+Route::middleware(['auth', ReleaseAdmin::class])
+    ->get('/admin/ai/approval', function () {
+        return view('ai.approval');
+    })
+    ->name('admin.ai.approval');
 
 
 Route::get('/tv1', [TV1Controller::class, 'index'])->name('tv1');

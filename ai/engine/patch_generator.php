@@ -1,176 +1,187 @@
-
 <?php
+
+require_once __DIR__ . '/ollama_client.php';
 
 class PatchGenerator
 {
-    public static function generate(array $analysis, array $config): array
-    {
-        $prompt = <<<PROMPT
-You are a senior Laravel 11 software engineer.
+    public static function generate(
+        $analysis,
+        array $config,
+        array $context = [],
+        string $task = '',
+        string $rules = ''
+    ): string {
+        if ($context === []) {
+            throw new RuntimeException('Генератору патча не передан контекст исходных файлов.');
+        }
 
-Convert the supplied analysis into a REAL unified Git diff patch.
+        $analysisText = is_array($analysis)
+            ? (string) ($analysis['response'] ?? '')
+            : (string) $analysis;
 
-STRICT RULES:
-- Preserve the existing project architecture.
-- Use Laravel 11 and the existing PHP project conventions.
-- Do not introduce Python, external scripts or unrelated dependencies.
-- Do not modify routes, function names, class names or variable names unless explicitly required by the analysis.
-- Do not invent files or project functionality.
-- Do not output explanations, comments outside the patch, Markdown or code fences.
-- Output ONLY a valid unified Git diff.
-- Include file paths in the diff.
-- Use standard Git diff format.
-- If no safe patch can be generated, return an empty response.
+        $analysisText = self::cutText($analysisText, (int) ($config['max_analysis_bytes'] ?? 3500));
+        $task = self::cutText(trim($task), (int) ($config['max_task_chars'] ?? 700));
+        $rules = self::cutText(trim($rules), (int) ($config['max_generator_rules_bytes'] ?? 1500));
 
-ANALYSIS:
-PROMPT;
+        if (trim($analysisText) === '') {
+            throw new RuntimeException('Архитектурный анализ пуст. Генерация патча отменена.');
+        }
 
-        $prompt .= "\n" . json_encode(
-            $analysis,
-            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        $contextJson = json_encode(
+            $context,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
 
-        $result = self::callOllama(
+        if ($contextJson === false) {
+            throw new RuntimeException('Не удалось сериализовать исходники для генератора патча.');
+        }
+
+        $maxContextJsonBytes = (int) ($config['max_generator_context_bytes'] ?? 10000);
+        if (strlen($contextJson) > $maxContextJsonBytes) {
+            throw new RuntimeException(
+                'Контекст исходников превышает лимит генератора: ' . strlen($contextJson) .
+                ' байт, лимит ' . $maxContextJsonBytes . ' байт.'
+            );
+        }
+
+        $allowedPaths = [];
+        foreach ($context as $item) {
+            if (!isset($item['path'], $item['content']) || !is_string($item['path']) || !is_string($item['content'])) {
+                throw new RuntimeException('Контекст содержит файл неизвестного формата.');
+            }
+
+            $allowedPaths[] = str_replace('\\', '/', $item['path']);
+        }
+
+        $allowedPaths = array_values(array_unique($allowedPaths));
+
+        $prompt = "You are the patch-generation stage of the DAODES AI Engine.\n" .
+            "Generate a minimal, real patch using ONLY the exact source files supplied below.\n\n" .
+            "NON-NEGOTIABLE RULES:\n" .
+            "1. You may modify existing files listed in ALLOWED FILE PATHS only.\n" .
+            "2. Do not create, delete, rename, or invent files.\n" .
+            "3. Read the supplied file contents and make changes against those exact contents.\n" .
+            "4. Never replace PHP source with JSON, placeholder text, examples, or unrelated content.\n" .
+            "5. Preserve existing functionality, routes, public method names, and variable names unless the task explicitly requires a change.\n" .
+            "6. Do not change generated files, dependencies, lock files, environment files, or build artifacts.\n" .
+            "7. Return a valid unified Git diff with one complete diff block per changed file.\n" .
+            "8. Every block must contain: diff --git, ---, +++, and at least one @@ hunk.\n" .
+            "9. Do not use Markdown fences, explanations, summaries, or text before/after the diff.\n" .
+            "10. If no safe, concrete change is justified by the task and supplied source, return exactly NO_SAFE_PATCH.\n\n" .
+            "USER TASK:\n" . $task . "\n\n" .
+            "ARCHITECTURE ANALYSIS:\n" . $analysisText . "\n\n" .
+            "PROJECT RULES:\n" . $rules . "\n\n" .
+            "ALLOWED FILE PATHS:\n" . implode("\n", $allowedPaths) . "\n\n" .
+            "EXACT SOURCE FILES (JSON; each item has path and content):\n" . $contextJson . "\n\n" .
+            "Return only the unified diff or NO_SAFE_PATCH.";
+
+        $result = OllamaClient::generate(
             $prompt,
             $config['models']['code'],
-            $config
+            $config,
+            'code'
         );
 
-        $diff = self::extractDiff($result['response'] ?? '');
+        if (($result['done_reason'] ?? null) === 'length') {
+            throw new RuntimeException(
+                'Генерация diff достигла лимита токенов. Неполный патч отклонён.'
+            );
+        }
+
+        $diff = trim((string) ($result['response'] ?? ''));
+
+        if ($diff === 'NO_SAFE_PATCH') {
+            throw new RuntimeException('AI Engine не обнаружил безопасных изменений для указанной задачи.');
+        }
 
         if ($diff === '') {
+            throw new RuntimeException('Модель генерации вернула пустой diff.');
+        }
+
+        $maxDiffBytes = (int) ($config['max_diff_bytes'] ?? 12000);
+        if (strlen($diff) > $maxDiffBytes) {
             throw new RuntimeException(
-                'Ollama did not return a valid unified diff.'
+                'Сгенерированный diff превышает допустимый размер: ' . strlen($diff) . ' байт.'
             );
         }
 
-        return [
-            'diff' => $diff,
-            'model' => $config['models']['code'],
-            'generated_at' => date('Y-m-d H:i:s'),
-            'project_root' => $config['project_root'],
-        ];
+        self::validateGeneratedDiff($diff, $allowedPaths);
+
+        return $diff . "\n";
     }
 
-    private static function callOllama(
-        string $prompt,
-        string $model,
-        array $config
-    ): array {
-        $url = rtrim($config['ollama_url'], '/') . '/api/generate';
-
-        $ch = curl_init($url);
-
-        if ($ch === false) {
-            throw new RuntimeException('Unable to initialize cURL.');
-        }
-
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode([
-                'model' => $model,
-                'prompt' => $prompt,
-                'stream' => false,
-            ]),
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Accept: application/json',
-            ],
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_TIMEOUT => 300,
-        ]);
-
-        $response = curl_exec($ch);
-
-        $curlError = curl_error($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        curl_close($ch);
-
-        if ($response === false) {
-            throw new RuntimeException(
-                'Ollama connection failed: ' . $curlError
-            );
-        }
-
-        if ($httpCode < 200 || $httpCode >= 300) {
-            throw new RuntimeException(
-                'Ollama returned HTTP ' . $httpCode . ': ' . $response
-            );
-        }
-
-        $decoded = json_decode($response, true);
-
-        if (!is_array($decoded)) {
-            throw new RuntimeException(
-                'Invalid JSON response from Ollama.'
-            );
-        }
-
-        if (!isset($decoded['response'])) {
-            throw new RuntimeException(
-                'Ollama response field is missing.'
-            );
-        }
-
-        return $decoded;
-    }
-
-    private static function extractDiff(string $response): string
+    private static function validateGeneratedDiff(string $diff, array $allowedPaths): void
     {
-        $response = trim($response);
-
-        if ($response === '') {
-            return '';
+        if (str_contains($diff, '```') || preg_match('/^diff--git\b/m', $diff)) {
+            throw new RuntimeException('Diff содержит Markdown-обрамление или некорректный заголовок.');
         }
 
-        // Убираем Markdown-обёртку, если модель её всё-таки добавила.
-        $response = preg_replace(
-            '/^\s*```(?:diff|patch)?\s*/i',
-            '',
-            $response
-        );
-
-        $response = preg_replace(
-            '/\s*```\s*$/',
-            '',
-            $response
-        );
-
-        $response = trim($response);
-
-        // Находим начало настоящего unified diff.
-        if (preg_match('/^(?:diff --git |--- )/m', $response, $matches, PREG_OFFSET_CAPTURE)) {
-            $response = substr(
-                $response,
-                $matches[0][1]
-            );
-        } else {
-            return '';
+        if (!str_starts_with($diff, 'diff --git ')) {
+            throw new RuntimeException('Ответ модели не начинается с заголовка unified diff.');
         }
 
-        $response = trim($response);
-
-        $hasGitHeader = str_starts_with($response, 'diff --git ');
-
-        $hasUnifiedHeader =
-            preg_match('/^--- .+$/m', $response) &&
-            preg_match('/^\+\+\+ .+$/m', $response);
-
-        if (!$hasGitHeader && !$hasUnifiedHeader) {
-            return '';
+        $blocks = preg_split('/(?=^diff --git )/m', $diff, -1, PREG_SPLIT_NO_EMPTY);
+        if (!is_array($blocks) || $blocks === []) {
+            throw new RuntimeException('Не удалось разделить ответ на diff-блоки.');
         }
 
-        // Патч должен содержать хотя бы одну секцию изменений.
-        if (
-            !preg_match('/^@@ /m', $response) &&
-            !preg_match('/^new file mode /m', $response) &&
-            !preg_match('/^deleted file mode /m', $response)
-        ) {
-            return '';
+        $allowed = array_fill_keys($allowedPaths, true);
+        $seen = [];
+
+        foreach ($blocks as $block) {
+            $lines = preg_split('/\r?\n/', trim($block));
+            if (!$lines || !preg_match('/^diff --git a\/([^\s]+) b\/([^\s]+)$/', $lines[0], $header)) {
+                throw new RuntimeException('Обнаружен некорректный заголовок diff --git.');
+            }
+
+            $oldPath = $header[1];
+            $newPath = $header[2];
+
+            if ($oldPath !== $newPath) {
+                throw new RuntimeException('Переименование файлов генератором запрещено.');
+            }
+
+            $path = str_replace('\\', '/', $newPath);
+            if (!isset($allowed[$path])) {
+                throw new RuntimeException('Модель пытается изменить файл, которого нет в контексте: ' . $path);
+            }
+
+            if (isset($seen[$path])) {
+                throw new RuntimeException('В diff повторяется один и тот же файл: ' . $path);
+            }
+            $seen[$path] = true;
+
+            $oldHeaders = preg_grep('/^--- /', $lines) ?: [];
+            $newHeaders = preg_grep('/^\+\+\+ /', $lines) ?: [];
+            $hunks = preg_grep('/^@@ /', $lines) ?: [];
+
+            if (count($oldHeaders) !== 1 || count($newHeaders) !== 1 || count($hunks) < 1) {
+                throw new RuntimeException('Diff-блок не содержит корректные заголовки файлов и hunk.');
+            }
+
+            if (
+                trim(reset($oldHeaders)) !== '--- a/' . $path ||
+                trim(reset($newHeaders)) !== '+++ b/' . $path
+            ) {
+                throw new RuntimeException('Пути в diff --git и ---/+++ не совпадают: ' . $path);
+            }
+
+            if (preg_match('/^(?:new file mode|deleted file mode|old mode|new mode|rename from|rename to|copy from|copy to|GIT binary patch)\b/m', $block)) {
+                throw new RuntimeException('Создание, удаление, переименование, смена режима и бинарные патчи запрещены.');
+            }
+        }
+    }
+
+    private static function cutText(string $value, int $maxBytes): string
+    {
+        if ($maxBytes <= 0 || strlen($value) <= $maxBytes) {
+            return $value;
         }
 
-        return $response . "\n";
+        if (function_exists('mb_strcut')) {
+            return mb_strcut($value, 0, $maxBytes, 'UTF-8');
+        }
+
+        return substr($value, 0, $maxBytes);
     }
 }
