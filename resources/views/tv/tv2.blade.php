@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 
@@ -80,7 +79,7 @@
 
         .middle-column {
             display: flex;
-    flex-direction: column;
+            flex-direction: column;
             grid-template-rows: 7fr 3fr;
             gap: 10px;
             overflow: hidden;
@@ -90,7 +89,7 @@
 
         .right-column {
             display: flex;
-    flex-direction: column;
+            flex-direction: column;
             grid-template-rows: 60fr 40fr;
             gap: 10px;
             overflow: hidden;
@@ -369,6 +368,29 @@
             font-size: clamp(14px, 0.95vw, 19px);
         }
 
+        /* COMBINED SAUCES — TWO LINES */
+
+        .middle-column .menu-section:last-child .sauce-combined-card {
+            padding: 5px 9px;
+        }
+
+        .middle-column .menu-section:last-child .sauce-combined-card .item-info {
+            justify-content: center;
+        }
+
+        .middle-column .menu-section:last-child .sauce-combined-card .item-heading {
+            align-items: center;
+            margin-bottom: 0;
+        }
+
+        .middle-column .menu-section:last-child .sauce-combined-card .item-name {
+            /* white-space: pre-line; */
+            overflow: hidden;
+            text-overflow: clip;
+            line-height: 1.3;
+            font-size: clamp(13px, 0.9vw, 18px);
+        }
+
         /* EMPTY MENU */
 
         .menu-empty {
@@ -482,10 +504,13 @@
          * Одинаковые названия и варианты с количеством "N шт." попадают
          * в одну карточку, а вес/цена остаются отдельными вариантами.
          */
+
         $buildSectionItems = function ($sectionId) use ($menuItems) {
-            return $menuItems
+
+            $items = $menuItems
                 ->where('menu_section_id', $sectionId)
                 ->groupBy(function ($item) use ($sectionId) {
+
                     $name = trim($item->name);
 
                     if ($sectionId === 14) {
@@ -497,6 +522,7 @@
                     return mb_strtolower(trim($name));
                 })
                 ->map(function ($variants) use ($sectionId) {
+
                     $firstVariant = $variants->first();
                     $name = trim($firstVariant->name);
 
@@ -517,6 +543,136 @@
                     ];
                 })
                 ->values();
+
+            /*
+             * ОБЪЕДИНЕНИЕ СОУСОВ
+             *
+             * Группа 1:
+             * Сырный, чесночный
+             * Барбекю, кетчуп
+             *
+             * Группа 2:
+             * Сметана, майонез
+             * Сгущёнка
+             *
+             * Масло сливочное остаётся отдельной карточкой.
+             */
+
+            if ($sectionId === 14) {
+
+                // Нормализация названий:
+                // убираем "Соус", пробелы и приводим ё к е.
+                $normalizeSauceName = function ($name) {
+
+                    $name = preg_replace('/^Соус\s+/ui', '', trim($name));
+
+                    $name = mb_strtolower(trim($name));
+
+                    return str_replace('ё', 'е', $name);
+                };
+
+                // Названия первой группы
+                $firstSauceGroupNames = [
+                    'сырный',
+                    'чесночный',
+                    'барбекю',
+                    'кетчуп',
+                ];
+
+                // Названия второй группы
+                $secondSauceGroupNames = [
+                    'сметана',
+                    'майонез',
+                    'сгущенка',
+                ];
+
+                // Создание объединённой карточки
+                $makeCombinedSauce = function (
+                    $names,
+                    $displayName
+                ) use ($items, $normalizeSauceName) {
+
+                    $firstVariant = null;
+
+                    /*
+                     * Ищем первую существующую позицию
+                     * в порядке, заданном массивом названий.
+                     */
+                    foreach ($names as $name) {
+
+                        $sourceItem = $items->first(function ($item) use (
+                            $name,
+                            $normalizeSauceName
+                        ) {
+                            return $normalizeSauceName($item->name) === $name;
+                        });
+
+                        if ($sourceItem && $sourceItem->variants->isNotEmpty()) {
+                            $firstVariant = $sourceItem->variants->first();
+                            break;
+                        }
+                    }
+
+                    // Если ни одной позиции нет, карточку не создаём
+                    if (!$firstVariant) {
+                        return null;
+                    }
+
+                    return (object) [
+                        'name' => $displayName,
+                        'description' => null,
+                        'variants' => collect([$firstVariant]),
+                        'is_combined_sauce' => true,
+                    ];
+                };
+
+                // Создаём две объединённые карточки
+                $sauceGroups = collect([
+
+                    $makeCombinedSauce(
+                        $firstSauceGroupNames,
+                        "Сырный, Чесночный, Барбекю, Кетчуп"
+                    ),
+
+                    $makeCombinedSauce(
+                        $secondSauceGroupNames,
+                        "Сметана, Майонез, Сгущёнка"
+                    ),
+
+                ])->filter()->values();
+
+                // Список названий, которые уже объединены
+                $excludedNames = array_merge(
+                    $firstSauceGroupNames,
+                    $secondSauceGroupNames
+                );
+
+                // Удаляем исходные позиции объединённых групп
+                $remainingSauces = $items->reject(function ($item) use (
+                    $excludedNames,
+                    $normalizeSauceName
+                ) {
+
+                    return in_array(
+                        $normalizeSauceName($item->name),
+                        $excludedNames,
+                        true
+                    );
+
+                });
+
+                /*
+                 * Добавляем две объединённые карточки в начало.
+                 *
+                 * Все остальные соусы, включая масло сливочное,
+                 * остаются без изменений.
+                 */
+                $items = $sauceGroups
+                    ->concat($remainingSauces)
+                    ->values();
+            }
+
+            return $items;
         };
 
         $menuSections = [
@@ -607,15 +763,21 @@
                                             );
 
                                             $hasDescription = !empty($item->description);
+
                                             $singleVariant = $item->variants->count() === 1;
+
                                             $firstVariant = $item->variants->first();
-                                            $compactCard = !$hasDescription && $singleVariant;
+
+                                            $isCombinedSauce = !empty($item->is_combined_sauce);
+
+                                            $compactCard = (!$hasDescription && $singleVariant);
                                         @endphp
 
                                         <article class="menu-card
                                             {{ $compactCard ? 'compact-card' : '' }}
                                             {{ $isSet ? 'set-card' : '' }}
-                                            {{ $isSmallSnack ? 'compact-card' : '' }}">
+                                            {{ $isSmallSnack ? 'compact-card' : '' }}
+                                            {{ $isCombinedSauce ? 'sauce-combined-card' : '' }}">
 
                                             <div class="item-info">
 
@@ -662,9 +824,11 @@
                                                 {{-- DESCRIPTION --}}
 
                                                 @if ($hasDescription)
+
                                                     <div class="item-description">
                                                         {{ $item->description }}
                                                     </div>
+
                                                 @endif
 
                                                 {{-- VARIANTS --}}

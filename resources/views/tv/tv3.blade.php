@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 
@@ -613,43 +614,37 @@
         /*
         |--------------------------------------------------------------------------
         | КАТЕГОРИИ TV3
+        | НАЗВАНИЯ РАЗДЕЛОВ ПОЛУЧАЕМ ИЗ БАЗЫ ДАННЫХ
         |--------------------------------------------------------------------------
         */
         $menuSections = [
             'homemade' => [
                 'id' => 5,
-                'title' => 'Варим сами',
                 'items' => collect(),
             ],
             'cocktails' => [
                 'id' => 6,
-                'title' => 'Коктейли',
                 'items' => collect(),
                 'milkshake_flavors' => collect(),
             ],
             'soft' => [
                 'id' => 7,
-                'title' => 'Безалкогольные напитки',
                 'items' => collect(),
             ],
             'coffee' => [
                 'id' => 11,
-                'title' => 'Кофе и чай',
                 'items' => collect(),
             ],
             'desserts' => [
                 'id' => 8,
-                'title' => 'Десерты',
                 'items' => collect(),
             ],
             'beer' => [
                 'id' => 12,
-                'title' => 'Пиво и квас',
                 'items' => collect(),
             ],
             'confectionery' => [
                 'id' => 13,
-                'title' => 'Кондитерские изделия',
                 'items' => collect(),
             ],
         ];
@@ -744,7 +739,7 @@
 
                                     <header class="section-header">
                                         <h2 class="section-title">
-                                            {{ $section['title'] }}
+                                            {{ $sectionNames[$section['id']] ?? '' }}
                                         </h2>
                                     </header>
 
@@ -774,7 +769,7 @@
 
                                                         <div class="item-heading">
                                                             <div class="item-name">
-                                                                Молочный коктейль
+                                                                Молочный коктейль 🥤
                                                             </div>
                                                         </div>
 

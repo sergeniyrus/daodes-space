@@ -216,6 +216,40 @@
 
         @csrf
         @method('PUT')
+        
+        {{-- =====================================================
+     КАТЕГОРИЯ БЛЮДА
+     ===================================================== --}}
+
+<div class="menu-form-group">
+
+    <label class="menu-form-label">
+        Категория меню
+    </label>
+
+    <select
+        name="menu_section_id"
+        class="menu-form-input"
+        required
+    >
+
+        @foreach($sections as $menuSection)
+
+            <option
+                value="{{ $menuSection->id }}"
+                @selected(
+                    old('menu_section_id', $section->id) == $menuSection->id
+                )
+            >
+                {{ $menuSection->name }}
+                {{ !$menuSection->is_active ? '(выключена)' : '' }}
+            </option>
+
+        @endforeach
+
+    </select>
+
+</div>
 
 
         <div class="menu-form-group">

@@ -278,7 +278,7 @@
 
     white-space: nowrap;
 
-    margin-left: auto; /* прижимает мета к правому краю */
+    margin-left: auto;
 }
 
 .menu-section-actions {
@@ -291,6 +291,53 @@
     justify-content: flex-end;
 
     flex-shrink: 0;
+}
+
+.menu-section-quick-actions,
+.menu-item-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.menu-quick-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin: 0;
+}
+
+.menu-sort-input {
+    width: 64px;
+    min-height: 38px;
+    box-sizing: border-box;
+    padding: 4px 7px;
+    color: #fff;
+    background: #171927;
+    border: 1px solid rgba(0, 229, 255, 0.55);
+    border-radius: 9px;
+    text-align: center;
+}
+
+.menu-quick-button {
+    min-height: 38px;
+    padding: 0 11px;
+    border-radius: 18px;
+    font-size: 0.82rem;
+}
+
+.menu-item.inactive {
+    opacity: 0.58;
+    border-style: dashed;
+}
+
+.menu-section.inactive-section {
+    border-color: rgba(255, 183, 77, 0.55);
+}
+
+.menu-section.inactive-section .menu-section-title {
+    color: #ffb74d;
 }
 
 
@@ -674,7 +721,7 @@
     @forelse($sections as $section)
 
         <div
-            class="menu-section collapsed"
+            class="menu-section collapsed {{ !$section->is_active ? 'inactive-section' : '' }}"
             data-section
         >
 
@@ -687,13 +734,7 @@
                     </div>
 
                     <div class="menu-section-meta">
-                        Порядок: {{ $section->sort_order }}
-                        ·
-                        @if($section->is_active)
-                            <span style="color:#4caf50;">активен</span>
-                        @else
-                            <span style="color:#ffb74d;">выключен</span>
-                        @endif
+                        {{ $section->is_active ? 'активен' : 'выключен' }}
                         ·
                         {{ $section->items->count() }}
                         {{ $section->items->count() == 1 ? 'блюдо' : 'блюд' }}
@@ -703,6 +744,50 @@
 
 
                 <div class="menu-section-actions">
+
+                    <div class="menu-section-quick-actions" data-stop-propagation>
+                        <form
+                            method="POST"
+                            action="{{ route('organizations.menu.sections.sort', [
+                                'organization' => $organization,
+                                'section' => $section,
+                            ]) }}"
+                            class="menu-quick-form"
+                        >
+                            @csrf
+                            @method('PATCH')
+                            <label class="menu-item-badge" for="section-sort-{{ $section->id }}">№</label>
+                            <input
+                                id="section-sort-{{ $section->id }}"
+                                class="menu-sort-input"
+                                type="number"
+                                name="sort_order"
+                                min="0"
+                                value="{{ $section->sort_order }}"
+                                aria-label="Порядок раздела"
+                            >
+                            <button type="submit" class="menu-admin-button menu-quick-button">Сохранить</button>
+                        </form>
+
+                        <form
+                            method="POST"
+                            action="{{ route('organizations.menu.sections.toggle', [
+                                'organization' => $organization,
+                                'section' => $section,
+                            ]) }}"
+                            class="menu-quick-form"
+                        >
+                            @csrf
+                            @method('PATCH')
+                            <button
+                                type="submit"
+                                class="menu-admin-button menu-quick-button {{ $section->is_active ? 'danger' : 'cyan' }}"
+                                title="{{ $section->is_active ? 'Выключить раздел' : 'Включить раздел' }}"
+                            >
+                                {{ $section->is_active ? 'Выключить' : 'Включить' }}
+                            </button>
+                        </form>
+                    </div>
 
                     <a
                         href="{{ route('organizations.menu.items.create', [
@@ -762,7 +847,7 @@
 
                 @forelse($section->items as $item)
 
-                    <div class="menu-item">
+                    <div class="menu-item {{ !$item->is_active ? 'inactive' : '' }}">
 
                         <div class="menu-item-main">
 
@@ -823,6 +908,50 @@
                             </div>
 
                             <div class="menu-item-buttons">
+
+                                <div class="menu-item-quick-actions">
+                                    <form
+                                        method="POST"
+                                        action="{{ route('organizations.menu.items.sort', [
+                                            'organization' => $organization,
+                                            'section' => $section,
+                                            'item' => $item,
+                                        ]) }}"
+                                        class="menu-quick-form"
+                                    >
+                                        @csrf
+                                        @method('PATCH')
+                                        <input
+                                            class="menu-sort-input"
+                                            type="number"
+                                            name="sort_order"
+                                            min="0"
+                                            value="{{ $item->sort_order }}"
+                                            aria-label="Порядок блюда"
+                                        >
+                                        <button type="submit" class="menu-admin-button menu-quick-button">№</button>
+                                    </form>
+
+                                    <form
+                                        method="POST"
+                                        action="{{ route('organizations.menu.items.toggle', [
+                                            'organization' => $organization,
+                                            'section' => $section,
+                                            'item' => $item,
+                                        ]) }}"
+                                        class="menu-quick-form"
+                                    >
+                                        @csrf
+                                        @method('PATCH')
+                                        <button
+                                            type="submit"
+                                            class="menu-admin-button menu-quick-button {{ $item->is_active ? 'danger' : 'cyan' }}"
+                                            title="{{ $item->is_active ? 'Выключить блюдо' : 'Включить блюдо' }}"
+                                        >
+                                            {{ $item->is_active ? 'Выключить' : 'Включить' }}
+                                        </button>
+                                    </form>
+                                </div>
 
                                 <a
                                     href="{{ route('organizations.menu.items.edit', [

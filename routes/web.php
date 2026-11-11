@@ -1228,6 +1228,9 @@ Route::middleware('auth')
             ->name('menu.sections.destroy');
 
 
+            
+
+
         /*
          * =====================================================
          * БЛЮДА
@@ -1287,7 +1290,7 @@ Route::middleware('auth')
             ->name('menu.items.update');
 
 
-        // Удаление блюда
+                // Удаление блюда
 
         Route::delete(
             '/{organization}/menu/sections/{section}/items/{item}',
@@ -1298,8 +1301,49 @@ Route::middleware('auth')
         )
             ->middleware('organization.manager')
             ->name('menu.items.destroy');
+
+
+        // =========================================================
+        // БЫСТРАЯ СОРТИРОВКА И АКТИВНОСТЬ РАЗДЕЛОВ
+        // =========================================================
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/sort',
+            [OrganizationMenuController::class, 'updateSectionSort']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.sort');
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/toggle',
+            [OrganizationMenuController::class, 'toggleSection']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.toggle');
+
+
+        // =========================================================
+        // БЫСТРАЯ СОРТИРОВКА И АКТИВНОСТЬ БЛЮД
+        // =========================================================
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/items/{item}/sort',
+            [OrganizationMenuController::class, 'updateItemSort']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.sort');
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/items/{item}/toggle',
+            [OrganizationMenuController::class, 'toggleItem']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.toggle');
+
     });
 
+
+            
 
 /*
 |--------------------------------------------------------------------------

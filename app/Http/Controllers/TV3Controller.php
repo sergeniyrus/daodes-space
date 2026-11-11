@@ -26,6 +26,11 @@ class TV3Controller extends Controller
                 'is_active',
             ]);
 
-        return view('tv.tv3', compact('menuItems'));
+        // Получаем названия разделов из базы данных
+        $sectionNames = DB::table('menu_sections')
+            ->whereIn('id', [5, 6, 7, 8, 11, 12, 13])
+            ->pluck('name', 'id');
+
+        return view('tv.tv3', compact('menuItems', 'sectionNames'));
     }
 }
