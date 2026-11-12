@@ -125,6 +125,9 @@ class EmployeeOrderController extends Controller
                 $hasActiveCourier = $lockedOrder->assignments()
                     ->where('role', 'courier')
                     ->whereNull('unassigned_at')
+                    ->whereHas('employee', function ($query) {
+                        $query->whereNotNull('phone_verified_at');
+                    })
                     ->whereHas('employee.memberships', function ($query) use ($organization) {
                         $query->where('organization_id', $organization->id)
                             ->where('role', 'courier')
