@@ -43,6 +43,7 @@ class CustomerCheckoutController extends Controller
 
             if ($existingOrder) {
                 session()->forget(self::SESSION_KEY);
+                session()->forget('customer_order_checkout_snapshots');
                 session()->forget('customer_order_checkout_snapshot');
 
                 return redirect()
@@ -144,7 +145,9 @@ class CustomerCheckoutController extends Controller
             $priceSnapshot[$item->id] = (string) $item->price;
         }
 
-        session()->put('customer_order_checkout_snapshot', [
+        $idempotencyKey = (string) Str::uuid();
+        $checkoutSnapshots = session('customer_order_checkout_snapshots', []);
+        $checkoutSnapshots[$idempotencyKey] = [
             'organization_id' => $organization->id,
             'prices' => $priceSnapshot,
             'currency' => $settings->currency,
@@ -152,7 +155,9 @@ class CustomerCheckoutController extends Controller
             'minimum_order' => $settings->minimum_order !== null
                 ? (string) $settings->minimum_order
                 : null,
-        ]);
+        ];
+
+        session()->put('customer_order_checkout_snapshots', $checkoutSnapshots);
 
         return view('customer.checkout.index', [
             'customer' => $customer,
@@ -166,7 +171,7 @@ class CustomerCheckoutController extends Controller
             'minimumOrder' => $minimumOrderCents !== null
                 ? $this->fromCents($minimumOrderCents)
                 : null,
-            'idempotencyKey' => (string) Str::uuid(),
+            'idempotencyKey' => $idempotencyKey,
         ]);
     }
 
@@ -211,10 +216,14 @@ class CustomerCheckoutController extends Controller
                 ->with('error', 'Корзина пуста.');
         }
 
-        $checkoutSnapshot = session('customer_order_checkout_snapshot', []);
+        $checkoutSnapshots = session('customer_order_checkout_snapshots', []);
+        $checkoutSnapshot = is_array($checkoutSnapshots)
+            ? ($checkoutSnapshots[$idempotencyKey] ?? [])
+            : [];
 
         if (
-            (int) ($checkoutSnapshot['organization_id'] ?? 0) !== $organizationId
+            !is_array($checkoutSnapshot)
+            || (int) ($checkoutSnapshot['organization_id'] ?? 0) !== $organizationId
             || !is_array($checkoutSnapshot['prices'] ?? null)
         ) {
             return redirect()
@@ -663,6 +672,7 @@ class CustomerCheckoutController extends Controller
         }, 3);
 
         session()->forget(self::SESSION_KEY);
+        session()->forget('customer_order_checkout_snapshots');
         session()->forget('customer_order_checkout_snapshot');
 
         return redirect()
