@@ -43,5 +43,11 @@ jobs:
           find app bootstrap config database routes tests -type f -name '*.php' -print0 \
             | xargs -0 -n1 php -l
 
+      - name: Validate route registration
+        run: php artisan route:list --except-vendor
+
+      - name: Compile Blade templates
+        run: php artisan view:cache
+
       - name: Run unit tests
         run: vendor/bin/phpunit --testsuite Unit
