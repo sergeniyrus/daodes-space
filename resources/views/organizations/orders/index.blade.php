@@ -249,6 +249,15 @@
                     </details>
                 @endif
 
+                @php
+                    $canCollectOfflinePayment = match ($order->fulfillment_type) {
+                        'delivery' => $order->status === 'delivered',
+                        'pickup' => $order->status === 'issued',
+                        'dine_in' => $order->status === 'served',
+                        default => false,
+                    };
+                @endphp
+
                 <div class="organization-orders-actions">
                     @if($order->status === 'new')
                         <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}">
@@ -303,7 +312,7 @@
                         </form>
                     @endif
 
-                    @if($order->payment_status === 'pending' && in_array($order->payment_method, ['cash_on_receipt', 'card_on_receipt'], true) && $order->status !== 'cancelled')
+                    @if($order->payment_status === 'pending' && in_array($order->payment_method, ['cash_on_receipt', 'card_on_receipt'], true) && $canCollectOfflinePayment)
                         <form
                             method="POST"
                             action="{{ route('organizations.orders.payment', [$organization, $order]) }}"
