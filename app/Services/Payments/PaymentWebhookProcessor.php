@@ -6,6 +6,7 @@ use App\Data\Payments\PaymentWebhookEvent as VerifiedPaymentWebhook;
 use App\Models\Order;
 use App\Models\OrderPayment;
 use App\Models\PaymentWebhookEvent;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -36,11 +37,73 @@ class PaymentWebhookProcessor
             throw new InvalidArgumentException('Некорректное платёжное событие.');
         }
 
-        return DB::transaction(function () use ($routeProvider, $event, $rawPayload) {
+        try {
+            return DB::transaction(function () use ($routeProvider, $event, $rawPayload) {
+                $existingEvent = PaymentWebhookEvent::query()
+                    ->where('provider', $routeProvider)
+                    ->where('event_id', $event->eventId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existingEvent) {
+                    return [
+                        'duplicate' => true,
+                        'status' => $existingEvent->processing_status,
+                    ];
+                }
+
+                $payment = OrderPayment::query()
+                    ->where('provider', $routeProvider)
+                    ->where('provider_payment_id', $event->providerPaymentId)
+                    ->lockForUpdate()
+                    ->first();
+
+                $processingStatus = 'rejected';
+                $processingMessage = 'Платёж не найден.';
+
+                if ($payment) {
+                    $order = Order::query()
+                        ->whereKey($payment->order_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$order) {
+                        $processingMessage = 'Заказ платежа не найден.';
+                    } elseif (
+                        !$this->sameAmount($payment->amount, $event->amount)
+                        || strtoupper($payment->currency) !== strtoupper($event->currency)
+                    ) {
+                        $processingMessage = 'Сумма или валюта уведомления не совпадает с платежом.';
+                    } else {
+                        $transition = $this->applyPaymentStatus($payment, $order, $event->status);
+
+                        $processingStatus = $transition['status'];
+                        $processingMessage = $transition['message'];
+                    }
+                }
+
+                PaymentWebhookEvent::query()->create([
+                    'provider' => $routeProvider,
+                    'event_id' => $event->eventId,
+                    'payment_id' => $payment?->id,
+                    'event_type' => $event->status,
+                    'payload_hash' => hash('sha256', $rawPayload),
+                    'processing_status' => $processingStatus,
+                    'processing_message' => $processingMessage,
+                    'processed_at' => now(),
+                ]);
+
+                return [
+                    'duplicate' => false,
+                    'status' => $processingStatus,
+                    'message' => $processingMessage,
+                ];
+            }, 3);
+        } catch (QueryException $exception) {
+            // Уникальный индекс закрывает гонку двух одинаковых webhook-запросов.
             $existingEvent = PaymentWebhookEvent::query()
                 ->where('provider', $routeProvider)
                 ->where('event_id', $event->eventId)
-                ->lockForUpdate()
                 ->first();
 
             if ($existingEvent) {
@@ -50,56 +113,8 @@ class PaymentWebhookProcessor
                 ];
             }
 
-            $payment = OrderPayment::query()
-                ->where('provider', $routeProvider)
-                ->where('provider_payment_id', $event->providerPaymentId)
-                ->lockForUpdate()
-                ->first();
-
-            $processingStatus = 'rejected';
-            $processingMessage = 'Платёж не найден.';
-            $orderId = null;
-
-            if ($payment) {
-                $order = Order::query()
-                    ->whereKey($payment->order_id)
-                    ->lockForUpdate()
-                    ->first();
-
-                $orderId = $payment->id;
-
-                if (!$order) {
-                    $processingMessage = 'Заказ платежа не найден.';
-                } elseif (
-                    !$this->sameAmount($payment->amount, $event->amount)
-                    || strtoupper($payment->currency) !== strtoupper($event->currency)
-                ) {
-                    $processingMessage = 'Сумма или валюта уведомления не совпадает с платежом.';
-                } else {
-                    $transition = $this->applyPaymentStatus($payment, $order, $event->status);
-
-                    $processingStatus = $transition['status'];
-                    $processingMessage = $transition['message'];
-                }
-            }
-
-            PaymentWebhookEvent::query()->create([
-                'provider' => $routeProvider,
-                'event_id' => $event->eventId,
-                'payment_id' => $payment?->id,
-                'event_type' => $event->status,
-                'payload_hash' => hash('sha256', $rawPayload),
-                'processing_status' => $processingStatus,
-                'processing_message' => $processingMessage,
-                'processed_at' => now(),
-            ]);
-
-            return [
-                'duplicate' => false,
-                'status' => $processingStatus,
-                'message' => $processingMessage,
-            ];
-        }, 3);
+            throw $exception;
+        }
     }
 
     private function applyPaymentStatus(
@@ -144,7 +159,10 @@ class PaymentWebhookProcessor
             ];
         }
 
-        if ($order->status === Order::STATUS_CANCELLED && $newStatus === Order::PAYMENT_SUCCEEDED) {
+        if (
+            $order->status === Order::STATUS_CANCELLED
+            && $newStatus === Order::PAYMENT_SUCCEEDED
+        ) {
             return [
                 'status' => 'rejected',
                 'message' => 'Провайдер подтвердил оплату отменённого заказа. Требуется ручная сверка.',
@@ -174,7 +192,12 @@ class PaymentWebhookProcessor
 
     private function sameAmount(string|int|float $stored, string|int|float $received): bool
     {
-        return $this->toMinorUnits($stored) === $this->toMinorUnits($received);
+        $storedMinor = $this->toMinorUnits($stored);
+        $receivedMinor = $this->toMinorUnits($received);
+
+        return $storedMinor !== null
+            && $receivedMinor !== null
+            && $storedMinor === $receivedMinor;
     }
 
     private function toMinorUnits(string|int|float $amount): ?int

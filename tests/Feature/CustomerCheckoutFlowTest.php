@@ -561,7 +561,10 @@ class CustomerCheckoutFlowTest extends TestCase
 
     public function test_payment_webhook_returns_service_unavailable_without_configured_provider(): void
     {
-        config(['payments.providers' => []]);
+        config([
+            'payments.providers' => [],
+            'cache.default' => 'array',
+        ]);
 
         $response = $this->call('POST', '/api/webhooks/payments/not-configured', [], [], [], [
             'CONTENT_TYPE' => 'application/json',
@@ -576,6 +579,7 @@ class CustomerCheckoutFlowTest extends TestCase
         config([
             'payments.providers.fake' => FakePaymentGateway::class,
             'payments.testing_secret' => 'test-webhook-secret',
+            'cache.default' => 'array',
         ]);
 
         $customer = $this->createVerifiedCustomer();
