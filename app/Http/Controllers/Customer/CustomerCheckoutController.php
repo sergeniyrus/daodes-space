@@ -199,6 +199,7 @@ class CustomerCheckoutController extends Controller
 
         if ($existingOrder) {
             session()->forget(self::SESSION_KEY);
+            session()->forget('customer_order_checkout_snapshots');
             session()->forget('customer_order_checkout_snapshot');
 
             return redirect()
