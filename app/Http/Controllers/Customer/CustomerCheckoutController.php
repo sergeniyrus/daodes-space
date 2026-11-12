@@ -350,9 +350,13 @@ class CustomerCheckoutController extends Controller
                 || strtoupper((string) ($checkoutSnapshot['currency'] ?? '')) !== strtoupper((string) $settings->currency)
                 || $this->toCents($checkoutSnapshot['delivery_fee'] ?? '0') !== $this->toCents($settings->delivery_fee)
                 || (
-                    ($checkoutSnapshot['minimum_order'] ?? null) === null
-                        ? $settings->minimum_order !== null
-                        : $this->toCents($checkoutSnapshot['minimum_order']) !== $this->toCents($settings->minimum_order)
+                    (($checkoutSnapshot['minimum_order'] ?? null) === null)
+                    !== ($settings->minimum_order === null)
+                )
+                || (
+                    ($checkoutSnapshot['minimum_order'] ?? null) !== null
+                    && $settings->minimum_order !== null
+                    && $this->toCents($checkoutSnapshot['minimum_order']) !== $this->toCents($settings->minimum_order)
                 )
             ) {
                 throw ValidationException::withMessages([
