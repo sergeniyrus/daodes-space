@@ -151,17 +151,27 @@
 @endisset
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const hamburgerButton = document.getElementById('mobile-hamburger-button');
     const hamburgerMenu = document.getElementById('mobile-hamburger-menu');
-    const currentPath = window.location.pathname;
 
     if (!hamburgerButton || !hamburgerMenu) {
         console.error('Hamburger button or menu not found');
         return;
     }
 
-    // Конфигурация подменю
+    const normalizePath = function (path) {
+        if (!path) {
+            return '/';
+        }
+
+        const normalized = path.replace(/\\/+$/, '');
+        return normalized || '/';
+    };
+
+    const currentPath = normalizePath(window.location.pathname);
+
+    // Конфигурация подменю. Маршруты и переводы сохранены.
     const submenus = {
         "/news": [
             { href: "/news", text: "{{ __('menu.back_to_news') }}" },
@@ -197,86 +207,114 @@ document.addEventListener('DOMContentLoaded', function() {
         ],
     };
 
-    // Пути, для которых подменю не требуется
     const noSubmenuPaths = ["/home", "/white_paper", "/team"];
 
-    // Управление видимостью гамбургер-меню
-    hamburgerButton.addEventListener('click', function(event) {
-        event.stopPropagation();
-        const isHidden = hamburgerMenu.style.display === 'none' || hamburgerMenu.style.display === '';
-        hamburgerMenu.style.display = isHidden ? 'flex' : 'none';
-        
-        if (isHidden) {
-            updateActiveMenu();
+    // Создаём каждый блок подменю ровно один раз.
+    const menuHeaders = hamburgerMenu.querySelectorAll('.mobile-chapter-header');
+
+    menuHeaders.forEach(function (header) {
+        const rawHref = header.getAttribute('href');
+
+        if (!rawHref) {
+            return;
         }
-    });
 
-    // Скрытие меню при клике вне его области
-    document.addEventListener('click', function(event) {
-        const isClickInside = hamburgerMenu.contains(event.target) || hamburgerButton.contains(event.target);
-        if (!isClickInside && hamburgerMenu.style.display === 'flex') {
-            hamburgerMenu.style.display = 'none';
+        let headerPath;
+
+        try {
+            headerPath = normalizePath(new URL(rawHref, window.location.origin).pathname);
+        } catch (error) {
+            return;
         }
-    });
 
-    // Функция обновления активного состояния меню и создания подменю
-    function updateActiveMenu() {
-        const menuHeaders = document.querySelectorAll('.mobile-chapter-header');
-        menuHeaders.forEach(header => {
-            const headerPath = header.getAttribute('href');
-            const menuContainer = header.parentElement;
+        const menuContainer = header.closest('.mobile-chapter-container');
 
-            // Подсветка активного пункта
-            if (currentPath.includes(headerPath)) {
-                header.classList.add('active');
-            } else {
-                header.classList.remove('active');
-            }
+        if (!menuContainer) {
+            return;
+        }
 
-            createSubmenu(menuContainer, header, headerPath);
-        });
-    }
+        // Точное сопоставление пути исключает ложные совпадения через includes().
+        const isActive = currentPath === headerPath || currentPath.startsWith(headerPath + '/');
 
-    // Функция создания подменю
-    function createSubmenu(menuContainer, header, headerPath) {
+        if (isActive) {
+            header.classList.add('active');
+        } else {
+            header.classList.remove('active');
+        }
+
         if (noSubmenuPaths.includes(headerPath)) {
             return;
         }
 
-        // Удаляем существующее подменю, если оно есть (защита от дублирования)
-        const existingSubmenu = menuContainer.querySelector('.mobile-subchapters');
-        if (existingSubmenu) {
-            existingSubmenu.remove();
-        }
-
         @auth
-            const submenuContainer = document.createElement('div');
-            submenuContainer.classList.add('mobile-subchapters');
-
             const menuItems = submenus[headerPath];
-            if (menuItems && menuItems.length > 0) {
-                menuItems.forEach(function(link) {
-                    const anchor = document.createElement('a');
-                    anchor.href = link.href;
-                    anchor.textContent = link.text;
-                    anchor.classList.add('mobile-subchapter-item');
-                    submenuContainer.appendChild(anchor);
-                });
 
-                menuContainer.appendChild(submenuContainer);
-
-                // Обработчик клика для открытия/закрытия подменю
-                header.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    submenuContainer.classList.toggle('open');
-                });
+            if (!Array.isArray(menuItems) || menuItems.length === 0) {
+                return;
             }
-        @endauth
-    }
 
-    // Инициализация при загрузке
-    updateActiveMenu();
+            const submenuContainer = document.createElement('div');
+            submenuContainer.className = 'mobile-subchapters';
+
+            menuItems.forEach(function (link) {
+                const anchor = document.createElement('a');
+                anchor.href = link.href;
+                anchor.textContent = link.text;
+                anchor.className = 'mobile-subchapter-item';
+                submenuContainer.appendChild(anchor);
+            });
+
+            menuContainer.appendChild(submenuContainer);
+            header.classList.add('has-submenu');
+            header.setAttribute('aria-expanded', 'false');
+
+            // На вложенной странице активный раздел раскрывается автоматически.
+            if (isActive) {
+                submenuContainer.classList.add('open');
+                header.classList.add('submenu-expanded');
+                header.setAttribute('aria-expanded', 'true');
+            }
+
+            // Обработчик назначается один раз и не накапливается при открытии меню.
+            header.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const isExpanded = submenuContainer.classList.toggle('open');
+                header.classList.toggle('submenu-expanded', isExpanded);
+                header.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+            });
+        @endauth
+    });
+
+    // Управление видимостью гамбургер-меню. Подменю здесь не пересоздаются.
+    hamburgerButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const isHidden = window.getComputedStyle(hamburgerMenu).display === 'none';
+        hamburgerMenu.style.display = isHidden ? 'flex' : 'none';
+        hamburgerButton.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    });
+
+    // Закрытие меню при клике за его пределами.
+    document.addEventListener('click', function (event) {
+        const isClickInside = hamburgerMenu.contains(event.target) || hamburgerButton.contains(event.target);
+
+        if (!isClickInside && window.getComputedStyle(hamburgerMenu).display !== 'none') {
+            hamburgerMenu.style.display = 'none';
+            hamburgerButton.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    // Escape закрывает меню.
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && window.getComputedStyle(hamburgerMenu).display !== 'none') {
+            hamburgerMenu.style.display = 'none';
+            hamburgerButton.setAttribute('aria-expanded', 'false');
+            hamburgerButton.focus();
+        }
+    });
 });
 </script>
 
