@@ -18,6 +18,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Tests\TestCase;
 
 class CustomerCheckoutFlowTest extends TestCase
@@ -561,6 +562,8 @@ class CustomerCheckoutFlowTest extends TestCase
 
     public function test_payment_webhook_returns_service_unavailable_without_configured_provider(): void
     {
+        $this->withoutMiddleware(ThrottleRequests::class);
+
         config([
             'payments.providers' => [],
             'cache.default' => 'array',
@@ -576,6 +579,8 @@ class CustomerCheckoutFlowTest extends TestCase
 
     private function createFakeOnlinePayment(): array
     {
+        $this->withoutMiddleware(ThrottleRequests::class);
+
         config([
             'payments.providers.fake' => FakePaymentGateway::class,
             'payments.testing_secret' => 'test-webhook-secret',
