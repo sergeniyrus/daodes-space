@@ -120,6 +120,12 @@ class OrganizationOrderController extends Controller
                     ]);
                 }
 
+                if ($lockedOrder->payment_status === Order::PAYMENT_SUCCEEDED) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Заказ уже оплачен. Перед отменой необходимо реализовать и выполнить возврат средств.',
+                    ]);
+                }
+
                 $updates['cancelled_at'] = now();
                 $updates['payment_status'] = Order::PAYMENT_CANCELLED;
 
