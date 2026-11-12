@@ -21,6 +21,7 @@ class OrganizationOrderController extends Controller
                 'customer',
                 'items',
                 'assignments.employee',
+                'statusHistory',
             ])
             ->latest()
             ->paginate(20);
