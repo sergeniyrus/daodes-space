@@ -21,6 +21,7 @@ use Illuminate\View\View;
 class CustomerCheckoutController extends Controller
 {
     private const SESSION_KEY = 'customer_order_cart';
+    private const MAX_MONEY_CENTS = 999999999999;
 
     public function create(Request $request): View|RedirectResponse
     {
@@ -105,6 +106,15 @@ class CustomerCheckoutController extends Controller
             $unitPriceCents = $this->toCents($item->price);
             $lineTotalCents = $unitPriceCents * (int) $quantity;
             $subtotalCents += $lineTotalCents;
+
+            if (
+                $lineTotalCents > self::MAX_MONEY_CENTS
+                || $subtotalCents > self::MAX_MONEY_CENTS
+            ) {
+                return redirect()
+                    ->route('customer.cart')
+                    ->with('error', 'Сумма заказа превышает допустимый предел.');
+            }
 
             $lines[] = [
                 'item' => $item,
@@ -487,6 +497,15 @@ class CustomerCheckoutController extends Controller
                 $lineTotalCents = $unitPriceCents * $quantity;
                 $subtotalCents += $lineTotalCents;
 
+                if (
+                    $lineTotalCents > self::MAX_MONEY_CENTS
+                    || $subtotalCents > self::MAX_MONEY_CENTS
+                ) {
+                    throw ValidationException::withMessages([
+                        'cart' => 'Сумма заказа превышает допустимый предел.',
+                    ]);
+                }
+
                 $orderLines[] = [
                     'menu_item_id' => $item->id,
                     'item_name' => $item->name,
@@ -515,6 +534,12 @@ class CustomerCheckoutController extends Controller
                 : 0;
 
             $totalCents = $subtotalCents + $deliveryFeeCents;
+
+            if ($totalCents > self::MAX_MONEY_CENTS) {
+                throw ValidationException::withMessages([
+                    'cart' => 'Итоговая сумма заказа превышает допустимый предел.',
+                ]);
+            }
 
             $deliveryAddress = null;
 
