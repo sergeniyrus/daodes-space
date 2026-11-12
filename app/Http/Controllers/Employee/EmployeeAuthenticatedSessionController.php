@@ -15,8 +15,12 @@ use InvalidArgumentException;
 
 class EmployeeAuthenticatedSessionController extends Controller
 {
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        if (Auth::guard('employee')->check()) {
+            return redirect()->route('employee.dashboard');
+        }
+
         return view('employee.auth.login');
     }
 
@@ -25,6 +29,10 @@ class EmployeeAuthenticatedSessionController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (Auth::guard('employee')->check()) {
+            return redirect()->route('employee.dashboard');
+        }
+
         $validated = $request->validate([
             'phone' => [
                 'required',
