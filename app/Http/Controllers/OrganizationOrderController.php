@@ -45,7 +45,7 @@ class OrganizationOrderController extends Controller
         Order $order
     ): RedirectResponse {
         $validated = $request->validate([
-            'status' => ['required', 'in:confirmed,cancelled'],
+            'status' => ['required', 'in:confirmed,cancelled,issued,served,completed'],
         ]);
 
         DB::transaction(function () use ($organization, $order, $validated) {
@@ -57,6 +57,7 @@ class OrganizationOrderController extends Controller
 
             $fromStatus = $lockedOrder->status;
             $toStatus = $validated['status'];
+            $updates = ['status' => $toStatus];
 
             if ($toStatus === Order::STATUS_CONFIRMED) {
                 if ($fromStatus !== Order::STATUS_NEW) {
@@ -65,11 +66,44 @@ class OrganizationOrderController extends Controller
                     ]);
                 }
 
-                $lockedOrder->update([
-                    'status' => Order::STATUS_CONFIRMED,
-                    'confirmed_at' => now(),
-                ]);
-            } else {
+                $updates['confirmed_at'] = now();
+            } elseif ($toStatus === Order::STATUS_ISSUED) {
+                if (
+                    $fromStatus !== Order::STATUS_READY
+                    || $lockedOrder->fulfillment_type !== Order::FULFILLMENT_PICKUP
+                ) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Выдать можно только готовый заказ на самовывоз.',
+                    ]);
+                }
+            } elseif ($toStatus === Order::STATUS_SERVED) {
+                if (
+                    $fromStatus !== Order::STATUS_READY
+                    || $lockedOrder->fulfillment_type !== Order::FULFILLMENT_DINE_IN
+                ) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Отметить подачу можно только для готового заказа в заведении.',
+                    ]);
+                }
+            } elseif ($toStatus === Order::STATUS_COMPLETED) {
+                if (!in_array($fromStatus, [
+                    Order::STATUS_DELIVERED,
+                    Order::STATUS_ISSUED,
+                    Order::STATUS_SERVED,
+                ], true)) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Завершить можно только доставленный или выданный заказ.',
+                    ]);
+                }
+
+                if ($lockedOrder->payment_status !== Order::PAYMENT_SUCCEEDED) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Сначала отметьте получение оплаты.',
+                    ]);
+                }
+
+                $updates['completed_at'] = now();
+            } elseif ($toStatus === Order::STATUS_CANCELLED) {
                 $cancellableStatuses = [
                     Order::STATUS_NEW,
                     Order::STATUS_CONFIRMED,
@@ -83,11 +117,8 @@ class OrganizationOrderController extends Controller
                     ]);
                 }
 
-                $lockedOrder->update([
-                    'status' => Order::STATUS_CANCELLED,
-                    'cancelled_at' => now(),
-                    'payment_status' => Order::PAYMENT_CANCELLED,
-                ]);
+                $updates['cancelled_at'] = now();
+                $updates['payment_status'] = Order::PAYMENT_CANCELLED;
 
                 $lockedOrder->payments()
                     ->where('status', Order::PAYMENT_PENDING)
@@ -96,23 +127,84 @@ class OrganizationOrderController extends Controller
                     ]);
             }
 
+            $lockedOrder->update($updates);
+
+            $comments = [
+                Order::STATUS_CONFIRMED => 'Заказ подтверждён менеджером.',
+                Order::STATUS_ISSUED => 'Заказ выдан клиенту.',
+                Order::STATUS_SERVED => 'Заказ подан клиенту в заведении.',
+                Order::STATUS_COMPLETED => 'Заказ завершён менеджером.',
+                Order::STATUS_CANCELLED => 'Заказ отменён менеджером.',
+            ];
+
             $lockedOrder->statusHistory()->create([
                 'from_status' => $fromStatus,
                 'to_status' => $toStatus,
                 'actor_type' => 'user',
                 'actor_id' => auth()->id(),
-                'comment' => $toStatus === Order::STATUS_CONFIRMED
-                    ? 'Заказ подтверждён менеджером.'
-                    : 'Заказ отменён менеджером.',
+                'comment' => $comments[$toStatus] ?? 'Статус изменён менеджером.',
                 'created_at' => now(),
             ]);
-        });
+        }, 3);
+
+        $messages = [
+            'confirmed' => 'Заказ подтверждён.',
+            'cancelled' => 'Заказ отменён.',
+            'issued' => 'Заказ отмечен как выданный.',
+            'served' => 'Заказ отмечен как поданный.',
+            'completed' => 'Заказ завершён.',
+        ];
 
         return redirect()
             ->route('organizations.orders.index', $organization)
-            ->with('success', $validated['status'] === 'confirmed'
-                ? 'Заказ подтверждён.'
-                : 'Заказ отменён.');
+            ->with('success', $messages[$validated['status']]);
+    }
+
+    public function markPaid(
+        Organization $organization,
+        Order $order
+    ): RedirectResponse {
+        DB::transaction(function () use ($organization, $order) {
+            $lockedOrder = Order::query()
+                ->where('organization_id', $organization->id)
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (
+                $lockedOrder->status === Order::STATUS_CANCELLED
+                || $lockedOrder->payment_method === Order::PAYMENT_ONLINE
+            ) {
+                throw ValidationException::withMessages([
+                    'payment' => 'Для этого заказа нельзя отметить оплату вручную.',
+                ]);
+            }
+
+            if ($lockedOrder->payment_status === Order::PAYMENT_SUCCEEDED) {
+                return;
+            }
+
+            $updatedPayments = $lockedOrder->payments()
+                ->where('status', Order::PAYMENT_PENDING)
+                ->update([
+                    'status' => Order::PAYMENT_SUCCEEDED,
+                    'paid_at' => now(),
+                ]);
+
+            if ($updatedPayments < 1) {
+                throw ValidationException::withMessages([
+                    'payment' => 'Не найдена ожидающая оплаты попытка платежа.',
+                ]);
+            }
+
+            $lockedOrder->update([
+                'payment_status' => Order::PAYMENT_SUCCEEDED,
+            ]);
+        }, 3);
+
+        return redirect()
+            ->route('organizations.orders.index', $organization)
+            ->with('success', 'Оплата отмечена как полученная.');
     }
 
     public function assign(
