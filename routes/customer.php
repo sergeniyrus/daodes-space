@@ -3,6 +3,8 @@
 use App\Http\Controllers\Customer\CustomerAuthController;
 use App\Http\Controllers\Customer\CustomerCatalogController;
 use App\Http\Controllers\Customer\CustomerCartController;
+use App\Http\Controllers\Customer\CustomerCheckoutController;
+use App\Http\Controllers\Customer\CustomerOrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('customer')
@@ -65,4 +67,21 @@ Route::prefix('customer')
             '/cart',
             [CustomerCartController::class, 'clear']
         )->name('cart.clear');
+
+        // Оформление доступно только после подтверждения клиентского телефона.
+        // Контроллер сохраняет intended URL и отправляет гостя на customer.login.
+        Route::get(
+            '/checkout',
+            [CustomerCheckoutController::class, 'create']
+        )->name('checkout');
+
+        Route::post(
+            '/checkout',
+            [CustomerCheckoutController::class, 'store']
+        )->name('checkout.store');
+
+        Route::get(
+            '/orders/{order}',
+            [CustomerOrderController::class, 'show']
+        )->name('orders.show');
     });
