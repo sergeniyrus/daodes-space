@@ -1746,6 +1746,16 @@
             <span style="color: #d8b45b;">● Онлайн-заказы пока выключены или настройки не завершены</span>
         @endif
     </div>
+
+    <a
+        href="{{ route('customer.catalog', $organization) }}"
+        class="organization-button"
+        style="display: inline-flex; margin-top: 14px; text-decoration: none;"
+        target="_blank"
+        rel="noopener"
+    >
+        Открыть клиентский каталог
+    </a>
 </div>
 
 {{-- =====================================================
