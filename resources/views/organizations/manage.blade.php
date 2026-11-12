@@ -786,6 +786,185 @@
     }
 }
 
+
+/* =========================================================
+   ОТДЕЛЬНЫЙ ПЕРСОНАЛ: ПОВАРА / КУРЬЕРЫ / СОТРУДНИКИ
+   ========================================================= */
+
+.organization-staff-form {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.2fr) minmax(180px, 1fr) minmax(150px, .8fr) auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.organization-staff-input,
+.organization-staff-select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 0 14px;
+    background: #17181f;
+    color: #fff;
+    border: 1px solid rgba(0, 229, 255, .45);
+    border-radius: 10px;
+    outline: none;
+}
+
+.organization-staff-input:focus,
+.organization-staff-select:focus {
+    border-color: gold;
+    box-shadow: 0 0 8px rgba(255, 215, 0, .2);
+}
+
+.organization-staff-select option {
+    background: #17181f;
+    color: #fff;
+}
+
+.organization-staff-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.01));
+    border: 1px solid rgba(0, 229, 255, .25);
+    border-radius: 13px;
+}
+
+.organization-staff-card:last-child {
+    margin-bottom: 0;
+}
+
+.organization-staff-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.organization-staff-name {
+    color: #fff;
+    font-weight: 700;
+    margin-bottom: 6px;
+    overflow-wrap: anywhere;
+}
+
+.organization-staff-phone {
+    color: #00e5ff;
+    font-size: .9rem;
+    margin-bottom: 9px;
+}
+
+.organization-staff-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.organization-staff-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.organization-staff-actions form {
+    margin: 0;
+}
+
+.organization-staff-action-select {
+    min-height: 38px;
+    max-width: 155px;
+    padding: 0 9px;
+    background: #17181f;
+    color: #ddd;
+    border: 1px solid #555;
+    border-radius: 8px;
+}
+
+.organization-staff-action-select:focus {
+    border-color: gold;
+    outline: none;
+}
+
+.organization-staff-delete {
+    min-height: 38px;
+    padding: 0 12px;
+    background: transparent;
+    color: #ff7777;
+    border: 1px solid #ff7777;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.organization-staff-delete:hover {
+    color: #fff;
+    background: #d94444;
+}
+
+.organization-staff-note {
+    margin-top: 12px;
+    color: #999;
+    font-size: .85rem;
+    line-height: 1.5;
+}
+
+.organization-badge.pending {
+    color: #ffca70;
+    border-color: #ffca70;
+}
+
+.organization-badge.verified {
+    color: #4caf50;
+    border-color: #4caf50;
+}
+
+.organization-badge.unverified {
+    color: #ffb74d;
+    border-color: #ffb74d;
+}
+
+@media (max-width: 850px) {
+    .organization-staff-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .organization-staff-form button {
+        width: 100%;
+    }
+
+    .organization-staff-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .organization-staff-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 520px) {
+    .organization-staff-form {
+        grid-template-columns: 1fr;
+    }
+
+    .organization-staff-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .organization-staff-actions form,
+    .organization-staff-action-select,
+    .organization-staff-delete {
+        width: 100%;
+        max-width: none;
+        box-sizing: border-box;
+    }
+}
+
 </style>
 
 
@@ -1122,6 +1301,197 @@
         @endif
 
     </div>
+
+    {{-- =====================================================
+         ОТДЕЛЬНЫЙ ПЕРСОНАЛ ОРГАНИЗАЦИИ
+         ===================================================== --}}
+
+    <div class="organization-section">
+
+        <h2 class="organization-section-title">
+            👥 Персонал организации
+        </h2>
+
+        <form
+            method="POST"
+            action="{{ route('organizations.staff.store', $organization) }}"
+            class="organization-staff-form"
+        >
+            @csrf
+
+            <input
+                type="text"
+                name="name"
+                class="organization-staff-input"
+                value="{{ old('name') }}"
+                placeholder="Имя сотрудника"
+                maxlength="100"
+                required
+            >
+
+            <input
+                type="tel"
+                name="phone"
+                class="organization-staff-input"
+                value="{{ old('phone') }}"
+                placeholder="+79991234567"
+                maxlength="32"
+                autocomplete="tel"
+                required
+            >
+
+            <select
+                name="role"
+                class="organization-staff-select"
+                required
+            >
+                <option value="employee" @selected(old('role', 'employee') === 'employee')>
+                    👤 Сотрудник
+                </option>
+                <option value="cook" @selected(old('role') === 'cook')>
+                    👨‍🍳 Повар
+                </option>
+                <option value="courier" @selected(old('role') === 'courier')>
+                    🚚 Курьер
+                </option>
+            </select>
+
+            <button type="submit" class="organization-button">
+                Добавить
+            </button>
+        </form>
+
+        <div class="organization-staff-note">
+            Указывайте телефон в международном формате E.164, например +79991234567.
+            Если сотрудник уже работает в DAODES или другой организации, будет использована его существующая учётная запись.
+            Новый сотрудник получит доступ только после подтверждения телефона.
+        </div>
+
+        <div style="margin-top: 20px;">
+            @forelse($staffMemberships as $staffMembership)
+                @php
+                    $staffEmployee = $staffMembership->employee;
+                @endphp
+
+                @if($staffEmployee)
+                    <div class="organization-staff-card">
+                        <div class="organization-staff-main">
+                            <div class="organization-staff-name">
+                                {{ $staffEmployee->name }}
+                            </div>
+
+                            <div class="organization-staff-phone">
+                                {{ $staffEmployee->phone }}
+                            </div>
+
+                            <div class="organization-staff-meta">
+                                <span class="organization-badge role">
+                                    @switch($staffMembership->role)
+                                        @case('cook')
+                                            👨‍🍳 Повар
+                                            @break
+                                        @case('courier')
+                                            🚚 Курьер
+                                            @break
+                                        @default
+                                            👤 Сотрудник
+                                    @endswitch
+                                </span>
+
+                                <span class="organization-badge {{ $staffMembership->status }}">
+                                    @switch($staffMembership->status)
+                                        @case('active')
+                                            Активен
+                                            @break
+                                        @case('blocked')
+                                            Заблокирован
+                                            @break
+                                        @default
+                                            Ожидает активации
+                                    @endswitch
+                                </span>
+
+                                <span class="organization-badge {{ $staffEmployee->phone_verified_at ? 'verified' : 'unverified' }}">
+                                    {{ $staffEmployee->phone_verified_at ? 'Телефон подтверждён' : 'Телефон не подтверждён' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="organization-staff-actions">
+                            <form
+                                method="POST"
+                                action="{{ route('organizations.staff.role', [$organization, $staffEmployee]) }}"
+                            >
+                                @csrf
+                                @method('PATCH')
+
+                                <select
+                                    name="role"
+                                    class="organization-staff-action-select"
+                                    onchange="this.form.submit()"
+                                    aria-label="Изменить роль"
+                                >
+                                    <option value="employee" @selected($staffMembership->role === 'employee')>
+                                        Сотрудник
+                                    </option>
+                                    <option value="cook" @selected($staffMembership->role === 'cook')>
+                                        Повар
+                                    </option>
+                                    <option value="courier" @selected($staffMembership->role === 'courier')>
+                                        Курьер
+                                    </option>
+                                </select>
+                            </form>
+
+                            <form
+                                method="POST"
+                                action="{{ route('organizations.staff.status', [$organization, $staffEmployee]) }}"
+                            >
+                                @csrf
+                                @method('PATCH')
+
+                                <select
+                                    name="status"
+                                    class="organization-staff-action-select"
+                                    onchange="this.form.submit()"
+                                    aria-label="Изменить статус доступа"
+                                >
+                                    <option value="pending" @selected($staffMembership->status === 'pending')>
+                                        Ожидает
+                                    </option>
+                                    <option value="active" @selected($staffMembership->status === 'active')>
+                                        Активировать
+                                    </option>
+                                    <option value="blocked" @selected($staffMembership->status === 'blocked')>
+                                        Заблокировать
+                                    </option>
+                                </select>
+                            </form>
+
+                            <form
+                                method="POST"
+                                action="{{ route('organizations.staff.destroy', [$organization, $staffEmployee]) }}"
+                                onsubmit="return confirm('Удалить сотрудника из этой организации? Его аккаунт и доступ к другим организациям сохранятся.');"
+                            >
+                                @csrf
+                                @method('DELETE')
+
+                                <button type="submit" class="organization-staff-delete">
+                                    Удалить
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
+            @empty
+                <div class="organization-empty">
+                    В этой организации пока нет сотрудников.
+                </div>
+            @endforelse
+        </div>
+
+    </div>
+
 {{-- =====================================================
      УПРАВЛЕНИЕ МЕНЮ
      ===================================================== --}}
