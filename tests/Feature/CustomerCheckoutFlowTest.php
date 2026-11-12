@@ -443,6 +443,28 @@ class CustomerCheckoutFlowTest extends TestCase
         ]);
     }
 
+
+    public function test_checkout_rejects_online_payment_until_a_gateway_is_configured(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+                'payment_method' => Order::PAYMENT_ONLINE,
+                'requested_at' => now()->addHour()->format('Y-m-d\\TH:i'),
+            ])
+            ->assertRedirect(route('customer.checkout'))
+            ->assertSessionHasErrors('payment_method');
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseCount('payments', 0);
+    }
+
     private function createOrganizationManager(Organization $organization): User
     {
         $userId = DB::table('users')->insertGetId([
