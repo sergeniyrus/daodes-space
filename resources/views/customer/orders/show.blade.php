@@ -140,8 +140,13 @@
         @endif
     </div>
 
-    <a href="{{ route('customer.catalog', $order->organization) }}">
-        ← Вернуться в меню организации
-    </a>
+    <div style="display: flex; flex-wrap: wrap; gap: 18px;">
+        <a href="{{ route('customer.catalog', $order->organization) }}">
+            ← Вернуться в меню организации
+        </a>
+        <a href="{{ route('customer.orders.index') }}">
+            Мои заказы
+        </a>
+    </div>
 </div>
 @endsection
