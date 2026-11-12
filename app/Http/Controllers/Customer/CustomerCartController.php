@@ -7,7 +7,6 @@ use App\Models\MenuItem;
 use App\Models\Organization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class CustomerCartController extends Controller
