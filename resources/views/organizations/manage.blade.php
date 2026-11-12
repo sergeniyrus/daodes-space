@@ -1749,6 +1749,14 @@
     </div>
 
     <a
+        href="{{ route('organizations.orders.index', $organization) }}"
+        class="organization-button"
+        style="display: inline-flex; margin-top: 14px; text-decoration: none;"
+    >
+        📋 Управление заказами
+    </a>
+
+    <a
         href="{{ route('customer.catalog', $organization) }}"
         class="organization-button"
         style="display: inline-flex; margin-top: 14px; text-decoration: none;"
