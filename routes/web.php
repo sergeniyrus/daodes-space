@@ -1723,6 +1723,7 @@ Route::middleware([
 */
 
 require __DIR__ . '/employee.php';
+require __DIR__ . '/customer.php';
 
 
 /*
