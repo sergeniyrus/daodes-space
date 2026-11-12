@@ -94,6 +94,10 @@ class CustomerCheckoutController extends Controller
             ];
         }
 
+        $defaultAddress = $customer->addresses()
+            ->where('is_default', true)
+            ->first();
+
         $deliveryFeeCents = $this->toCents($settings->delivery_fee);
         $minimumOrderCents = $settings->minimum_order !== null
             ? $this->toCents($settings->minimum_order)
@@ -101,6 +105,7 @@ class CustomerCheckoutController extends Controller
 
         return view('customer.checkout.index', [
             'customer' => $customer,
+            'defaultAddress' => $defaultAddress,
             'organization' => $organization,
             'settings' => $settings,
             'lines' => $lines,
@@ -434,6 +439,35 @@ class CustomerCheckoutController extends Controller
             $customer->organizations()->syncWithoutDetaching([
                 $organizationId => ['source' => 'order'],
             ]);
+
+
+            if ($deliveryAddress !== null) {
+                $addressValues = [
+                    'recipient_name' => $validated['customer_name'],
+                    'recipient_phone' => $customer->phone,
+                    'address_line' => $validated['address_line'],
+                    'entrance' => $validated['entrance'] ?? null,
+                    'floor' => $validated['floor'] ?? null,
+                    'apartment' => $validated['apartment'] ?? null,
+                    'intercom' => $validated['intercom'] ?? null,
+                    'delivery_comment' => $validated['delivery_comment'] ?? null,
+                ];
+
+                $savedAddress = $customer->addresses()
+                    ->where('address_line', $addressValues['address_line'])
+                    ->where('entrance', $addressValues['entrance'])
+                    ->where('floor', $addressValues['floor'])
+                    ->where('apartment', $addressValues['apartment'])
+                    ->where('intercom', $addressValues['intercom'])
+                    ->first();
+
+                if ($savedAddress) {
+                    $savedAddress->update($addressValues);
+                } else {
+                    $addressValues['is_default'] = !$customer->addresses()->exists();
+                    $customer->addresses()->create($addressValues);
+                }
+            }
 
             $customer->update([
                 'name' => $validated['customer_name'],
