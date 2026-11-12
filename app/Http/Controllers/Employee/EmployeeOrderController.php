@@ -36,8 +36,20 @@ class EmployeeOrderController extends Controller
             ->whereNull('unassigned_at')
             ->pluck('order_id');
 
+        $activeStatuses = $membership->role === 'cook'
+            ? [
+                Order::STATUS_CONFIRMED,
+                Order::STATUS_PREPARING,
+                Order::STATUS_READY,
+            ]
+            : [
+                Order::STATUS_HANDED_TO_COURIER,
+                Order::STATUS_IN_TRANSIT,
+            ];
+
         $orders = $organization->orders()
             ->whereIn('id', $orderIds)
+            ->whereIn('status', $activeStatuses)
             ->with([
                 'items',
                 'assignments.employee',
@@ -121,6 +133,11 @@ class EmployeeOrderController extends Controller
                     $hasActiveCourier = $lockedOrder->assignments()
                         ->where('role', 'courier')
                         ->whereNull('unassigned_at')
+                        ->whereHas('employee.memberships', function ($query) use ($organization) {
+                            $query->where('organization_id', $organization->id)
+                                ->where('role', 'courier')
+                                ->where('status', 'active');
+                        })
                         ->exists();
 
                     $allowed = $hasActiveCourier;
