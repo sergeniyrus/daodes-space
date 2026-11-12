@@ -169,6 +169,19 @@ class EmployeeOrderController extends Controller
 
             $lockedOrder->update($updates);
 
+            if (in_array($toStatus, [
+                Order::STATUS_HANDED_TO_COURIER,
+                Order::STATUS_DELIVERED,
+            ], true)) {
+                $lockedOrder->assignments()
+                    ->where('employee_id', $employee->id)
+                    ->where('role', $membership->role)
+                    ->whereNull('unassigned_at')
+                    ->update([
+                        'unassigned_at' => now(),
+                    ]);
+            }
+
             $lockedOrder->statusHistory()->create([
                 'from_status' => $fromStatus,
                 'to_status' => $toStatus,
