@@ -126,6 +126,15 @@
                     @if($settings->dine_in_enabled) · В заведении @endif
                     <br>
                     Валюта: {{ $settings->currency }}
+                    @if($settings->delivery_enabled)
+                        <br>Доставка: {{ number_format((float) $settings->delivery_fee, 2, ',', ' ') }} {{ $settings->currency }}
+                    @endif
+                    @if($settings->minimum_order)
+                        <br>Минимальный заказ: {{ number_format((float) $settings->minimum_order, 2, ',', ' ') }} {{ $settings->currency }}
+                    @endif
+                    @if($settings->pickup_enabled && $settings->pickup_min_minutes !== null)
+                        <br>Самовывоз: от {{ $settings->pickup_min_minutes }} мин.
+                    @endif
                 @else
                     Организация пока не настроила приём онлайн-заказов.
                 @endif
