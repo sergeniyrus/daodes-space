@@ -85,8 +85,9 @@ class EmployeeAuthenticatedSessionController extends Controller
 
         /*
          * До подтверждения телефона вход запрещён.
-         * SMS-провайдер и процесс подтверждения будут подключены
-         * отдельным этапом; обходного способа подтверждения здесь нет.
+         * Подтверждение и установка пароля выполняются через
+         * EmployeeInvitationController и EmployeeInvitationService.
+         * Обходного способа подтверждения здесь нет.
          */
         if (
             !$employee->phone_verified_at ||
