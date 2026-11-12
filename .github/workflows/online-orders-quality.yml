@@ -40,7 +40,7 @@ jobs:
 
       - name: Check PHP syntax
         run: |
-          find app bootstrap config database routes tests -type f -name '*.php' -print0 \
+          find app bootstrap config database routes tests -type f -name '*.php' -print0 \\
             | xargs -0 -n1 php -l
 
       - name: Validate route registration
@@ -49,5 +49,5 @@ jobs:
       - name: Compile Blade templates
         run: php artisan view:cache
 
-      - name: Run unit tests
-        run: vendor/bin/phpunit --testsuite Unit
+      - name: Run unit and feature tests
+        run: vendor/bin/phpunit
