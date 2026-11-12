@@ -22,7 +22,7 @@ class CustomerCheckoutController extends Controller
 {
     private const SESSION_KEY = 'customer_order_cart';
 
-    public function create(): View|RedirectResponse
+    public function create(Request $request): View|RedirectResponse
     {
         $customer = Auth::guard('customer')->user();
 
