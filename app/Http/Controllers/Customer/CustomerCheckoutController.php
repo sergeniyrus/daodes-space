@@ -345,7 +345,7 @@ class CustomerCheckoutController extends Controller
                 $validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP
                 && $settings->pickup_min_minutes !== null
             ) {
-                $requestedAt = Carbon::createFromFormat('Y-m-d\\TH:i', $validated['requested_at']);
+                $requestedAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at']);
 
                 if ($requestedAt->lt(now()->addMinutes($settings->pickup_min_minutes))) {
                     throw ValidationException::withMessages([
