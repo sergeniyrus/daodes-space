@@ -1424,7 +1424,7 @@
                                     action="{{ route('organizations.staff.invite', [$organization, $staffEmployee]) }}"
                                 >
                                     @csrf
-                                    <button type="submit" class="organization-button">
+                                    <button type="submit" class="organization-staff-delete">
                                         Отправить приглашение повторно
                                     </button>
                                 </form>
