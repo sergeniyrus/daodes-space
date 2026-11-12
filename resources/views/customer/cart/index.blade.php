@@ -156,6 +156,18 @@
                 </span>
             </div>
 
+            @if($canOrder)
+                <div style="margin-top: 20px;">
+                    <a
+                        href="{{ route('customer.checkout') }}"
+                        class="customer-cart-button"
+                        style="display: inline-flex; align-items: center; text-decoration: none;"
+                    >
+                        Перейти к оформлению
+                    </a>
+                </div>
+            @endif
+
             @if(!$canOrder)
                 <p class="customer-cart-unavailable">
                     Организация временно не принимает онлайн-заказы. Состав корзины сохранён.
