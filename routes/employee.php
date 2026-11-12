@@ -3,6 +3,7 @@
 use App\Http\Controllers\Employee\EmployeeAuthenticatedSessionController;
 use App\Http\Controllers\Employee\EmployeeDashboardController;
 use App\Http\Controllers\Employee\EmployeeInvitationController;
+use App\Http\Controllers\Employee\EmployeeOrderController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -54,5 +55,23 @@ Route::prefix('staff')
                 '/logout',
                 [EmployeeAuthenticatedSessionController::class, 'destroy']
             )->name('logout');
+
+            Route::middleware([
+                'employee.organization',
+                'employee.role:cook,courier',
+            ])
+                ->prefix('organizations/{organization}')
+                ->name('organization.')
+                ->group(function () {
+                    Route::get(
+                        '/orders',
+                        [EmployeeOrderController::class, 'index']
+                    )->name('orders.index');
+
+                    Route::patch(
+                        '/orders/{order}/status',
+                        [EmployeeOrderController::class, 'updateStatus']
+                    )->name('orders.status');
+                });
         });
     });
