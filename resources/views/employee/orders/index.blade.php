@@ -5,6 +5,21 @@
 @endsection
 
 @section('main')
+@php
+    $statusLabels = [
+        'new' => 'Новый',
+        'confirmed' => 'Подтверждён',
+        'preparing' => 'Готовится',
+        'ready' => 'Готов',
+        'handed_to_courier' => 'Передан курьеру',
+        'in_transit' => 'В пути',
+        'delivered' => 'Доставлен',
+        'issued' => 'Выдан',
+        'served' => 'Подан',
+        'completed' => 'Завершён',
+        'cancelled' => 'Отменён',
+    ];
+@endphp
 <style>
 .employee-orders-page {
     width: min(1050px, calc(100% - 24px));
@@ -91,7 +106,7 @@
                             {{ $order->created_at?->format('d.m.Y H:i') }}
                         </div>
                     </div>
-                    <div class="employee-orders-status">{{ $order->status }}</div>
+                    <div class="employee-orders-status">{{ $statusLabels[$order->status] ?? $order->status }}</div>
                 </div>
 
                 <div class="employee-orders-lines">
