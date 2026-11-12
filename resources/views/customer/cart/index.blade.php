@@ -103,7 +103,7 @@
                             </div>
                         @else
                             <div class="customer-cart-unavailable">
-                                Позиция меню больше не существует (ID {{ $loop->index + 1 }})
+                                Позиция меню больше не существует (ID {{ $line['item_id'] }})
                             </div>
                         @endif
                         @if(!$line['available'])
@@ -138,7 +138,7 @@
                         @endif
 
                         @if($line['item'])
-                            <form method="POST" action="{{ route('customer.cart.remove', $line['item']) }}">
+                            <form method="POST" action="{{ route('customer.cart.remove', $line['item_id']) }}">
                                 @csrf
                                 @method('DELETE')
                                 <button class="customer-cart-button customer-cart-remove" type="submit">
