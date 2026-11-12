@@ -227,6 +227,28 @@
                     </div>
                 @endforeach
 
+                @if($order->statusHistory->isNotEmpty())
+                    <details style="margin-top: 12px;">
+                        <summary style="color: #00e5d4; cursor: pointer;">
+                            История заказа ({{ $order->statusHistory->count() }})
+                        </summary>
+                        <div style="margin-top: 8px; padding-left: 12px; border-left: 2px solid rgba(0, 229, 212, .35);">
+                            @foreach($order->statusHistory as $history)
+                                <div style="padding: 7px 0;">
+                                    <div class="organization-orders-muted">
+                                        {{ $history->created_at?->format('d.m.Y H:i:s') }}
+                                        · {{ $statusLabels[$history->to_status] ?? $history->to_status }}
+                                        · {{ $history->actor_type === 'employee' ? 'Сотрудник' : ($history->actor_type === 'customer' ? 'Клиент' : ($history->actor_type === 'user' ? 'Менеджер' : 'Система')) }}
+                                    </div>
+                                    @if($history->comment)
+                                        <div class="organization-orders-muted">{{ $history->comment }}</div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </details>
+                @endif
+
                 <div class="organization-orders-actions">
                     @if($order->status === 'new')
                         <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}">
