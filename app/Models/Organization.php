@@ -89,6 +89,29 @@ class Organization extends Model
     }
 
     /**
+     * Заказы клиентов организации.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Клиенты, связанные с организацией через customer_organizations.
+     */
+    public function customers(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Customer::class,
+            'customer_organizations',
+            'organization_id',
+            'customer_id'
+        )
+            ->withPivot('source')
+            ->withTimestamps();
+    }
+
+    /**
      * Категории релизов организации.
      */
     public function releaseCategories(): HasMany

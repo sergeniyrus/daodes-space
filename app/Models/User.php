@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Date;
 use App\Models\Organization;
@@ -45,6 +46,14 @@ class User extends Authenticatable
             'last_seen_at' => 'datetime', // ← добавлено для корректной работы isOnline()
         ];
     }
+/**
+ * Клиентский профиль, связанный с аккаунтом DAODES после полной регистрации.
+ */
+public function customer(): HasOne
+{
+    return $this->hasOne(Customer::class, 'user_id');
+}
+
 /**
  * Организации пользователя.
  */
