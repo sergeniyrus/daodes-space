@@ -57,6 +57,7 @@ class CustomerCartController extends Controller
             $item = $items->get((int) $itemId);
 
             return [
+                'item_id' => (int) $itemId,
                 'item' => $item,
                 'quantity' => (int) $quantity,
                 'available' => $item !== null && $item->is_active,
@@ -166,21 +167,16 @@ class CustomerCartController extends Controller
         return redirect()->route('customer.cart');
     }
 
-    public function remove(MenuItem $menuItem): RedirectResponse
+    public function remove(int $menuItemId): RedirectResponse
     {
         $cart = session(self::SESSION_KEY, []);
-        $organizationId = (int) ($cart['organization_id'] ?? 0);
 
         abort_unless(
-            $organizationId > 0
-            && isset($cart['items'][$menuItem->id])
-            && $menuItem->section()
-                ->where('organization_id', $organizationId)
-                ->exists(),
+            isset($cart['items'][$menuItemId]),
             404
         );
 
-        unset($cart['items'][$menuItem->id]);
+        unset($cart['items'][$menuItemId]);
 
         if (empty($cart['items'])) {
             session()->forget(self::SESSION_KEY);
