@@ -1505,6 +1505,250 @@
     </div>
 
 {{-- =====================================================
+     НАСТРОЙКИ ОНЛАЙН-ЗАКАЗОВ
+     ===================================================== --}}
+<style>
+.organization-order-settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 14px;
+    margin-top: 16px;
+}
+.organization-order-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    color: #d8dce8;
+}
+.organization-order-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 12px;
+    color: #fff;
+    background: #090c16;
+    border: 1px solid rgba(0, 229, 212, .45);
+    border-radius: 9px;
+}
+.organization-order-input:focus {
+    border-color: gold;
+    outline: none;
+    box-shadow: 0 0 8px rgba(255, 215, 0, .18);
+}
+.organization-order-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 10px 16px;
+    margin-top: 18px;
+}
+.organization-order-options label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #d8dce8;
+}
+.organization-order-options input {
+    accent-color: #00e5d4;
+}
+.organization-order-hint {
+    margin-top: 14px;
+    color: #9da7b8;
+    font-size: .88rem;
+    line-height: 1.5;
+}
+.organization-order-error {
+    color: #ff8585;
+    font-size: .85rem;
+}
+</style>
+
+<div class="organization-section">
+    <h2 class="organization-section-title">
+        🛒 Настройки онлайн-заказов
+    </h2>
+
+    <form
+        method="POST"
+        action="{{ route('organizations.order-settings.update', $organization) }}"
+    >
+        @csrf
+        @method('PUT')
+
+        <div class="organization-order-settings">
+            <label class="organization-order-field">
+                Валюта (ISO 4217)
+                <input
+                    type="text"
+                    name="currency"
+                    class="organization-order-input"
+                    value="{{ old('currency', $orderSettings?->currency) }}"
+                    maxlength="3"
+                    minlength="3"
+                    pattern="[A-Za-z]{3}"
+                    placeholder="EUR"
+                    autocomplete="off"
+                >
+                @error('currency')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+
+            <label class="organization-order-field">
+                Стоимость доставки
+                <input
+                    type="number"
+                    name="delivery_fee"
+                    class="organization-order-input"
+                    value="{{ old('delivery_fee', $orderSettings?->delivery_fee ?? '0.00') }}"
+                    min="0"
+                    max="9999999999.99"
+                    step="0.01"
+                    required
+                >
+                @error('delivery_fee')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+
+            <label class="organization-order-field">
+                Минимальная сумма заказа
+                <input
+                    type="number"
+                    name="minimum_order"
+                    class="organization-order-input"
+                    value="{{ old('minimum_order', $orderSettings?->minimum_order) }}"
+                    min="0"
+                    max="9999999999.99"
+                    step="0.01"
+                    placeholder="Не ограничено"
+                >
+                @error('minimum_order')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+
+            <label class="organization-order-field">
+                Минимальное время самовывоза (мин.)
+                <input
+                    type="number"
+                    name="pickup_min_minutes"
+                    class="organization-order-input"
+                    value="{{ old('pickup_min_minutes', $orderSettings?->pickup_min_minutes) }}"
+                    min="0"
+                    max="1440"
+                    step="1"
+                    placeholder="Не задано"
+                >
+                @error('pickup_min_minutes')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+        </div>
+
+        <div class="organization-order-options">
+            <label>
+                <input
+                    type="checkbox"
+                    name="delivery_enabled"
+                    value="1"
+                    @checked(old('delivery_enabled', $orderSettings?->delivery_enabled ?? false))
+                >
+                🚚 Доставка
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="pickup_enabled"
+                    value="1"
+                    @checked(old('pickup_enabled', $orderSettings?->pickup_enabled ?? false))
+                >
+                🛍 Самовывоз
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="dine_in_enabled"
+                    value="1"
+                    @checked(old('dine_in_enabled', $orderSettings?->dine_in_enabled ?? false))
+                >
+                🍽 Заказ в заведении
+            </label>
+        </div>
+
+        <div class="organization-order-options">
+            <label>
+                <input
+                    type="checkbox"
+                    name="online_payment_enabled"
+                    value="1"
+                    @checked(old('online_payment_enabled', $orderSettings?->online_payment_enabled ?? false))
+                >
+                💳 Онлайн-оплата
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="cash_payment_enabled"
+                    value="1"
+                    @checked(old('cash_payment_enabled', $orderSettings?->cash_payment_enabled ?? false))
+                >
+                💵 Наличные при получении
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="card_payment_enabled"
+                    value="1"
+                    @checked(old('card_payment_enabled', $orderSettings?->card_payment_enabled ?? false))
+                >
+                💳 Терминал при получении
+            </label>
+        </div>
+
+        <div class="organization-order-options">
+            <label>
+                <input
+                    type="checkbox"
+                    name="orders_enabled"
+                    value="1"
+                    @checked(old('orders_enabled', $orderSettings?->orders_enabled ?? false))
+                >
+                <strong style="color: gold;">Принимать онлайн-заказы</strong>
+            </label>
+        </div>
+
+        @error('delivery_enabled')
+            <div class="organization-order-error">{{ $message }}</div>
+        @enderror
+        @error('cash_payment_enabled')
+            <div class="organization-order-error">{{ $message }}</div>
+        @enderror
+
+        <div class="organization-order-hint">
+            Для включения заказов укажите валюту, выберите хотя бы один способ получения
+            и один способ оплаты. Онлайн-оплата пока является настройкой доступности:
+            платёжный провайдер и серверное подтверждение платежей будут подключены отдельно.
+        </div>
+
+        <button type="submit" class="organization-button" style="margin-top: 16px;">
+            Сохранить настройки заказов
+        </button>
+    </form>
+
+    <div class="organization-order-hint">
+        @if($orderSettings?->canAcceptOrders())
+            <span style="color: #00e5a8;">● Онлайн-заказы включены</span>
+        @else
+            <span style="color: #d8b45b;">● Онлайн-заказы пока выключены или настройки не завершены</span>
+        @endif
+    </div>
+</div>
+
+{{-- =====================================================
      УПРАВЛЕНИЕ МЕНЮ
      ===================================================== --}}
 
