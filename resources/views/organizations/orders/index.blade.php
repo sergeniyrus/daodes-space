@@ -227,7 +227,7 @@
                         </form>
                     @endif
 
-                    @if(in_array($order->status, ['new', 'confirmed', 'preparing', 'ready'], true))
+                    @if(in_array($order->status, ['new', 'confirmed', 'preparing', 'ready'], true) && $order->payment_status !== 'succeeded')
                         <form
                             method="POST"
                             action="{{ route('organizations.orders.status', [$organization, $order]) }}"
