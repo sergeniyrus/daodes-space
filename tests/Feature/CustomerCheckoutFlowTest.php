@@ -577,6 +577,79 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertDatabaseCount('payment_webhook_events', 0);
     }
 
+
+    public function test_signed_refund_webhook_changes_succeeded_payment_to_refunded(): void
+    {
+        [$order, $payment] = $this->createFakeOnlinePayment();
+
+        $sendEvent = function (string $eventId, string $status) {
+            $payload = json_encode([
+                'event_id' => $eventId,
+                'payment_id' => 'provider_payment_001',
+                'status' => $status,
+                'amount' => '20.00',
+                'currency' => 'EUR',
+            ], JSON_THROW_ON_ERROR);
+
+            return $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_FAKE_SIGNATURE' => hash_hmac(
+                    'sha256',
+                    $payload,
+                    'test-webhook-secret'
+                ),
+            ], $payload);
+        };
+
+        $sendEvent('evt_paid_before_refund', Order::PAYMENT_SUCCEEDED)
+            ->assertOk()
+            ->assertJson(['processing_status' => 'processed']);
+
+        $sendEvent('evt_refund_001', Order::PAYMENT_REFUNDED)
+            ->assertOk()
+            ->assertJson(['processing_status' => 'processed']);
+
+        $this->assertSame(Order::PAYMENT_REFUNDED, $payment->fresh()->status);
+        $this->assertNotNull($payment->fresh()->refunded_at);
+        $this->assertSame(Order::PAYMENT_REFUNDED, $order->fresh()->payment_status);
+        $this->assertDatabaseCount('payment_webhook_events', 2);
+    }
+
+    public function test_late_success_webhook_does_not_pay_an_already_cancelled_order(): void
+    {
+        [$order, $payment] = $this->createFakeOnlinePayment();
+        $order->update(['status' => Order::STATUS_CANCELLED]);
+
+        $payload = json_encode([
+            'event_id' => 'evt_late_success',
+            'payment_id' => 'provider_payment_001',
+            'status' => Order::PAYMENT_SUCCEEDED,
+            'amount' => '20.00',
+            'currency' => 'EUR',
+        ], JSON_THROW_ON_ERROR);
+
+        $response = $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => hash_hmac(
+                'sha256',
+                $payload,
+                'test-webhook-secret'
+            ),
+        ], $payload);
+
+        $response->assertOk()->assertJson([
+            'received' => true,
+            'processing_status' => 'rejected',
+        ]);
+
+        $this->assertSame(Order::PAYMENT_PENDING, $payment->fresh()->status);
+        $this->assertSame(Order::PAYMENT_PENDING, $order->fresh()->payment_status);
+        $this->assertDatabaseHas('payment_webhook_events', [
+            'event_id' => 'evt_late_success',
+            'processing_status' => 'rejected',
+        ]);
+    }
+
     private function createFakeOnlinePayment(): array
     {
         $this->withoutMiddleware(ThrottleRequests::class);
