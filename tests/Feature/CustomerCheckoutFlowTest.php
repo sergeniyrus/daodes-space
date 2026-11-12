@@ -165,6 +165,162 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertNotSame($organization->id, $otherOrganization->id);
     }
 
+
+    public function test_manager_cook_and_courier_complete_delivery_order_and_manager_records_payment(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'address_line' => 'Test street 10',
+        ])->assertRedirect();
+
+        $order = Order::query()->firstOrFail();
+        $manager = $this->createOrganizationManager($organization);
+        $cook = $this->createOrganizationEmployee($organization, 'cook', '+436601234568');
+        $courier = $this->createOrganizationEmployee($organization, 'courier', '+436601234569');
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_CONFIRMED,
+            ])
+            ->assertRedirect(route('organizations.orders.index', $organization));
+
+        foreach ([
+            [$cook, 'cook'],
+            [$courier, 'courier'],
+        ] as [$employee, $role]) {
+            $this->actingAs($manager)
+                ->post(route('organizations.orders.assign', [$organization, $order]), [
+                    'employee_id' => $employee->id,
+                    'role' => $role,
+                ])
+                ->assertRedirect(route('organizations.orders.index', $organization));
+        }
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_PREPARING,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_READY,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_HANDED_TO_COURIER,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $this->actingAs($courier, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_IN_TRANSIT,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $this->actingAs($courier, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_DELIVERED,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.payment', [$organization, $order]))
+            ->assertRedirect(route('organizations.orders.index', $organization));
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_COMPLETED,
+            ])
+            ->assertRedirect(route('organizations.orders.index', $organization));
+
+        $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
+        $this->assertSame(Order::PAYMENT_SUCCEEDED, $order->fresh()->payment_status);
+        $this->assertSame(
+            8,
+            $order->statusHistory()->count(),
+            'The initial status and every manager/employee transition must be recorded.'
+        );
+
+        $this->assertDatabaseHas('order_assignments', [
+            'order_id' => $order->id,
+            'employee_id' => $cook->id,
+            'role' => 'cook',
+        ]);
+
+        $this->assertDatabaseHas('order_assignments', [
+            'order_id' => $order->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+        ]);
+
+        $this->assertNotNull(
+            $order->assignments()->where('role', 'cook')->firstOrFail()->unassigned_at
+        );
+        $this->assertNotNull(
+            $order->assignments()->where('role', 'courier')->firstOrFail()->unassigned_at
+        );
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'status' => Order::PAYMENT_SUCCEEDED,
+        ]);
+    }
+
+    private function createOrganizationManager(Organization $organization): User
+    {
+        $userId = DB::table('users')->insertGetId([
+            'name' => 'Manager ' . $organization->id,
+            'password' => Hash::make('test-password'),
+            'keyword' => 'test-keyword',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('organization_users')->insert([
+            'organization_id' => $organization->id,
+            'user_id' => $userId,
+            'role' => 'manager',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return User::query()->findOrFail($userId);
+    }
+
+    private function createOrganizationEmployee(
+        Organization $organization,
+        string $role,
+        string $phone
+    ): OrganizationEmployee {
+        $employee = OrganizationEmployee::query()->create([
+            'name' => ucfirst($role) . ' test',
+            'phone' => $phone,
+            'password' => 'test-password',
+            'phone_verified_at' => now(),
+        ]);
+
+        OrganizationEmployeeMembership::query()->create([
+            'employee_id' => $employee->id,
+            'organization_id' => $organization->id,
+            'role' => $role,
+            'status' => 'active',
+        ]);
+
+        return $employee;
+    }
+
     private function createVerifiedCustomer(): Customer
     {
         return Customer::query()->create([
