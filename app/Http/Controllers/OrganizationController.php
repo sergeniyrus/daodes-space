@@ -517,12 +517,11 @@ class OrganizationController extends Controller
             }
 
             if (
-                !$validated['online_payment_enabled']
-                && !$validated['cash_payment_enabled']
+                !$validated['cash_payment_enabled']
                 && !$validated['card_payment_enabled']
             ) {
                 return back()
-                    ->withErrors(['cash_payment_enabled' => 'Включите хотя бы один способ оплаты.'])
+                    ->withErrors(['cash_payment_enabled' => 'До подключения платёжного провайдера включите наличные или оплату терминалом при получении.'])
                     ->withInput();
             }
         }
