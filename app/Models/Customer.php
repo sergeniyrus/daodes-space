@@ -1,0 +1,61 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Customer extends Authenticatable
+{
+    protected $table = 'customers';
+
+    protected $fillable = [
+        'name',
+        'phone',
+        'phone_verified_at',
+        'user_id',
+    ];
+
+    protected $hidden = [];
+
+    protected function casts(): array
+    {
+        return [
+            'phone_verified_at' => 'datetime',
+        ];
+    }
+
+    public function linkedUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function organizations(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Organization::class,
+            'customer_organizations',
+            'customer_id',
+            'organization_id'
+        )
+            ->withPivot('source')
+            ->withTimestamps();
+    }
+
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(CustomerAddress::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function phoneChallenges(): HasMany
+    {
+        return $this->hasMany(CustomerPhoneChallenge::class);
+    }
+}
