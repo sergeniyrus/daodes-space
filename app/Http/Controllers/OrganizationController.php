@@ -459,8 +459,10 @@ class OrganizationController extends Controller
             ]);
         }
 
+        $currency = strtoupper(trim((string) $request->input('currency')));
+
         $request->merge([
-            'currency' => strtoupper(trim((string) $request->input('currency'))),
+            'currency' => $currency !== '' ? $currency : null,
         ]);
 
         $validated = $request->validate([
