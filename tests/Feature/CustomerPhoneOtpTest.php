@@ -76,9 +76,11 @@ class CustomerPhoneOtpTest extends TestCase
         $service = new CustomerPhoneOtpService($transport);
         $service->requestCode('+436601234568');
 
+        $wrongCode = $plainCode === '000000' ? '000001' : '000000';
+
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $this->assertNull(
-                $service->verifyCode('+436601234568', '000000')
+                $service->verifyCode('+436601234568', $wrongCode)
             );
         }
 
@@ -91,10 +93,8 @@ class CustomerPhoneOtpTest extends TestCase
         $this->assertSame(5, $challenge->attempts);
         $this->assertNotNull($challenge->revoked_at);
 
-        if ($plainCode !== '000000') {
-            $this->assertNull(
-                $service->verifyCode('+436601234568', $plainCode)
-            );
-        }
+        $this->assertNull(
+            $service->verifyCode('+436601234568', $plainCode)
+        );
     }
 }
