@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderAssignment;
 use App\Models\Organization;
 use App\Models\OrganizationEmployeeMembership;
+use App\Support\OrderTransitionPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -113,49 +114,36 @@ class EmployeeOrderController extends Controller
 
             $fromStatus = $lockedOrder->status;
             $toStatus = $validated['status'];
-            $allowed = false;
+            $hasActiveCourier = false;
 
-            if ($membership->role === 'cook') {
-                $allowed = (
-                    $fromStatus === Order::STATUS_CONFIRMED
-                    && $toStatus === Order::STATUS_PREPARING
-                ) || (
-                    $fromStatus === Order::STATUS_PREPARING
-                    && $toStatus === Order::STATUS_READY
-                );
-
-                if (
-                    $fromStatus === Order::STATUS_READY
-                    && $toStatus === Order::STATUS_HANDED_TO_COURIER
-                    && $lockedOrder->fulfillment_type === Order::FULFILLMENT_DELIVERY
-                ) {
-                    $hasActiveCourier = $lockedOrder->assignments()
-                        ->where('role', 'courier')
-                        ->whereNull('unassigned_at')
-                        ->whereHas('employee.memberships', function ($query) use ($organization) {
-                            $query->where('organization_id', $organization->id)
-                                ->where('role', 'courier')
-                                ->where('status', 'active');
-                        })
-                        ->exists();
-
-                    $allowed = $hasActiveCourier;
-                }
+            if (
+                $membership->role === 'cook'
+                && $fromStatus === Order::STATUS_READY
+                && $toStatus === Order::STATUS_HANDED_TO_COURIER
+                && $lockedOrder->fulfillment_type === Order::FULFILLMENT_DELIVERY
+            ) {
+                $hasActiveCourier = $lockedOrder->assignments()
+                    ->where('role', 'courier')
+                    ->whereNull('unassigned_at')
+                    ->whereHas('employee.memberships', function ($query) use ($organization) {
+                        $query->where('organization_id', $organization->id)
+                            ->where('role', 'courier')
+                            ->where('status', 'active');
+                    })
+                    ->exists();
             }
 
-            if ($membership->role === 'courier') {
-                $allowed = (
-                    $fromStatus === Order::STATUS_HANDED_TO_COURIER
-                    && $toStatus === Order::STATUS_IN_TRANSIT
-                ) || (
-                    $fromStatus === Order::STATUS_IN_TRANSIT
-                    && $toStatus === Order::STATUS_DELIVERED
-                );
-            }
+            $transitionError = OrderTransitionPolicy::employeeError(
+                $membership->role,
+                $fromStatus,
+                $toStatus,
+                $lockedOrder->fulfillment_type,
+                $hasActiveCourier
+            );
 
-            if (!$allowed) {
+            if ($transitionError !== null) {
                 throw ValidationException::withMessages([
-                    'status' => 'Переход статуса недоступен для вашей роли или текущего состояния заказа.',
+                    'status' => $transitionError,
                 ]);
             }
 
