@@ -243,6 +243,27 @@ class OrganizationOrderController extends Controller
                 ]);
             }
 
+            $assignableStatuses = $validated['role'] === 'cook'
+                ? [
+                    Order::STATUS_NEW,
+                    Order::STATUS_CONFIRMED,
+                    Order::STATUS_PREPARING,
+                    Order::STATUS_READY,
+                ]
+                : [
+                    Order::STATUS_NEW,
+                    Order::STATUS_CONFIRMED,
+                    Order::STATUS_PREPARING,
+                    Order::STATUS_READY,
+                    Order::STATUS_HANDED_TO_COURIER,
+                ];
+
+            if (!in_array($lockedOrder->status, $assignableStatuses, true)) {
+                throw ValidationException::withMessages([
+                    'employee_id' => 'На этом этапе заказа нельзя менять назначение сотрудника.',
+                ]);
+            }
+
             $membership = OrganizationEmployeeMembership::query()
                 ->where('organization_id', $organization->id)
                 ->where('employee_id', $validated['employee_id'])
@@ -270,7 +291,7 @@ class OrganizationOrderController extends Controller
                 'assigned_by_user_id' => auth()->id(),
                 'assigned_at' => now(),
             ]);
-        });
+        }, 3);
 
         return redirect()
             ->route('organizations.orders.index', $organization)
