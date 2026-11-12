@@ -31,4 +31,36 @@ Route::prefix('customer')
         )
             ->middleware('auth:customer')
             ->name('logout');
+
+        // Публичный каталог и гостевая корзина.
+        Route::get(
+            '/organizations/{organization}',
+            [CustomerCatalogController::class, 'index']
+        )->name('catalog');
+
+        Route::get(
+            '/cart',
+            [CustomerCartController::class, 'index']
+        )->name('cart');
+
+        Route::post(
+            '/organizations/{organization}/cart/items',
+            [CustomerCartController::class, 'add']
+        )->name('cart.add');
+
+        Route::put(
+            '/cart/items/{menuItem}',
+            [CustomerCartController::class, 'update']
+        )->name('cart.update');
+
+        Route::delete(
+            '/cart/items/{menuItemId}',
+            [CustomerCartController::class, 'remove']
+        )->whereNumber('menuItemId')
+            ->name('cart.remove');
+
+        Route::delete(
+            '/cart',
+            [CustomerCartController::class, 'clear']
+        )->name('cart.clear');
     });
