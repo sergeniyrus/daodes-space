@@ -80,7 +80,6 @@ class EmployeeOrderController extends Controller
         $employee = Auth::guard('employee')->user();
 
         DB::transaction(function () use (
-            $request,
             $organization,
             $order,
             $validated,
@@ -178,7 +177,7 @@ class EmployeeOrderController extends Controller
                 'comment' => $this->statusComment($toStatus),
                 'created_at' => now(),
             ]);
-        });
+        }, 3);
 
         return redirect()
             ->route('employee.organization.orders.index', $organization)
