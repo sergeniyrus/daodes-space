@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Contracts\SmsTransport;
 use App\Models\Customer;
-use App\Models\CustomerPhoneChallenge;
 use App\Services\CustomerPhoneOtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
