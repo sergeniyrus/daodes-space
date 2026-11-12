@@ -250,6 +250,17 @@ class CustomerCheckoutController extends Controller
                 return $existingOrder;
             }
 
+            $customer = Customer::query()
+                ->whereKey($customer->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$customer || !$customer->phone_verified_at) {
+                throw ValidationException::withMessages([
+                    'customer_name' => 'Подтвердите номер телефона повторно перед оформлением заказа.',
+                ]);
+            }
+
             $organization = Organization::query()
                 ->whereKey($organizationId)
                 ->where('status', 'active')
@@ -291,6 +302,20 @@ class CustomerCheckoutController extends Controller
                 ]);
             }
 
+            $menuSections = MenuSection::query()
+                ->whereIn('id', $items->pluck('menu_section_id')->unique()->all())
+                ->where('organization_id', $organizationId)
+                ->where('is_active', true)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            if ($menuSections->count() !== $items->pluck('menu_section_id')->unique()->count()) {
+                throw ValidationException::withMessages([
+                    'cart' => 'Один из разделов меню больше недоступен. Проверьте корзину.',
+                ]);
+            }
+
             $fulfillmentEnabled = match ($validated['fulfillment_type']) {
                 Order::FULFILLMENT_DELIVERY => $settings->delivery_enabled,
                 Order::FULFILLMENT_PICKUP => $settings->pickup_enabled,
@@ -314,6 +339,20 @@ class CustomerCheckoutController extends Controller
                 throw ValidationException::withMessages([
                     'payment_method' => 'Выбранный способ оплаты больше недоступен.',
                 ]);
+            }
+
+            if (
+                $validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP
+                && $settings->pickup_min_minutes !== null
+            ) {
+                $requestedAt = Carbon::createFromFormat('Y-m-d\\TH:i', $validated['requested_at']);
+
+                if ($requestedAt->lt(now()->addMinutes($settings->pickup_min_minutes))) {
+                    throw ValidationException::withMessages([
+                        'requested_at' => 'Время самовывоза должно быть не раньше чем через '
+                            . $settings->pickup_min_minutes . ' мин.',
+                    ]);
+                }
             }
 
             $subtotalCents = 0;
@@ -474,7 +513,7 @@ class CustomerCheckoutController extends Controller
             ]);
 
             return $order;
-        });
+        }, 3);
 
         session()->forget(self::SESSION_KEY);
 
