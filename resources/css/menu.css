@@ -92,6 +92,23 @@
   color: #00CCFF;
 }
 
+.mobile-chapter-header.has-submenu::after {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 12px;
+  flex: 0 0 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.mobile-chapter-header.has-submenu.submenu-expanded::after {
+  transform: rotate(225deg);
+}
+
 .mobile-chapter-header.active {
   display: block;
   background-color: #2C3E50;
