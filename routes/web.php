@@ -1103,6 +1103,13 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('orders.status');
 
+        Route::patch(
+            '/{organization}/orders/{order}/payment',
+            [OrganizationOrderController::class, 'markPaid']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.payment');
+
         Route::post(
             '/{organization}/orders/{order}/assignments',
             [OrganizationOrderController::class, 'assign']
