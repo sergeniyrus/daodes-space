@@ -1081,6 +1081,13 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('manage');
 
+        Route::put(
+            '/{organization}/order-settings',
+            [OrganizationController::class, 'updateOrderSettings']
+        )
+            ->middleware('organization.manager')
+            ->name('order-settings.update');
+
 
         /*
          * =====================================================
