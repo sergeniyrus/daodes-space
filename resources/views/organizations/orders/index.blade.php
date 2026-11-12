@@ -5,6 +5,30 @@
 @endsection
 
 @section('main')
+@php
+    $statusLabels = [
+        'new' => 'Новый',
+        'awaiting_payment' => 'Ожидает оплаты',
+        'confirmed' => 'Подтверждён',
+        'preparing' => 'Готовится',
+        'ready' => 'Готов',
+        'handed_to_courier' => 'Передан курьеру',
+        'in_transit' => 'В пути',
+        'issued' => 'Выдан',
+        'served' => 'Подан',
+        'delivered' => 'Доставлен',
+        'completed' => 'Завершён',
+        'cancelled' => 'Отменён',
+    ];
+
+    $paymentLabels = [
+        'pending' => 'Ожидает оплаты',
+        'succeeded' => 'Оплачен',
+        'failed' => 'Ошибка оплаты',
+        'cancelled' => 'Отменён',
+        'refunded' => 'Возвращён',
+    ];
+@endphp
 <style>
 .organization-orders-page {
     width: min(1180px, calc(100% - 24px));
@@ -131,7 +155,7 @@
                     </div>
 
                     <div style="text-align: right;">
-                        <div class="organization-orders-status">{{ $order->status }}</div>
+                        <div class="organization-orders-status">{{ $statusLabels[$order->status] ?? $order->status }}</div>
                         <div class="organization-orders-total">
                             {{ number_format((float) $order->total, 2, ',', ' ') }}
                             {{ $order->currency }}
@@ -153,6 +177,9 @@
                 </div>
                 <div class="organization-orders-muted">
                     Получение: {{ $order->fulfillment_type }} · Оплата: {{ $order->payment_method }}
+                </div>
+                <div class="organization-orders-muted">
+                    Состояние оплаты: {{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}
                 </div>
 
                 @if($order->delivery_address)
@@ -211,6 +238,47 @@
                             <input type="hidden" name="status" value="cancelled">
                             <button type="submit" class="organization-orders-button organization-orders-danger">
                                 Отменить
+                            </button>
+                        </form>
+                    @endif
+
+                    @if($order->status === 'ready' && $order->fulfillment_type === 'pickup')
+                        <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="issued">
+                            <button type="submit" class="organization-orders-button">Отметить выданным</button>
+                        </form>
+                    @endif
+
+                    @if($order->status === 'ready' && $order->fulfillment_type === 'dine_in')
+                        <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="served">
+                            <button type="submit" class="organization-orders-button">Отметить поданным</button>
+                        </form>
+                    @endif
+
+                    @if(in_array($order->status, ['delivered', 'issued', 'served'], true) && $order->payment_status === 'succeeded')
+                        <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="status" value="completed">
+                            <button type="submit" class="organization-orders-button">Завершить заказ</button>
+                        </form>
+                    @endif
+
+                    @if($order->payment_status === 'pending' && in_array($order->payment_method, ['cash_on_receipt', 'card_on_receipt'], true) && $order->status !== 'cancelled')
+                        <form
+                            method="POST"
+                            action="{{ route('organizations.orders.payment', [$organization, $order]) }}"
+                            onsubmit="return confirm('Подтвердить получение оплаты по заказу №{{ $order->order_number }}?');"
+                        >
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="organization-orders-button">
+                                Отметить оплату полученной
                             </button>
                         </form>
                     @endif
