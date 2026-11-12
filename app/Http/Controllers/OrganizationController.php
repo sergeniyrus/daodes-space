@@ -133,6 +133,7 @@ class OrganizationController extends Controller
 
         return view('organizations.manage', [
             'organization' => $organization,
+            'orderSettings' => $organization->orderSettings,
             'members' => $members,
             'availableUsers' => $availableUsers,
             'staffMemberships' => $staffMemberships,
@@ -431,4 +432,106 @@ class OrganizationController extends Controller
                 __('organizations.messages.employee_removed')
             );
     }
+
+    /**
+     * Сохранение настроек онлайн-заказов организации.
+     *
+     * Доступ проверяется middleware organization.manager.
+     */
+    public function updateOrderSettings(
+        Request $request,
+        Organization $organization
+    ): RedirectResponse {
+        $booleanFields = [
+            'orders_enabled',
+            'delivery_enabled',
+            'pickup_enabled',
+            'dine_in_enabled',
+            'online_payment_enabled',
+            'cash_payment_enabled',
+            'card_payment_enabled',
+        ];
+
+        foreach ($booleanFields as $field) {
+            $request->merge([
+                $field => $request->boolean($field),
+            ]);
+        }
+
+        $request->merge([
+            'currency' => strtoupper(trim((string) $request->input('currency'))),
+        ]);
+
+        $validated = $request->validate([
+            'currency' => [
+                'nullable',
+                'string',
+                'size:3',
+                'regex:/^[A-Z]{3}$/',
+            ],
+            'delivery_fee' => [
+                'required',
+                'numeric',
+                'min:0',
+                'max:9999999999.99',
+            ],
+            'minimum_order' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                'max:9999999999.99',
+            ],
+            'orders_enabled' => ['required', 'boolean'],
+            'delivery_enabled' => ['required', 'boolean'],
+            'pickup_enabled' => ['required', 'boolean'],
+            'dine_in_enabled' => ['required', 'boolean'],
+            'online_payment_enabled' => ['required', 'boolean'],
+            'cash_payment_enabled' => ['required', 'boolean'],
+            'card_payment_enabled' => ['required', 'boolean'],
+            'pickup_min_minutes' => [
+                'nullable',
+                'integer',
+                'min:0',
+                'max:1440',
+            ],
+        ]);
+
+        if ($validated['orders_enabled']) {
+            if (empty($validated['currency'])) {
+                return back()
+                    ->withErrors(['currency' => 'Укажите трёхбуквенный код валюты, прежде чем включать заказы.'])
+                    ->withInput();
+            }
+
+            if (
+                !$validated['delivery_enabled']
+                && !$validated['pickup_enabled']
+                && !$validated['dine_in_enabled']
+            ) {
+                return back()
+                    ->withErrors(['delivery_enabled' => 'Включите хотя бы один способ получения заказа.'])
+                    ->withInput();
+            }
+
+            if (
+                !$validated['online_payment_enabled']
+                && !$validated['cash_payment_enabled']
+                && !$validated['card_payment_enabled']
+            ) {
+                return back()
+                    ->withErrors(['cash_payment_enabled' => 'Включите хотя бы один способ оплаты.'])
+                    ->withInput();
+            }
+        }
+
+        OrganizationOrderSetting::updateOrCreate(
+            ['organization_id' => $organization->id],
+            $validated
+        );
+
+        return redirect()
+            ->route('organizations.manage', $organization)
+            ->with('success', 'Настройки онлайн-заказов сохранены.');
+    }
+
 }
