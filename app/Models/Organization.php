@@ -89,6 +89,14 @@ class Organization extends Model
     }
 
     /**
+     * Настройки онлайн-заказов организации.
+     */
+    public function orderSettings(): \\Illuminate\\Database\\Eloquent\\Relations\\HasOne
+    {
+        return $this->hasOne(OrganizationOrderSetting::class);
+    }
+
+    /**
      * Заказы клиентов организации.
      */
     public function orders(): HasMany
