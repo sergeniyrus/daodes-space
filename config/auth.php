@@ -45,6 +45,15 @@ return [
         'driver' => 'sanctum',
         'provider' => 'users',
     ],
+
+    /*
+     * Отдельная авторизация персонала организаций.
+     * Guard web остаётся основным для пользователей DAODES.
+     */
+    'employee' => [
+        'driver' => 'session',
+        'provider' => 'organization_employees',
+    ],
 ],
 
     /*
@@ -68,6 +77,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
+        ],
+
+        'organization_employees' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\OrganizationEmployee::class,
         ],
 
         // 'users' => [

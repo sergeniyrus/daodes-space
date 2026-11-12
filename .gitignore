@@ -35,6 +35,9 @@ public/img/svg
 
 
 
+# Private TLS certificates and keys must never be committed
+/storage/certs/
+
 # DAODES AI runtime
 /storage/ai_patch_queue.json
 /storage/ai_patch_queue.json.lock

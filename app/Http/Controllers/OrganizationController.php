@@ -120,10 +120,22 @@ class OrganizationController extends Controller
                 'name',
             ]);
 
+        /*
+         * Отдельный персонал организации:
+         * повара, курьеры и сотрудники не смешиваются
+         * с обычными пользователями DAODES из users.
+         */
+        $staffMemberships = $organization->employeeMemberships()
+            ->with('employee')
+            ->orderByRaw("FIELD(status, 'active', 'pending', 'blocked')")
+            ->orderBy('id')
+            ->get();
+
         return view('organizations.manage', [
             'organization' => $organization,
             'members' => $members,
             'availableUsers' => $availableUsers,
+            'staffMemberships' => $staffMemberships,
         ]);
     }
 

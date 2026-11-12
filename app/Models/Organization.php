@@ -47,6 +47,37 @@ class Organization extends Model
     }
 
     /**
+     * Членства сотрудников организации.
+     */
+    public function employeeMemberships(): HasMany
+    {
+        return $this->hasMany(
+            OrganizationEmployeeMembership::class,
+            'organization_id'
+        );
+    }
+
+    /**
+     * Сотрудники отдельной системы авторизации.
+     *
+     * Не смешиваются с пользователями DAODES из organization_users.
+     */
+    public function employees(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            OrganizationEmployee::class,
+            'organization_employee_memberships',
+            'organization_id',
+            'employee_id'
+        )
+            ->withPivot([
+                'role',
+                'status',
+            ])
+            ->withTimestamps();
+    }
+
+    /**
      * Разделы меню организации.
      */
     public function menuSections(): HasMany

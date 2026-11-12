@@ -29,6 +29,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
             'organization.manager' => \App\Http\Middleware\OrganizationManagerMiddleware::class,
             'organization.member' => \App\Http\Middleware\OrganizationMemberMiddleware::class,
+
+            'employee.auth' => \App\Http\Middleware\AuthenticateEmployee::class,
+            'employee.organization' => \App\Http\Middleware\EmployeeOrganizationMiddleware::class,
+            'employee.role' => \App\Http\Middleware\EmployeeRoleMiddleware::class,
+
             'creator.release' => CreatorReleaseAccess::class,
         ]);
     })
