@@ -56,8 +56,7 @@ class OrganizationOrderSetting extends Model
                 || $this->dine_in_enabled
             )
             && (
-                $this->online_payment_enabled
-                || $this->cash_payment_enabled
+                $this->cash_payment_enabled
                 || $this->card_payment_enabled
             );
     }
