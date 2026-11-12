@@ -108,9 +108,13 @@ class OrganizationStaffController extends Controller
                 ->route('organizations.manage', $organization)
                 ->with('success', 'Сотрудник добавлен. SMS-приглашение передано провайдеру.');
         } catch (SmsTransportException | EmployeeInvitationRateLimitException $exception) {
+            $message = $exception instanceof EmployeeInvitationRateLimitException
+                ? $exception->getMessage()
+                : 'SMS-провайдер не подключён или отправка временно недоступна. Сотрудник сохранён, приглашение можно отправить повторно.';
+
             return redirect()
                 ->route('organizations.manage', $organization)
-                ->with('error', 'Сотрудник добавлен, но SMS не отправлено: ' . $exception->getMessage());
+                ->with('error', 'Сотрудник добавлен, но SMS не отправлено: ' . $message);
         }
     }
 
@@ -160,18 +164,20 @@ class OrganizationStaffController extends Controller
                 ->with('error', 'Нельзя активировать доступ до подтверждения телефона сотрудника.');
         }
 
-        $membership->update([
-            'status' => $validated['status'],
-        ]);
+        DB::transaction(function () use ($membership, $employee, $organization, $validated) {
+            $membership->update([
+                'status' => $validated['status'],
+            ]);
 
-        if ($validated['status'] === 'blocked') {
-            EmployeePhoneChallenge::query()
-                ->where('employee_id', $employee->id)
-                ->where('organization_id', $organization->id)
-                ->whereNull('consumed_at')
-                ->whereNull('revoked_at')
-                ->update(['revoked_at' => now()]);
-        }
+            if ($validated['status'] === 'blocked') {
+                EmployeePhoneChallenge::query()
+                    ->where('employee_id', $employee->id)
+                    ->where('organization_id', $organization->id)
+                    ->whereNull('consumed_at')
+                    ->whereNull('revoked_at')
+                    ->update(['revoked_at' => now()]);
+            }
+        });
 
         return redirect()
             ->route('organizations.manage', $organization)
@@ -210,9 +216,13 @@ class OrganizationStaffController extends Controller
                 ->route('organizations.manage', $organization)
                 ->with('success', 'Повторное SMS-приглашение передано провайдеру.');
         } catch (SmsTransportException | EmployeeInvitationRateLimitException $exception) {
+            $message = $exception instanceof EmployeeInvitationRateLimitException
+                ? $exception->getMessage()
+                : 'SMS-провайдер не подключён или отправка временно недоступна.';
+
             return redirect()
                 ->route('organizations.manage', $organization)
-                ->with('error', 'SMS не отправлено: ' . $exception->getMessage());
+                ->with('error', 'SMS не отправлено: ' . $message);
         }
     }
 
@@ -226,14 +236,16 @@ class OrganizationStaffController extends Controller
     ): RedirectResponse {
         $membership = $this->membership($organization, $employee);
 
-        EmployeePhoneChallenge::query()
-            ->where('employee_id', $employee->id)
-            ->where('organization_id', $organization->id)
-            ->whereNull('consumed_at')
-            ->whereNull('revoked_at')
-            ->update(['revoked_at' => now()]);
+        DB::transaction(function () use ($membership, $employee, $organization) {
+            EmployeePhoneChallenge::query()
+                ->where('employee_id', $employee->id)
+                ->where('organization_id', $organization->id)
+                ->whereNull('consumed_at')
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
 
-        $membership->delete();
+            $membership->delete();
+        });
 
         return redirect()
             ->route('organizations.manage', $organization)
