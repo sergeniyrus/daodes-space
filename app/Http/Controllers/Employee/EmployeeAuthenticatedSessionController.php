@@ -1,0 +1,124 @@
+<?php
+
+namespace App\Http\Controllers\Employee;
+
+use App\Http\Controllers\Controller;
+use App\Support\EmployeePhone;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+use InvalidArgumentException;
+
+class EmployeeAuthenticatedSessionController extends Controller
+{
+    public function create(): View
+    {
+        return view('employee.auth.login');
+    }
+
+    /**
+     * Вход сотрудника по подтверждённому телефону и паролю.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'phone' => [
+                'required',
+                'string',
+                'max:32',
+            ],
+            'password' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+        ]);
+
+        try {
+            $phone = EmployeePhone::normalize(
+                $validated['phone']
+            );
+        } catch (InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'phone' => $exception->getMessage(),
+            ]);
+        }
+
+        $throttleKey = Str::lower($phone) . '|' . $request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+
+            throw ValidationException::withMessages([
+                'phone' => "Слишком много попыток. Повторите через {$seconds} сек.",
+            ]);
+        }
+
+        $guard = Auth::guard('employee');
+
+        $authenticated = $guard->attempt([
+            'phone' => $phone,
+            'password' => $validated['password'],
+        ]);
+
+        if (!$authenticated) {
+            RateLimiter::hit($throttleKey, 60);
+
+            throw ValidationException::withMessages([
+                'phone' => 'Не удалось войти. Проверьте телефон и пароль.',
+            ]);
+        }
+
+        $employee = $guard->user();
+
+        /*
+         * До подтверждения телефона вход запрещён.
+         * SMS-провайдер и процесс подтверждения будут подключены
+         * отдельным этапом; обходного способа подтверждения здесь нет.
+         */
+        if (
+            !$employee->phone_verified_at ||
+            !$employee->activeMemberships()->exists()
+        ) {
+            $guard->logout();
+            RateLimiter::hit($throttleKey, 60);
+
+            throw ValidationException::withMessages([
+                'phone' => 'Учётная запись не подтверждена или не имеет активного доступа к организации.',
+            ]);
+        }
+
+        RateLimiter::clear($throttleKey);
+
+        $request->session()->regenerate();
+
+        $employee->forceFill([
+            'last_seen_at' => now(),
+        ])->saveQuietly();
+
+        return redirect()->intended(
+            route('employee.dashboard')
+        );
+    }
+
+    /**
+     * Завершает только сессию сотрудника.
+     *
+     * Авторизация обычного пользователя DAODES (guard web)
+     * при этом не сбрасывается.
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        Auth::guard('employee')->logout();
+
+        $request->session()->regenerateToken();
+
+        return redirect()
+            ->route('employee.login')
+            ->with('status', 'Вы вышли из рабочего кабинета.');
+    }
+}
