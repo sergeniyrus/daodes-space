@@ -81,6 +81,11 @@ Route::prefix('customer')
         )->name('checkout.store');
 
         Route::get(
+            '/orders',
+            [CustomerOrderController::class, 'index']
+        )->name('orders.index');
+
+        Route::get(
             '/orders/{order}',
             [CustomerOrderController::class, 'show']
         )->name('orders.show');
