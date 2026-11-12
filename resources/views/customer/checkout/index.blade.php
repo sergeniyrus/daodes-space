@@ -287,7 +287,7 @@
                 <input
                     type="text"
                     name="address_line"
-                    value="{{ old('address_line') }}"
+                    value="{{ old('address_line', $defaultAddress?->address_line) }}"
                     maxlength="500"
                     placeholder="Улица, дом, корпус"
                 >
@@ -299,25 +299,25 @@
             <div class="customer-checkout-grid">
                 <label class="customer-checkout-field">
                     Подъезд
-                    <input type="text" name="entrance" value="{{ old('entrance') }}" maxlength="30">
+                    <input type="text" name="entrance" value="{{ old('entrance', $defaultAddress?->entrance) }}" maxlength="30">
                 </label>
                 <label class="customer-checkout-field">
                     Этаж
-                    <input type="text" name="floor" value="{{ old('floor') }}" maxlength="30">
+                    <input type="text" name="floor" value="{{ old('floor', $defaultAddress?->floor) }}" maxlength="30">
                 </label>
                 <label class="customer-checkout-field">
                     Квартира / офис
-                    <input type="text" name="apartment" value="{{ old('apartment') }}" maxlength="30">
+                    <input type="text" name="apartment" value="{{ old('apartment', $defaultAddress?->apartment) }}" maxlength="30">
                 </label>
                 <label class="customer-checkout-field">
                     Домофон
-                    <input type="text" name="intercom" value="{{ old('intercom') }}" maxlength="50">
+                    <input type="text" name="intercom" value="{{ old('intercom', $defaultAddress?->intercom) }}" maxlength="50">
                 </label>
             </div>
 
             <label class="customer-checkout-field">
                 Комментарий курьеру
-                <textarea name="delivery_comment" maxlength="1000">{{ old('delivery_comment') }}</textarea>
+                <textarea name="delivery_comment" maxlength="1000">{{ old('delivery_comment', $defaultAddress?->delivery_comment) }}</textarea>
             </label>
         </div>
 
