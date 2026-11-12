@@ -176,7 +176,19 @@
                     Клиент: {{ $order->customer_name }} · {{ $order->customer_phone }}
                 </div>
                 <div class="organization-orders-muted">
-                    Получение: {{ $order->fulfillment_type }} · Оплата: {{ $order->payment_method }}
+                    Получение:
+                    @switch($order->fulfillment_type)
+                        @case('delivery') Доставка @break
+                        @case('pickup') Самовывоз @break
+                        @case('dine_in') В заведении @break
+                        @default {{ $order->fulfillment_type }}
+                    @endswitch
+                    · Оплата:
+                    @switch($order->payment_method)
+                        @case('cash_on_receipt') Наличные @break
+                        @case('card_on_receipt') Терминал @break
+                        @default Онлайн
+                    @endswitch
                 </div>
                 <div class="organization-orders-muted">
                     Состояние оплаты: {{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}
