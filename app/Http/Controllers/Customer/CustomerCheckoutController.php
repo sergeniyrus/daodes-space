@@ -319,6 +319,25 @@ class CustomerCheckoutController extends Controller
                 ]);
             }
 
+            // Повторная проверка после блокировки строки организации.
+            // Она сериализует оформление заказов в рамках tenant и закрывает
+            // гонку, когда два POST с одним idempotency key пришли одновременно.
+            $existingOrder = Order::query()
+                ->where('organization_id', $organizationId)
+                ->where('idempotency_key', $validated['idempotency_key'])
+                ->lockForUpdate()
+                ->first();
+
+            if ($existingOrder) {
+                if ((int) $existingOrder->customer_id !== (int) $customer->id) {
+                    throw ValidationException::withMessages([
+                        'idempotency_key' => 'Не удалось подтвердить повтор запроса. Обновите страницу оформления.',
+                    ]);
+                }
+
+                return $existingOrder;
+            }
+
             $settings = OrganizationOrderSetting::query()
                 ->where('organization_id', $organizationId)
                 ->lockForUpdate()
