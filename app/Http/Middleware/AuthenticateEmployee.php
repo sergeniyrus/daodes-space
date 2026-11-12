@@ -23,6 +23,25 @@ class AuthenticateEmployee
 
         $employee = $guard->user();
 
+        /*
+         * Повторно проверяем подтверждение телефона и членство.
+         * Это закрывает доступ сразу после блокировки сотрудника
+         * или отзыва последнего активного членства.
+         */
+        if (
+            !$employee->phone_verified_at ||
+            !$employee->activeMemberships()->exists()
+        ) {
+            $guard->logout();
+            $request->session()->regenerateToken();
+
+            return redirect()
+                ->route('employee.login')
+                ->withErrors([
+                    'phone' => 'Доступ к рабочему кабинету приостановлен. Обратитесь к менеджеру.',
+                ]);
+        }
+
         if (
             !$employee->last_seen_at ||
             $employee->last_seen_at->lt(now()->subSeconds(30))
