@@ -28,6 +28,9 @@ class OrganizationOrderController extends Controller
             ->with('employee')
             ->where('status', 'active')
             ->whereIn('role', ['cook', 'courier'])
+            ->whereHas('employee', function ($query) {
+                $query->whereNotNull('phone_verified_at');
+            })
             ->orderBy('role')
             ->orderBy('id')
             ->get();
@@ -282,6 +285,9 @@ class OrganizationOrderController extends Controller
                 ->where('employee_id', $validated['employee_id'])
                 ->where('role', $validated['role'])
                 ->where('status', 'active')
+                ->whereHas('employee', function ($query) {
+                    $query->whereNotNull('phone_verified_at');
+                })
                 ->lockForUpdate()
                 ->first();
 
