@@ -129,6 +129,19 @@ class OrganizationOrderController extends Controller
 
             $lockedOrder->update($updates);
 
+            if (in_array($toStatus, [
+                Order::STATUS_CANCELLED,
+                Order::STATUS_ISSUED,
+                Order::STATUS_SERVED,
+                Order::STATUS_COMPLETED,
+            ], true)) {
+                $lockedOrder->assignments()
+                    ->whereNull('unassigned_at')
+                    ->update([
+                        'unassigned_at' => now(),
+                    ]);
+            }
+
             $comments = [
                 Order::STATUS_CONFIRMED => 'Заказ подтверждён менеджером.',
                 Order::STATUS_ISSUED => 'Заказ выдан клиенту.',
