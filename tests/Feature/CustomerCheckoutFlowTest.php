@@ -394,6 +394,55 @@ class CustomerCheckoutFlowTest extends TestCase
         ]);
     }
 
+
+    public function test_manager_cannot_mark_offline_payment_paid_before_customer_receives_order(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.payment', [$organization, $order]))
+            ->assertSessionHasErrors('payment');
+
+        $this->assertSame(Order::PAYMENT_PENDING, $order->fresh()->payment_status);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'status' => Order::PAYMENT_PENDING,
+        ]);
+    }
+
+    public function test_cancelling_unpaid_order_cancels_pending_payment_attempt(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_CANCELLED,
+            ])
+            ->assertRedirect(route('organizations.orders.index', $organization));
+
+        $this->assertSame(Order::STATUS_CANCELLED, $order->fresh()->status);
+        $this->assertSame(Order::PAYMENT_CANCELLED, $order->fresh()->payment_status);
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'status' => Order::PAYMENT_CANCELLED,
+        ]);
+
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => Order::STATUS_NEW,
+            'to_status' => Order::STATUS_CANCELLED,
+            'actor_type' => 'user',
+            'actor_id' => $manager->id,
+        ]);
+    }
+
     private function createOrganizationManager(Organization $organization): User
     {
         $userId = DB::table('users')->insertGetId([
