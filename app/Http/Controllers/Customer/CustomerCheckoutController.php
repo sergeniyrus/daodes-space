@@ -104,6 +104,21 @@ class CustomerCheckoutController extends Controller
             ? $this->toCents($settings->minimum_order)
             : null;
 
+        $priceSnapshot = [];
+        foreach ($items as $item) {
+            $priceSnapshot[$item->id] = (string) $item->price;
+        }
+
+        session()->put('customer_order_checkout_snapshot', [
+            'organization_id' => $organization->id,
+            'prices' => $priceSnapshot,
+            'currency' => $settings->currency,
+            'delivery_fee' => (string) $settings->delivery_fee,
+            'minimum_order' => $settings->minimum_order !== null
+                ? (string) $settings->minimum_order
+                : null,
+        ]);
+
         return view('customer.checkout.index', [
             'customer' => $customer,
             'defaultAddress' => $defaultAddress,
@@ -139,6 +154,17 @@ class CustomerCheckoutController extends Controller
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Корзина пуста.');
+        }
+
+        $checkoutSnapshot = session('customer_order_checkout_snapshot', []);
+
+        if (
+            (int) ($checkoutSnapshot['organization_id'] ?? 0) !== $organizationId
+            || !is_array($checkoutSnapshot['prices'] ?? null)
+        ) {
+            return redirect()
+                ->route('customer.checkout')
+                ->with('error', 'Обновите страницу оформления заказа перед подтверждением.');
         }
 
         $validated = $request->validate([
@@ -233,6 +259,7 @@ class CustomerCheckoutController extends Controller
             $customer,
             $organizationId,
             $quantities,
+            $checkoutSnapshot,
             $validated
         ) {
             $existingOrder = Order::query()
@@ -315,6 +342,32 @@ class CustomerCheckoutController extends Controller
                 throw ValidationException::withMessages([
                     'cart' => 'Один из разделов меню больше недоступен. Проверьте корзину.',
                 ]);
+            }
+
+            if (
+                (int) ($checkoutSnapshot['organization_id'] ?? 0) !== $organizationId
+                || count($checkoutSnapshot['prices'] ?? []) !== count($quantities)
+                || strtoupper((string) ($checkoutSnapshot['currency'] ?? '')) !== strtoupper((string) $settings->currency)
+                || $this->toCents($checkoutSnapshot['delivery_fee'] ?? '0') !== $this->toCents($settings->delivery_fee)
+                || (
+                    ($checkoutSnapshot['minimum_order'] ?? null) === null
+                        ? $settings->minimum_order !== null
+                        : $this->toCents($checkoutSnapshot['minimum_order']) !== $this->toCents($settings->minimum_order)
+                )
+            ) {
+                throw ValidationException::withMessages([
+                    'cart' => 'Настройки заказа изменились. Обновите страницу оформления и проверьте итоговую сумму.',
+                ]);
+            }
+
+            foreach ($items as $item) {
+                $expectedPrice = $checkoutSnapshot['prices'][$item->id] ?? null;
+
+                if ($expectedPrice === null || (string) $expectedPrice !== (string) $item->price) {
+                    throw ValidationException::withMessages([
+                        'cart' => 'Цена одного из товаров изменилась. Обновите страницу оформления заказа.',
+                    ]);
+                }
             }
 
             $fulfillmentEnabled = match ($validated['fulfillment_type']) {
@@ -517,6 +570,7 @@ class CustomerCheckoutController extends Controller
         }, 3);
 
         session()->forget(self::SESSION_KEY);
+        session()->forget('customer_order_checkout_snapshot');
 
         return redirect()
             ->route('customer.orders.show', $order)
