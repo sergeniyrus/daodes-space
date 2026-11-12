@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Organization;
 use App\Models\OrganizationEmployeeMembership;
+use App\Support\OrderTransitionPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -60,72 +61,28 @@ class OrganizationOrderController extends Controller
 
             $fromStatus = $lockedOrder->status;
             $toStatus = $validated['status'];
-            $updates = ['status' => $toStatus];
+            $transitionError = OrderTransitionPolicy::managerError(
+                $fromStatus,
+                $toStatus,
+                $lockedOrder->fulfillment_type,
+                $lockedOrder->payment_status
+            );
+
+            if ($transitionError !== null) {
+                throw ValidationException::withMessages([
+                    'status' => $transitionError,
+                ]);
+            }
+
+            $updates = [
+                'status' => $toStatus,
+            ];
 
             if ($toStatus === Order::STATUS_CONFIRMED) {
-                if ($fromStatus !== Order::STATUS_NEW) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Подтвердить можно только новый заказ.',
-                    ]);
-                }
-
                 $updates['confirmed_at'] = now();
-            } elseif ($toStatus === Order::STATUS_ISSUED) {
-                if (
-                    $fromStatus !== Order::STATUS_READY
-                    || $lockedOrder->fulfillment_type !== Order::FULFILLMENT_PICKUP
-                ) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Выдать можно только готовый заказ на самовывоз.',
-                    ]);
-                }
-            } elseif ($toStatus === Order::STATUS_SERVED) {
-                if (
-                    $fromStatus !== Order::STATUS_READY
-                    || $lockedOrder->fulfillment_type !== Order::FULFILLMENT_DINE_IN
-                ) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Отметить подачу можно только для готового заказа в заведении.',
-                    ]);
-                }
             } elseif ($toStatus === Order::STATUS_COMPLETED) {
-                if (!in_array($fromStatus, [
-                    Order::STATUS_DELIVERED,
-                    Order::STATUS_ISSUED,
-                    Order::STATUS_SERVED,
-                ], true)) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Завершить можно только доставленный или выданный заказ.',
-                    ]);
-                }
-
-                if ($lockedOrder->payment_status !== Order::PAYMENT_SUCCEEDED) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Сначала отметьте получение оплаты.',
-                    ]);
-                }
-
                 $updates['completed_at'] = now();
             } elseif ($toStatus === Order::STATUS_CANCELLED) {
-                $cancellableStatuses = [
-                    Order::STATUS_NEW,
-                    Order::STATUS_CONFIRMED,
-                    Order::STATUS_PREPARING,
-                    Order::STATUS_READY,
-                ];
-
-                if (!in_array($fromStatus, $cancellableStatuses, true)) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Этот заказ уже нельзя отменить из панели менеджера.',
-                    ]);
-                }
-
-                if ($lockedOrder->payment_status === Order::PAYMENT_SUCCEEDED) {
-                    throw ValidationException::withMessages([
-                        'status' => 'Заказ уже оплачен. Перед отменой необходимо реализовать и выполнить возврат средств.',
-                    ]);
-                }
-
                 $updates['cancelled_at'] = now();
                 $updates['payment_status'] = Order::PAYMENT_CANCELLED;
 
