@@ -148,6 +148,10 @@ class CustomerCheckoutController extends Controller
         $idempotencyKey = (string) Str::uuid();
         $checkoutSnapshots = session('customer_order_checkout_snapshots', []);
 
+        if (!is_array($checkoutSnapshots)) {
+            $checkoutSnapshots = [];
+        }
+
         $snapshotCutoff = now()->subMinutes(30)->timestamp;
         $checkoutSnapshots = array_filter(
             $checkoutSnapshots,
@@ -165,6 +169,15 @@ class CustomerCheckoutController extends Controller
                 ? (string) $settings->minimum_order
                 : null,
         ];
+
+        if (count($checkoutSnapshots) > 10) {
+            $checkoutSnapshots = array_slice(
+                $checkoutSnapshots,
+                -10,
+                null,
+                true
+            );
+        }
 
         session()->put('customer_order_checkout_snapshots', $checkoutSnapshots);
 
