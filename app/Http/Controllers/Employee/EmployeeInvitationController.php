@@ -22,18 +22,34 @@ class EmployeeInvitationController extends Controller
         Request $request,
         EmployeeInvitationService $invitations
     ): RedirectResponse {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'phone' => ['required', 'string', 'max:32'],
             'code' => ['required', 'digits:6'],
             'password' => ['required', 'string', 'min:12', 'max:255', 'confirmed'],
         ]);
 
+        if ($validator->fails()) {
+            return back()
+                ->withErrors($validator)
+                ->withInput($request->except([
+                    'code',
+                    'password',
+                    'password_confirmation',
+                ]));
+        }
+
+        $validated = $validator->validated();
+
         try {
             $phone = EmployeePhone::normalize($validated['phone']);
         } catch (InvalidArgumentException $exception) {
-            throw ValidationException::withMessages([
-                'phone' => $exception->getMessage(),
-            ]);
+            return back()
+                ->withErrors(['phone' => $exception->getMessage()])
+                ->withInput($request->except([
+                    'code',
+                    'password',
+                    'password_confirmation',
+                ]));
         }
 
         $activated = $invitations->activate(
@@ -43,9 +59,15 @@ class EmployeeInvitationController extends Controller
         );
 
         if (!$activated) {
-            throw ValidationException::withMessages([
-                'code' => 'Код недействителен, истёк, уже использован или превышено число попыток. Запросите новое приглашение у менеджера.',
-            ]);
+            return back()
+                ->withErrors([
+                    'code' => 'Код недействителен, истёк, уже использован или превышено число попыток. Запросите новое приглашение у менеджера.',
+                ])
+                ->withInput($request->except([
+                    'code',
+                    'password',
+                    'password_confirmation',
+                ]));
         }
 
         return redirect()

@@ -6,9 +6,6 @@ use App\Models\Organization;
 use App\Models\OrganizationEmployee;
 use App\Models\OrganizationEmployeeMembership;
 use App\Models\EmployeePhoneChallenge;
-use App\Exceptions\EmployeeInvitationRateLimitException;
-use App\Exceptions\SmsTransportException;
-use App\Services\EmployeeInvitationService;
 use App\Support\EmployeePhone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,8 +25,7 @@ class OrganizationStaffController extends Controller
      */
     public function store(
         Request $request,
-        Organization $organization,
-        EmployeeInvitationService $invitations
+        Organization $organization
     ): RedirectResponse {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
@@ -92,26 +88,13 @@ class OrganizationStaffController extends Controller
                 ->with('error', 'Этот телефон уже добавлен в персонал организации.');
         }
 
-        if ($result['employee']->phone_verified_at) {
-            return redirect()
-                ->route('organizations.manage', $organization)
-                ->with('success', 'Сотрудник добавлен. Его доступ ожидает активации менеджером.');
-        }
+        $message = $result['employee']->phone_verified_at
+            ? 'Сотрудник добавлен. Его доступ ожидает активации менеджером.'
+            : 'Сотрудник добавлен. Доступ ожидает подтверждения телефона и активации.';
 
-        try {
-            $invitations->sendInvitation(
-                (int) $result['employee']->id,
-                (int) $organization->id
-            );
-
-            return redirect()
-                ->route('organizations.manage', $organization)
-                ->with('success', 'Сотрудник добавлен. SMS-приглашение передано провайдеру.');
-        } catch (SmsTransportException|EmployeeInvitationRateLimitException $exception) {
-            return redirect()
-                ->route('organizations.manage', $organization)
-                ->with('error', 'Сотрудник добавлен, но SMS не отправлено: ' . $exception->getMessage());
-        }
+        return redirect()
+            ->route('organizations.manage', $organization)
+            ->with('success', $message);
     }
 
     /**
@@ -176,44 +159,6 @@ class OrganizationStaffController extends Controller
         return redirect()
             ->route('organizations.manage', $organization)
             ->with('success', 'Статус доступа сотрудника обновлён.');
-    }
-
-    /**
-     * Повторно отправляет приглашение только для членства текущей организации.
-     */
-    public function resendInvitation(
-        Organization $organization,
-        OrganizationEmployee $employee,
-        EmployeeInvitationService $invitations
-    ): RedirectResponse {
-        $membership = $this->membership($organization, $employee);
-
-        if ($membership->status !== 'pending') {
-            return redirect()
-                ->route('organizations.manage', $organization)
-                ->with('error', 'Повторное приглашение доступно только для ожидающего членства.');
-        }
-
-        if ($employee->phone_verified_at) {
-            return redirect()
-                ->route('organizations.manage', $organization)
-                ->with('success', 'Телефон уже подтверждён. Менеджер может активировать членство.');
-        }
-
-        try {
-            $invitations->sendInvitation(
-                (int) $employee->id,
-                (int) $organization->id
-            );
-
-            return redirect()
-                ->route('organizations.manage', $organization)
-                ->with('success', 'Повторное SMS-приглашение передано провайдеру.');
-        } catch (SmsTransportException|EmployeeInvitationRateLimitException $exception) {
-            return redirect()
-                ->route('organizations.manage', $organization)
-                ->with('error', 'SMS не отправлено: ' . $exception->getMessage());
-        }
     }
 
     /**
