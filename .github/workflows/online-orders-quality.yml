@@ -1,0 +1,47 @@
+name: Online orders quality checks
+
+on:
+  push:
+    branches:
+      - feature/online-orders
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  php-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: bcmath, ctype, curl, dom, fileinfo, gd, intl, mbstring, openssl, pdo, pdo_mysql, pdo_sqlite, tokenizer, xml, zip
+          coverage: none
+
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate --force
+
+      - name: Validate Composer configuration
+        run: composer validate --no-check-publish
+
+      - name: Check PHP syntax
+        run: |
+          find app bootstrap config database routes tests -type f -name '*.php' -print0 \
+            | xargs -0 -n1 php -l
+
+      - name: Run unit tests
+        run: vendor/bin/phpunit --testsuite Unit
