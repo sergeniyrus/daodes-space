@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\MenuItem;
+use App\Models\MenuSection;
 use App\Models\Order;
 use App\Models\Organization;
 use App\Models\OrganizationOrderSetting;
