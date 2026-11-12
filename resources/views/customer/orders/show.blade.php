@@ -5,6 +5,31 @@
 @endsection
 
 @section('main')
+@php
+    $statusLabels = [
+        'new' => 'Новый',
+        'awaiting_payment' => 'Ожидает оплаты',
+        'confirmed' => 'Подтверждён',
+        'preparing' => 'Готовится',
+        'ready' => 'Готов',
+        'handed_to_courier' => 'Передан курьеру',
+        'in_transit' => 'В пути',
+        'issued' => 'Выдан',
+        'served' => 'Подан',
+        'delivered' => 'Доставлен',
+        'completed' => 'Завершён',
+        'cancelled' => 'Отменён',
+    ];
+
+    $paymentLabels = [
+        'pending' => 'Ожидает оплаты',
+        'succeeded' => 'Оплачен',
+        'failed' => 'Ошибка оплаты',
+        'cancelled' => 'Отменён',
+        'refunded' => 'Возвращён',
+    ];
+@endphp
+
 <style>
 .customer-order-detail {
     width: min(850px, calc(100% - 24px));
@@ -56,7 +81,7 @@
     <div class="customer-order-detail-panel">
         <h1>Заказ №{{ $order->order_number }}</h1>
         <div class="customer-order-detail-muted">{{ $order->organization->name }}</div>
-        <p class="customer-order-detail-status">Статус: {{ $order->status }}</p>
+        <p class="customer-order-detail-status">Статус: {{ $statusLabels[$order->status] ?? $order->status }}</p>
         <p class="customer-order-detail-muted">
             Создан: {{ $order->created_at?->format('d.m.Y H:i') }}
         </p>
@@ -76,6 +101,9 @@
                 @case('card_on_receipt') Терминал при получении @break
                 @default {{ $order->payment_method }}
             @endswitch
+        </p>
+        <p class="customer-order-detail-muted">
+            Состояние оплаты: {{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}
         </p>
         @if($order->requested_at)
             <p class="customer-order-detail-muted">
@@ -117,6 +145,20 @@
             <span>Итого</span>
             <span>{{ number_format((float) $order->total, 2, ',', ' ') }} {{ $order->currency }}</span>
         </div>
+    </div>
+
+    <div class="customer-order-detail-panel">
+        <h2>История заказа</h2>
+        @forelse($order->statusHistory as $history)
+            <div class="customer-order-detail-line">
+                <span>{{ $statusLabels[$history->to_status] ?? $history->to_status }}</span>
+                <span class="customer-order-detail-muted">
+                    {{ $history->created_at?->format('d.m.Y H:i') }}
+                </span>
+            </div>
+        @empty
+            <p class="customer-order-detail-muted">История пока не содержит изменений.</p>
+        @endforelse
     </div>
 
     <div class="customer-order-detail-panel">
