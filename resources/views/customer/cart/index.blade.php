@@ -137,15 +137,13 @@
                             </form>
                         @endif
 
-                        @if($line['item'])
-                            <form method="POST" action="{{ route('customer.cart.remove', $line['item_id']) }}">
-                                @csrf
-                                @method('DELETE')
-                                <button class="customer-cart-button customer-cart-remove" type="submit">
-                                    Удалить
-                                </button>
-                            </form>
-                        @endif
+                        <form method="POST" action="{{ route('customer.cart.remove', $line['item_id']) }}">
+                            @csrf
+                            @method('DELETE')
+                            <button class="customer-cart-button customer-cart-remove" type="submit">
+                                Удалить
+                            </button>
+                        </form>
                     </div>
                 </div>
             @endforeach
