@@ -1135,7 +1135,7 @@ Route::middleware('auth')
             '/{organization}/staff',
             [OrganizationStaffController::class, 'store']
         )
-            ->middleware('organization.manager')
+            ->middleware(['organization.manager', 'throttle:5,1'])
             ->name('staff.store');
 
         Route::patch(
@@ -1156,7 +1156,7 @@ Route::middleware('auth')
             '/{organization}/staff/{employee}/invite',
             [OrganizationStaffController::class, 'resendInvitation']
         )
-            ->middleware('organization.manager')
+            ->middleware(['organization.manager', 'throttle:5,1'])
             ->name('staff.invite');
 
         Route::delete(
