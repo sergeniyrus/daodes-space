@@ -5,6 +5,22 @@
 @endsection
 
 @section('main')
+@php
+    $statusLabels = [
+        'new' => 'Новый',
+        'awaiting_payment' => 'Ожидает оплаты',
+        'confirmed' => 'Подтверждён',
+        'preparing' => 'Готовится',
+        'ready' => 'Готов',
+        'handed_to_courier' => 'Передан курьеру',
+        'in_transit' => 'В пути',
+        'issued' => 'Выдан',
+        'served' => 'Подан',
+        'delivered' => 'Доставлен',
+        'completed' => 'Завершён',
+        'cancelled' => 'Отменён',
+    ];
+@endphp
 <style>
 .customer-orders-page {
     width: min(900px, calc(100% - 24px));
@@ -54,7 +70,7 @@
                         {{ $order->created_at?->format('d.m.Y H:i') }}
                     </div>
                     <div class="customer-orders-status">
-                        Статус: {{ $order->status }}
+                        Статус: {{ $statusLabels[$order->status] ?? $order->status }}
                     </div>
                 </div>
 
