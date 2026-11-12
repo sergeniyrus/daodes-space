@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Organization extends Model
 {
@@ -91,7 +92,7 @@ class Organization extends Model
     /**
      * Настройки онлайн-заказов организации.
      */
-    public function orderSettings(): \\Illuminate\\Database\\Eloquent\\Relations\\HasOne
+    public function orderSettings(): HasOne
     {
         return $this->hasOne(OrganizationOrderSetting::class);
     }
