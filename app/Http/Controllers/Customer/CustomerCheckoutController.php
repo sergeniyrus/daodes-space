@@ -147,7 +147,16 @@ class CustomerCheckoutController extends Controller
 
         $idempotencyKey = (string) Str::uuid();
         $checkoutSnapshots = session('customer_order_checkout_snapshots', []);
+
+        $snapshotCutoff = now()->subMinutes(30)->timestamp;
+        $checkoutSnapshots = array_filter(
+            $checkoutSnapshots,
+            fn ($snapshot) => is_array($snapshot)
+                && (int) ($snapshot['created_at'] ?? 0) >= $snapshotCutoff
+        );
+
         $checkoutSnapshots[$idempotencyKey] = [
+            'created_at' => now()->timestamp,
             'organization_id' => $organization->id,
             'prices' => $priceSnapshot,
             'currency' => $settings->currency,
@@ -224,6 +233,7 @@ class CustomerCheckoutController extends Controller
 
         if (
             !is_array($checkoutSnapshot)
+            || (int) ($checkoutSnapshot['created_at'] ?? 0) < now()->subMinutes(30)->timestamp
             || (int) ($checkoutSnapshot['organization_id'] ?? 0) !== $organizationId
             || !is_array($checkoutSnapshot['prices'] ?? null)
         ) {
