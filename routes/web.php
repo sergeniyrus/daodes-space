@@ -54,6 +54,7 @@ use App\Http\Controllers\Admin\ReleaseAdminController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationMenuController;
 use App\Http\Controllers\OrganizationStaffController;
+use App\Http\Controllers\OrganizationOrderController;
 
 Route::middleware(['auth', ReleaseAdmin::class])
     ->get('/admin/ai/approval', function () {
@@ -1087,6 +1088,27 @@ Route::middleware('auth')
         )
             ->middleware('organization.manager')
             ->name('order-settings.update');
+
+        Route::get(
+            '/{organization}/orders',
+            [OrganizationOrderController::class, 'index']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.index');
+
+        Route::patch(
+            '/{organization}/orders/{order}/status',
+            [OrganizationOrderController::class, 'updateStatus']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.status');
+
+        Route::post(
+            '/{organization}/orders/{order}/assignments',
+            [OrganizationOrderController::class, 'assign']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.assign');
 
 
         /*
