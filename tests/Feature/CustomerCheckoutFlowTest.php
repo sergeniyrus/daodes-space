@@ -6,6 +6,8 @@ use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\Order;
+use App\Models\PaymentWebhookEvent;
+use Tests\Support\FakePaymentGateway;
 use App\Models\Organization;
 use App\Models\OrganizationOrderSetting;
 use App\Models\OrganizationEmployee;
@@ -463,6 +465,132 @@ class CustomerCheckoutFlowTest extends TestCase
 
         $this->assertDatabaseCount('orders', 0);
         $this->assertDatabaseCount('payments', 0);
+    }
+
+
+    public function test_signed_payment_webhook_marks_payment_paid_and_duplicate_event_is_idempotent(): void
+    {
+        [$order, $payment] = $this->createFakeOnlinePayment();
+        $payload = json_encode([
+            'event_id' => 'evt_paid_001',
+            'payment_id' => 'provider_payment_001',
+            'status' => Order::PAYMENT_SUCCEEDED,
+            'amount' => '20.00',
+            'currency' => 'EUR',
+        ], JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $payload, 'test-webhook-secret');
+
+        $first = $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => $signature,
+        ], $payload);
+
+        $first->assertOk()->assertJson([
+            'received' => true,
+            'duplicate' => false,
+            'processing_status' => 'processed',
+        ]);
+        $this->assertSame(Order::PAYMENT_SUCCEEDED, $payment->fresh()->status);
+        $this->assertSame(Order::PAYMENT_SUCCEEDED, $order->fresh()->payment_status);
+        $this->assertNotNull($payment->fresh()->paid_at);
+
+        $duplicate = $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => $signature,
+        ], $payload);
+
+        $duplicate->assertOk()->assertJson([
+            'received' => true,
+            'duplicate' => true,
+        ]);
+        $this->assertDatabaseCount('payment_webhook_events', 1);
+        $this->assertSame('processed', PaymentWebhookEvent::query()->firstOrFail()->processing_status);
+    }
+
+    public function test_payment_webhook_rejects_invalid_signature_without_changing_payment(): void
+    {
+        [$order, $payment] = $this->createFakeOnlinePayment();
+        $payload = json_encode([
+            'event_id' => 'evt_invalid_signature',
+            'payment_id' => 'provider_payment_001',
+            'status' => Order::PAYMENT_SUCCEEDED,
+            'amount' => '20.00',
+            'currency' => 'EUR',
+        ], JSON_THROW_ON_ERROR);
+
+        $response = $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => 'invalid-signature',
+        ], $payload);
+
+        $response->assertStatus(400);
+        $this->assertSame(Order::PAYMENT_PENDING, $payment->fresh()->status);
+        $this->assertSame(Order::PAYMENT_PENDING, $order->fresh()->payment_status);
+        $this->assertDatabaseCount('payment_webhook_events', 0);
+    }
+
+    public function test_payment_webhook_rejects_amount_mismatch_and_keeps_payment_pending(): void
+    {
+        [$order, $payment] = $this->createFakeOnlinePayment();
+        $payload = json_encode([
+            'event_id' => 'evt_wrong_amount',
+            'payment_id' => 'provider_payment_001',
+            'status' => Order::PAYMENT_SUCCEEDED,
+            'amount' => '21.00',
+            'currency' => 'EUR',
+        ], JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $payload, 'test-webhook-secret');
+
+        $response = $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => $signature,
+        ], $payload);
+
+        $response->assertOk()->assertJson([
+            'received' => true,
+            'processing_status' => 'rejected',
+        ]);
+        $this->assertSame(Order::PAYMENT_PENDING, $payment->fresh()->status);
+        $this->assertSame(Order::PAYMENT_PENDING, $order->fresh()->payment_status);
+        $this->assertDatabaseHas('payment_webhook_events', [
+            'provider' => 'fake',
+            'event_id' => 'evt_wrong_amount',
+            'processing_status' => 'rejected',
+        ]);
+    }
+
+    public function test_payment_webhook_returns_service_unavailable_without_configured_provider(): void
+    {
+        config(['payments.providers' => []]);
+
+        $response = $this->call('POST', '/api/webhooks/payments/not-configured', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+        ], '{"event_id":"evt_unconfigured"}');
+
+        $response->assertStatus(503);
+        $this->assertDatabaseCount('payment_webhook_events', 0);
+    }
+
+    private function createFakeOnlinePayment(): array
+    {
+        config([
+            'payments.providers.fake' => FakePaymentGateway::class,
+            'payments.testing_secret' => 'test-webhook-secret',
+        ]);
+
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $payment = $order->payments()->firstOrFail();
+
+        $payment->update([
+            'provider' => 'fake',
+            'provider_payment_id' => 'provider_payment_001',
+            'method' => Order::PAYMENT_ONLINE,
+        ]);
+        $order->update(['payment_method' => Order::PAYMENT_ONLINE]);
+
+        return [$order, $payment];
     }
 
     private function createOrganizationManager(Organization $organization): User
