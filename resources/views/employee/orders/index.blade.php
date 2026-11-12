@@ -121,7 +121,13 @@
                 </div>
 
                 <div class="employee-orders-muted">
-                    Получение: {{ $order->fulfillment_type }}
+                    Получение:
+                    @switch($order->fulfillment_type)
+                        @case('delivery') Доставка @break
+                        @case('pickup') Самовывоз @break
+                        @case('dine_in') В заведении @break
+                        @default {{ $order->fulfillment_type }}
+                    @endswitch
                     @if($order->requested_at)
                         · Время: {{ $order->requested_at->format('d.m.Y H:i') }}
                     @endif
