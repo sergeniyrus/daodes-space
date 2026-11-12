@@ -164,6 +164,25 @@ class OrganizationOrderController extends Controller
                 return;
             }
 
+            if ($lockedOrder->payment_status !== Order::PAYMENT_PENDING) {
+                throw ValidationException::withMessages([
+                    'payment' => 'Оплата заказа уже находится в конечном состоянии.',
+                ]);
+            }
+
+            $collectableStatus = match ($lockedOrder->fulfillment_type) {
+                Order::FULFILLMENT_DELIVERY => Order::STATUS_DELIVERED,
+                Order::FULFILLMENT_PICKUP => Order::STATUS_ISSUED,
+                Order::FULFILLMENT_DINE_IN => Order::STATUS_SERVED,
+                default => null,
+            };
+
+            if ($lockedOrder->status !== $collectableStatus) {
+                throw ValidationException::withMessages([
+                    'payment' => 'Отметить оплату можно после фактической передачи заказа клиенту.',
+                ]);
+            }
+
             $updatedPayments = $lockedOrder->payments()
                 ->where('status', Order::PAYMENT_PENDING)
                 ->update([
