@@ -192,6 +192,10 @@
         и активное членство хотя бы в одной организации.
     </div>
 
+    <div class="employee-auth-note">
+        Получили приглашение? <a href="{{ route('employee.activate') }}" style="color: #00e5d4;">Подтвердите телефон и установите пароль</a>.
+    </div>
+
 </div>
 
 @endsection

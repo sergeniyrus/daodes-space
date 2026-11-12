@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Organization;
 use App\Models\OrganizationEmployee;
 use App\Models\OrganizationEmployeeMembership;
+use App\Models\EmployeePhoneChallenge;
 use App\Support\EmployeePhone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -146,6 +147,15 @@ class OrganizationStaffController extends Controller
             'status' => $validated['status'],
         ]);
 
+        if ($validated['status'] === 'blocked') {
+            EmployeePhoneChallenge::query()
+                ->where('employee_id', $employee->id)
+                ->where('organization_id', $organization->id)
+                ->whereNull('consumed_at')
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+        }
+
         return redirect()
             ->route('organizations.manage', $organization)
             ->with('success', 'Статус доступа сотрудника обновлён.');
@@ -160,6 +170,14 @@ class OrganizationStaffController extends Controller
         OrganizationEmployee $employee
     ): RedirectResponse {
         $membership = $this->membership($organization, $employee);
+
+        EmployeePhoneChallenge::query()
+            ->where('employee_id', $employee->id)
+            ->where('organization_id', $organization->id)
+            ->whereNull('consumed_at')
+            ->whereNull('revoked_at')
+            ->update(['revoked_at' => now()]);
+
         $membership->delete();
 
         return redirect()

@@ -9,6 +9,8 @@ use App\Rules\Recaptcha; // Убедитесь, что это правило с�
 use Illuminate\Support\Facades\Validator;
 use App\Services\IpStackService;
 use Illuminate\Support\Facades\URL;
+use App\Contracts\SmsTransport;
+use App\Services\Sms\UnconfiguredSmsTransport;
 
 
 class AppServiceProvider extends ServiceProvider
@@ -50,6 +52,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        // До подключения конкретного провайдера SMS отправка явно отключена.
+        $this->app->bind(SmsTransport::class, UnconfiguredSmsTransport::class);
         // Регистрация сервиса IpStackService
         $this->app->singleton('ipstack', function () {
             return new IpStackService();

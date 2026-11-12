@@ -1418,6 +1418,18 @@
                         </div>
 
                         <div class="organization-staff-actions">
+                            @if(!$staffEmployee->phone_verified_at && $staffMembership->status === 'pending')
+                                <form
+                                    method="POST"
+                                    action="{{ route('organizations.staff.invite', [$organization, $staffEmployee]) }}"
+                                >
+                                    @csrf
+                                    <button type="submit" class="organization-staff-delete">
+                                        Отправить приглашение повторно
+                                    </button>
+                                </form>
+                            @endif
+
                             <form
                                 method="POST"
                                 action="{{ route('organizations.staff.role', [$organization, $staffEmployee]) }}"

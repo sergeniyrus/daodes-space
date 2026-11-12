@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Employee\EmployeeAuthenticatedSessionController;
 use App\Http\Controllers\Employee\EmployeeDashboardController;
+use App\Http\Controllers\Employee\EmployeeInvitationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,6 +30,18 @@ Route::prefix('staff')
         )
             ->middleware('throttle:10,1')
             ->name('login.store');
+
+        Route::get(
+            '/activate',
+            [EmployeeInvitationController::class, 'create']
+        )->name('activate');
+
+        Route::post(
+            '/activate',
+            [EmployeeInvitationController::class, 'store']
+        )
+            ->middleware('throttle:10,1')
+            ->name('activate.store');
 
         Route::middleware('employee.auth')->group(function () {
 

@@ -1152,6 +1152,13 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('staff.status');
 
+        Route::post(
+            '/{organization}/staff/{employee}/invite',
+            [OrganizationStaffController::class, 'resendInvitation']
+        )
+            ->middleware('organization.manager')
+            ->name('staff.invite');
+
         Route::delete(
             '/{organization}/staff/{employee}',
             [OrganizationStaffController::class, 'destroy']
