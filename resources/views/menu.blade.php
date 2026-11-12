@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return '/';
         }
 
-        const normalized = path.replace(/\\/+$/, '');
+        const normalized = path.replace(/\/+$/, '');
         return normalized || '/';
     };
 
