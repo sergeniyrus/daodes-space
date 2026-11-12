@@ -128,6 +128,13 @@ class CustomerCheckoutController extends Controller
             ->first();
 
         $deliveryFeeCents = $this->toCents($settings->delivery_fee);
+
+        if ($subtotalCents + $deliveryFeeCents > self::MAX_MONEY_CENTS) {
+            return redirect()
+                ->route('customer.cart')
+                ->with('error', 'Итоговая сумма заказа превышает допустимый предел.');
+        }
+
         $minimumOrderCents = $settings->minimum_order !== null
             ? $this->toCents($settings->minimum_order)
             : null;
