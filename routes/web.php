@@ -53,6 +53,7 @@ use App\Http\Controllers\Admin\ReleaseAdminController;
 
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationMenuController;
+use App\Http\Controllers\OrganizationStaffController;
 
 Route::middleware(['auth', ReleaseAdmin::class])
     ->get('/admin/ai/approval', function () {
@@ -1121,6 +1122,42 @@ Route::middleware('auth')
         )
             ->middleware('organization.manager')
             ->name('employees.destroy');
+
+        /*
+         * =====================================================
+         * ПЕРСОНАЛ ОРГАНИЗАЦИИ
+         * Отдельные аккаунты organization_employees.
+         * Не пересекаются с DAODES users / employees выше.
+         * =====================================================
+         */
+
+        Route::post(
+            '/{organization}/staff',
+            [OrganizationStaffController::class, 'store']
+        )
+            ->middleware('organization.manager')
+            ->name('staff.store');
+
+        Route::patch(
+            '/{organization}/staff/{employee}/role',
+            [OrganizationStaffController::class, 'updateRole']
+        )
+            ->middleware('organization.manager')
+            ->name('staff.role');
+
+        Route::patch(
+            '/{organization}/staff/{employee}/status',
+            [OrganizationStaffController::class, 'updateStatus']
+        )
+            ->middleware('organization.manager')
+            ->name('staff.status');
+
+        Route::delete(
+            '/{organization}/staff/{employee}',
+            [OrganizationStaffController::class, 'destroy']
+        )
+            ->middleware('organization.manager')
+            ->name('staff.destroy');
 
 
         /*
