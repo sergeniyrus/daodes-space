@@ -282,6 +282,118 @@ class CustomerCheckoutFlowTest extends TestCase
         ]);
     }
 
+
+    public function test_manager_cannot_change_an_order_from_another_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$firstOrganization, $firstItem] = $this->createOrderableMenu('First cafe');
+        [$secondOrganization, $secondItem] = $this->createOrderableMenu('Second cafe');
+        $foreignOrder = $this->createPickupOrder($customer, $secondOrganization, $secondItem);
+        $manager = $this->createOrganizationManager($firstOrganization);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.status', [
+                $firstOrganization,
+                $foreignOrder,
+            ]), [
+                'status' => Order::STATUS_CONFIRMED,
+            ])
+            ->assertNotFound();
+
+        $this->assertSame(Order::STATUS_NEW, $foreignOrder->fresh()->status);
+    }
+
+    public function test_employee_cannot_change_order_without_an_active_assignment(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $cook = $this->createOrganizationEmployee(
+            $organization,
+            'cook',
+            '+436601234568'
+        );
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [
+                $organization,
+                $order,
+            ]), [
+                'status' => Order::STATUS_PREPARING,
+            ])
+            ->assertForbidden();
+
+        $this->assertSame(Order::STATUS_NEW, $order->fresh()->status);
+        $this->assertDatabaseCount('order_status_history', 1);
+    }
+
+    public function test_employee_cannot_change_order_from_another_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$firstOrganization] = $this->createOrderableMenu('First cafe');
+        [$secondOrganization, $secondItem] = $this->createOrderableMenu('Second cafe');
+        $foreignOrder = $this->createPickupOrder($customer, $secondOrganization, $secondItem);
+        $cook = $this->createOrganizationEmployee(
+            $firstOrganization,
+            'cook',
+            '+436601234568'
+        );
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [
+                $firstOrganization,
+                $foreignOrder,
+            ]), [
+                'status' => Order::STATUS_PREPARING,
+            ])
+            ->assertNotFound();
+
+        $this->assertSame(Order::STATUS_NEW, $foreignOrder->fresh()->status);
+    }
+
+    public function test_customer_cannot_view_another_customers_order(): void
+    {
+        $owner = $this->createVerifiedCustomer();
+        $otherCustomer = Customer::query()->create([
+            'name' => 'Other customer',
+            'phone' => '+436601234568',
+            'phone_verified_at' => now(),
+        ]);
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($owner, $organization, $item);
+
+        $this->actingAs($otherCustomer, 'customer')
+            ->get(route('customer.orders.show', $order))
+            ->assertNotFound();
+
+        $this->assertSame($owner->id, $order->fresh()->customer_id);
+    }
+
+    public function test_marking_an_offline_payment_paid_twice_is_idempotent(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+
+        $order->update(['status' => Order::STATUS_ISSUED]);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.payment', [$organization, $order]))
+            ->assertRedirect(route('organizations.orders.index', $organization));
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.payment', [$organization, $order]))
+            ->assertRedirect(route('organizations.orders.index', $organization));
+
+        $this->assertSame(Order::PAYMENT_SUCCEEDED, $order->fresh()->payment_status);
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'status' => Order::PAYMENT_SUCCEEDED,
+        ]);
+    }
+
     private function createOrganizationManager(Organization $organization): User
     {
         $userId = DB::table('users')->insertGetId([
@@ -379,6 +491,25 @@ class CustomerCheckoutFlowTest extends TestCase
         ]);
 
         return [$organization, $item];
+    }
+
+
+    private function createPickupOrder(
+        Customer $customer,
+        Organization $organization,
+        MenuItem $item
+    ): Order {
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'requested_at' => now()->addHour()->format('Y-m-d\\TH:i'),
+        ])->assertRedirect();
+
+        return Order::query()->latest('id')->firstOrFail();
     }
 
     private function openCheckout(
