@@ -10,6 +10,24 @@ use Illuminate\View\View;
 
 class CustomerOrderController extends Controller
 {
+    public function index(): View|RedirectResponse
+    {
+        $customer = Auth::guard('customer')->user();
+
+        if (!$customer) {
+            return redirect()->guest(route('customer.login'));
+        }
+
+        $orders = $customer->orders()
+            ->with('organization')
+            ->latest()
+            ->paginate(15);
+
+        return view('customer.orders.index', [
+            'orders' => $orders,
+        ]);
+    }
+
     public function show(Order $order): View|RedirectResponse
     {
         $customer = Auth::guard('customer')->user();
