@@ -140,6 +140,12 @@
                 @endif
             </div>
 
+            @if(auth('customer')->check())
+                <a class="customer-order-link" href="{{ route('customer.orders.index') }}">
+                    Мои заказы
+                </a>
+            @endif
+
             <a class="customer-order-link" href="{{ route('customer.cart') }}">
                 🛒 Корзина{{ $cartCount ? ' · ' . $cartCount : '' }}
             </a>
