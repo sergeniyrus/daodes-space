@@ -32,6 +32,24 @@ class CustomerCheckoutController extends Controller
 
         abort_unless($customer->phone_verified_at, 403);
 
+        $replayKey = $request->input('idempotency_key');
+
+        if (is_string($replayKey) && Str::isUuid($replayKey)) {
+            $existingOrder = Order::query()
+                ->where('customer_id', $customer->id)
+                ->where('idempotency_key', $replayKey)
+                ->first();
+
+            if ($existingOrder) {
+                session()->forget(self::SESSION_KEY);
+                session()->forget('customer_order_checkout_snapshot');
+
+                return redirect()
+                    ->route('customer.orders.show', $existingOrder)
+                    ->with('success', 'Этот заказ уже был оформлен ранее.');
+            }
+        }
+
         $cart = session(self::SESSION_KEY, []);
         $organizationId = (int) ($cart['organization_id'] ?? 0);
         $quantities = $cart['items'] ?? [];
