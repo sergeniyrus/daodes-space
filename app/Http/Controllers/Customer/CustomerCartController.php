@@ -134,6 +134,7 @@ class CustomerCartController extends Controller
 
         $cart['items'][$item->id] = $newQuantity;
         session()->put(self::SESSION_KEY, $cart);
+        session()->forget('customer_order_checkout_snapshot');
 
         return redirect()
             ->route('customer.catalog', $organization)
@@ -162,6 +163,7 @@ class CustomerCartController extends Controller
 
         $cart['items'][$menuItem->id] = (int) $validated['quantity'];
         session()->put(self::SESSION_KEY, $cart);
+        session()->forget('customer_order_checkout_snapshot');
 
         return redirect()->route('customer.cart');
     }
@@ -183,12 +185,15 @@ class CustomerCartController extends Controller
             session()->put(self::SESSION_KEY, $cart);
         }
 
+        session()->forget('customer_order_checkout_snapshot');
+
         return redirect()->route('customer.cart');
     }
 
     public function clear(): RedirectResponse
     {
         session()->forget(self::SESSION_KEY);
+        session()->forget('customer_order_checkout_snapshot');
 
         return redirect()
             ->route('customer.cart')
