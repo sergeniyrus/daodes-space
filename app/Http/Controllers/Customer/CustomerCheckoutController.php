@@ -164,6 +164,26 @@ class CustomerCheckoutController extends Controller
 
         abort_unless($customer->phone_verified_at, 403);
 
+        // POST может повториться после тайм-аута уже успешного оформления.
+        // Проверяем ключ до проверки корзины: после первого заказа корзина очищена.
+        $idempotencyKey = $request->validate([
+            'idempotency_key' => ['required', 'uuid'],
+        ])['idempotency_key'];
+
+        $existingOrder = Order::query()
+            ->where('customer_id', $customer->id)
+            ->where('idempotency_key', $idempotencyKey)
+            ->first();
+
+        if ($existingOrder) {
+            session()->forget(self::SESSION_KEY);
+            session()->forget('customer_order_checkout_snapshot');
+
+            return redirect()
+                ->route('customer.orders.show', $existingOrder)
+                ->with('success', 'Этот заказ уже был оформлен ранее.');
+        }
+
         $cart = session(self::SESSION_KEY, []);
         $organizationId = (int) ($cart['organization_id'] ?? 0);
         $quantities = $cart['items'] ?? [];
