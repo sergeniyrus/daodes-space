@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Customer\CustomerAuthController;
+use App\Http\Controllers\Customer\CustomerCatalogController;
+use App\Http\Controllers\Customer\CustomerCartController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('customer')
