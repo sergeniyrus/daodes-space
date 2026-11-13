@@ -38,6 +38,8 @@ Route::prefix('staff')->name('employee.')->group(function () {
                     ->name('orders.notifications');
                 Route::post('/orders/notifications/{notification}/read', [\App\Http\Controllers\OrderNotificationController::class, 'markEmployeeRead'])
                     ->name('orders.notifications.read');
+                Route::post('/orders/{order}/claim', [EmployeeOrderController::class, 'claimDelivery'])
+                    ->name('orders.claim');
                 Route::patch('/orders/{order}/status', [EmployeeOrderController::class, 'updateStatus'])
                     ->name('orders.status');
                 Route::patch('/orders/{order}/payment', [EmployeeOrderController::class, 'markPaymentReceived'])
