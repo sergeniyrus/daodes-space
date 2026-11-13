@@ -7,6 +7,13 @@ use Tests\TestCase;
 
 class AuthEntryPortalTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+    }
+
     public function test_login_page_displays_three_separate_entry_paths(): void
     {
         $this->get(route('login'))
