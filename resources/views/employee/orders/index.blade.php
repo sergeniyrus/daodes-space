@@ -243,9 +243,21 @@
                             <div
                                 class="courier-wait"
                                 data-courier-created-at="{{ $order->updated_at?->toIso8601String() }}"
-                                data-courier-created-label="{{ $order->status === 'ready' ? 'Готов, ожидает передачи курьеру' : ($order->status === 'handed_to_courier' ? 'Передан курьеру' : 'В пути с') }} · {{ $order->updated_at?->format('d.m.Y H:i') }}"
+                                data-courier-created-label="{{ match ($order->status) {
+                                    'ready' => 'Готов, ожидает передачи курьеру',
+                                    'handed_to_courier' => 'Передан курьеру',
+                                    'in_transit' => 'В пути с',
+                                    'delivered' => 'Доставлен, ожидает закрытия',
+                                    default => 'Обновлён',
+                                } }} · {{ $order->updated_at?->format('d.m.Y H:i') }}"
                             >
-                                {{ $order->status === 'ready' ? 'Готов, ожидает передачи курьеру' : ($order->status === 'handed_to_courier' ? 'Передан курьеру' : 'В пути с') }}
+                                {{ match ($order->status) {
+                                    'ready' => 'Готов, ожидает передачи курьеру',
+                                    'handed_to_courier' => 'Передан курьеру',
+                                    'in_transit' => 'В пути с',
+                                    'delivered' => 'Доставлен, ожидает закрытия',
+                                    default => 'Обновлён',
+                                } }}
                                 · {{ $order->updated_at?->format('d.m.Y H:i') }}
                             </div>
                         </div>
