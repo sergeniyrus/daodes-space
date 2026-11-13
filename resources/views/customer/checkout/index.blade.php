@@ -99,12 +99,11 @@
 }
 .customer-checkout-button:hover { color: #081016; background: #00e5d4; }
 .customer-checkout-error { color: #ff8585; font-size: .86rem; }
-.customer-checkout-note {
-    margin-top: 12px;
-    color: #aeb5c4;
-    font-size: .88rem;
-    line-height: 1.5;
-}
+.customer-checkout-note { margin-top: 12px; color: #aeb5c4; font-size: .88rem; line-height: 1.5; }
+.customer-checkout-panel[hidden], .customer-checkout-field[hidden] { display: none !important; }
+.customer-checkout-save-address { display: flex; align-items: flex-start; gap: 10px; padding: 13px; margin-top: 12px; color: #d8dce8; background: rgba(0, 229, 212, .055); border: 1px solid rgba(0, 229, 212, .28); border-radius: 11px; }
+.customer-checkout-save-address input { margin-top: 4px; accent-color: #00e5d4; }
+.customer-checkout-address-book { margin-bottom: 14px; }
 @media(max-width:600px) {
     .customer-checkout-panel { padding: 16px; }
 }
@@ -264,65 +263,86 @@
                 </label>
 
                 <label class="customer-checkout-field">
-                    Номер столика (для заказа в заведении)
+                    Номер браслета (для заказа в заведении)
                     <input
                         type="text"
                         name="table_number"
                         value="{{ old('table_number') }}"
                         maxlength="30"
-                        placeholder="Например, 7"
+                        placeholder="Например, 125"
                     >
                 </label>
             </div>
         </div>
 
-        <div class="customer-checkout-panel">
+        <div class="customer-checkout-panel" id="customer-delivery-address-panel"
+            @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'delivery') hidden @endif
+        >
             <h2 class="customer-checkout-title">Адрес доставки</h2>
-            <div class="customer-checkout-note">
-                Заполните адрес, если выбрали доставку. При самовывозе или заказе в заведении эти поля не используются.
-            </div>
+            <div class="customer-checkout-note">Этот раздел нужен только для доставки. Укажите улицу и номер дома в одном поле.</div>
+
+            @if($savedAddresses->isNotEmpty())
+                <label class="customer-checkout-field customer-checkout-address-book">
+                    Сохранённые адреса
+                    <select id="customer-saved-address">
+                        <option value="">Ввести новый адрес</option>
+                        @foreach($savedAddresses as $savedAddress)
+                            <option value="{{ $savedAddress->id }}"
+                                data-address-line="{{ $savedAddress->address_line }}"
+                                data-entrance="{{ $savedAddress->entrance }}"
+                                data-floor="{{ $savedAddress->floor }}"
+                                data-apartment="{{ $savedAddress->apartment }}"
+                                data-intercom="{{ $savedAddress->intercom }}"
+                                data-delivery-comment="{{ $savedAddress->delivery_comment }}"
+                                @selected($loop->first && old('address_line', $defaultAddress?->address_line) === $savedAddress->address_line)
+                            >{{ $savedAddress->label ?: 'Сохранённый адрес' }} — {{ $savedAddress->address_line }}</option>
+                        @endforeach
+                    </select>
+                    <span class="customer-checkout-muted">Выберите адрес — поля заполнятся автоматически.</span>
+                </label>
+            @endif
 
             <label class="customer-checkout-field">
-                Адрес
-                <input
-                    type="text"
-                    name="address_line"
+                Улица и номер дома
+                <input type="text" name="address_line" id="customer-address-line"
                     value="{{ old('address_line', $defaultAddress?->address_line) }}"
-                    maxlength="500"
-                    placeholder="Улица, дом, корпус"
-                >
-                @error('address_line')
-                    <span class="customer-checkout-error">{{ $message }}</span>
-                @enderror
+                    maxlength="500" placeholder="Например, ул. Ленина, дом 15, корпус 2" autocomplete="street-address">
+                @error('address_line') <span class="customer-checkout-error">{{ $message }}</span> @enderror
             </label>
 
             <div class="customer-checkout-grid">
-                <label class="customer-checkout-field">
-                    Подъезд
-                    <input type="text" name="entrance" value="{{ old('entrance', $defaultAddress?->entrance) }}" maxlength="30">
+                <label class="customer-checkout-field">Подъезд
+                    <input id="customer-address-entrance" type="text" name="entrance" value="{{ old('entrance', $defaultAddress?->entrance) }}" maxlength="30">
                 </label>
-                <label class="customer-checkout-field">
-                    Этаж
-                    <input type="text" name="floor" value="{{ old('floor', $defaultAddress?->floor) }}" maxlength="30">
+                <label class="customer-checkout-field">Этаж
+                    <input id="customer-address-floor" type="text" name="floor" value="{{ old('floor', $defaultAddress?->floor) }}" maxlength="30">
                 </label>
-                <label class="customer-checkout-field">
-                    Квартира / офис
-                    <input type="text" name="apartment" value="{{ old('apartment', $defaultAddress?->apartment) }}" maxlength="30">
+                <label class="customer-checkout-field">Квартира / офис
+                    <input id="customer-address-apartment" type="text" name="apartment" value="{{ old('apartment', $defaultAddress?->apartment) }}" maxlength="30">
                 </label>
-                <label class="customer-checkout-field">
-                    Домофон
-                    <input type="text" name="intercom" value="{{ old('intercom', $defaultAddress?->intercom) }}" maxlength="50">
+                <label class="customer-checkout-field">Домофон
+                    <input id="customer-address-intercom" type="text" name="intercom" value="{{ old('intercom', $defaultAddress?->intercom) }}" maxlength="50">
                 </label>
             </div>
 
-            <label class="customer-checkout-field">
-                Комментарий курьеру
-                <textarea name="delivery_comment" maxlength="1000">{{ old('delivery_comment', $defaultAddress?->delivery_comment) }}</textarea>
+            <label class="customer-checkout-field">Комментарий курьеру
+                <textarea id="customer-address-comment" name="delivery_comment" maxlength="1000">{{ old('delivery_comment', $defaultAddress?->delivery_comment) }}</textarea>
+            </label>
+
+            <label class="customer-checkout-save-address">
+                <input type="checkbox" name="save_address" value="1" id="customer-save-address" @checked(old('save_address'))>
+                <span>Запомнить этот адрес для следующих заказов</span>
+            </label>
+
+            <label class="customer-checkout-field" id="customer-address-label-wrap" @if(!old('save_address')) hidden @endif>
+                Как назвать адрес?
+                <input type="text" name="address_label" id="customer-address-label" value="{{ old('address_label') }}"
+                    maxlength="50" placeholder="Например, Дом, Работа, Родители">
+                @error('address_label') <span class="customer-checkout-error">{{ $message }}</span> @enderror
             </label>
         </div>
 
-        <div class="customer-checkout-panel">
-            <h2 class="customer-checkout-title">Способ оплаты</h2>
+
 
             <div class="customer-checkout-options">
                 @if($settings->cash_payment_enabled)
@@ -373,4 +393,53 @@
         </a>
     </form>
 </div>
+
+<script>
+(() => {
+    const addressPanel = document.getElementById('customer-delivery-address-panel');
+    const fulfillmentInputs = document.querySelectorAll('input[name="fulfillment_type"]');
+    const saveAddress = document.getElementById('customer-save-address');
+    const addressLabelWrap = document.getElementById('customer-address-label-wrap');
+    const addressLabel = document.getElementById('customer-address-label');
+    const savedAddressSelect = document.getElementById('customer-saved-address');
+    const addressFields = {
+        address_line: document.getElementById('customer-address-line'),
+        entrance: document.getElementById('customer-address-entrance'),
+        floor: document.getElementById('customer-address-floor'),
+        apartment: document.getElementById('customer-address-apartment'),
+        intercom: document.getElementById('customer-address-intercom'),
+        delivery_comment: document.getElementById('customer-address-comment')
+    };
+    function updateFulfillmentFields() {
+        const selected = document.querySelector('input[name="fulfillment_type"]:checked');
+        const isDelivery = selected?.value === 'delivery';
+        if (addressPanel) addressPanel.hidden = !isDelivery;
+        if (addressFields.address_line) addressFields.address_line.required = isDelivery;
+    }
+    function updateSaveAddressFields() {
+        const enabled = Boolean(saveAddress?.checked);
+        if (addressLabelWrap) addressLabelWrap.hidden = !enabled;
+        if (addressLabel) addressLabel.required = enabled;
+    }
+    fulfillmentInputs.forEach((input) => input.addEventListener('change', updateFulfillmentFields));
+    saveAddress?.addEventListener('change', updateSaveAddressFields);
+    savedAddressSelect?.addEventListener('change', () => {
+        const option = savedAddressSelect.selectedOptions[0];
+        if (!option || !option.value) return;
+        const values = {
+            address_line: option.dataset.addressLine,
+            entrance: option.dataset.entrance,
+            floor: option.dataset.floor,
+            apartment: option.dataset.apartment,
+            intercom: option.dataset.intercom,
+            delivery_comment: option.dataset.deliveryComment
+        };
+        Object.entries(values).forEach(([key, value]) => {
+            if (addressFields[key]) addressFields[key].value = value ?? '';
+        });
+    });
+    updateFulfillmentFields();
+    updateSaveAddressFields();
+})();
+</script>
 @endsection

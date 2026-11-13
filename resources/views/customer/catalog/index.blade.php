@@ -65,15 +65,18 @@
     border-color: rgba(255, 100, 100, .55);
     background: rgba(255, 70, 70, .08);
 }
-.customer-order-section {
+.customer-order-page > .customer-order-section {
+    position: relative;
+    isolation: isolate;
     margin: 26px 0;
-    padding: 20px;
-    background:
-        radial-gradient(circle at top right, rgba(255, 215, 0, .045), transparent 42%),
-        linear-gradient(145deg, rgba(11, 14, 27, .97), rgba(20, 25, 43, .94));
-    border: 1px solid rgba(0, 229, 212, .28);
-    border-radius: 17px;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, .24);
+    padding: 22px;
+    background-color: #111827 !important;
+    background-image:
+        radial-gradient(ellipse at 100% 0%, rgba(255, 215, 0, .12), transparent 48%),
+        linear-gradient(135deg, #151b2d 0%, #0c1222 55%, #121a2b 100%) !important;
+    border: 1px solid rgba(0, 229, 212, .48) !important;
+    border-radius: 18px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045), 0 12px 32px rgba(0, 0, 0, .38);
 }
 .customer-order-section h2 {
     margin: 0 0 16px;
@@ -99,16 +102,33 @@
 .customer-order-item h3 { margin: 0; color: #fff; font-size: 1.05rem; }
 .customer-order-item p { margin: 0; color: #aeb5c4; line-height: 1.45; }
 .customer-order-price { margin-top: auto; color: #ffd700; font-size: 1.12rem; font-weight: 700; }
-.customer-order-add { display: flex; gap: 8px; align-items: center; }
-.customer-order-add input {
-    width: 64px;
-    min-height: 40px;
-    padding: 6px;
-    color: #fff;
-    background: #090c16;
-    border: 1px solid rgba(255, 215, 0, .4);
-    border-radius: 8px;
+.customer-order-add { display: flex; gap: 10px; align-items: center; }
+.customer-quantity-stepper {
+    display: inline-flex;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid rgba(0, 229, 212, .55);
+    border-radius: 11px;
+    background: rgba(4, 9, 19, .96);
+    box-shadow: inset 0 0 12px rgba(0, 229, 212, .06);
 }
+.customer-quantity-stepper button {
+    width: 38px; height: 40px; color: #00e5d4;
+    background: rgba(0, 229, 212, .09); border: 0;
+    cursor: pointer; font-size: 1.25rem; font-weight: 800;
+}
+.customer-quantity-stepper button:hover { color: #081016; background: #00e5d4; }
+.customer-quantity-stepper input {
+    width: 42px; min-height: 40px; padding: 4px 2px;
+    color: #fff; background: transparent; border: 0;
+    border-left: 1px solid rgba(0, 229, 212, .2);
+    border-right: 1px solid rgba(0, 229, 212, .2);
+    border-radius: 0; text-align: center;
+    appearance: textfield; -moz-appearance: textfield;
+}
+.customer-quantity-stepper input::-webkit-inner-spin-button,
+.customer-quantity-stepper input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.customer-order-item { scroll-margin-top: 24px; }
 .customer-order-disabled { opacity: .55; cursor: not-allowed; }
 @media (max-width: 600px) {
     .customer-order-panel { padding: 17px; }
@@ -170,7 +190,7 @@
 
             <div class="customer-order-grid">
                 @forelse($section->activeItems as $item)
-                    <article class="customer-order-item">
+                    <article class="customer-order-item" id="menu-item-{{ $item->id }}">
                         <h3>{{ $item->name }}</h3>
 
                         @if($item->description)
@@ -196,14 +216,11 @@
                             >
                                 @csrf
                                 <input type="hidden" name="item_id" value="{{ $item->id }}">
-                                <input
-                                    type="number"
-                                    name="quantity"
-                                    value="1"
-                                    min="1"
-                                    max="99"
-                                    aria-label="Количество"
-                                >
+                                <div class="customer-quantity-stepper">
+                                    <button type="button" data-quantity-change="-1" aria-label="Уменьшить количество">−</button>
+                                    <input type="number" name="quantity" value="1" min="1" max="99" aria-label="Количество">
+                                    <button type="button" data-quantity-change="1" aria-label="Увеличить количество">+</button>
+                                </div>
                                 <button type="submit" class="customer-order-button">
                                     Добавить
                                 </button>
@@ -225,4 +242,18 @@
         </div>
     @endforelse
 </div>
+
+<script>
+(() => {
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-quantity-change]');
+        if (!button) return;
+        const input = button.closest('.customer-quantity-stepper')?.querySelector('input[name="quantity"]');
+        if (!input) return;
+        const current = Number.parseInt(input.value, 10) || 1;
+        const change = Number.parseInt(button.dataset.quantityChange, 10) || 0;
+        input.value = String(Math.min(99, Math.max(1, current + change)));
+    });
+})();
+</script>
 @endsection

@@ -124,9 +124,13 @@ class CustomerCheckoutController extends Controller
             ];
         }
 
-        $defaultAddress = $customer->addresses()
-            ->where('is_default', true)
-            ->first();
+        $savedAddresses = $customer->addresses()
+            ->orderByDesc('is_default')
+            ->orderBy('label')
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $defaultAddress = $savedAddresses->firstWhere('is_default', true);
 
         $deliveryFeeCents = $this->toCents($settings->delivery_fee);
 
@@ -184,6 +188,7 @@ class CustomerCheckoutController extends Controller
         return view('customer.checkout.index', [
             'customer' => $customer,
             'defaultAddress' => $defaultAddress,
+            'savedAddresses' => $savedAddresses,
             'organization' => $organization,
             'settings' => $settings,
             'lines' => $lines,
@@ -267,6 +272,8 @@ class CustomerCheckoutController extends Controller
                 'after:now',
             ],
             'table_number' => ['nullable', 'string', 'max:30'],
+            'save_address' => ['nullable', 'boolean'],
+            'address_label' => ['required_if:save_address,1', 'nullable', 'string', 'max:50'],
             'address_line' => ['required_if:fulfillment_type,delivery', 'nullable', 'string', 'max:500'],
             'entrance' => ['nullable', 'string', 'max:30'],
             'floor' => ['nullable', 'string', 'max:30'],
@@ -660,8 +667,9 @@ class CustomerCheckoutController extends Controller
             ]);
 
 
-            if ($deliveryAddress !== null) {
+            if ($deliveryAddress !== null && !empty($validated['save_address'])) {
                 $addressValues = [
+                    'label' => trim($validated['address_label']),
                     'recipient_name' => $validated['customer_name'],
                     'recipient_phone' => $customer->phone,
                     'address_line' => $validated['address_line'],

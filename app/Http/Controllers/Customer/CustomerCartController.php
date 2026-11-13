@@ -138,7 +138,7 @@ class CustomerCartController extends Controller
         session()->forget('customer_order_checkout_snapshot');
 
         return redirect()
-            ->route('customer.catalog', $organization)
+            ->to(route('customer.catalog', $organization) . '#menu-item-' . $item->id)
             ->with('success', 'Товар добавлен в корзину.');
     }
 

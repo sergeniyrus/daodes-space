@@ -23,24 +23,22 @@
 .customer-cart-line {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
-    gap: 14px;
-    align-items: center;
-    padding: 15px 0;
-    border-bottom: 1px solid rgba(0, 229, 212, .18);
+    gap: 16px; align-items: center; padding: 17px; margin: 13px 0;
+    background: linear-gradient(135deg, rgba(22, 29, 48, .96), rgba(10, 15, 28, .98));
+    border: 1px solid rgba(0, 229, 212, .27); border-radius: 15px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035), 0 7px 20px rgba(0, 0, 0, .2);
 }
 .customer-cart-name { color: #fff; font-weight: 700; }
 .customer-cart-muted { color: #aeb5c4; font-size: .9rem; }
 .customer-cart-price { color: #ffd700; font-weight: 700; white-space: nowrap; }
-.customer-cart-actions { display: flex; gap: 7px; align-items: center; }
-.customer-cart-actions input {
-    width: 62px;
-    min-height: 38px;
-    padding: 5px;
-    color: #fff;
-    background: #090c16;
-    border: 1px solid rgba(255, 215, 0, .4);
-    border-radius: 8px;
-}
+.customer-cart-actions { display: flex; gap: 10px; align-items: center; }
+.customer-cart-stepper { display: inline-flex; align-items: center; overflow: hidden; border: 1px solid rgba(0, 229, 212, .55); border-radius: 11px; background: #090e1a; }
+.customer-cart-stepper button { width: 37px; height: 39px; color: #00e5d4; background: rgba(0, 229, 212, .09); border: 0; cursor: pointer; font-size: 1.2rem; font-weight: 800; }
+.customer-cart-stepper button:hover { color: #081016; background: #00e5d4; }
+.customer-cart-stepper input { width: 42px; min-height: 39px; padding: 4px 2px; color: #fff; background: transparent; border: 0; border-left: 1px solid rgba(0, 229, 212, .2); border-right: 1px solid rgba(0, 229, 212, .2); border-radius: 0; text-align: center; appearance: textfield; -moz-appearance: textfield; }
+.customer-cart-stepper input::-webkit-inner-spin-button,
+.customer-cart-stepper input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.customer-cart-update { min-height: 35px; padding: 6px 10px; font-size: .82rem; }
 .customer-cart-button {
     min-height: 38px;
     padding: 7px 13px;
@@ -67,8 +65,8 @@
 .customer-cart-unavailable { color: #ff9292; }
 @media(max-width:650px) {
     .customer-cart-panel { padding: 16px; }
-    .customer-cart-line { grid-template-columns: 1fr; gap: 9px; }
-    .customer-cart-actions { flex-wrap: wrap; }
+    .customer-cart-line { grid-template-columns: 1fr; gap: 11px; padding: 14px; }
+    .customer-cart-actions { flex-wrap: wrap; justify-content: space-between; }
 }
 </style>
 
@@ -122,18 +120,15 @@
 
                     <div class="customer-cart-actions">
                         @if($line['item'] && $line['available'])
-                            <form method="POST" action="{{ route('customer.cart.update', $line['item']) }}">
+                            <form method="POST" action="{{ route('customer.cart.update', $line['item']) }}" class="customer-cart-update-form">
                                 @csrf
                                 @method('PUT')
-                                <input
-                                    type="number"
-                                    name="quantity"
-                                    value="{{ $line['quantity'] }}"
-                                    min="1"
-                                    max="99"
-                                    aria-label="Количество"
-                                >
-                                <button class="customer-cart-button" type="submit">Обновить</button>
+                                <div class="customer-cart-stepper">
+                                    <button type="button" data-cart-quantity-change="-1" aria-label="Уменьшить количество">−</button>
+                                    <input type="number" name="quantity" value="{{ $line['quantity'] }}" min="1" max="99" aria-label="Количество">
+                                    <button type="button" data-cart-quantity-change="1" aria-label="Увеличить количество">+</button>
+                                </div>
+                                <button class="customer-cart-button customer-cart-update" type="submit">Обновить</button>
                             </form>
                         @endif
 
@@ -187,4 +182,23 @@
         @endif
     </div>
 </div>
+
+<script>
+(() => {
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-cart-quantity-change]');
+        if (!button) return;
+        const form = button.closest('form');
+        const input = form?.querySelector('input[name="quantity"]');
+        if (!input) return;
+        const current = Number.parseInt(input.value, 10) || 1;
+        const change = Number.parseInt(button.dataset.cartQuantityChange, 10) || 0;
+        const next = Math.min(99, Math.max(1, current + change));
+        if (next !== current) {
+            input.value = String(next);
+            form.requestSubmit();
+        }
+    });
+})();
+</script>
 @endsection

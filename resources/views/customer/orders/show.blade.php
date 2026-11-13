@@ -3,132 +3,7 @@
 @section('title_page')
     Заказ №{{ $order->order_number }}
 
-<script>
-(() => {
-    const root = document.querySelector('[data-order-updates-url]');
 
-    if (!root) {
-        return;
-    }
-
-    const statusLabels = @json($statusLabels);
-    const paymentLabels = @json($paymentLabels);
-    const statusElement = document.getElementById('customer-order-status');
-    const paymentElement = document.getElementById('customer-order-payment-status');
-    const historyElement = document.getElementById('customer-order-history');
-    const errorElement = document.getElementById('customer-order-update-error');
-
-    let stopped = false;
-    let requestInProgress = false;
-    let timer = null;
-
-    const terminalStatuses = ['completed', 'cancelled'];
-
-    function formatDate(value) {
-        if (!value) {
-            return '';
-        }
-
-        const date = new Date(value);
-
-        if (Number.isNaN(date.getTime())) {
-            return '';
-        }
-
-        return date.toLocaleString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    }
-
-    function renderHistory(entries) {
-        const fragment = document.createDocumentFragment();
-
-        if (!Array.isArray(entries) || entries.length === 0) {
-            const empty = document.createElement('p');
-            empty.className = 'customer-order-detail-muted';
-            empty.textContent = 'История пока не содержит изменений.';
-            fragment.appendChild(empty);
-        } else {
-            entries.forEach((entry) => {
-                const line = document.createElement('div');
-                line.className = 'customer-order-detail-line';
-
-                const status = document.createElement('span');
-                status.textContent = statusLabels[entry.status] || entry.status;
-
-                const date = document.createElement('span');
-                date.className = 'customer-order-detail-muted';
-                date.textContent = formatDate(entry.created_at);
-
-                line.append(status, date);
-                fragment.appendChild(line);
-            });
-        }
-
-        historyElement.replaceChildren(fragment);
-    }
-
-    async function refreshOrder() {
-        if (stopped || requestInProgress || document.hidden) {
-            return;
-        }
-
-        requestInProgress = true;
-
-        try {
-            const response = await fetch(root.dataset.orderUpdatesUrl, {
-                method: 'GET',
-                credentials: 'same-origin',
-                cache: 'no-store',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-
-            if ([401, 403, 404].includes(response.status)) {
-                stopped = true;
-                window.clearInterval(timer);
-                return;
-            }
-
-            if (!response.ok) {
-                throw new Error('Order update request failed.');
-            }
-
-            const data = await response.json();
-
-            statusElement.textContent = 'Статус: ' + (statusLabels[data.status] || data.status);
-            paymentElement.textContent = 'Состояние оплаты: '
-                + (paymentLabels[data.payment_status] || data.payment_status);
-
-            renderHistory(data.history);
-            errorElement.hidden = true;
-
-            if (terminalStatuses.includes(data.status)) {
-                stopped = true;
-                window.clearInterval(timer);
-            }
-        } catch (error) {
-            errorElement.hidden = false;
-        } finally {
-            requestInProgress = false;
-        }
-    }
-
-    refreshOrder();
-    timer = window.setInterval(refreshOrder, 15000);
-
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            refreshOrder();
-        }
-    });
-})();
-</script>
 
 @endsection
 
@@ -312,7 +187,7 @@
             </p>
         @endif
         @if($order->table_number)
-            <p>Столик: {{ $order->table_number }}</p>
+            <p>Номер браслета: {{ $order->table_number }}</p>
         @endif
         @if($order->customer_comment)
             <p>Комментарий: {{ $order->customer_comment }}</p>
@@ -328,4 +203,130 @@
         </a>
     </div>
 </div>
+<script>
+(() => {
+    const root = document.querySelector('[data-order-updates-url]');
+
+    if (!root) {
+        return;
+    }
+
+    const statusLabels = @json($statusLabels);
+    const paymentLabels = @json($paymentLabels);
+    const statusElement = document.getElementById('customer-order-status');
+    const paymentElement = document.getElementById('customer-order-payment-status');
+    const historyElement = document.getElementById('customer-order-history');
+    const errorElement = document.getElementById('customer-order-update-error');
+
+    let stopped = false;
+    let requestInProgress = false;
+    let timer = null;
+
+    const terminalStatuses = ['completed', 'cancelled'];
+
+    function formatDate(value) {
+        if (!value) {
+            return '';
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        return date.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function renderHistory(entries) {
+        const fragment = document.createDocumentFragment();
+
+        if (!Array.isArray(entries) || entries.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'customer-order-detail-muted';
+            empty.textContent = 'История пока не содержит изменений.';
+            fragment.appendChild(empty);
+        } else {
+            entries.forEach((entry) => {
+                const line = document.createElement('div');
+                line.className = 'customer-order-detail-line';
+
+                const status = document.createElement('span');
+                status.textContent = statusLabels[entry.status] || entry.status;
+
+                const date = document.createElement('span');
+                date.className = 'customer-order-detail-muted';
+                date.textContent = formatDate(entry.created_at);
+
+                line.append(status, date);
+                fragment.appendChild(line);
+            });
+        }
+
+        historyElement.replaceChildren(fragment);
+    }
+
+    async function refreshOrder() {
+        if (stopped || requestInProgress || document.hidden) {
+            return;
+        }
+
+        requestInProgress = true;
+
+        try {
+            const response = await fetch(root.dataset.orderUpdatesUrl, {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if ([401, 403, 404].includes(response.status)) {
+                stopped = true;
+                window.clearInterval(timer);
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error('Order update request failed.');
+            }
+
+            const data = await response.json();
+
+            statusElement.textContent = 'Статус: ' + (statusLabels[data.status] || data.status);
+            paymentElement.textContent = 'Состояние оплаты: '
+                + (paymentLabels[data.payment_status] || data.payment_status);
+
+            renderHistory(data.history);
+            errorElement.hidden = true;
+
+            if (terminalStatuses.includes(data.status)) {
+                stopped = true;
+                window.clearInterval(timer);
+            }
+        } catch (error) {
+            errorElement.hidden = false;
+        } finally {
+            requestInProgress = false;
+        }
+    }
+
+    refreshOrder();
+    timer = window.setInterval(refreshOrder, 15000);
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            refreshOrder();
+        }
+    });
+})();
+</script>
 @endsection
