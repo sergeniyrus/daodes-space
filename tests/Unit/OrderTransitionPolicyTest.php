@@ -122,6 +122,27 @@ class OrderTransitionPolicyTest extends TestCase
         ));
     }
 
+    public function test_courier_can_close_only_delivered_orders_after_successful_payment(): void
+    {
+        $this->assertNull(OrderTransitionPolicy::employeeError(
+            'courier',
+            Order::STATUS_DELIVERED,
+            Order::STATUS_COMPLETED,
+            Order::FULFILLMENT_DELIVERY,
+            false,
+            Order::PAYMENT_SUCCEEDED
+        ));
+
+        $this->assertNotNull(OrderTransitionPolicy::employeeError(
+            'courier',
+            Order::STATUS_DELIVERED,
+            Order::STATUS_COMPLETED,
+            Order::FULFILLMENT_DELIVERY,
+            false,
+            Order::PAYMENT_PENDING
+        ));
+    }
+
     public function test_employee_without_cook_or_courier_role_cannot_change_orders(): void
     {
         $this->assertNotNull(OrderTransitionPolicy::employeeError(
