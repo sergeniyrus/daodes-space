@@ -1414,6 +1414,35 @@ class CustomerCheckoutFlowTest extends TestCase
         $response->assertSee('data-stat="delivery-orders"', false);
     }
 
+    public function test_public_receipt_requires_a_valid_unexpired_token(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+
+        $token = str_repeat('b', 64);
+        $order->forceFill([
+            'receipt_token_hash' => hash('sha256', $token),
+            'receipt_token_expires_at' => now()->addDays(30),
+        ])->save();
+
+        $this->get(route('customer.receipt', ['token' => $token]))
+            ->assertOk()
+            ->assertSee('Электронный чек онлайн-заказа')
+            ->assertSee($order->order_number)
+            ->assertHeader('Cache-Control', 'private, no-store, max-age=0');
+
+        $this->get(route('customer.receipt', ['token' => str_repeat('a', 64)]))
+            ->assertNotFound();
+
+        $order->forceFill([
+            'receipt_token_expires_at' => now()->subSecond(),
+        ])->save();
+
+        $this->get(route('customer.receipt', ['token' => $token]))
+            ->assertNotFound();
+    }
+
     private function createFakeOnlinePayment(): array
     {
         $this->withoutMiddleware(ThrottleRequests::class);

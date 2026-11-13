@@ -76,6 +76,7 @@ class Order extends Model
             'ready_at' => 'datetime',
             'completed_at' => 'datetime',
             'cancelled_at' => 'datetime',
+            'receipt_token_expires_at' => 'datetime',
         ];
     }
 

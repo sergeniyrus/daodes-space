@@ -81,6 +81,15 @@ Route::prefix('customer')
             [CustomerCheckoutController::class, 'store']
         )->name('checkout.store');
 
+        // Публичный электронный чек: доступ по секретному токену из SMS.
+        Route::get(
+            '/receipt/{token}',
+            [CustomerOrderController::class, 'receipt']
+        )
+            ->where('token', '[A-Za-z0-9]{64}')
+            ->middleware('throttle:30,1')
+            ->name('receipt');
+
         Route::get(
             '/orders',
             [CustomerOrderController::class, 'index']

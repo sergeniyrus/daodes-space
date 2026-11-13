@@ -94,5 +94,53 @@ class OrderNotificationService
             'title' => 'Статус заказа обновлён',
             'message' => 'Заказ №' . $order->order_number . ': ' . $statusLabel . '.',
         ]);
+
+        if ($status === Order::STATUS_READY) {
+            $this->sendReadySmsAfterCommit($order);
+        }
+    }
+
+    /**
+     * Выдаёт ссылку на электронный чек и отправляет SMS только после
+     * фиксации транзакции смены статуса.
+     */
+    private function sendReadySmsAfterCommit(Order $order): void
+    {
+        if (!$order->customer_phone) {
+            return;
+        }
+
+        $token = \Illuminate\Support\Str::random(64);
+
+        $order->forceFill([
+            'receipt_token_hash' => hash('sha256', $token),
+            'receipt_token_expires_at' => now()->addDays(30),
+        ])->save();
+
+        $orderId = (int) $order->id;
+
+        DB::afterCommit(function () use ($orderId, $token): void {
+            $readyOrder = Order::query()->find($orderId);
+
+            if (!$readyOrder) {
+                return;
+            }
+
+            try {
+                $receiptUrl = route('customer.receipt', ['token' => $token]);
+
+                app(\App\Contracts\SmsTransport::class)->send(
+                    $readyOrder->customer_phone,
+                    'Заказ №' . $readyOrder->order_number
+                        . ' готов! Электронный чек: ' . $receiptUrl
+                );
+            } catch (\Throwable $exception) {
+                // Ошибка SMS не должна откатывать уже сохранённый статус заказа.
+                \Illuminate\Support\Facades\Log::warning('Order ready SMS was not sent.', [
+                    'order_id' => $orderId,
+                    'exception' => $exception::class,
+                ]);
+            }
+        });
     }
 }

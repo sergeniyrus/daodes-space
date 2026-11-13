@@ -59,6 +59,26 @@ class CustomerOrderController extends Controller
         ])->header('Cache-Control', 'private, no-store, max-age=0');
     }
 
+    /**
+     * Публичный электронный чек доступен только по случайному bearer-токену
+     * с ограниченным сроком действия. В базе хранится только хеш токена.
+     */
+    public function receipt(string $token)
+    {
+        abort_unless(preg_match('/^[A-Za-z0-9]{64}$/', $token) === 1, 404);
+
+        $order = Order::query()
+            ->where('receipt_token_hash', hash('sha256', $token))
+            ->where('receipt_token_expires_at', '>', now())
+            ->with(['organization', 'items', 'payments'])
+            ->firstOrFail();
+
+        return response()
+            ->view('customer.orders.receipt', ['order' => $order])
+            ->header('Cache-Control', 'private, no-store, max-age=0')
+            ->header('X-Robots-Tag', 'noindex, nofollow');
+    }
+
     public function show(Order $order): View|RedirectResponse
     {
         $customer = Auth::guard('customer')->user();
