@@ -19,8 +19,10 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter as RateLimiterFacade;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Mockery;
 use Tests\TestCase;
 
@@ -42,10 +44,14 @@ class EmployeeInvitationFlowTest extends TestCase
             ],
         ]);
 
-        $this->app->instance(
-            RateLimiter::class,
-            new RateLimiter(Cache::store('array'))
-        );
+        $limiter = new RateLimiter(Cache::store('array'));
+
+        $this->app->instance(RateLimiter::class, $limiter);
+        RateLimiterFacade::swap($limiter);
+
+        // Invitation and login throttles are tested at the service boundary;
+        // the HTTP throttle middleware itself requires a Redis service in this app.
+        $this->withoutMiddleware(ThrottleRequests::class);
 
         $this->createLegacyOrganizationSchema();
     }
