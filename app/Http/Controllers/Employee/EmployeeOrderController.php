@@ -33,12 +33,6 @@ class EmployeeOrderController extends Controller
             403
         );
 
-        $orderIds = OrderAssignment::query()
-            ->where('employee_id', $employee->id)
-            ->where('role', $membership->role)
-            ->whereNull('unassigned_at')
-            ->pluck('order_id');
-
         $activeStatuses = $membership->role === 'cook'
             ? [
                 Order::STATUS_CONFIRMED,
@@ -50,13 +44,27 @@ class EmployeeOrderController extends Controller
                 Order::STATUS_IN_TRANSIT,
             ];
 
-        $orders = $organization->orders()
-            ->whereIn('id', $orderIds)
+        $ordersQuery = $organization->orders()
             ->whereIn('status', $activeStatuses)
             ->with([
                 'items',
                 'assignments.employee',
-            ])
+            ]);
+
+        // Кухня — общая очередь организации: все активные повара видят
+        // каждый подтверждённый заказ, даже без персонального назначения.
+        // Для курьера сохраняем прежнюю изоляцию по активному назначению.
+        if ($membership->role === 'courier') {
+            $orderIds = OrderAssignment::query()
+                ->where('employee_id', $employee->id)
+                ->where('role', 'courier')
+                ->whereNull('unassigned_at')
+                ->pluck('order_id');
+
+            $ordersQuery->whereIn('id', $orderIds);
+        }
+
+        $orders = $ordersQuery
             ->latest()
             ->paginate(20);
 
@@ -116,14 +124,19 @@ class EmployeeOrderController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $assignment = $lockedOrder->assignments()
-                ->where('employee_id', $employee->id)
-                ->where('role', $membership->role)
-                ->whereNull('unassigned_at')
-                ->lockForUpdate()
-                ->first();
+            // Повар работает с общей кухонной очередью организации,
+            // поэтому персональное назначение не требуется. Курьер по-прежнему
+            // может менять статус только собственного активного назначения.
+            if ($membership->role === 'courier') {
+                $assignment = $lockedOrder->assignments()
+                    ->where('employee_id', $employee->id)
+                    ->where('role', 'courier')
+                    ->whereNull('unassigned_at')
+                    ->lockForUpdate()
+                    ->first();
 
-            abort_unless($assignment, 403);
+                abort_unless($assignment, 403);
+            }
 
             $fromStatus = $lockedOrder->status;
             $toStatus = $validated['status'];
