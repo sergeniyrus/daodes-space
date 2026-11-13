@@ -23,52 +23,9 @@ class OrganizationOrderController extends Controller
             ->paginate(20)
             ->appends($request->query());
 
-        $staffMemberships = $organization->employeeMemberships()
-            ->with('employee')
-            ->where('status', 'active')
-            ->whereIn('role', ['cook', 'courier'])
-            ->whereHas('employee', function ($query) {
-                $query->whereNotNull('phone_verified_at');
-            })
-            ->orderBy('role')
-            ->orderBy('id')
-            ->get();
-
-        $courierLoads = DB::table('order_assignments')
-            ->join('orders', 'orders.id', '=', 'order_assignments.order_id')
-            ->join('organization_employee_memberships as memberships', function ($join) use ($organization) {
-                $join->on('memberships.employee_id', '=', 'order_assignments.employee_id')
-                    ->where('memberships.organization_id', '=', $organization->id)
-                    ->where('memberships.role', '=', 'courier')
-                    ->where('memberships.status', '=', 'active');
-            })
-            ->join('organization_employees as employees', 'employees.id', '=', 'order_assignments.employee_id')
-            ->where('orders.organization_id', $organization->id)
-            ->where('order_assignments.role', 'courier')
-            ->whereNull('order_assignments.unassigned_at')
-            ->whereIn('orders.status', [
-                Order::STATUS_HANDED_TO_COURIER,
-                Order::STATUS_IN_TRANSIT,
-            ])
-            ->whereNotNull('employees.phone_verified_at')
-            ->select(
-                'order_assignments.employee_id',
-                DB::raw('COUNT(DISTINCT orders.id) as active_delivery_orders_count')
-            )
-            ->groupBy('order_assignments.employee_id')
-            ->pluck('active_delivery_orders_count', 'order_assignments.employee_id');
-
-        foreach ($staffMemberships->where('role', 'courier') as $membership) {
-            $membership->employee?->setAttribute(
-                'active_delivery_orders_count',
-                (int) ($courierLoads[$membership->employee_id] ?? 0)
-            );
-        }
-
         return view('organizations.orders.index', [
             'organization' => $organization,
             'orders' => $orders,
-            'staffMemberships' => $staffMemberships,
         ]);
     }
 
@@ -278,7 +235,7 @@ class OrganizationOrderController extends Controller
         Order $order
     ): RedirectResponse {
         $validated = $request->validate([
-            'status' => ['required', 'in:confirmed,cancelled,issued,served,completed'],
+            'status' => ['required', 'in:cancelled,served,completed'],
         ]);
 
         DB::transaction(function () use ($organization, $order, $validated) {
@@ -437,104 +394,4 @@ class OrganizationOrderController extends Controller
             ->with('success', 'Оплата отмечена как полученная.');
     }
 
-    public function assign(
-        Request $request,
-        Organization $organization,
-        Order $order
-    ): RedirectResponse {
-        $validated = $request->validate([
-            'employee_id' => ['required', 'integer', 'exists:organization_employees,id'],
-            'role' => ['required', 'in:cook,courier'],
-        ]);
-
-        DB::transaction(function () use ($organization, $order, $validated) {
-            $lockedOrder = Order::query()
-                ->where('organization_id', $organization->id)
-                ->whereKey($order->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if (in_array($lockedOrder->status, [
-                Order::STATUS_CANCELLED,
-                Order::STATUS_DELIVERED,
-                Order::STATUS_COMPLETED,
-            ], true)) {
-                throw ValidationException::withMessages([
-                    'employee_id' => 'Нельзя назначать сотрудника на закрытый заказ.',
-                ]);
-            }
-
-            if (
-                $validated['role'] === 'courier'
-                && $lockedOrder->fulfillment_type !== Order::FULFILLMENT_DELIVERY
-            ) {
-                throw ValidationException::withMessages([
-                    'role' => 'Курьера можно назначить только на заказ с доставкой.',
-                ]);
-            }
-
-            $assignableStatuses = $validated['role'] === 'cook'
-                ? [
-                    Order::STATUS_NEW,
-                    Order::STATUS_CONFIRMED,
-                    Order::STATUS_PREPARING,
-                    Order::STATUS_READY,
-                ]
-                : [
-                    Order::STATUS_NEW,
-                    Order::STATUS_CONFIRMED,
-                    Order::STATUS_PREPARING,
-                    Order::STATUS_READY,
-                    Order::STATUS_HANDED_TO_COURIER,
-                ];
-
-            if (!in_array($lockedOrder->status, $assignableStatuses, true)) {
-                throw ValidationException::withMessages([
-                    'employee_id' => 'На этом этапе заказа нельзя менять назначение сотрудника.',
-                ]);
-            }
-
-            $membership = OrganizationEmployeeMembership::query()
-                ->where('organization_id', $organization->id)
-                ->where('employee_id', $validated['employee_id'])
-                ->where('role', $validated['role'])
-                ->where('status', 'active')
-                ->whereHas('employee', function ($query) {
-                    $query->whereNotNull('phone_verified_at');
-                })
-                ->lockForUpdate()
-                ->first();
-
-            if (!$membership) {
-                throw ValidationException::withMessages([
-                    'employee_id' => 'Сотрудник не имеет активного членства с выбранной ролью в этой организации.',
-                ]);
-            }
-
-            $lockedOrder->assignments()
-                ->where('role', $validated['role'])
-                ->whereNull('unassigned_at')
-                ->update([
-                    'unassigned_at' => now(),
-                ]);
-
-            $lockedOrder->assignments()->create([
-                'employee_id' => $membership->employee_id,
-                'role' => $validated['role'],
-                'assigned_by_user_id' => auth()->id(),
-                'assigned_at' => now(),
-            ]);
-
-            app(\App\Support\OrderNotificationService::class)
-                ->notifyEmployeeAssigned(
-                    $lockedOrder,
-                    (int) $membership->employee_id,
-                    $validated['role']
-                );
-        }, 3);
-
-        return redirect()
-            ->route('organizations.orders.index', $organization)
-            ->with('success', 'Сотрудник назначен на заказ.');
-    }
 }
