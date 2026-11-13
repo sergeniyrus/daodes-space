@@ -751,7 +751,7 @@ class CustomerCheckoutFlowTest extends TestCase
             ->get(route('employee.organization.orders.updates', $organization));
 
         $cookResponse->assertOk()
-            ->assertHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
             ->assertSee($cookOrder->order_number)
             ->assertDontSee($courierOrder->order_number)
             ->assertDontSee($unassignedOrder->order_number);
@@ -762,7 +762,7 @@ class CustomerCheckoutFlowTest extends TestCase
             ->get(route('employee.organization.orders.updates', $organization));
 
         $courierResponse->assertOk()
-            ->assertHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
             ->assertSee($courierOrder->order_number)
             ->assertDontSee($cookOrder->order_number)
             ->assertDontSee($unassignedOrder->order_number);
