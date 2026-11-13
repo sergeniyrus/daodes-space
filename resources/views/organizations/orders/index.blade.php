@@ -334,38 +334,12 @@
                 @endphp
 
                 <div class="organization-orders-actions">
-                    @if($order->status === 'new')
-                        <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="confirmed">
-                            <button type="submit" class="organization-orders-button">
-                                Подтвердить заказ
-                            </button>
-                        </form>
-                    @endif
-
                     @if(in_array($order->status, ['new', 'confirmed', 'preparing', 'ready'], true) && $order->payment_status !== 'succeeded')
-                        <form
-                            method="POST"
-                            action="{{ route('organizations.orders.status', [$organization, $order]) }}"
-                            onsubmit="return confirm('Отменить заказ №{{ $order->order_number }}?');"
-                        >
+                        <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}" onsubmit="return confirm('Отменить заказ №{{ $order->order_number }}?');">
                             @csrf
                             @method('PATCH')
                             <input type="hidden" name="status" value="cancelled">
-                            <button type="submit" class="organization-orders-button organization-orders-danger">
-                                Отменить
-                            </button>
-                        </form>
-                    @endif
-
-                    @if($order->status === 'ready' && $order->fulfillment_type === 'pickup')
-                        <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="issued">
-                            <button type="submit" class="organization-orders-button">Отметить выданным</button>
+                            <button type="submit" class="organization-orders-button organization-orders-danger">Отменить заказ</button>
                         </form>
                     @endif
 
@@ -388,54 +362,11 @@
                     @endif
 
                     @if($order->payment_status === 'pending' && in_array($order->payment_method, ['cash_on_receipt', 'card_on_receipt'], true) && $canCollectOfflinePayment)
-                        <form
-                            method="POST"
-                            action="{{ route('organizations.orders.payment', [$organization, $order]) }}"
-                            onsubmit="return confirm('Подтвердить получение оплаты по заказу №{{ $order->order_number }}?');"
-                        >
+                        <form method="POST" action="{{ route('organizations.orders.payment', [$organization, $order]) }}" onsubmit="return confirm('Подтвердить получение оплаты по заказу №{{ $order->order_number }}?');">
                             @csrf
                             @method('PATCH')
-                            <button type="submit" class="organization-orders-button">
-                                Отметить оплату полученной
-                            </button>
+                            <button type="submit" class="organization-orders-button">Отметить оплату полученной</button>
                         </form>
-                    @endif
-
-                    @if(!in_array($order->status, ['cancelled', 'delivered', 'completed'], true))
-                        <form method="POST" action="{{ route('organizations.orders.assign', [$organization, $order]) }}">
-                            @csrf
-                            <input type="hidden" name="role" value="cook">
-                            <select name="employee_id" class="organization-orders-select" required>
-                                <option value="">Назначить повара</option>
-                                @foreach($staffMemberships->where('role', 'cook') as $membership)
-                                    @if($membership->employee)
-                                        <option value="{{ $membership->employee_id }}">
-                                            {{ $membership->employee->name }}
-                                        </option>
-                                    @endif
-                                @endforeach
-                            </select>
-                            <button type="submit" class="organization-orders-button">Назначить</button>
-                        </form>
-
-                        @if($order->fulfillment_type === 'delivery')
-                            <form method="POST" action="{{ route('organizations.orders.assign', [$organization, $order]) }}">
-                                @csrf
-                                <input type="hidden" name="role" value="courier">
-                                <select name="employee_id" class="organization-orders-select" required>
-                                    <option value="">Назначить курьера</option>
-                                    @foreach($staffMemberships->where('role', 'courier')->sortBy(fn ($membership) => $membership->employee?->active_delivery_orders_count ?? 0) as $membership)
-                                        @if($membership->employee)
-                                            <option value="{{ $membership->employee_id }}">
-                                                {{ $membership->employee->name }}
-                                                ({{ $membership->employee->active_delivery_orders_count }} в работе)
-                                            </option>
-                                        @endif
-                                    @endforeach
-                                </select>
-                                <button type="submit" class="organization-orders-button">Назначить</button>
-                            </form>
-                        @endif
                     @endif
                 </div>
             </article>
