@@ -1420,6 +1420,9 @@ class CustomerCheckoutFlowTest extends TestCase
         [$organization, $item] = $this->createOrderableMenu();
         $order = $this->createPickupOrder($customer, $organization, $item);
 
+        // Route throttling uses the array cache in the isolated CI test environment.
+        config(['cache.default' => 'array']);
+
         $token = str_repeat('b', 64);
         $order->forceFill([
             'receipt_token_hash' => hash('sha256', $token),
