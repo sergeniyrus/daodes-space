@@ -650,6 +650,53 @@ class CustomerCheckoutFlowTest extends TestCase
         ]);
     }
 
+
+    public function test_customer_can_poll_own_order_status_and_history(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+
+        $order->update([
+            'status' => Order::STATUS_CONFIRMED,
+        ]);
+
+        $order->statusHistory()->create([
+            'from_status' => Order::STATUS_NEW,
+            'to_status' => Order::STATUS_CONFIRMED,
+            'actor_type' => 'user',
+            'actor_id' => null,
+            'comment' => 'Заказ подтверждён менеджером.',
+            'created_at' => now(),
+        ]);
+
+        $response = $this->actingAs($customer, 'customer')
+            ->getJson(route('customer.orders.updates', $order));
+
+        $response->assertOk()
+            ->assertHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->assertJsonPath('status', Order::STATUS_CONFIRMED)
+            ->assertJsonPath('payment_status', Order::PAYMENT_PENDING)
+            ->assertJsonPath('history.1.status', Order::STATUS_CONFIRMED);
+    }
+
+    public function test_customer_cannot_poll_another_customers_order_updates(): void
+    {
+        $owner = $this->createVerifiedCustomer();
+        $otherCustomer = Customer::query()->create([
+            'name' => 'Another customer',
+            'phone' => '+436601234568',
+            'phone_verified_at' => now(),
+        ]);
+
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($owner, $organization, $item);
+
+        $this->actingAs($otherCustomer, 'customer')
+            ->getJson(route('customer.orders.updates', $order))
+            ->assertNotFound();
+    }
+
     private function createFakeOnlinePayment(): array
     {
         $this->withoutMiddleware(ThrottleRequests::class);

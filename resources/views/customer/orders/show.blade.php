@@ -2,6 +2,134 @@
 
 @section('title_page')
     Заказ №{{ $order->order_number }}
+
+<script>
+(() => {
+    const root = document.querySelector('[data-order-updates-url]');
+
+    if (!root) {
+        return;
+    }
+
+    const statusLabels = @json($statusLabels);
+    const paymentLabels = @json($paymentLabels);
+    const statusElement = document.getElementById('customer-order-status');
+    const paymentElement = document.getElementById('customer-order-payment-status');
+    const historyElement = document.getElementById('customer-order-history');
+    const errorElement = document.getElementById('customer-order-update-error');
+
+    let stopped = false;
+    let requestInProgress = false;
+    let timer = null;
+
+    const terminalStatuses = ['completed', 'cancelled'];
+
+    function formatDate(value) {
+        if (!value) {
+            return '';
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return '';
+        }
+
+        return date.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function renderHistory(entries) {
+        const fragment = document.createDocumentFragment();
+
+        if (!Array.isArray(entries) || entries.length === 0) {
+            const empty = document.createElement('p');
+            empty.className = 'customer-order-detail-muted';
+            empty.textContent = 'История пока не содержит изменений.';
+            fragment.appendChild(empty);
+        } else {
+            entries.forEach((entry) => {
+                const line = document.createElement('div');
+                line.className = 'customer-order-detail-line';
+
+                const status = document.createElement('span');
+                status.textContent = statusLabels[entry.status] || entry.status;
+
+                const date = document.createElement('span');
+                date.className = 'customer-order-detail-muted';
+                date.textContent = formatDate(entry.created_at);
+
+                line.append(status, date);
+                fragment.appendChild(line);
+            });
+        }
+
+        historyElement.replaceChildren(fragment);
+    }
+
+    async function refreshOrder() {
+        if (stopped || requestInProgress || document.hidden) {
+            return;
+        }
+
+        requestInProgress = true;
+
+        try {
+            const response = await fetch(root.dataset.orderUpdatesUrl, {
+                method: 'GET',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if ([401, 403, 404].includes(response.status)) {
+                stopped = true;
+                window.clearInterval(timer);
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error('Order update request failed.');
+            }
+
+            const data = await response.json();
+
+            statusElement.textContent = 'Статус: ' + (statusLabels[data.status] || data.status);
+            paymentElement.textContent = 'Состояние оплаты: '
+                + (paymentLabels[data.payment_status] || data.payment_status);
+
+            renderHistory(data.history);
+            errorElement.hidden = true;
+
+            if (terminalStatuses.includes(data.status)) {
+                stopped = true;
+                window.clearInterval(timer);
+            }
+        } catch (error) {
+            errorElement.hidden = false;
+        } finally {
+            requestInProgress = false;
+        }
+    }
+
+    refreshOrder();
+    timer = window.setInterval(refreshOrder, 15000);
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            refreshOrder();
+        }
+    });
+})();
+</script>
+
 @endsection
 
 @section('main')
@@ -71,7 +199,7 @@
 }
 </style>
 
-<div class="customer-order-detail">
+<div class="customer-order-detail" data-order-updates-url="{{ route('customer.orders.updates', $order) }}">
     @if(session('success'))
         <div class="customer-order-detail-panel customer-order-detail-status">
             {{ session('success') }}
@@ -81,7 +209,7 @@
     <div class="customer-order-detail-panel">
         <h1>Заказ №{{ $order->order_number }}</h1>
         <div class="customer-order-detail-muted">{{ $order->organization->name }}</div>
-        <p class="customer-order-detail-status">Статус: {{ $statusLabels[$order->status] ?? $order->status }}</p>
+        <p id="customer-order-status" class="customer-order-detail-status">Статус: {{ $statusLabels[$order->status] ?? $order->status }}</p>
         <p class="customer-order-detail-muted">
             Создан: {{ $order->created_at?->format('d.m.Y H:i') }}
         </p>
@@ -102,7 +230,7 @@
                 @default {{ $order->payment_method }}
             @endswitch
         </p>
-        <p class="customer-order-detail-muted">
+        <p id="customer-order-payment-status" class="customer-order-detail-muted">
             Состояние оплаты: {{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}
         </p>
         @if($order->requested_at)
@@ -149,6 +277,7 @@
 
     <div class="customer-order-detail-panel">
         <h2>История заказа</h2>
+        <div id="customer-order-history">
         @forelse($order->statusHistory as $history)
             <div class="customer-order-detail-line">
                 <span>{{ $statusLabels[$history->to_status] ?? $history->to_status }}</span>
@@ -159,6 +288,8 @@
         @empty
             <p class="customer-order-detail-muted">История пока не содержит изменений.</p>
         @endforelse
+        </div>
+        <p id="customer-order-update-error" class="customer-order-detail-muted" hidden>Не удалось обновить статус. Повторяем попытку…</p>
     </div>
 
     <div class="customer-order-detail-panel">

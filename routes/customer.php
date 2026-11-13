@@ -86,6 +86,11 @@ Route::prefix('customer')
         )->name('orders.index');
 
         Route::get(
+            '/orders/{order}/updates',
+            [CustomerOrderController::class, 'updates']
+        )->name('orders.updates');
+
+        Route::get(
             '/orders/{order}',
             [CustomerOrderController::class, 'show']
         )->name('orders.show');
