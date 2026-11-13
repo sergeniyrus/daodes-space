@@ -39,6 +39,37 @@ class OrganizationOrderController extends Controller
             ->orderBy('id')
             ->get();
 
+        $courierLoads = DB::table('order_assignments')
+            ->join('orders', 'orders.id', '=', 'order_assignments.order_id')
+            ->join('organization_employee_memberships as memberships', function ($join) use ($organization) {
+                $join->on('memberships.employee_id', '=', 'order_assignments.employee_id')
+                    ->where('memberships.organization_id', '=', $organization->id)
+                    ->where('memberships.role', '=', 'courier')
+                    ->where('memberships.status', '=', 'active');
+            })
+            ->join('organization_employees as employees', 'employees.id', '=', 'order_assignments.employee_id')
+            ->where('orders.organization_id', $organization->id)
+            ->where('order_assignments.role', 'courier')
+            ->whereNull('order_assignments.unassigned_at')
+            ->whereIn('orders.status', [
+                Order::STATUS_HANDED_TO_COURIER,
+                Order::STATUS_IN_TRANSIT,
+            ])
+            ->whereNotNull('employees.phone_verified_at')
+            ->select(
+                'order_assignments.employee_id',
+                DB::raw('COUNT(DISTINCT orders.id) as active_delivery_orders_count')
+            )
+            ->groupBy('order_assignments.employee_id')
+            ->pluck('active_delivery_orders_count', 'order_assignments.employee_id');
+
+        foreach ($staffMemberships->where('role', 'courier') as $membership) {
+            $membership->employee?->setAttribute(
+                'active_delivery_orders_count',
+                (int) ($courierLoads[$membership->employee_id] ?? 0)
+            );
+        }
+
         return view('organizations.orders.index', [
             'organization' => $organization,
             'orders' => $orders,

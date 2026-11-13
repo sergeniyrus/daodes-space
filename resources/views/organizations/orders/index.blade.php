@@ -357,10 +357,11 @@
                                 <input type="hidden" name="role" value="courier">
                                 <select name="employee_id" class="organization-orders-select" required>
                                     <option value="">Назначить курьера</option>
-                                    @foreach($staffMemberships->where('role', 'courier') as $membership)
+                                    @foreach($staffMemberships->where('role', 'courier')->sortBy(fn ($membership) => $membership->employee?->active_delivery_orders_count ?? 0) as $membership)
                                         @if($membership->employee)
                                             <option value="{{ $membership->employee_id }}">
                                                 {{ $membership->employee->name }}
+                                                ({{ $membership->employee->active_delivery_orders_count }} в работе)
                                             </option>
                                         @endif
                                     @endforeach

@@ -1123,6 +1123,68 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertDontSee($unassignedOrder->order_number);
     }
 
+    public function test_manager_courier_selector_prioritizes_the_least_loaded_active_courier(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $firstOrder = $this->createPickupOrder($customer, $organization, $item);
+        $secondOrder = $this->createPickupOrder($customer, $organization, $item);
+        $thirdOrder = $this->createPickupOrder($customer, $organization, $item);
+
+        foreach ([$firstOrder, $secondOrder, $thirdOrder] as $order) {
+            $order->update([
+                'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'status' => Order::STATUS_IN_TRANSIT,
+            ]);
+        }
+
+        $busyCourier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234574'
+        );
+        $availableCourier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234575'
+        );
+
+        foreach ([$firstOrder, $secondOrder] as $order) {
+            OrderAssignment::query()->create([
+                'order_id' => $order->id,
+                'employee_id' => $busyCourier->id,
+                'role' => 'courier',
+                'assigned_at' => now(),
+            ]);
+        }
+
+        OrderAssignment::query()->create([
+            'order_id' => $thirdOrder->id,
+            'employee_id' => $busyCourier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+            'unassigned_at' => now(),
+        ]);
+
+        $manager = $this->createOrganizationManager($organization);
+
+        $response = $this->actingAs($manager)
+            ->get(route('organizations.orders.index', $organization));
+
+        $response->assertOk()
+            ->assertSee('Courier test (0 в работе)')
+            ->assertSee('Courier test (2 в работе)');
+
+        $html = $response->getContent();
+        $availablePosition = strpos($html, 'Courier test (0 в работе)');
+        $busyPosition = strpos($html, 'Courier test (2 в работе)');
+
+        $this->assertNotFalse($availablePosition);
+        $this->assertNotFalse($busyPosition);
+        $this->assertLessThan($busyPosition, $availablePosition);
+    }
+
     private function createFakeOnlinePayment(): array
     {
         $this->withoutMiddleware(ThrottleRequests::class);
