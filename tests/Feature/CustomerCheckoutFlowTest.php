@@ -203,7 +203,8 @@ class CustomerCheckoutFlowTest extends TestCase
     }
 
 
-    public function test_manager_cook_and_courier_complete_delivery_order_and_manager_records_payment(): void
+
+    public function test_cook_accepts_new_delivery_order_and_courier_claims_and_completes_it(): void
     {
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu();
@@ -219,27 +220,8 @@ class CustomerCheckoutFlowTest extends TestCase
         ])->assertRedirect();
 
         $order = Order::query()->firstOrFail();
-        $manager = $this->createOrganizationManager($organization);
         $cook = $this->createOrganizationEmployee($organization, 'cook', '+436601234568');
         $courier = $this->createOrganizationEmployee($organization, 'courier', '+436601234569');
-
-        $this->actingAs($manager)
-            ->patch(route('organizations.orders.status', [$organization, $order]), [
-                'status' => Order::STATUS_CONFIRMED,
-            ])
-            ->assertRedirect(route('organizations.orders.index', $organization));
-
-        foreach ([
-            [$cook, 'cook'],
-            [$courier, 'courier'],
-        ] as [$employee, $role]) {
-            $this->actingAs($manager)
-                ->post(route('organizations.orders.assign', [$organization, $order]), [
-                    'employee_id' => $employee->id,
-                    'role' => $role,
-                ])
-                ->assertRedirect(route('organizations.orders.index', $organization));
-        }
 
         $this->actingAs($cook, 'employee')
             ->patch(route('employee.organization.orders.status', [$organization, $order]), [
@@ -253,11 +235,9 @@ class CustomerCheckoutFlowTest extends TestCase
             ])
             ->assertRedirect(route('employee.organization.orders.index', $organization));
 
-        $this->actingAs($cook, 'employee')
-            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
-                'status' => Order::STATUS_HANDED_TO_COURIER,
-            ])
-            ->assertRedirect(route('employee.organization.orders.index', $organization));
+        $this->actingAs($courier, 'employee')
+            ->post(route('employee.organization.orders.claim', [$organization, $order]))
+            ->assertRedirect(route('employee.organization.orders.show', [$organization, $order]));
 
         $this->actingAs($courier, 'employee')
             ->patch(route('employee.organization.orders.status', [$organization, $order]), [
@@ -271,42 +251,33 @@ class CustomerCheckoutFlowTest extends TestCase
             ])
             ->assertRedirect(route('employee.organization.orders.index', $organization));
 
-        $this->actingAs($manager)
-            ->patch(route('organizations.orders.payment', [$organization, $order]))
-            ->assertRedirect(route('organizations.orders.index', $organization));
+        $this->actingAs($courier, 'employee')
+            ->patch(route('employee.organization.orders.payment', [$organization, $order]))
+            ->assertRedirect(route('employee.organization.orders.show', [$organization, $order]));
 
-        $this->actingAs($manager)
-            ->patch(route('organizations.orders.status', [$organization, $order]), [
+        $this->actingAs($courier, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
                 'status' => Order::STATUS_COMPLETED,
             ])
-            ->assertRedirect(route('organizations.orders.index', $organization));
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
 
-        $this->assertSame(Order::STATUS_COMPLETED, $order->fresh()->status);
-        $this->assertSame(Order::PAYMENT_SUCCEEDED, $order->fresh()->payment_status);
-        $this->assertSame(
-            8,
-            $order->statusHistory()->count(),
-            'The initial status and every manager/employee transition must be recorded.'
-        );
+        $order = $order->fresh();
 
-        $this->assertDatabaseHas('order_assignments', [
+        $this->assertSame(Order::STATUS_COMPLETED, $order->status);
+        $this->assertSame(Order::PAYMENT_SUCCEEDED, $order->payment_status);
+        $this->assertSame(7, $order->statusHistory()->count());
+
+        $this->assertDatabaseMissing('order_assignments', [
             'order_id' => $order->id,
-            'employee_id' => $cook->id,
             'role' => 'cook',
         ]);
 
-        $this->assertDatabaseHas('order_assignments', [
-            'order_id' => $order->id,
-            'employee_id' => $courier->id,
-            'role' => 'courier',
-        ]);
+        $courierAssignment = $order->assignments()
+            ->where('role', 'courier')
+            ->firstOrFail();
 
-        $this->assertNotNull(
-            $order->assignments()->where('role', 'cook')->firstOrFail()->unassigned_at
-        );
-        $this->assertNotNull(
-            $order->assignments()->where('role', 'courier')->firstOrFail()->unassigned_at
-        );
+        $this->assertSame($courier->id, $courierAssignment->employee_id);
+        $this->assertNotNull($courierAssignment->unassigned_at);
 
         $this->assertDatabaseHas('payments', [
             'order_id' => $order->id,
@@ -318,7 +289,7 @@ class CustomerCheckoutFlowTest extends TestCase
     public function test_manager_cannot_change_an_order_from_another_organization(): void
     {
         $customer = $this->createVerifiedCustomer();
-        [$firstOrganization, $firstItem] = $this->createOrderableMenu('First cafe');
+        [$firstOrganization] = $this->createOrderableMenu('First cafe');
         [$secondOrganization, $secondItem] = $this->createOrderableMenu('Second cafe');
         $foreignOrder = $this->createPickupOrder($customer, $secondOrganization, $secondItem);
         $manager = $this->createOrganizationManager($firstOrganization);
@@ -328,7 +299,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 $firstOrganization,
                 $foreignOrder,
             ]), [
-                'status' => Order::STATUS_CONFIRMED,
+                'status' => Order::STATUS_CANCELLED,
             ])
             ->assertNotFound();
 
@@ -433,61 +404,51 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertDatabaseCount('order_notifications', 1);
     }
 
-    public function test_assignment_notifies_only_the_assigned_employee(): void
+
+    public function test_courier_claims_ready_delivery_and_another_courier_cannot_claim_it(): void
     {
         $customer = $this->createVerifiedCustomer();
-        [$organization, $item] = $this->createOrderableMenu('Assignment cafe');
-        [$otherOrganization] = $this->createOrderableMenu('Other assignment cafe');
-
+        [$organization, $item] = $this->createOrderableMenu('Courier claim cafe');
         $order = $this->createPickupOrder($customer, $organization, $item);
-        $manager = $this->createOrganizationManager($organization);
-        $cook = $this->createOrganizationEmployee(
+        $order->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_READY,
+        ]);
+
+        $firstCourier = $this->createOrganizationEmployee(
             $organization,
-            'cook',
+            'courier',
             '+436601234574'
         );
-        $foreignCook = $this->createOrganizationEmployee(
-            $otherOrganization,
-            'cook',
+        $secondCourier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
             '+436601234575'
         );
 
-        $this->actingAs($manager)
-            ->post(route('organizations.orders.assign', [$organization, $order]), [
-                'employee_id' => $cook->id,
-                'role' => 'cook',
-            ])
-            ->assertRedirect();
+        $this->actingAs($firstCourier, 'employee')
+            ->post(route('employee.organization.orders.claim', [$organization, $order]))
+            ->assertRedirect(route('employee.organization.orders.show', [$organization, $order]));
 
-        $notification = \App\Models\OrderNotification::query()
-            ->where('order_id', $order->id)
-            ->where('recipient_type', 'employee')
-            ->where('recipient_id', $cook->id)
-            ->firstOrFail();
-
-        $this->assertSame('order_assigned', $notification->event_type);
-
-        $this->assertDatabaseMissing('order_notifications', [
+        $this->assertDatabaseHas('order_assignments', [
             'order_id' => $order->id,
-            'recipient_type' => 'employee',
-            'recipient_id' => $foreignCook->id,
+            'employee_id' => $firstCourier->id,
+            'role' => 'courier',
+            'unassigned_at' => null,
         ]);
 
-        $this->actingAs($cook, 'employee')
-            ->getJson(route('employee.organization.orders.notifications', $organization))
-            ->assertOk()
-            ->assertJsonPath('unread_count', 1)
-            ->assertJsonPath('notifications.0.id', $notification->id);
+        $this->actingAs($secondCourier, 'employee')
+            ->from(route('employee.organization.orders.index', $organization))
+            ->post(route('employee.organization.orders.claim', [$organization, $order]))
+            ->assertRedirect(route('employee.organization.orders.index', $organization))
+            ->assertSessionHasErrors('order');
 
-        $this->actingAs($cook, 'employee')
-            ->postJson(route('employee.organization.orders.notifications.read', [
-                $organization,
-                $notification,
-            ]))
-            ->assertOk()
-            ->assertJson(['marked_read' => true]);
-
-        $this->assertNotNull($notification->fresh()->read_at);
+        $this->assertDatabaseMissing('order_assignments', [
+            'order_id' => $order->id,
+            'employee_id' => $secondCourier->id,
+            'role' => 'courier',
+            'unassigned_at' => null,
+        ]);
     }
 
     public function test_manager_can_read_only_own_organization_order_notifications(): void
@@ -527,6 +488,7 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertNotNull($notification->fresh()->read_at);
     }
 
+
     public function test_manager_status_change_notifies_only_the_order_customer(): void
     {
         $customer = $this->createVerifiedCustomer();
@@ -538,11 +500,15 @@ class CustomerCheckoutFlowTest extends TestCase
 
         [$organization, $item] = $this->createOrderableMenu('Customer status notifications');
         $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'fulfillment_type' => Order::FULFILLMENT_DINE_IN,
+            'status' => Order::STATUS_READY,
+        ]);
         $manager = $this->createOrganizationManager($organization);
 
         $this->actingAs($manager)
             ->patch(route('organizations.orders.status', [$organization, $order]), [
-                'status' => Order::STATUS_CONFIRMED,
+                'status' => Order::STATUS_SERVED,
             ])
             ->assertRedirect();
 
@@ -553,7 +519,7 @@ class CustomerCheckoutFlowTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame('order_status_changed', $notification->event_type);
-        $this->assertStringContainsString('Подтверждён', $notification->message);
+        $this->assertStringContainsString('Подан', $notification->message);
 
         $this->actingAs($customer, 'customer')
             ->getJson(route('customer.orders.notifications'))
@@ -616,58 +582,35 @@ class CustomerCheckoutFlowTest extends TestCase
         ]);
     }
 
-    public function test_manager_cannot_assign_employee_from_another_organization(): void
+
+    public function test_manager_assignment_route_is_not_registered(): void
     {
-        $customer = $this->createVerifiedCustomer();
-        [$organization, $item] = $this->createOrderableMenu('First cafe');
-        [$otherOrganization] = $this->createOrderableMenu('Second cafe');
-
-        $order = $this->createPickupOrder($customer, $organization, $item);
-        $manager = $this->createOrganizationManager($organization);
-        $foreignCook = $this->createOrganizationEmployee(
-            $otherOrganization,
-            'cook',
-            '+436601234572'
-        );
-
-        $this->actingAs($manager)
-            ->post(route('organizations.orders.assign', [$organization, $order]), [
-                'employee_id' => $foreignCook->id,
-                'role' => 'cook',
-            ])
-            ->assertSessionHasErrors('employee_id');
-
-        $this->assertDatabaseMissing('order_assignments', [
-            'order_id' => $order->id,
-            'employee_id' => $foreignCook->id,
-            'role' => 'cook',
-            'unassigned_at' => null,
-        ]);
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('organizations.orders.assign'));
     }
 
-    public function test_manager_cannot_assign_courier_to_pickup_order(): void
+
+    public function test_courier_cannot_claim_a_pickup_order(): void
     {
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu();
 
         $order = $this->createPickupOrder($customer, $organization, $item);
-        $manager = $this->createOrganizationManager($organization);
+        $order->update(['status' => Order::STATUS_READY]);
+
         $courier = $this->createOrganizationEmployee(
             $organization,
             'courier',
             '+436601234573'
         );
 
-        $this->actingAs($manager)
-            ->post(route('organizations.orders.assign', [$organization, $order]), [
-                'employee_id' => $courier->id,
-                'role' => 'courier',
-            ])
-            ->assertSessionHasErrors('role');
+        $this->actingAs($courier, 'employee')
+            ->from(route('employee.organization.orders.index', $organization))
+            ->post(route('employee.organization.orders.claim', [$organization, $order]))
+            ->assertRedirect(route('employee.organization.orders.index', $organization))
+            ->assertSessionHasErrors('order');
 
         $this->assertDatabaseMissing('order_assignments', [
             'order_id' => $order->id,
-            'employee_id' => $courier->id,
             'role' => 'courier',
             'unassigned_at' => null,
         ]);
@@ -1256,66 +1199,26 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertDontSee($unassignedOrder->order_number);
     }
 
-    public function test_manager_courier_selector_prioritizes_the_least_loaded_active_courier(): void
+
+    public function test_manager_orders_page_does_not_offer_staff_assignment_controls(): void
     {
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu();
 
-        $firstOrder = $this->createPickupOrder($customer, $organization, $item);
-        $secondOrder = $this->createPickupOrder($customer, $organization, $item);
-        $thirdOrder = $this->createPickupOrder($customer, $organization, $item);
-
-        foreach ([$firstOrder, $secondOrder, $thirdOrder] as $order) {
-            $order->update([
-                'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
-                'status' => Order::STATUS_IN_TRANSIT,
-            ]);
-        }
-
-        $busyCourier = $this->createOrganizationEmployee(
-            $organization,
-            'courier',
-            '+436601234574'
-        );
-        $availableCourier = $this->createOrganizationEmployee(
-            $organization,
-            'courier',
-            '+436601234575'
-        );
-
-        foreach ([$firstOrder, $secondOrder] as $order) {
-            OrderAssignment::query()->create([
-                'order_id' => $order->id,
-                'employee_id' => $busyCourier->id,
-                'role' => 'courier',
-                'assigned_at' => now(),
-            ]);
-        }
-
-        OrderAssignment::query()->create([
-            'order_id' => $thirdOrder->id,
-            'employee_id' => $busyCourier->id,
-            'role' => 'courier',
-            'assigned_at' => now(),
-            'unassigned_at' => now(),
-        ]);
-
+        $order = $this->createPickupOrder($customer, $organization, $item);
         $manager = $this->createOrganizationManager($organization);
+        $this->createOrganizationEmployee($organization, 'cook', '+436601234574');
+        $this->createOrganizationEmployee($organization, 'courier', '+436601234575');
 
         $response = $this->actingAs($manager)
             ->get(route('organizations.orders.index', $organization));
 
         $response->assertOk()
-            ->assertSee('0 в работе')
-            ->assertSee('2 в работе');
-
-        $html = preg_replace('/\\s+/', ' ', strip_tags($response->getContent()));
-        $availablePosition = strpos($html, 'Courier test (0 в работе)');
-        $busyPosition = strpos($html, 'Courier test (2 в работе)');
-
-        $this->assertNotFalse($availablePosition);
-        $this->assertNotFalse($busyPosition);
-        $this->assertLessThan($busyPosition, $availablePosition);
+            ->assertDontSee('Назначить повара')
+            ->assertDontSee('Назначить курьера')
+            ->assertDontSee('Courier test')
+            ->assertDontSee('Cook test')
+            ->assertSee($order->order_number);
     }
 
     public function test_manager_can_print_80mm_and_a4_receipts_only_for_their_organization(): void
