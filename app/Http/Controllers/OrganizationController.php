@@ -129,7 +129,7 @@ class OrganizationController extends Controller
          */
         $staffMemberships = $organization->employeeMemberships()
             ->with('employee')
-            ->orderByRaw("FIELD(status, 'active', 'pending', 'blocked')")
+            ->orderByRaw("CASE status WHEN 'active' THEN 0 WHEN 'pending' THEN 1 WHEN 'blocked' THEN 2 ELSE 3 END")
             ->orderBy('id')
             ->get();
 
