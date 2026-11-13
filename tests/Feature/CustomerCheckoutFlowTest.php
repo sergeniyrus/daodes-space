@@ -335,11 +335,15 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertSame(Order::STATUS_NEW, $foreignOrder->fresh()->status);
     }
 
-    public function test_employee_cannot_change_order_without_an_active_assignment(): void
+    public function test_cook_can_change_confirmed_order_without_a_personal_assignment(): void
     {
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu();
         $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'status' => Order::STATUS_CONFIRMED,
+        ]);
+
         $cook = $this->createOrganizationEmployee(
             $organization,
             'cook',
@@ -353,10 +357,10 @@ class CustomerCheckoutFlowTest extends TestCase
             ]), [
                 'status' => Order::STATUS_PREPARING,
             ])
-            ->assertForbidden();
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
 
-        $this->assertSame(Order::STATUS_NEW, $order->fresh()->status);
-        $this->assertDatabaseCount('order_status_history', 1);
+        $this->assertSame(Order::STATUS_PREPARING, $order->fresh()->status);
+        $this->assertDatabaseCount('order_status_history', 2);
     }
 
     public function test_employee_cannot_change_order_from_another_organization(): void
@@ -1081,7 +1085,7 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertSee('name="status" value="in_transit"', false);
     }
 
-    public function test_employee_order_updates_are_limited_to_their_active_role_assignments(): void
+    public function test_cook_updates_show_shared_queue_while_courier_updates_require_active_assignments(): void
     {
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu();
@@ -1136,8 +1140,8 @@ class CustomerCheckoutFlowTest extends TestCase
         $cookResponse->assertOk()
             ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
             ->assertSee($cookOrder->order_number)
-            ->assertDontSee($courierOrder->order_number)
-            ->assertDontSee($unassignedOrder->order_number);
+            ->assertSee($unassignedOrder->order_number)
+            ->assertDontSee($courierOrder->order_number);
 
         auth()->guard('employee')->logout();
 
