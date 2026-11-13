@@ -167,7 +167,7 @@ class CustomerCartController extends Controller
         session()->forget('customer_order_checkout_snapshots');
         session()->forget('customer_order_checkout_snapshot');
 
-        return redirect()->route('customer.cart');
+        return redirect()->to(route('customer.cart') . '#cart-item-' . $menuItem->id);
     }
 
     public function remove(int $menuItemId): RedirectResponse

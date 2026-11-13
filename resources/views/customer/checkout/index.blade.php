@@ -415,6 +415,11 @@
         const isDelivery = selected?.value === 'delivery';
         if (addressPanel) addressPanel.hidden = !isDelivery;
         if (addressFields.address_line) addressFields.address_line.required = isDelivery;
+
+        if (!isDelivery && saveAddress) {
+            saveAddress.checked = false;
+            updateSaveAddressFields();
+        }
     }
     function updateSaveAddressFields() {
         const enabled = Boolean(saveAddress?.checked);

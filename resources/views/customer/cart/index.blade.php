@@ -90,7 +90,7 @@
             <p class="customer-cart-muted">{{ $organization->name }}</p>
 
             @foreach($lines as $line)
-                <div class="customer-cart-line">
+                <div class="customer-cart-line" id="cart-item-{{ $line['item_id'] }}">
                     <div>
                         @if($line['item'])
                             <div class="customer-cart-name">{{ $line['item']->name }}</div>

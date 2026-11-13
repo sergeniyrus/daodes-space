@@ -100,6 +100,34 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertSame('99.00', $item->fresh()->price);
     }
 
+    public function test_customer_can_explicitly_save_a_delivery_address_with_a_custom_label(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $response = $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'address_line' => 'Test street 25',
+            'save_address' => '1',
+            'address_label' => 'Дом',
+        ]);
+
+        $order = Order::query()->firstOrFail();
+
+        $response->assertRedirect(route('customer.orders.show', $order));
+
+        $this->assertDatabaseHas('customer_addresses', [
+            'customer_id' => $customer->id,
+            'label' => 'Дом',
+            'address_line' => 'Test street 25',
+        ]);
+    }
+
     public function test_repeating_checkout_post_with_same_idempotency_key_does_not_create_a_second_order(): void
     {
         $customer = $this->createVerifiedCustomer();
