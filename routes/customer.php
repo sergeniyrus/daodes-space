@@ -50,6 +50,9 @@ Route::prefix('customer')->name('customer.')->group(function () {
             ->middleware('throttle:20,1')->name('push.devices.destroy');
         Route::get('/orders/notifications', [OrderNotificationController::class, 'customerIndex'])
             ->name('orders.notifications');
+        Route::post('/orders/{order}/pickup/confirm', [CustomerOrderController::class, 'confirmPickup'])
+            ->whereNumber('order')
+            ->name('orders.pickup.confirm');
         Route::post('/orders/notifications/{notification}/read', [OrderNotificationController::class, 'markCustomerRead'])
             ->name('orders.notifications.read');
     });
