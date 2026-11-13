@@ -82,6 +82,29 @@ class OrganizationOrderController extends Controller
     }
 
     /**
+     * Карточка заказа доступна только менеджеру организации-владельца.
+     */
+    public function show(Organization $organization, int $order): View
+    {
+        $order = $organization->orders()
+            ->with([
+                'customer',
+                'items',
+                'payments',
+                'assignments.employee',
+                'assignments.assignedBy',
+                'statusHistory',
+            ])
+            ->whereKey($order)
+            ->firstOrFail();
+
+        return view('organizations.orders.show', [
+            'organization' => $organization,
+            'order' => $order,
+        ]);
+    }
+
+    /**
      * Экспорт отфильтрованных заказов текущей организации в CSV.
      */
     public function export(Request $request, Organization $organization): StreamedResponse

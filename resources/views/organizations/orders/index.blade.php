@@ -220,6 +220,13 @@
                         <div class="organization-orders-muted">
                             {{ $order->created_at?->format('d.m.Y H:i') }}
                         </div>
+                        <a
+                            href="{{ route('organizations.orders.show', [$organization, $order]) }}"
+                            class="organization-orders-button"
+                            style="display: inline-flex; align-items: center; margin-top: 8px; text-decoration: none;"
+                        >
+                            Открыть заказ
+                        </a>
                     </div>
 
                     <div style="text-align: right;">

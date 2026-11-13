@@ -1185,6 +1185,42 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertLessThan($busyPosition, $availablePosition);
     }
 
+    public function test_manager_can_view_order_details_only_for_their_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Order details cafe');
+        [$otherOrganization, $otherItem] = $this->createOrderableMenu('Other order details cafe');
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $otherOrder = $this->createPickupOrder($customer, $otherOrganization, $otherItem);
+
+        DB::table('order_status_history')->insert([
+            'order_id' => $order->id,
+            'from_status' => Order::STATUS_NEW,
+            'to_status' => Order::STATUS_CONFIRMED,
+            'actor_type' => 'user',
+            'actor_id' => null,
+            'comment' => 'Заказ подтверждён менеджером.',
+            'created_at' => now(),
+        ]);
+
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->get(route('organizations.orders.show', [$organization, $order]))
+            ->assertOk()
+            ->assertSee('Заказ №' . $order->order_number)
+            ->assertSee('Состав заказа')
+            ->assertSee('Оплата')
+            ->assertSee('Назначенные сотрудники')
+            ->assertSee('История заказа')
+            ->assertSee('Заказ подтверждён менеджером.');
+
+        $this->actingAs($manager)
+            ->get(route('organizations.orders.show', [$organization, $otherOrder]))
+            ->assertNotFound();
+    }
+
     public function test_manager_order_history_filters_are_scoped_to_the_current_organization(): void
     {
         $customer = $this->createVerifiedCustomer();

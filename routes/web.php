@@ -1112,6 +1112,14 @@ Route::middleware('auth')
             ->name('orders.export');
 
         Route::get(
+            '/{organization}/orders/{order}',
+            [OrganizationOrderController::class, 'show']
+        )
+            ->middleware('organization.manager')
+            ->whereNumber('order')
+            ->name('orders.show');
+
+        Route::get(
             '/{organization}/orders/notifications',
             [OrderNotificationController::class, 'managerIndex']
         )
