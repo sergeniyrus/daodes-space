@@ -40,6 +40,7 @@ class EmployeeOrderController extends Controller
                 Order::STATUS_READY,
             ]
             : [
+                Order::STATUS_READY,
                 Order::STATUS_HANDED_TO_COURIER,
                 Order::STATUS_IN_TRANSIT,
             ];
@@ -100,6 +101,7 @@ class EmployeeOrderController extends Controller
             ->whereKey($order->id)
             ->where('fulfillment_type', Order::FULFILLMENT_DELIVERY)
             ->whereIn('status', [
+                Order::STATUS_READY,
                 Order::STATUS_HANDED_TO_COURIER,
                 Order::STATUS_IN_TRANSIT,
             ])
