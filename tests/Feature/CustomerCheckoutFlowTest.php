@@ -674,7 +674,7 @@ class CustomerCheckoutFlowTest extends TestCase
             ->getJson(route('customer.orders.updates', $order));
 
         $response->assertOk()
-            ->assertHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
             ->assertJsonPath('status', Order::STATUS_CONFIRMED)
             ->assertJsonPath('payment_status', Order::PAYMENT_PENDING)
             ->assertJsonPath('history.1.status', Order::STATUS_CONFIRMED);
