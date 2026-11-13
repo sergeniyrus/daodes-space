@@ -249,7 +249,13 @@
                                 · {{ $order->updated_at?->format('d.m.Y H:i') }}
                             </div>
                         </div>
-                        <span class="courier-status">{{ $courierStatusLabel }}</span>
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+                            <span class="courier-status">{{ $courierStatusLabel }}</span>
+                            <a
+                                class="courier-contact-link"
+                                href="{{ route('employee.organization.orders.show', [$organization, $order]) }}"
+                            >Открыть заказ</a>
+                        </div>
                     </div>
 
                     <div class="courier-section">

@@ -78,6 +78,47 @@ class EmployeeOrderController extends Controller
         ]);
     }
 
+    /**
+     * Подробная карточка доставки доступна только назначенному курьеру.
+     */
+    public function show(
+        Request $request,
+        Organization $organization,
+        Order $order
+    ): View {
+        $employee = Auth::guard('employee')->user();
+        $membership = $request->attributes->get('employee_membership');
+
+        abort_unless(
+            $employee
+            && $membership instanceof OrganizationEmployeeMembership
+            && $membership->role === 'courier',
+            403
+        );
+
+        $order = $organization->orders()
+            ->whereKey($order->id)
+            ->where('fulfillment_type', Order::FULFILLMENT_DELIVERY)
+            ->whereIn('status', [
+                Order::STATUS_HANDED_TO_COURIER,
+                Order::STATUS_IN_TRANSIT,
+            ])
+            ->whereHas('assignments', function ($query) use ($employee) {
+                $query->where('employee_id', $employee->id)
+                    ->where('role', 'courier')
+                    ->whereNull('unassigned_at');
+            })
+            ->with(['items'])
+            ->firstOrFail();
+
+        return view('employee.orders.show', [
+            'employee' => $employee,
+            'organization' => $organization,
+            'membership' => $membership,
+            'order' => $order,
+        ]);
+    }
+
     public function updates(
         Request $request,
         Organization $organization

@@ -30,6 +30,9 @@ Route::prefix('staff')->name('employee.')->group(function () {
         Route::middleware(['employee.organization', 'employee.role:cook,courier'])
             ->prefix('organizations/{organization}')->name('organization.')->group(function () {
                 Route::get('/orders', [EmployeeOrderController::class, 'index'])->name('orders.index');
+                Route::get('/orders/{order}', [EmployeeOrderController::class, 'show'])
+                    ->whereNumber('order')
+                    ->name('orders.show');
                 Route::get('/orders/updates', [EmployeeOrderController::class, 'updates'])->name('orders.updates');
                 Route::get('/orders/notifications', [\App\Http\Controllers\OrderNotificationController::class, 'employeeIndex'])
                     ->name('orders.notifications');

@@ -1067,6 +1067,60 @@ class CustomerCheckoutFlowTest extends TestCase
         );
     }
 
+    public function test_courier_can_open_only_their_assigned_delivery_order_details(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+            'delivery_address' => [
+                'address_line' => 'Courier detail street 21, Graz',
+                'entrance' => '3',
+                'floor' => '5',
+                'apartment' => '27',
+                'intercom' => '2727',
+                'delivery_comment' => 'Позвонить перед приездом',
+            ],
+            'customer_comment' => 'Оставить у двери нельзя',
+        ]);
+
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234572'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $order->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($courier, 'employee')
+            ->get(route('employee.organization.orders.show', [$organization, $order]))
+            ->assertOk()
+            ->assertSee('Заказ №' . $order->order_number)
+            ->assertSee('Courier detail street 21, Graz')
+            ->assertSee('Подъезд 3')
+            ->assertSee('этаж 5')
+            ->assertSee('27')
+            ->assertSee('Позвонить перед приездом')
+            ->assertSee('Оставить у двери нельзя')
+            ->assertSee('Принять заказ и начать доставку');
+
+        $unassignedOrder = $this->createPickupOrder($customer, $organization, $item);
+        $unassignedOrder->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+        ]);
+
+        $this->get(route('employee.organization.orders.show', [$organization, $unassignedOrder]))
+            ->assertNotFound();
+    }
+
     public function test_courier_work_queue_renders_mobile_delivery_details_and_actions(): void
     {
         $customer = $this->createVerifiedCustomer();

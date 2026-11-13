@@ -67,6 +67,49 @@
     font-weight: 700;
 }
 .customer-order-detail-status { color: #00e5a8; font-weight: 700; }
+.customer-order-live-banner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    overflow: hidden;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    background: linear-gradient(115deg, rgba(0, 229, 168, .18), rgba(0, 229, 212, .07) 58%, rgba(255, 215, 0, .08));
+    border: 1px solid rgba(0, 229, 168, .72);
+    border-radius: 18px;
+    box-shadow: 0 0 28px rgba(0, 229, 168, .12), inset 0 0 22px rgba(0, 229, 168, .04);
+}
+.customer-order-live-banner[hidden] { display: none; }
+.customer-order-live-indicator {
+    position: relative;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    color: #061711;
+    background: #00e5a8;
+    border-radius: 50%;
+    font-size: 1.35rem;
+    box-shadow: 0 0 0 7px rgba(0, 229, 168, .1);
+    animation: customer-order-pulse 1.8s ease-out infinite;
+}
+.customer-order-live-title { margin: 0 0 5px; color: #00ffc2; font-size: 1.2rem; font-weight: 900; }
+.customer-order-live-text { color: #e3fff6; line-height: 1.45; }
+.customer-order-live-banner.is-delivered {
+    background: linear-gradient(115deg, rgba(255, 215, 0, .16), rgba(0, 229, 212, .06));
+    border-color: rgba(255, 215, 0, .65);
+}
+.customer-order-live-banner.is-delivered .customer-order-live-indicator {
+    background: #ffd700;
+    animation: none;
+}
+@keyframes customer-order-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 229, 168, .35); }
+    70% { box-shadow: 0 0 0 12px rgba(0, 229, 168, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 229, 168, 0); }
+}
 .customer-order-detail a { color: #00e5d4; text-decoration: none; }
 @media(max-width:600px) {
     .customer-order-detail-panel { padding: 16px; }
@@ -91,6 +134,32 @@
         <h1>Заказ №{{ $order->order_number }}</h1>
         <div class="customer-order-detail-muted">{{ $order->organization->name }}</div>
         <p id="customer-order-status" class="customer-order-detail-status">Статус: {{ $statusLabels[$order->status] ?? $order->status }}</p>
+        <section
+            id="customer-order-live-banner"
+            class="customer-order-live-banner"
+            aria-live="polite"
+            @if($order->status !== 'in_transit' && $order->status !== 'delivered') hidden @endif
+        >
+            <div class="customer-order-live-indicator" id="customer-order-live-icon">
+                {{ $order->status === 'delivered' ? '✓' : '➤' }}
+            </div>
+            <div>
+                <div class="customer-order-live-title" id="customer-order-live-title">
+                    @if($order->status === 'in_transit')
+                        Сейчас курьер едет к вам!
+                    @elseif($order->status === 'delivered')
+                        Заказ доставлен
+                    @endif
+                </div>
+                <div class="customer-order-live-text" id="customer-order-live-text">
+                    @if($order->status === 'in_transit')
+                        Курьер уже забрал ваш заказ и направляется по указанному адресу.
+                    @elseif($order->status === 'delivered')
+                        Приятного аппетита! Заказ передан вам.
+                    @endif
+                </div>
+            </div>
+        </section>
         <p class="customer-order-detail-muted">
             Создан: {{ $order->created_at?->format('d.m.Y H:i') }}
         </p>
@@ -217,6 +286,37 @@
     const paymentElement = document.getElementById('customer-order-payment-status');
     const historyElement = document.getElementById('customer-order-history');
     const errorElement = document.getElementById('customer-order-update-error');
+    const liveBanner = document.getElementById('customer-order-live-banner');
+    const liveTitle = document.getElementById('customer-order-live-title');
+    const liveText = document.getElementById('customer-order-live-text');
+    const liveIcon = document.getElementById('customer-order-live-icon');
+
+    function renderDeliveryStatus(status) {
+        if (!liveBanner || !liveTitle || !liveText || !liveIcon) {
+            return;
+        }
+
+        liveBanner.hidden = true;
+        liveBanner.classList.remove('is-delivered');
+
+        if (status === 'in_transit') {
+            liveBanner.hidden = false;
+            liveTitle.textContent = 'Сейчас курьер едет к вам!';
+            liveText.textContent = 'Курьер уже забрал ваш заказ и направляется по указанному адресу.';
+            liveIcon.textContent = '➤';
+        } else if (status === 'delivered') {
+            liveBanner.hidden = false;
+            liveBanner.classList.add('is-delivered');
+            liveTitle.textContent = 'Заказ доставлен';
+            liveText.textContent = 'Приятного аппетита! Заказ передан вам.';
+            liveIcon.textContent = '✓';
+        } else if (status === 'handed_to_courier') {
+            liveBanner.hidden = false;
+            liveTitle.textContent = 'Заказ передан курьеру';
+            liveText.textContent = 'Курьер получил заказ. Скоро он отправится к вам.';
+            liveIcon.textContent = '⌁';
+        }
+    }
 
     let stopped = false;
     let requestInProgress = false;
@@ -302,6 +402,7 @@
             const data = await response.json();
 
             statusElement.textContent = 'Статус: ' + (statusLabels[data.status] || data.status);
+            renderDeliveryStatus(data.status);
             paymentElement.textContent = 'Состояние оплаты: '
                 + (paymentLabels[data.payment_status] || data.payment_status);
 
