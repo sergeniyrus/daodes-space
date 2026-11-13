@@ -243,9 +243,9 @@
                             <div
                                 class="courier-wait"
                                 data-courier-created-at="{{ $order->updated_at?->toIso8601String() }}"
-                                data-courier-created-label="{{ $order->status === 'handed_to_courier' ? 'Передан курьеру' : 'В пути с' }} · {{ $order->updated_at?->format('d.m.Y H:i') }}"
+                                data-courier-created-label="{{ $order->status === 'ready' ? 'Готов, ожидает передачи курьеру' : ($order->status === 'handed_to_courier' ? 'Передан курьеру' : 'В пути с') }} · {{ $order->updated_at?->format('d.m.Y H:i') }}"
                             >
-                                {{ $order->status === 'handed_to_courier' ? 'Передан курьеру' : 'В пути с' }}
+                                {{ $order->status === 'ready' ? 'Готов, ожидает передачи курьеру' : ($order->status === 'handed_to_courier' ? 'Передан курьеру' : 'В пути с') }}
                                 · {{ $order->updated_at?->format('d.m.Y H:i') }}
                             </div>
                         </div>
