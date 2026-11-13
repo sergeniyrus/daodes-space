@@ -1173,10 +1173,10 @@ class CustomerCheckoutFlowTest extends TestCase
             ->get(route('organizations.orders.index', $organization));
 
         $response->assertOk()
-            ->assertSee('Courier test (0 в работе)')
-            ->assertSee('Courier test (2 в работе)');
+            ->assertSee('0 в работе')
+            ->assertSee('2 в работе');
 
-        $html = $response->getContent();
+        $html = preg_replace('/\\s+/', ' ', strip_tags($response->getContent()));
         $availablePosition = strpos($html, 'Courier test (0 в работе)');
         $busyPosition = strpos($html, 'Courier test (2 в работе)');
 
