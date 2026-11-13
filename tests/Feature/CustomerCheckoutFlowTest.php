@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\Order;
+use App\Models\OrderAssignment;
 use App\Models\PaymentWebhookEvent;
 use Tests\Support\FakePaymentGateway;
 use App\Models\Organization;
@@ -695,6 +696,76 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->actingAs($otherCustomer, 'customer')
             ->getJson(route('customer.orders.updates', $order))
             ->assertNotFound();
+    }
+
+    public function test_employee_order_updates_are_limited_to_their_active_role_assignments(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $cookOrder = $this->createPickupOrder($customer, $organization, $item);
+        $cookOrder->update([
+            'status' => Order::STATUS_CONFIRMED,
+        ]);
+
+        $courierOrder = $this->createPickupOrder($customer, $organization, $item);
+        $courierOrder->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+            'delivery_address' => [
+                'address_line' => 'Courier test address 10',
+            ],
+        ]);
+
+        $unassignedOrder = $this->createPickupOrder($customer, $organization, $item);
+        $unassignedOrder->update([
+            'status' => Order::STATUS_CONFIRMED,
+        ]);
+
+        $cook = $this->createOrganizationEmployee(
+            $organization,
+            'cook',
+            '+436601234570'
+        );
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234571'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $cookOrder->id,
+            'employee_id' => $cook->id,
+            'role' => 'cook',
+            'assigned_at' => now(),
+        ]);
+
+        OrderAssignment::query()->create([
+            'order_id' => $courierOrder->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        $cookResponse = $this->actingAs($cook, 'employee')
+            ->get(route('employee.organization.orders.updates', $organization));
+
+        $cookResponse->assertOk()
+            ->assertHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->assertSee($cookOrder->order_number)
+            ->assertDontSee($courierOrder->order_number)
+            ->assertDontSee($unassignedOrder->order_number);
+
+        auth()->guard('employee')->logout();
+
+        $courierResponse = $this->actingAs($courier, 'employee')
+            ->get(route('employee.organization.orders.updates', $organization));
+
+        $courierResponse->assertOk()
+            ->assertHeader('Cache-Control', 'private, no-store, max-age=0')
+            ->assertSee($courierOrder->order_number)
+            ->assertDontSee($cookOrder->order_number)
+            ->assertDontSee($unassignedOrder->order_number);
     }
 
     private function createFakeOnlinePayment(): array
