@@ -12,6 +12,8 @@ class FirebaseMessagingServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config()->set('cache.default', 'array');
+        config()->set('cache.stores.array', ['driver' => 'array', 'serialize' => false]);
         $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
         $this->assertNotFalse($key);
         $privateKey = '';
