@@ -966,6 +966,41 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_cook_work_queue_renders_kds_lanes_and_preserves_order_actions(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update(['status' => Order::STATUS_CONFIRMED]);
+
+        $cook = $this->createOrganizationEmployee(
+            $organization,
+            'cook',
+            '+436601234572'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $order->id,
+            'employee_id' => $cook->id,
+            'role' => 'cook',
+            'assigned_at' => now(),
+        ]);
+
+        $response = $this->actingAs($cook, 'employee')
+            ->get(route('employee.organization.orders.updates', $organization));
+
+        $response->assertOk()
+            ->assertSee('kds-board')
+            ->assertSee('К приготовлению')
+            ->assertSee('Готовятся')
+            ->assertSee('Готовы')
+            ->assertSee('Заказ №' . $order->order_number)
+            ->assertSee('Test dish')
+            ->assertSee('× 2')
+            ->assertSee('Начать готовить')
+            ->assertSee('name="status" value="preparing"', false);
+    }
+
     public function test_employee_order_updates_are_limited_to_their_active_role_assignments(): void
     {
         $customer = $this->createVerifiedCustomer();

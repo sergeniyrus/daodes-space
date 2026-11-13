@@ -61,6 +61,26 @@
 .employee-orders-button:hover { color: #081016; background: #00e5d4; }
 .employee-orders-error { color: #ff9292; }
 .employee-orders-lines { margin: 12px 0; }
+.kds-board { display:grid; grid-template-columns:repeat(3,minmax(260px,1fr)); gap:14px; align-items:start; }
+.kds-lane { min-width:0; padding:14px; background:rgba(4,8,18,.72); border:1px solid rgba(0,229,212,.24); border-radius:14px; }
+.kds-lane-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 12px; padding-bottom:10px; border-bottom:1px solid rgba(255,215,0,.28); }
+.kds-lane-title { margin:0; color:#ffd700; font-size:1.05rem; }
+.kds-lane-count { min-width:28px; padding:3px 8px; color:#071116; background:#00e5d4; border-radius:20px; text-align:center; font-weight:800; }
+.kds-order { padding:13px; margin-bottom:12px; background:linear-gradient(145deg,rgba(21,27,44,.98),rgba(10,14,26,.98)); border:1px solid rgba(255,215,0,.28); border-radius:12px; }
+.kds-order:last-child { margin-bottom:0; }
+.kds-order-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.kds-order-number { color:#ffd700; font-size:1.15rem; font-weight:800; }
+.kds-order-age { flex:0 0 auto; padding:4px 7px; color:#00e5d4; background:rgba(0,229,212,.09); border-radius:7px; font-size:.78rem; font-weight:700; }
+.kds-order-created { margin-top:3px; color:#9ca8bb; font-size:.78rem; }
+.kds-order-items { margin:12px 0; padding:10px 0; border-top:1px solid rgba(0,229,212,.16); border-bottom:1px solid rgba(0,229,212,.16); }
+.kds-order-item { display:flex; justify-content:space-between; gap:10px; padding:4px 0; }
+.kds-order-item-name { color:#f4f4f4; font-weight:600; }
+.kds-order-item-quantity { flex:0 0 auto; color:#ffd700; font-weight:800; }
+.kds-order-meta { color:#aeb5c4; font-size:.84rem; line-height:1.55; }
+.kds-order-action { margin-top:12px; } .kds-order-action form { margin:0; }
+.kds-empty { padding:16px 8px; color:#7f899a; text-align:center; font-size:.85rem; }
+.kds-pagination { margin-top:18px; }
+@media(max-width:900px) { .kds-board { grid-template-columns:1fr; } }
 @media(max-width:600px) {
     .employee-orders-panel { padding: 15px; }
 }
@@ -103,6 +123,92 @@
     ])
 
     <div class="employee-orders-panel" id="employee-orders-list">
+        @if($membership->role === 'cook')
+            @php
+                $kdsLanes = [
+                    'confirmed' => 'К приготовлению',
+                    'preparing' => 'Готовятся',
+                    'ready' => 'Готовы',
+                ];
+            @endphp
+            <div class="kds-board">
+                @foreach($kdsLanes as $laneStatus => $laneTitle)
+                    @php
+                        $laneOrders = $orders->getCollection()->where('status', $laneStatus);
+                    @endphp
+                    <section class="kds-lane" aria-label="{{ $laneTitle }}">
+                        <div class="kds-lane-header">
+                            <h2 class="kds-lane-title">{{ $laneTitle }}</h2>
+                            <span class="kds-lane-count">{{ $laneOrders->count() }}</span>
+                        </div>
+                        @forelse($laneOrders as $order)
+                            <article class="kds-order">
+                                <div class="kds-order-top">
+                                    <div>
+                                        <div class="kds-order-number">Заказ №{{ $order->order_number }}</div>
+                                        <div class="kds-order-created">{{ $order->created_at?->format('d.m.Y H:i') }}</div>
+                                    </div>
+                                    <time class="kds-order-age" data-kds-created-at="{{ $order->created_at?->toIso8601String() }}">—</time>
+                                </div>
+                                <div class="kds-order-items">
+                                    @foreach($order->items as $item)
+                                        <div class="kds-order-item">
+                                            <span class="kds-order-item-name">
+                                                {{ $item->item_name }}
+                                                @if($item->weight || $item->unit)
+                                                    <span class="employee-orders-muted">· {{ $item->weight }} {{ $item->unit }}</span>
+                                                @endif
+                                            </span>
+                                            <span class="kds-order-item-quantity">× {{ $item->quantity }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <div class="kds-order-meta">
+                                    @switch($order->fulfillment_type)
+                                        @case('delivery') Доставка @break
+                                        @case('pickup') Самовывоз @break
+                                        @case('dine_in') В заведении @break
+                                        @default {{ $order->fulfillment_type }}
+                                    @endswitch
+                                    @if($order->requested_at)
+                                        <div>Ко времени: {{ $order->requested_at->format('d.m.Y H:i') }}</div>
+                                    @endif
+                                </div>
+                                <div class="kds-order-action">
+                                    @if($order->status === 'confirmed')
+                                        <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="status" value="preparing">
+                                            <button class="employee-orders-button" type="submit">Начать готовить</button>
+                                        </form>
+                                    @elseif($order->status === 'preparing')
+                                        <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="status" value="ready">
+                                            <button class="employee-orders-button" type="submit">Заказ готов</button>
+                                        </form>
+                                    @elseif($order->status === 'ready' && $order->fulfillment_type === 'delivery' && $order->assignments->where('role', 'courier')->whereNull('unassigned_at')->isNotEmpty())
+                                        <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="status" value="handed_to_courier">
+                                            <button class="employee-orders-button" type="submit">Передать курьеру</button>
+                                        </form>
+                                    @elseif($order->status === 'ready')
+                                        <div class="employee-orders-muted">Ожидает выдачи или передачи</div>
+                                    @endif
+                                </div>
+                            </article>
+                        @empty
+                            <div class="kds-empty">Заказов в этой зоне нет</div>
+                        @endforelse
+                    </section>
+                @endforeach
+            </div>
+            <div class="kds-pagination">{{ $orders->links() }}</div>
+        @else
         @forelse($orders as $order)
             <article class="employee-orders-card">
                 <div class="employee-orders-head">
@@ -207,6 +313,7 @@
         @endforelse
 
         {{ $orders->links() }}
+        @endif
     </div>
 </div>
 
@@ -219,6 +326,18 @@
         return;
     }
 
+    const updateKdsTimers = () => {
+        document.querySelectorAll('[data-kds-created-at]').forEach((element) => {
+            const createdAt = Date.parse(element.dataset.kdsCreatedAt);
+            if (Number.isNaN(createdAt)) { element.textContent = 'Время неизвестно'; return; }
+            const elapsedMinutes = Math.max(0, Math.floor((Date.now() - createdAt) / 60000));
+            const hours = Math.floor(elapsedMinutes / 60);
+            const minutes = elapsedMinutes % 60;
+            element.textContent = hours > 0 ? ('Ожидание ' + hours + ' ч ' + minutes + ' мин') : ('Ожидание ' + minutes + ' мин');
+        });
+    };
+    updateKdsTimers();
+    window.setInterval(updateKdsTimers, 60000);
     let requestInProgress = false;
 
     const refreshOrders = async () => {
