@@ -8,7 +8,11 @@
 @php
     $deliveryAddress = $order->delivery_address ?? [];
     $addressLine = $deliveryAddress['address_line'] ?? '';
-    $statusLabel = $order->status === 'handed_to_courier' ? 'Передан курьеру' : 'В пути';
+    $statusLabel = match ($order->status) {
+        'ready' => 'Готов, ожидает передачи курьеру',
+        'handed_to_courier' => 'Передан курьеру',
+        default => 'В пути',
+    };
 @endphp
 
 <style>
@@ -67,7 +71,7 @@
         <div class="courier-order-detail-muted">{{ $organization->name }} · {{ $employee->name }}</div>
         <p style="color:#00e5a8;font-weight:800;">{{ $statusLabel }}</p>
         <div class="courier-order-detail-muted">
-            {{ $order->status === 'handed_to_courier' ? 'Заказ ожидает начала доставки.' : 'Вы уже направляетесь к клиенту.' }}
+            {{ $order->status === 'ready' ? 'Заказ готов и назначен вам. Ожидайте, пока менеджер или повар передаст его курьеру.' : ($order->status === 'handed_to_courier' ? 'Заказ ожидает начала доставки.' : 'Вы уже направляетесь к клиенту.') }}
             @if($order->updated_at)
                 <div>Обновлён: {{ $order->updated_at->format('d.m.Y H:i') }}</div>
             @endif
