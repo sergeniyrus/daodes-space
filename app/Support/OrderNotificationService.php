@@ -30,7 +30,7 @@ class OrderNotificationService
                 'recipient_id' => $managerId,
                 'event_type' => 'new_order',
                 'title' => 'Новый заказ',
-                'message' => 'Поступил заказ №' . $order->order_number . '. Требуется подтверждение.',
+                'message' => 'Поступил новый заказ №' . $order->order_number . '. Он ожидает принятия поваром.',
             ]);
         }
     }
