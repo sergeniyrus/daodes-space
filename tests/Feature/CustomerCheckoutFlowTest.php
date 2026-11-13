@@ -1432,7 +1432,7 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Электронный чек онлайн-заказа')
             ->assertSee($order->order_number)
-            ->assertHeader('Cache-Control', 'private, no-store, max-age=0');
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private');
 
         $this->get(route('customer.receipt', ['token' => str_repeat('a', 64)]))
             ->assertNotFound();
