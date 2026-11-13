@@ -61,7 +61,9 @@ class EmployeeOrderController extends Controller
                 ->whereNull('unassigned_at')
                 ->pluck('order_id');
 
-            $ordersQuery->whereIn('id', $orderIds);
+            $ordersQuery
+                ->where('fulfillment_type', Order::FULFILLMENT_DELIVERY)
+                ->whereIn('id', $orderIds);
         }
 
         $orders = $ordersQuery

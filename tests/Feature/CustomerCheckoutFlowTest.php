@@ -1033,6 +1033,40 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertSee('name="status" value="preparing"', false);
     }
 
+    public function test_courier_cannot_start_delivery_for_a_non_delivery_order_even_with_an_active_assignment(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+        ]);
+
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234579'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $order->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($courier, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_IN_TRANSIT,
+            ])
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(
+            Order::STATUS_HANDED_TO_COURIER,
+            $order->fresh()->status
+        );
+    }
+
     public function test_courier_work_queue_renders_mobile_delivery_details_and_actions(): void
     {
         $customer = $this->createVerifiedCustomer();
@@ -1104,6 +1138,11 @@ class CustomerCheckoutFlowTest extends TestCase
             ],
         ]);
 
+        $invalidCourierOrder = $this->createPickupOrder($customer, $organization, $item);
+        $invalidCourierOrder->update([
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+        ]);
+
         $unassignedOrder = $this->createPickupOrder($customer, $organization, $item);
         $unassignedOrder->update([
             'status' => Order::STATUS_CONFIRMED,
@@ -1134,6 +1173,13 @@ class CustomerCheckoutFlowTest extends TestCase
             'assigned_at' => now(),
         ]);
 
+        OrderAssignment::query()->create([
+            'order_id' => $invalidCourierOrder->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
         $cookResponse = $this->actingAs($cook, 'employee')
             ->get(route('employee.organization.orders.updates', $organization));
 
@@ -1151,6 +1197,7 @@ class CustomerCheckoutFlowTest extends TestCase
         $courierResponse->assertOk()
             ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
             ->assertSee($courierOrder->order_number)
+            ->assertDontSee($invalidCourierOrder->order_number)
             ->assertDontSee($cookOrder->order_number)
             ->assertDontSee($unassignedOrder->order_number);
     }

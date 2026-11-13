@@ -103,6 +103,10 @@ class OrderTransitionPolicy
         }
 
         if ($role === 'courier') {
+            if ($fulfillmentType !== Order::FULFILLMENT_DELIVERY) {
+                return 'Курьер может обрабатывать только заказы с доставкой.';
+            }
+
             $allowed = (
                 $fromStatus === Order::STATUS_HANDED_TO_COURIER
                 && $toStatus === Order::STATUS_IN_TRANSIT

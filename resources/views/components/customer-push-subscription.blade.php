@@ -1,4 +1,15 @@
 @if(config('services.firebase.project_id') && config('services.firebase.client_email') && config('services.firebase.private_key') && config('services.firebase.web.api_key') && config('services.firebase.web.vapid_key'))
+@php
+    $firebaseClientConfig = [
+        'apiKey' => config('services.firebase.web.api_key'),
+        'authDomain' => config('services.firebase.web.auth_domain'),
+        'projectId' => config('services.firebase.web.project_id'),
+        'storageBucket' => config('services.firebase.web.storage_bucket'),
+        'messagingSenderId' => config('services.firebase.web.messaging_sender_id'),
+        'appId' => config('services.firebase.web.app_id'),
+    ];
+@endphp
+
 <section class="customer-push-settings" aria-labelledby="customer-push-title">
     <div class="customer-push-settings__content">
         <strong id="customer-push-title">Уведомления о заказах</strong>
@@ -24,14 +35,7 @@
     const button=document.getElementById('customer-push-toggle');
     const status=document.getElementById('customer-push-status');
     if(!button||!status)return;
-    const firebaseConfig=@json([
-        'apiKey'=>config('services.firebase.web.api_key'),
-        'authDomain'=>config('services.firebase.web.auth_domain'),
-        'projectId'=>config('services.firebase.web.project_id'),
-        'storageBucket'=>config('services.firebase.web.storage_bucket'),
-        'messagingSenderId'=>config('services.firebase.web.messaging_sender_id'),
-        'appId'=>config('services.firebase.web.app_id'),
-    ]);
+    const firebaseConfig=@json($firebaseClientConfig);
     const vapidKey=@json(config('services.firebase.web.vapid_key'));
     const storeUrl=@json(route('customer.push.devices.store'));
     const deleteUrl=@json(route('customer.push.devices.destroy'));

@@ -29,6 +29,17 @@ class CustomerPushDeviceTest extends TestCase
             'vapid_key' => 'public-vapid-key',
         ]);
     }
+    public function test_customer_push_subscription_component_renders_firebase_configuration(): void
+    {
+        $this->configureFirebase();
+
+        $html = view('components.customer-push-subscription')->render();
+
+        $this->assertStringContainsString('const firebaseConfig=', $html);
+        $this->assertStringContainsString('daodes-test', $html);
+        $this->assertStringContainsString('public-vapid-key', $html);
+    }
+
     public function test_verified_customer_can_register_a_web_push_device(): void
     {
         $this->configureFirebase();

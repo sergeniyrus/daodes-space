@@ -240,8 +240,13 @@
                     <div class="courier-card-head">
                         <div>
                             <div class="courier-order-number">Заказ №{{ $order->order_number }}</div>
-                            <div class="courier-wait" data-courier-created-at="{{ $order->created_at?->toIso8601String() }}">
-                                {{ $order->created_at?->format('d.m.Y H:i') }}
+                            <div
+                                class="courier-wait"
+                                data-courier-created-at="{{ $order->updated_at?->toIso8601String() }}"
+                                data-courier-created-label="{{ $order->status === 'handed_to_courier' ? 'Передан курьеру' : 'В пути с' }} · {{ $order->updated_at?->format('d.m.Y H:i') }}"
+                            >
+                                {{ $order->status === 'handed_to_courier' ? 'Передан курьеру' : 'В пути с' }}
+                                · {{ $order->updated_at?->format('d.m.Y H:i') }}
                             </div>
                         </div>
                         <span class="courier-status">{{ $courierStatusLabel }}</span>
@@ -250,6 +255,12 @@
                     <div class="courier-section">
                         <h2 class="courier-section-title">📍 Адрес доставки</h2>
                         <div class="courier-address">{{ $addressLine ?: 'Адрес не указан' }}</div>
+                        @if($order->requested_at)
+                            <div class="courier-detail" style="margin-top: 8px;">
+                                <span class="courier-detail-label">Доставка к</span>
+                                <strong>{{ $order->requested_at->format('d.m.Y H:i') }}</strong>
+                            </div>
+                        @endif
                         @if(!empty($deliveryAddress['entrance']) || !empty($deliveryAddress['floor']) || !empty($deliveryAddress['apartment']) || !empty($deliveryAddress['intercom']))
                             <div class="courier-detail">
                                 <span class="courier-detail-label">Детали адреса</span>
@@ -301,9 +312,22 @@
                             @endforeach
                         </div>
                         <div class="courier-detail" style="margin-top:10px;">
-                            <span class="courier-detail-label">Оплата</span>
+                            <span class="courier-detail-label">Способ оплаты</span>
                             <strong>{{ $order->payment_method === 'cash_on_receipt' ? 'Наличные при получении' : ($order->payment_method === 'card_on_receipt' ? 'Картой при получении' : 'Онлайн') }}</strong>
                         </div>
+                        <div class="courier-detail">
+                            <span class="courier-detail-label">Статус оплаты</span>
+                            <strong>{{ $order->payment_status === 'succeeded' ? 'Оплачено' : ($order->payment_status === 'pending' ? 'Ожидает оплаты' : ($order->payment_status === 'failed' ? 'Ошибка оплаты' : $order->payment_status)) }}</strong>
+                        </div>
+                        @if($order->payment_status === 'pending' && in_array($order->payment_method, ['cash_on_receipt', 'card_on_receipt'], true))
+                            <div class="employee-orders-muted" style="margin-top:8px;">
+                                Получите оплату при вручении заказа. После доставки менеджер отметит получение оплаты в системе.
+                            </div>
+                        @elseif($order->payment_method === 'online' && $order->payment_status !== 'succeeded')
+                            <div class="employee-orders-muted" style="margin-top:8px;">
+                                Онлайн-оплата ещё не подтверждена системой. При необходимости уточните ситуацию у менеджера.
+                            </div>
+                        @endif
                         <div class="courier-detail">
                             <span class="courier-detail-label">Сумма</span>
                             <strong>{{ number_format((float) $order->total, 2, ',', ' ') }} {{ $order->currency }}</strong>
@@ -319,11 +343,11 @@
                                 <button class="employee-orders-button" type="submit">Принять заказ и начать доставку</button>
                             </form>
                         @elseif($order->status === 'in_transit')
-                            <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
+                            <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}" onsubmit="return confirm('Подтвердить, что заказ фактически передан клиенту?');">
                                 @csrf
                                 @method('PATCH')
                                 <input type="hidden" name="status" value="delivered">
-                                <button class="employee-orders-button" type="submit">Отметить доставленным</button>
+                                <button class="employee-orders-button" type="submit">Подтвердить вручение заказа</button>
                             </form>
                         @endif
                     </div>
