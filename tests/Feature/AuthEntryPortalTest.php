@@ -28,7 +28,10 @@ class AuthEntryPortalTest extends TestCase
         $this->get(route('partner.login'))
             ->assertOk()
             ->assertSee('name="name"', false)
-            ->assertSee('name="password"', false);
+            ->assertSee('name="password"', false)
+            ->assertSee('/img/bottom/login.png', false)
+            ->assertSee('/img/bottom/forgot2.png', false)
+            ->assertSee('/img/bottom/registrat.png', false);
     }
 
     public function test_employee_and_customer_login_pages_remain_available(): void
@@ -40,7 +43,11 @@ class AuthEntryPortalTest extends TestCase
 
         $this->get(route('customer.login'))
             ->assertOk()
-            ->assertSee('Получить SMS-код');
+            ->assertSee('Вход клиента Ёлки Иголки!')
+            ->assertSee('name="phone"', false)
+            ->assertSee('name="password"', false)
+            ->assertSee('Первый вход? Регистрация по SMS / Забыли пароль?')
+            ->assertDontSee('Получить SMS-код');
     }
 
     public function test_customer_organization_selector_route_is_registered(): void
