@@ -20,6 +20,7 @@
         "axios": "^1.13.1",
         "baseline-browser-mapping": "^2.10.41",
         "codemirror": "^6.0.2",
+        "firebase": "^13.3.0",
         "highlight.js": "^11.11.1",
         "js-beautify": "^1.15.4",
         "lodash": "^4.17.21",
