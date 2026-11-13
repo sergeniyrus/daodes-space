@@ -40,6 +40,8 @@ Route::prefix('staff')->name('employee.')->group(function () {
                     ->name('orders.notifications.read');
                 Route::patch('/orders/{order}/status', [EmployeeOrderController::class, 'updateStatus'])
                     ->name('orders.status');
+                Route::patch('/orders/{order}/payment', [EmployeeOrderController::class, 'markPaymentReceived'])
+                    ->name('orders.payment');
             });
     });
 });
