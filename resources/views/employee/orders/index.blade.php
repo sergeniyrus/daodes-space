@@ -97,6 +97,11 @@
         </div>
     </div>
 
+    @include('components.order-notifications', [
+        'notificationsUrl' => route('employee.organization.orders.notifications', $organization),
+        'notificationReadUrlTemplate' => route('employee.organization.orders.notifications.read', [$organization, '__ID__']),
+    ])
+
     <div class="employee-orders-panel" id="employee-orders-list">
         @forelse($orders as $order)
             <article class="employee-orders-card">

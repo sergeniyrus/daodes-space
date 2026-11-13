@@ -303,6 +303,13 @@ class OrganizationOrderController extends Controller
                 'assigned_by_user_id' => auth()->id(),
                 'assigned_at' => now(),
             ]);
+
+            app(\App\Support\OrderNotificationService::class)
+                ->notifyEmployeeAssigned(
+                    $lockedOrder,
+                    (int) $membership->employee_id,
+                    $validated['role']
+                );
         }, 3);
 
         return redirect()

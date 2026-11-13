@@ -55,6 +55,7 @@ use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationMenuController;
 use App\Http\Controllers\OrganizationStaffController;
 use App\Http\Controllers\OrganizationOrderController;
+use App\Http\Controllers\OrderNotificationController;
 
 Route::middleware(['auth', ReleaseAdmin::class])
     ->get('/admin/ai/approval', function () {
@@ -1102,6 +1103,20 @@ Route::middleware('auth')
         )
             ->middleware('organization.manager')
             ->name('orders.updates');
+
+        Route::get(
+            '/{organization}/orders/notifications',
+            [OrderNotificationController::class, 'managerIndex']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.notifications');
+
+        Route::post(
+            '/{organization}/orders/notifications/{notification}/read',
+            [OrderNotificationController::class, 'markManagerRead']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.notifications.read');
 
         Route::patch(
             '/{organization}/orders/{order}/status',

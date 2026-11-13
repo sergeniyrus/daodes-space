@@ -73,6 +73,16 @@ Route::prefix('staff')
                         [EmployeeOrderController::class, 'updates']
                     )->name('orders.updates');
 
+                    Route::get(
+                        '/orders/notifications',
+                        [\App\Http\Controllers\OrderNotificationController::class, 'employeeIndex']
+                    )->name('orders.notifications');
+
+                    Route::post(
+                        '/orders/notifications/{notification}/read',
+                        [\App\Http\Controllers\OrderNotificationController::class, 'markEmployeeRead']
+                    )->name('orders.notifications.read');
+
                     Route::patch(
                         '/orders/{order}/status',
                         [EmployeeOrderController::class, 'updateStatus']

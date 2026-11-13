@@ -373,6 +373,128 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertSame($owner->id, $order->fresh()->customer_id);
     }
 
+    public function test_new_order_notifies_only_active_managers_of_its_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Notification cafe');
+        [$otherOrganization] = $this->createOrderableMenu('Other notification cafe');
+
+        $manager = $this->createOrganizationManager($organization);
+        $otherManager = $this->createOrganizationManager($otherOrganization);
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+
+        $this->assertDatabaseHas('order_notifications', [
+            'organization_id' => $organization->id,
+            'order_id' => $order->id,
+            'recipient_type' => 'user',
+            'recipient_id' => $manager->id,
+            'event_type' => 'new_order',
+        ]);
+
+        $this->assertDatabaseMissing('order_notifications', [
+            'order_id' => $order->id,
+            'recipient_type' => 'user',
+            'recipient_id' => $otherManager->id,
+        ]);
+
+        $this->assertDatabaseCount('order_notifications', 1);
+    }
+
+    public function test_assignment_notifies_only_the_assigned_employee(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Assignment cafe');
+        [$otherOrganization] = $this->createOrderableMenu('Other assignment cafe');
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+        $cook = $this->createOrganizationEmployee(
+            $organization,
+            'cook',
+            '+436601234574'
+        );
+        $foreignCook = $this->createOrganizationEmployee(
+            $otherOrganization,
+            'cook',
+            '+436601234575'
+        );
+
+        $this->actingAs($manager)
+            ->post(route('organizations.orders.assign', [$organization, $order]), [
+                'employee_id' => $cook->id,
+                'role' => 'cook',
+            ])
+            ->assertRedirect();
+
+        $notification = \App\Models\OrderNotification::query()
+            ->where('order_id', $order->id)
+            ->where('recipient_type', 'employee')
+            ->where('recipient_id', $cook->id)
+            ->firstOrFail();
+
+        $this->assertSame('order_assigned', $notification->event_type);
+
+        $this->assertDatabaseMissing('order_notifications', [
+            'order_id' => $order->id,
+            'recipient_type' => 'employee',
+            'recipient_id' => $foreignCook->id,
+        ]);
+
+        $this->actingAs($cook, 'employee')
+            ->getJson(route('employee.organization.orders.notifications', $organization))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.id', $notification->id);
+
+        $this->actingAs($cook, 'employee')
+            ->postJson(route('employee.organization.orders.notifications.read', [
+                $organization,
+                $notification,
+            ]))
+            ->assertOk()
+            ->assertJson(['marked_read' => true]);
+
+        $this->assertNotNull($notification->fresh()->read_at);
+    }
+
+    public function test_manager_can_read_only_own_organization_order_notifications(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Manager notification cafe');
+        [$otherOrganization] = $this->createOrderableMenu('Foreign manager cafe');
+
+        $manager = $this->createOrganizationManager($organization);
+        $foreignManager = $this->createOrganizationManager($otherOrganization);
+        $order = $this->createPickupOrder($customer, $organization, $item);
+
+        $notification = \App\Models\OrderNotification::query()
+            ->where('order_id', $order->id)
+            ->where('recipient_type', 'user')
+            ->where('recipient_id', $manager->id)
+            ->firstOrFail();
+
+        $this->actingAs($manager)
+            ->getJson(route('organizations.orders.notifications', $organization))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.id', $notification->id);
+
+        $this->actingAs($foreignManager)
+            ->getJson(route('organizations.orders.notifications', $organization))
+            ->assertForbidden();
+
+        $this->actingAs($manager)
+            ->postJson(route('organizations.orders.notifications.read', [
+                $organization,
+                $notification,
+            ]))
+            ->assertOk()
+            ->assertJson(['marked_read' => true]);
+
+        $this->assertNotNull($notification->fresh()->read_at);
+    }
+
     public function test_manager_cannot_assign_employee_from_another_organization(): void
     {
         $customer = $this->createVerifiedCustomer();

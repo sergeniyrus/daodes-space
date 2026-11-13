@@ -692,6 +692,9 @@ class CustomerCheckoutController extends Controller
                 'name' => $validated['customer_name'],
             ]);
 
+            app(\App\Support\OrderNotificationService::class)
+                ->notifyManagersAboutNewOrder($order);
+
             return $order;
         }, 3);
 
