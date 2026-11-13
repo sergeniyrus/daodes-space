@@ -37,6 +37,8 @@ class EmployeePasswordRecoveryController extends Controller
             return back()->withErrors(['phone' => $exception->getMessage()])->withInput(['phone' => $phone]);
         }
         return back()->with('status', 'Если для этого номера есть активная учётная запись, код восстановления отправлен.')
+            ->with('recovery_step', 'verify')
+            ->with('recovery_phone', $phone)
             ->withInput(['phone' => $phone]);
     }
 
@@ -45,10 +47,12 @@ class EmployeePasswordRecoveryController extends Controller
         $validator = Validator::make($request->all(), [
             'phone' => ['required', 'string', 'max:32'],
             'code' => ['required', 'digits:6'],
-            'password' => ['required', 'string', 'min:12', 'max:255', 'confirmed'],
+            'password' => ['required', 'string', 'min:12', 'max:255'],
         ]);
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput($request->except(['code', 'password', 'password_confirmation']));
+            return back()->withErrors($validator)->withInput($request->except(['code', 'password', 'password_confirmation']))
+                ->with('recovery_step', 'verify')
+                ->with('recovery_phone', $request->input('phone'));
         }
         try {
             $phone = EmployeePhone::normalize($validator->validated()['phone']);
@@ -57,7 +61,9 @@ class EmployeePasswordRecoveryController extends Controller
         }
         if (!$recovery->reset('employee', $phone, $validator->validated()['code'], $validator->validated()['password'])) {
             return back()->withErrors(['code' => 'Код неверен, истёк или уже использован. Запросите новый код.'])
-                ->withInput(['phone' => $phone]);
+                ->withInput(['phone' => $phone])
+                ->with('recovery_step', 'verify')
+                ->with('recovery_phone', $phone);
         }
         return redirect()->route('employee.login')->with('status', 'Пароль изменён. Теперь войдите с новым паролем.');
     }

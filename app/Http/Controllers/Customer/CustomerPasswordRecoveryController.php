@@ -40,7 +40,9 @@ class CustomerPasswordRecoveryController extends Controller
             return back()->withErrors(['phone' => $exception->getMessage()])
                 ->withInput(['phone' => $phone, 'name' => $validator->validated()['name'] ?? null]);
         }
-        return back()->with('status', 'Если SMS-провайдер доступен, код подтверждения отправлен. Он действует 10 минут.')
+        return back()->with('status', 'Код подтверждения отправлен. Он действует 10 минут.')
+            ->with('recovery_step', 'verify')
+            ->with('recovery_phone', $phone)
             ->withInput(['phone' => $phone, 'name' => $validator->validated()['name'] ?? null]);
     }
 
@@ -49,10 +51,12 @@ class CustomerPasswordRecoveryController extends Controller
         $validator = Validator::make($request->all(), [
             'phone' => ['required', 'string', 'max:32'],
             'code' => ['required', 'digits:6'],
-            'password' => ['required', 'string', 'min:12', 'max:255', 'confirmed'],
+            'password' => ['required', 'string', 'min:12', 'max:255'],
         ]);
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput($request->except(['code', 'password', 'password_confirmation']));
+            return back()->withErrors($validator)->withInput($request->except(['code', 'password', 'password_confirmation']))
+                ->with('recovery_step', 'verify')
+                ->with('recovery_phone', $request->input('phone'));
         }
         try {
             $phone = EmployeePhone::normalize($validator->validated()['phone']);
@@ -61,7 +65,9 @@ class CustomerPasswordRecoveryController extends Controller
         }
         if (!$recovery->reset('customer', $phone, $validator->validated()['code'], $validator->validated()['password'])) {
             return back()->withErrors(['code' => 'Код неверен, истёк или уже использован. Запросите новый код.'])
-                ->withInput(['phone' => $phone]);
+                ->withInput(['phone' => $phone])
+                ->with('recovery_step', 'verify')
+                ->with('recovery_phone', $phone);
         }
         return redirect()->route('customer.login')->with('status', 'Пароль сохранён. Теперь можно входить по телефону и паролю без SMS.');
     }
