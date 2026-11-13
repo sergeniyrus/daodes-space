@@ -105,6 +105,37 @@ class OrganizationOrderController extends Controller
     }
 
     /**
+     * Печатный чек заказа: термопринтер 80 мм или лист A4.
+     * Заказ выбирается только внутри текущей организации.
+     */
+    public function receipt(
+        Request $request,
+        Organization $organization,
+        int $order
+    ): View {
+        $validated = $request->validate([
+            'format' => ['nullable', 'in:80mm,a4'],
+        ]);
+
+        $order = $organization->orders()
+            ->with(['items', 'payments'])
+            ->whereKey($order)
+            ->firstOrFail();
+
+        $format = $validated['format'] ?? '80mm';
+
+        return view('organizations.orders.receipt', [
+            'organization' => $organization,
+            'order' => $order,
+            'format' => $format,
+            'qrValue' => route('organizations.orders.show', [
+                'organization' => $organization->id,
+                'order' => $order->id,
+            ], true),
+        ]);
+    }
+
+    /**
      * Экспорт отфильтрованных заказов текущей организации в CSV.
      */
     public function export(Request $request, Organization $organization): StreamedResponse

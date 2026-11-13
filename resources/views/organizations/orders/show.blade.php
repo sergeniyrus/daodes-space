@@ -124,6 +124,22 @@
             <a href="{{ route('organizations.orders.index', $organization) }}" class="organization-order-detail__button">
                 ← К списку заказов
             </a>
+            <a
+                href="{{ route('organizations.orders.receipt', [$organization, $order, 'format' => '80mm']) }}"
+                class="organization-order-detail__button"
+                target="_blank"
+                rel="noopener"
+            >
+                Чек 80 мм
+            </a>
+            <a
+                href="{{ route('organizations.orders.receipt', [$organization, $order, 'format' => 'a4']) }}"
+                class="organization-order-detail__button"
+                target="_blank"
+                rel="noopener"
+            >
+                Чек A4
+            </a>
             <button type="button" class="organization-order-detail__button" onclick="window.print()">
                 Распечатать заказ
             </button>

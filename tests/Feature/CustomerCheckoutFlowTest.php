@@ -1185,6 +1185,44 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertLessThan($busyPosition, $availablePosition);
     }
 
+    public function test_manager_can_print_80mm_and_a4_receipts_only_for_their_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Receipt cafe');
+        [$otherOrganization, $otherItem] = $this->createOrderableMenu('Other receipt cafe');
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $otherOrder = $this->createPickupOrder($customer, $otherOrganization, $otherItem);
+        $manager = $this->createOrganizationManager($organization);
+
+        $baseUrl = route('organizations.orders.receipt', [
+            'organization' => $organization->id,
+            'order' => $order->id,
+        ]);
+
+        $this->actingAs($manager)
+            ->get($baseUrl . '?format=80mm')
+            ->assertOk()
+            ->assertSee('data-receipt-format="80mm"', false)
+            ->assertSee('ЧЕК №' . $order->order_number)
+            ->assertSee('js/vendor/qrcode.min.js')
+            ->assertSee(route('organizations.orders.show', [$organization, $order]));
+
+        $this->actingAs($manager)
+            ->get($baseUrl . '?format=a4')
+            ->assertOk()
+            ->assertSee('data-receipt-format="a4"', false)
+            ->assertSee('ЧЕК №' . $order->order_number);
+
+        $this->actingAs($manager)
+            ->get(route('organizations.orders.receipt', [
+                'organization' => $organization->id,
+                'order' => $otherOrder->id,
+                'format' => '80mm',
+            ]))
+            ->assertNotFound();
+    }
+
     public function test_manager_can_view_order_details_only_for_their_organization(): void
     {
         $customer = $this->createVerifiedCustomer();
