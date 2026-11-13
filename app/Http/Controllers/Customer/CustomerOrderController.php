@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use App\Support\OrderNotificationService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CustomerOrderController extends Controller
@@ -57,6 +60,56 @@ class CustomerOrderController extends Controller
                 ])
                 ->values(),
         ])->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
+
+    /**
+     * Клиент самостоятельно подтверждает, что забрал готовый заказ самовывоза.
+     */
+    public function confirmPickup(Order $order): RedirectResponse
+    {
+        $customer = Auth::guard('customer')->user();
+
+        if (!$customer) {
+            return redirect()->guest(route('customer.login'));
+        }
+
+        DB::transaction(function () use ($customer, $order) {
+            $lockedOrder = Order::query()
+                ->where('customer_id', $customer->id)
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (
+                $lockedOrder->fulfillment_type !== Order::FULFILLMENT_PICKUP
+                || $lockedOrder->status !== Order::STATUS_READY
+            ) {
+                throw ValidationException::withMessages([
+                    'pickup' => 'Подтвердить получение можно только для готового заказа на самовывоз.',
+                ]);
+            }
+
+            $lockedOrder->update([
+                'status' => Order::STATUS_ISSUED,
+            ]);
+
+            $lockedOrder->statusHistory()->create([
+                'from_status' => Order::STATUS_READY,
+                'to_status' => Order::STATUS_ISSUED,
+                'actor_type' => 'customer',
+                'actor_id' => $customer->id,
+                'comment' => 'Клиент самостоятельно подтвердил получение заказа.',
+                'created_at' => now(),
+            ]);
+
+            app(OrderNotificationService::class)
+                ->notifyCustomerAboutStatusChange($lockedOrder, Order::STATUS_ISSUED);
+        }, 3);
+
+        return redirect()
+            ->route('customer.orders.show', $order)
+            ->with('success', 'Получение заказа подтверждено. Спасибо!');
     }
 
     /**
