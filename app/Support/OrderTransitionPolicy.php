@@ -19,13 +19,6 @@ class OrderTransitionPolicy
         string $paymentStatus
     ): ?string {
         return match ($toStatus) {
-            Order::STATUS_ISSUED => (
-                $fromStatus === Order::STATUS_READY
-                && $fulfillmentType === Order::FULFILLMENT_PICKUP
-            )
-                ? null
-                : 'Выдать можно только готовый заказ на самовывоз.',
-
             Order::STATUS_SERVED => (
                 $fromStatus === Order::STATUS_READY
                 && $fulfillmentType === Order::FULFILLMENT_DINE_IN
