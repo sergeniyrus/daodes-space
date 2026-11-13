@@ -81,7 +81,8 @@ class OrderTransitionPolicy
         string $fromStatus,
         string $toStatus,
         string $fulfillmentType,
-        bool $activeCourierAssigned
+        bool $activeCourierAssigned,
+        ?string $paymentStatus = null
     ): ?string {
         if ($role === 'cook') {
             $allowed = (
@@ -113,6 +114,10 @@ class OrderTransitionPolicy
             ) || (
                 $fromStatus === Order::STATUS_IN_TRANSIT
                 && $toStatus === Order::STATUS_DELIVERED
+            ) || (
+                $fromStatus === Order::STATUS_DELIVERED
+                && $toStatus === Order::STATUS_COMPLETED
+                && $paymentStatus === Order::PAYMENT_SUCCEEDED
             );
 
             return $allowed
