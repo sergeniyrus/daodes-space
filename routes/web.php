@@ -1159,13 +1159,6 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('orders.payment');
 
-        Route::post(
-            '/{organization}/orders/{order}/assignments',
-            [OrganizationOrderController::class, 'assign']
-        )
-            ->middleware('organization.manager')
-            ->name('orders.assign');
-
 
         /*
          * =====================================================
