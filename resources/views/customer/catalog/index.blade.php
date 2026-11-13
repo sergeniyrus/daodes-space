@@ -65,11 +65,22 @@
     border-color: rgba(255, 100, 100, .55);
     background: rgba(255, 70, 70, .08);
 }
-.customer-order-section { margin: 26px 0; }
+.customer-order-section {
+    margin: 26px 0;
+    padding: 20px;
+    background:
+        radial-gradient(circle at top right, rgba(255, 215, 0, .045), transparent 42%),
+        linear-gradient(145deg, rgba(11, 14, 27, .97), rgba(20, 25, 43, .94));
+    border: 1px solid rgba(0, 229, 212, .28);
+    border-radius: 17px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .24);
+}
 .customer-order-section h2 {
-    padding-bottom: 10px;
+    margin: 0 0 16px;
+    padding: 0 0 11px;
     color: #00e5d4;
-    border-bottom: 1px solid rgba(0, 229, 212, .25);
+    border-bottom: 1px solid rgba(0, 229, 212, .3);
+    text-shadow: 0 0 12px rgba(0, 229, 212, .12);
 }
 .customer-order-grid {
     display: grid;
@@ -101,6 +112,7 @@
 .customer-order-disabled { opacity: .55; cursor: not-allowed; }
 @media (max-width: 600px) {
     .customer-order-panel { padding: 17px; }
+    .customer-order-section { padding: 15px; }
     .customer-order-toolbar { align-items: stretch; flex-direction: column; }
     .customer-order-link { width: 100%; box-sizing: border-box; }
 }
@@ -136,7 +148,7 @@
                         <br>Самовывоз: от {{ $settings->pickup_min_minutes }} мин.
                     @endif
                 @else
-                    Организация пока не настроила приём онлайн-заказов.
+                    Организация пока не принимает онлайн-заказы. Меню доступно для просмотра, но добавить блюда в корзину и оформить заказ пока нельзя.
                 @endif
             </div>
 

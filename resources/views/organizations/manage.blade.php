@@ -1918,6 +1918,45 @@
             после подключения провайдера и серверного подтверждения webhook.
         </div>
 
+        <div class="organization-order-hint">
+            <strong style="color: #f5d76e;">Проверка готовности корзины:</strong>
+            <ul style="margin: 8px 0 0; padding-left: 20px;">
+                <li>
+                    @if(filled($orderSettings?->currency))
+                        <span style="color: #00e5a8;">✓ Валюта указана ({{ $orderSettings->currency }})</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Укажите валюту (например, EUR или RUB)</span>
+                    @endif
+                </li>
+                <li>
+                    @if($orderSettings?->orders_enabled)
+                        <span style="color: #00e5a8;">✓ Приём онлайн-заказов включён</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Включите «Принимать онлайн-заказы»</span>
+                    @endif
+                </li>
+                <li>
+                    @if($orderSettings?->delivery_enabled || $orderSettings?->pickup_enabled || $orderSettings?->dine_in_enabled)
+                        <span style="color: #00e5a8;">✓ Способ получения выбран</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Выберите доставку, самовывоз или заказ в заведении</span>
+                    @endif
+                </li>
+                <li>
+                    @if($orderSettings?->cash_payment_enabled || $orderSettings?->card_payment_enabled)
+                        <span style="color: #00e5a8;">✓ Оплата при получении включена</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Включите наличные или терминал при получении</span>
+                    @endif
+                </li>
+            </ul>
+            @if(!$orderSettings?->canAcceptOrders())
+                <div style="margin-top: 8px; color: #ffb74d;">
+                    Пока все четыре условия не выполнены, клиент не сможет добавлять блюда в корзину.
+                </div>
+            @endif
+        </div>
+
         <button type="submit" class="organization-button" style="margin-top: 16px;">
             Сохранить настройки заказов
         </button>

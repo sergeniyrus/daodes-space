@@ -116,9 +116,11 @@
         </div>
     @endif
 
-    <div class="customer-organizations-login">
-        Уже есть клиентская учётная запись?
-        <a href="{{ route('customer.login') }}">Войти по телефону</a>
-    </div>
+    @guest('customer')
+        <div class="customer-organizations-login">
+            Уже есть клиентская учётная запись?
+            <a href="{{ route('customer.login') }}">Войти по телефону</a>
+        </div>
+    @endguest
 </div>
 @endsection
