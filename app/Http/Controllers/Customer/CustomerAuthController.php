@@ -10,7 +10,9 @@ use App\Support\EmployeePhone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use InvalidArgumentException;
 
@@ -19,116 +21,134 @@ class CustomerAuthController extends Controller
     public function create(): View|RedirectResponse
     {
         if (Auth::guard('customer')->check()) {
-            return redirect()->intended(
-                route('customer.organizations.index')
-            );
+            return redirect()->intended(route('customer.organizations.index'));
         }
 
         return view('customer.auth.login');
     }
 
     /**
-     * Запрос одноразового кода входа.
+     * Вход клиента по телефону и постоянному паролю.
      */
-    public function requestCode(
-        Request $request,
-        CustomerPhoneOtpService $otp
-    ): RedirectResponse {
+    public function store(Request $request): RedirectResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => ['required', 'string', 'max:32'],
+            'password' => ['required', 'string', 'max:255'],
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput($request->only('phone'));
+        }
+
+        try {
+            $phone = EmployeePhone::normalize($validator->validated()['phone']);
+        } catch (InvalidArgumentException $exception) {
+            return back()->withErrors(['phone' => $exception->getMessage()])
+                ->withInput($request->only('phone'));
+        }
+
+        $throttleKey = 'customer-login:' . hash('sha256', $phone . '|' . $request->ip());
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            throw ValidationException::withMessages([
+                'phone' => "Слишком много попыток входа. Повторите через {$seconds} сек.",
+            ]);
+        }
+
+        $guard = Auth::guard('customer');
+
+        if (!$guard->attempt([
+            'phone' => $phone,
+            'password' => $validator->validated()['password'],
+        ])) {
+            RateLimiter::hit($throttleKey, 900);
+            throw ValidationException::withMessages([
+                'phone' => 'Неверный номер телефона или пароль.',
+            ]);
+        }
+
+        $customer = $guard->user();
+
+        if (!$customer->phone_verified_at) {
+            $guard->logout();
+            RateLimiter::hit($throttleKey, 900);
+            throw ValidationException::withMessages([
+                'phone' => 'Сначала подтвердите номер телефона через SMS и установите пароль.',
+            ]);
+        }
+
+        RateLimiter::clear($throttleKey);
+        $request->session()->regenerate();
+
+        return redirect()->intended(route('customer.organizations.index'));
+    }
+
+    /**
+     * Старые OTP-методы оставлены для обратной совместимости сервисного слоя.
+     * HTTP-маршруты входа по OTP отключены: обычный вход теперь только по паролю.
+     */
+    public function requestCode(Request $request, CustomerPhoneOtpService $otp): RedirectResponse
+    {
         $validator = Validator::make($request->all(), [
             'phone' => ['required', 'string', 'max:32'],
             'name' => ['nullable', 'string', 'max:100'],
         ]);
 
         if ($validator->fails()) {
-            return back()
-                ->withErrors($validator)
-                ->withInput($request->only(['phone', 'name']));
+            return back()->withErrors($validator)->withInput($request->only(['phone', 'name']));
         }
 
         try {
             $phone = EmployeePhone::normalize($validator->validated()['phone']);
-        } catch (InvalidArgumentException $exception) {
-            return back()
-                ->withErrors(['phone' => $exception->getMessage()])
-                ->withInput($request->only(['phone', 'name']));
-        }
-
-        try {
             $otp->requestCode($phone, $validator->validated()['name'] ?? null);
+        } catch (InvalidArgumentException $exception) {
+            return back()->withErrors(['phone' => $exception->getMessage()])->withInput($request->only(['phone', 'name']));
         } catch (CustomerOtpRateLimitException $exception) {
-            return back()
-                ->withErrors(['phone' => $exception->getMessage()])
-                ->withInput(['phone' => $phone]);
+            return back()->withErrors(['phone' => $exception->getMessage()])->withInput(['phone' => $phone ?? '']);
         } catch (SmsTransportException) {
-            return back()
-                ->withErrors([
-                    'phone' => 'SMS-провайдер пока не подключён или временно недоступен. Код не отправлен.',
-                ])
-                ->withInput(['phone' => $phone]);
+            return back()->withErrors(['phone' => 'SMS-провайдер пока не подключён или временно недоступен.'])->withInput(['phone' => $phone ?? '']);
         }
 
-        return back()
-            ->with('status', 'Код отправлен. Введите его ниже.')
-            ->withInput(['phone' => $phone]);
+        return back()->with('status', 'Код отправлен.')->withInput(['phone' => $phone]);
     }
 
-    /**
-     * Проверка кода и создание отдельной customer-сессии.
-     */
-    public function verifyCode(
-        Request $request,
-        CustomerPhoneOtpService $otp
-    ): RedirectResponse {
+    public function verifyCode(Request $request, CustomerPhoneOtpService $otp): RedirectResponse
+    {
         $validator = Validator::make($request->all(), [
             'phone' => ['required', 'string', 'max:32'],
             'code' => ['required', 'digits:6'],
         ]);
 
         if ($validator->fails()) {
-            return back()
-                ->withErrors($validator)
-                ->withInput($request->except('code'));
+            return back()->withErrors($validator)->withInput($request->except('code'));
         }
 
         try {
             $phone = EmployeePhone::normalize($validator->validated()['phone']);
         } catch (InvalidArgumentException $exception) {
-            return back()
-                ->withErrors(['phone' => $exception->getMessage()])
-                ->withInput($request->except('code'));
+            return back()->withErrors(['phone' => $exception->getMessage()])->withInput($request->except('code'));
         }
 
-        $customer = $otp->verifyCode(
-            $phone,
-            $validator->validated()['code']
-        );
-
+        $customer = $otp->verifyCode($phone, $validator->validated()['code']);
         if (!$customer) {
-            return back()
-                ->withErrors([
-                    'code' => 'Код неверен, истёк или уже использован. Запросите новый код.',
-                ])
+            return back()->withErrors(['code' => 'Код неверен, истёк или уже использован.'])
                 ->withInput($request->except('code'));
         }
 
         Auth::guard('customer')->login($customer);
         $request->session()->regenerate();
 
-        return redirect()->intended(
-            route('customer.organizations.index')
-        );
+        return redirect()->intended(route('customer.organizations.index'));
     }
 
-    /**
-     * Завершает только клиентскую сессию, не затрагивая web и employee.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('customer')->logout();
         $request->session()->regenerateToken();
 
-        return redirect()
-            ->route('customer.login')
+        return redirect()->route('customer.login')
             ->with('status', 'Вы вышли из клиентского кабинета.');
     }
 }

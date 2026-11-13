@@ -14,15 +14,20 @@ class Customer extends Authenticatable
     protected $fillable = [
         'name',
         'phone',
+        'password',
         'phone_verified_at',
         'user_id',
     ];
 
-    protected $hidden = [];
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
 
     protected function casts(): array
     {
         return [
+            'password' => 'hashed',
             'phone_verified_at' => 'datetime',
         ];
     }
@@ -39,9 +44,7 @@ class Customer extends Authenticatable
             'customer_organizations',
             'customer_id',
             'organization_id'
-        )
-            ->withPivot('source')
-            ->withTimestamps();
+        )->withPivot('source')->withTimestamps();
     }
 
     public function addresses(): HasMany
