@@ -361,7 +361,7 @@ class EmployeeInvitationFlowTest extends TestCase
 
         $beforeLoginSessionId = $this->app['session']->driver()->getId();
 
-        $this->post(route('employee.login.store'), [
+        $loginResponse = $this->post(route('employee.login.store'), [
             'phone' => $employee->phone,
             'password' => 'Secure-Staff-Pass-2026!',
         ])->assertRedirect(route('employee.dashboard'));
@@ -371,9 +371,9 @@ class EmployeeInvitationFlowTest extends TestCase
         $this->assertNotSame($beforeLoginSessionId, $afterLoginSessionId);
         $this->assertAuthenticatedAs($manager, 'web');
         $this->assertAuthenticatedAs($employee, 'employee');
-        $this->assertSessionHas('session_marker', 'preserved');
+        $loginResponse->assertSessionHas('session_marker', 'preserved');
 
-        $this->post(route('employee.logout'))
+        $logoutResponse = $this->post(route('employee.logout'))
             ->assertRedirect(route('employee.login'));
 
         $afterLogoutSessionId = $this->app['session']->driver()->getId();
@@ -381,7 +381,7 @@ class EmployeeInvitationFlowTest extends TestCase
         $this->assertNotSame($afterLoginSessionId, $afterLogoutSessionId);
         $this->assertAuthenticatedAs($manager, 'web');
         $this->assertGuest('employee');
-        $this->assertSessionHas('session_marker', 'preserved');
+        $logoutResponse->assertSessionHas('session_marker', 'preserved');
     }
 
     private function createOrganization(string $name): Organization
