@@ -14,7 +14,9 @@ class FirebaseMessagingServiceTest extends TestCase
         parent::setUp();
         $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
         $this->assertNotFalse($key);
-        openssl_pkey_export($key, $this->privateKey);
+        $privateKey = '';
+        openssl_pkey_export($key, $privateKey);
+        $this->privateKey = $privateKey;
         config()->set('services.firebase.project_id', 'daodes-test');
         config()->set('services.firebase.client_email', 'firebase@daodes-test.iam.gserviceaccount.com');
         config()->set('services.firebase.private_key', $this->privateKey);
