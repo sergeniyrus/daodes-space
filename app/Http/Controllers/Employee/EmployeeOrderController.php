@@ -35,6 +35,7 @@ class EmployeeOrderController extends Controller
 
         $activeStatuses = $membership->role === 'cook'
             ? [
+                Order::STATUS_NEW,
                 Order::STATUS_CONFIRMED,
                 Order::STATUS_PREPARING,
                 Order::STATUS_READY,
@@ -53,19 +54,24 @@ class EmployeeOrderController extends Controller
                 'assignments.employee',
             ]);
 
-        // Кухня — общая очередь организации: все активные повара видят
-        // каждый подтверждённый заказ, даже без персонального назначения.
-        // Для курьера сохраняем прежнюю изоляцию по активному назначению.
+        // Кухня — общая очередь организации. Курьеры видят свободные
+        // готовые доставки и заказы, которые уже забрали в работу сами.
         if ($membership->role === 'courier') {
-            $orderIds = OrderAssignment::query()
-                ->where('employee_id', $employee->id)
-                ->where('role', 'courier')
-                ->whereNull('unassigned_at')
-                ->pluck('order_id');
-
             $ordersQuery
                 ->where('fulfillment_type', Order::FULFILLMENT_DELIVERY)
-                ->whereIn('id', $orderIds);
+                ->where(function ($query) use ($employee) {
+                    $query->whereHas('assignments', function ($assignmentQuery) use ($employee) {
+                        $assignmentQuery->where('employee_id', $employee->id)
+                            ->where('role', 'courier')
+                            ->whereNull('unassigned_at');
+                    })->orWhere(function ($availableQuery) {
+                        $availableQuery->where('status', Order::STATUS_READY)
+                            ->whereDoesntHave('assignments', function ($assignmentQuery) {
+                                $assignmentQuery->where('role', 'courier')
+                                    ->whereNull('unassigned_at');
+                            });
+                    });
+                });
         }
 
         $orders = $ordersQuery
@@ -107,10 +113,18 @@ class EmployeeOrderController extends Controller
                 Order::STATUS_IN_TRANSIT,
                 Order::STATUS_DELIVERED,
             ])
-            ->whereHas('assignments', function ($query) use ($employee) {
-                $query->where('employee_id', $employee->id)
-                    ->where('role', 'courier')
-                    ->whereNull('unassigned_at');
+            ->where(function ($query) use ($employee) {
+                $query->whereHas('assignments', function ($assignmentQuery) use ($employee) {
+                    $assignmentQuery->where('employee_id', $employee->id)
+                        ->where('role', 'courier')
+                        ->whereNull('unassigned_at');
+                })->orWhere(function ($availableQuery) {
+                    $availableQuery->where('status', Order::STATUS_READY)
+                        ->whereDoesntHave('assignments', function ($assignmentQuery) {
+                            $assignmentQuery->where('role', 'courier')
+                                ->whereNull('unassigned_at');
+                        });
+                });
             })
             ->with(['items'])
             ->firstOrFail();
@@ -142,7 +156,7 @@ class EmployeeOrderController extends Controller
         $validated = $request->validate([
             'status' => [
                 'required',
-                'in:preparing,ready,handed_to_courier,in_transit,delivered,completed',
+                'in:preparing,ready,in_transit,delivered,completed',
             ],
         ]);
 
@@ -188,26 +202,6 @@ class EmployeeOrderController extends Controller
             $fromStatus = $lockedOrder->status;
             $toStatus = $validated['status'];
             $hasActiveCourier = false;
-
-            if (
-                $membership->role === 'cook'
-                && $fromStatus === Order::STATUS_READY
-                && $toStatus === Order::STATUS_HANDED_TO_COURIER
-                && $lockedOrder->fulfillment_type === Order::FULFILLMENT_DELIVERY
-            ) {
-                $hasActiveCourier = $lockedOrder->assignments()
-                    ->where('role', 'courier')
-                    ->whereNull('unassigned_at')
-                    ->whereHas('employee', function ($query) {
-                        $query->whereNotNull('phone_verified_at');
-                    })
-                    ->whereHas('employee.memberships', function ($query) use ($organization) {
-                        $query->where('organization_id', $organization->id)
-                            ->where('role', 'courier')
-                            ->where('status', 'active');
-                    })
-                    ->exists();
-            }
 
             $transitionError = OrderTransitionPolicy::employeeError(
                 $membership->role,
@@ -263,6 +257,83 @@ class EmployeeOrderController extends Controller
         return redirect()
             ->route('employee.organization.orders.index', $organization)
             ->with('success', 'Статус заказа обновлён.');
+    }
+
+
+    /**
+     * Курьер самостоятельно забирает свободный готовый заказ из общей очереди.
+     * Блокировка заказа не позволяет двум курьерам одновременно забрать одну доставку.
+     */
+    public function claimDelivery(
+        Request $request,
+        Organization $organization,
+        Order $order
+    ): RedirectResponse {
+        $employee = Auth::guard('employee')->user();
+
+        DB::transaction(function () use ($organization, $order, $employee) {
+            $membership = OrganizationEmployeeMembership::query()
+                ->where('organization_id', $organization->id)
+                ->where('employee_id', $employee->id)
+                ->where('role', 'courier')
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $lockedOrder = Order::query()
+                ->where('organization_id', $organization->id)
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (
+                $lockedOrder->fulfillment_type !== Order::FULFILLMENT_DELIVERY
+                || $lockedOrder->status !== Order::STATUS_READY
+            ) {
+                throw ValidationException::withMessages([
+                    'order' => 'Забрать можно только готовый заказ с доставкой.',
+                ]);
+            }
+
+            $alreadyClaimed = $lockedOrder->assignments()
+                ->where('role', 'courier')
+                ->whereNull('unassigned_at')
+                ->exists();
+
+            if ($alreadyClaimed) {
+                throw ValidationException::withMessages([
+                    'order' => 'Этот заказ уже забрал другой курьер.',
+                ]);
+            }
+
+            $lockedOrder->assignments()->create([
+                'employee_id' => $employee->id,
+                'role' => 'courier',
+                'assigned_by_user_id' => null,
+                'assigned_at' => now(),
+            ]);
+
+            $fromStatus = $lockedOrder->status;
+            $lockedOrder->update([
+                'status' => Order::STATUS_HANDED_TO_COURIER,
+            ]);
+
+            $lockedOrder->statusHistory()->create([
+                'from_status' => $fromStatus,
+                'to_status' => Order::STATUS_HANDED_TO_COURIER,
+                'actor_type' => 'employee',
+                'actor_id' => $employee->id,
+                'comment' => 'Курьер самостоятельно забрал готовый заказ из общей очереди.',
+                'created_at' => now(),
+            ]);
+
+            app(OrderNotificationService::class)
+                ->notifyCustomerAboutStatusChange($lockedOrder, Order::STATUS_HANDED_TO_COURIER);
+        }, 3);
+
+        return redirect()
+            ->route('employee.organization.orders.show', [$organization, $order])
+            ->with('success', 'Заказ закреплён за вами. Можно начинать доставку.');
     }
 
     /** Курьер подтверждает получение оплаты при доставке. Онлайн-оплата — только webhook. */
