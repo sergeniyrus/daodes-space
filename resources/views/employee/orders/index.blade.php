@@ -146,6 +146,7 @@
         @if($membership->role === 'cook')
             @php
                 $kdsLanes = [
+                    'new' => 'Новые — принять',
                     'confirmed' => 'К приготовлению',
                     'preparing' => 'Готовятся',
                     'ready' => 'Готовы',
@@ -195,12 +196,12 @@
                                     @endif
                                 </div>
                                 <div class="kds-order-action">
-                                    @if($order->status === 'confirmed')
+                                    @if(in_array($order->status, ['new', 'confirmed'], true))
                                         <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
                                             @csrf
                                             @method('PATCH')
                                             <input type="hidden" name="status" value="preparing">
-                                            <button class="employee-orders-button" type="submit">Начать готовить</button>
+                                            <button class="employee-orders-button" type="submit">{{ $order->status === 'new' ? 'Принять и начать готовить' : 'Начать готовить' }}</button>
                                         </form>
                                     @elseif($order->status === 'preparing')
                                         <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
@@ -209,15 +210,12 @@
                                             <input type="hidden" name="status" value="ready">
                                             <button class="employee-orders-button" type="submit">Заказ готов</button>
                                         </form>
-                                    @elseif($order->status === 'ready' && $order->fulfillment_type === 'delivery' && $order->assignments->where('role', 'courier')->whereNull('unassigned_at')->isNotEmpty())
-                                        <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
-                                            @csrf
-                                            @method('PATCH')
-                                            <input type="hidden" name="status" value="handed_to_courier">
-                                            <button class="employee-orders-button" type="submit">Передать курьеру</button>
-                                        </form>
+                                    @elseif($order->status === 'ready' && $order->fulfillment_type === 'delivery')
+                                        <div class="employee-orders-muted">Готов. Ожидает, когда курьер самостоятельно заберёт заказ.</div>
+                                    @elseif($order->status === 'ready' && $order->fulfillment_type === 'pickup')
+                                        <div class="employee-orders-muted">Готов. Клиент может забрать заказ самостоятельно.</div>
                                     @elseif($order->status === 'ready')
-                                        <div class="employee-orders-muted">Ожидает выдачи или передачи</div>
+                                        <div class="employee-orders-muted">Заказ готов к подаче.</div>
                                     @endif
                                 </div>
                             </article>
@@ -339,7 +337,7 @@
                         </div>
                         @if($order->payment_status === 'pending' && in_array($order->payment_method, ['cash_on_receipt', 'card_on_receipt'], true))
                             <div class="employee-orders-muted" style="margin-top:8px;">
-                                Получите оплату при вручении заказа. После доставки менеджер отметит получение оплаты в системе.
+                                Получите оплату при вручении заказа и подтвердите её в карточке доставки.
                             </div>
                         @elseif($order->payment_method === 'online' && $order->payment_status !== 'succeeded')
                             <div class="employee-orders-muted" style="margin-top:8px;">
@@ -353,7 +351,12 @@
                     </div>
 
                     <div class="courier-action">
-                        @if($order->status === 'handed_to_courier')
+                        @if($order->status === 'ready')
+                            <form method="POST" action="{{ route('employee.organization.orders.claim', [$organization, $order]) }}" onsubmit="return confirm('Забрать заказ №{{ $order->order_number }} в доставку?');">
+                                @csrf
+                                <button class="employee-orders-button" type="submit">Забрать заказ в доставку</button>
+                            </form>
+                        @elseif($order->status === 'handed_to_courier')
                             <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
                                 @csrf
                                 @method('PATCH')
@@ -371,7 +374,7 @@
                     </div>
                 </article>
             @empty
-                <div class="courier-empty">Назначенных доставок пока нет. Новые заказы появятся здесь автоматически.</div>
+                <div class="courier-empty">Свободных готовых доставок пока нет. Новые заказы появятся здесь автоматически.</div>
             @endforelse
         </div>
 
