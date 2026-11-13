@@ -2,6 +2,7 @@
 namespace Tests\Feature;
 use App\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -33,7 +34,7 @@ class CustomerPushDeviceTest extends TestCase
     {
         $this->configureFirebase();
 
-        $html = view('components.customer-push-subscription')->render();
+        $html = Blade::render("@include('components.customer-push-subscription') @stack('scripts')");
 
         $this->assertStringContainsString('const firebaseConfig=', $html);
         $this->assertStringContainsString('daodes-test', $html);
