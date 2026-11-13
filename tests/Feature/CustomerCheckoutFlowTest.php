@@ -495,6 +495,95 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertNotNull($notification->fresh()->read_at);
     }
 
+    public function test_manager_status_change_notifies_only_the_order_customer(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        $otherCustomer = Customer::query()->create([
+            'name' => 'Another customer',
+            'phone' => '+436601234580',
+            'phone_verified_at' => now(),
+        ]);
+
+        [$organization, $item] = $this->createOrderableMenu('Customer status notifications');
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_CONFIRMED,
+            ])
+            ->assertRedirect();
+
+        $notification = \App\Models\OrderNotification::query()
+            ->where('order_id', $order->id)
+            ->where('recipient_type', 'customer')
+            ->where('recipient_id', $customer->id)
+            ->firstOrFail();
+
+        $this->assertSame('order_status_changed', $notification->event_type);
+        $this->assertStringContainsString('Подтверждён', $notification->message);
+
+        $this->actingAs($customer, 'customer')
+            ->getJson(route('customer.orders.notifications'))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.id', $notification->id)
+            ->assertJsonPath('notifications.0.url', route('customer.orders.show', $order));
+
+        $this->actingAs($otherCustomer, 'customer')
+            ->getJson(route('customer.orders.notifications'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 0)
+            ->assertJsonCount(0, 'notifications');
+
+        $this->actingAs($otherCustomer, 'customer')
+            ->postJson(route('customer.orders.notifications.read', $notification))
+            ->assertNotFound();
+
+        $this->actingAs($customer, 'customer')
+            ->postJson(route('customer.orders.notifications.read', $notification))
+            ->assertOk()
+            ->assertJson(['marked_read' => true]);
+
+        $this->assertNotNull($notification->fresh()->read_at);
+    }
+
+    public function test_employee_status_change_notifies_the_order_customer(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Employee status notifications');
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update(['status' => Order::STATUS_CONFIRMED]);
+
+        $cook = $this->createOrganizationEmployee(
+            $organization,
+            'cook',
+            '+436601234581'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $order->id,
+            'employee_id' => $cook->id,
+            'role' => 'cook',
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_PREPARING,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('order_notifications', [
+            'organization_id' => $organization->id,
+            'order_id' => $order->id,
+            'recipient_type' => 'customer',
+            'recipient_id' => $customer->id,
+            'event_type' => 'order_status_changed',
+        ]);
+    }
+
     public function test_manager_cannot_assign_employee_from_another_organization(): void
     {
         $customer = $this->createVerifiedCustomer();

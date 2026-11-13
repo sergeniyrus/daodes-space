@@ -69,6 +69,69 @@ class OrderNotificationController extends Controller
         );
     }
 
+    public function customerIndex(): JsonResponse
+    {
+        $customer = Auth::guard('customer')->user();
+
+        abort_unless($customer, 401);
+
+        $query = OrderNotification::query()
+            ->where('recipient_type', 'customer')
+            ->where('recipient_id', $customer->id)
+            ->whereNull('read_at')
+            ->whereHas('order', function ($orderQuery) use ($customer) {
+                $orderQuery->where('customer_id', $customer->id);
+            });
+
+        $unreadCount = (clone $query)->count();
+
+        $notifications = (clone $query)
+            ->latest('id')
+            ->limit(10)
+            ->get()
+            ->map(fn (OrderNotification $notification) => [
+                'id' => $notification->id,
+                'title' => $notification->title,
+                'message' => $notification->message,
+                'created_at' => $notification->created_at?->toIso8601String(),
+                'url' => route('customer.orders.show', $notification->order_id),
+            ])
+            ->values();
+
+        return response()
+            ->json([
+                'unread_count' => $unreadCount,
+                'notifications' => $notifications,
+            ])
+            ->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
+    public function markCustomerRead(OrderNotification $notification): JsonResponse
+    {
+        $customer = Auth::guard('customer')->user();
+
+        abort_unless($customer, 401);
+
+        $ownedNotification = OrderNotification::query()
+            ->whereKey($notification->id)
+            ->where('recipient_type', 'customer')
+            ->where('recipient_id', $customer->id)
+            ->whereHas('order', function ($orderQuery) use ($customer) {
+                $orderQuery->where('customer_id', $customer->id);
+            })
+            ->firstOrFail();
+
+        if ($ownedNotification->read_at === null) {
+            $ownedNotification->update([
+                'read_at' => now(),
+            ]);
+        }
+
+        return response()
+            ->json(['marked_read' => true])
+            ->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
     private function notificationsResponse(
         string $recipientType,
         int $recipientId,

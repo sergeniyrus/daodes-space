@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderAssignment;
 use App\Models\Organization;
 use App\Models\OrganizationEmployeeMembership;
+use App\Support\OrderNotificationService;
 use App\Support\OrderTransitionPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -193,6 +194,9 @@ class EmployeeOrderController extends Controller
                 'comment' => $this->statusComment($toStatus),
                 'created_at' => now(),
             ]);
+
+            app(OrderNotificationService::class)
+                ->notifyCustomerAboutStatusChange($lockedOrder, $toStatus);
         }, 3);
 
         return redirect()

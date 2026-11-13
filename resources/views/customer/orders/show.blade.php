@@ -200,6 +200,11 @@
 </style>
 
 <div class="customer-order-detail" data-order-updates-url="{{ route('customer.orders.updates', $order) }}">
+    @include('components.order-notifications', [
+        'notificationsUrl' => route('customer.orders.notifications'),
+        'notificationReadUrlTemplate' => route('customer.orders.notifications.read', '__ID__'),
+    ])
+
     @if(session('success'))
         <div class="customer-order-detail-panel customer-order-detail-status">
             {{ session('success') }}

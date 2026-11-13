@@ -5,6 +5,7 @@ use App\Http\Controllers\Customer\CustomerCatalogController;
 use App\Http\Controllers\Customer\CustomerCartController;
 use App\Http\Controllers\Customer\CustomerCheckoutController;
 use App\Http\Controllers\Customer\CustomerOrderController;
+use App\Http\Controllers\OrderNotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('customer')
@@ -84,6 +85,18 @@ Route::prefix('customer')
             '/orders',
             [CustomerOrderController::class, 'index']
         )->name('orders.index');
+
+        Route::middleware('auth:customer')->group(function () {
+            Route::get(
+                '/orders/notifications',
+                [OrderNotificationController::class, 'customerIndex']
+            )->name('orders.notifications');
+
+            Route::post(
+                '/orders/notifications/{notification}/read',
+                [OrderNotificationController::class, 'markCustomerRead']
+            )->name('orders.notifications.read');
+        });
 
         Route::get(
             '/orders/{order}/updates',
