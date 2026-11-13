@@ -98,6 +98,16 @@
     font-weight: 700;
 }
 .customer-checkout-button:hover { color: #081016; background: #00e5d4; }
+.customer-checkout-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+}
+.customer-checkout-button--secondary {
+    text-decoration: none;
+}
 .customer-checkout-error { color: #ff8585; font-size: .86rem; }
 .customer-checkout-note { margin-top: 12px; color: #aeb5c4; font-size: .88rem; line-height: 1.5; }
 .customer-checkout-panel[hidden], .customer-checkout-field[hidden] { display: none !important; }
@@ -344,6 +354,9 @@
 
 
 
+            <div class="customer-checkout-panel">
+            <h2 class="customer-checkout-title">Способ оплаты</h2>
+
             <div class="customer-checkout-options">
                 @if($settings->cash_payment_enabled)
                     <label>
@@ -382,15 +395,17 @@
             @enderror
         </div>
 
-        <button type="submit" class="customer-checkout-button">
-            Подтвердить заказ
-        </button>
-        <a
-            href="{{ route('customer.cart') }}"
-            style="display: inline-block; margin-left: 12px; color: #00e5d4; text-decoration: none;"
-        >
-            Вернуться в корзину
-        </a>
+        <div class="customer-checkout-actions">
+            <button type="submit" class="customer-checkout-button">
+                Подтвердить заказ
+            </button>
+            <a
+                href="{{ route('customer.cart') }}"
+                class="customer-checkout-button customer-checkout-button--secondary"
+            >
+                Вернуться в корзину
+            </a>
+        </div>
     </form>
 </div>
 
