@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Services\IpStackService;
 use Illuminate\Support\Facades\URL;
 use App\Contracts\SmsTransport;
+use App\Services\Sms\SmsRuTransport;
 use App\Services\Sms\UnconfiguredSmsTransport;
 
 
@@ -52,8 +53,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        // До подключения конкретного провайдера SMS отправка явно отключена.
-        $this->app->bind(SmsTransport::class, UnconfiguredSmsTransport::class);
+        // SMS включается только явным выбором провайдера в SMS_TRANSPORT.
+        // По умолчанию используется безопасная заглушка без реальной отправки.
+        $this->app->bind(SmsTransport::class, function ($app) {
+            return match (config('services.sms.driver')) {
+                'sms_ru' => $app->make(SmsRuTransport::class),
+                default => $app->make(UnconfiguredSmsTransport::class),
+            };
+        });
+
         // Регистрация сервиса IpStackService
         $this->app->singleton('ipstack', function () {
             return new IpStackService();

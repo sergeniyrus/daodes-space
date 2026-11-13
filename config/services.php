@@ -46,6 +46,16 @@ return [
         'secret_token' => env('TELEGRAM_SECRET_TOKEN'),
     ],
 
+    'sms' => [
+        // none keeps SMS delivery disabled until a provider is configured.
+        'driver' => env('SMS_TRANSPORT', 'none'),
+
+        'sms_ru' => [
+            'api_id' => env('SMS_RU_API_ID'),
+            'timeout' => (int) env('SMS_RU_TIMEOUT', 10),
+        ],
+    ],
+
     'firebase' => [
         'project_id' => env('FIREBASE_PROJECT_ID'),
         'client_email' => env('FIREBASE_CLIENT_EMAIL'),
