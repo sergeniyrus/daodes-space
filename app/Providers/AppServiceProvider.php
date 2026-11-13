@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Services\IpStackService;
 use Illuminate\Support\Facades\URL;
 use App\Contracts\SmsTransport;
+use App\Services\Sms\SmsRuTransport;
 use App\Services\Sms\UnconfiguredSmsTransport;
 
 
@@ -52,10 +53,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        // Точка подключения провайдера: замените эту привязку на собственный
-        // SmsTransport-адаптер только после отдельного выбора SMS-провайдера.
-        // Пока используется безопасная реализация, которая ничего не отправляет.
-        $this->app->bind(SmsTransport::class, UnconfiguredSmsTransport::class);
+        // SMS.RU используется только при наличии API ID в конфигурации.
+        // Если ключ не задан, остаётся безопасная реализация без отправки SMS.
+        $this->app->bind(SmsTransport::class, function ($app) {
+            $apiId = config('services.sms_ru.api_id');
+
+            if (is_string($apiId) && trim($apiId) !== '') {
+                return $app->make(SmsRuTransport::class);
+            }
+
+            return $app->make(UnconfiguredSmsTransport::class);
+        });
 
         // Регистрация сервиса IpStackService
         $this->app->singleton('ipstack', function () {
