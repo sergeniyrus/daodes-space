@@ -19,7 +19,9 @@ class CustomerAuthController extends Controller
     public function create(): View|RedirectResponse
     {
         if (Auth::guard('customer')->check()) {
-            return redirect()->intended('/');
+            return redirect()->intended(
+                route('customer.organizations.index')
+            );
         }
 
         return view('customer.auth.login');
@@ -112,7 +114,9 @@ class CustomerAuthController extends Controller
         Auth::guard('customer')->login($customer);
         $request->session()->regenerate();
 
-        return redirect()->intended('/');
+        return redirect()->intended(
+            route('customer.organizations.index')
+        );
     }
 
     /**

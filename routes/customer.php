@@ -38,6 +38,12 @@ Route::prefix('customer')
             ->middleware('auth:customer')
             ->name('logout');
 
+        // Публичный выбор организации и её каталога.
+        Route::get(
+            '/organizations',
+            [CustomerCatalogController::class, 'organizations']
+        )->name('organizations.index');
+
         // Публичный каталог и гостевая корзина.
         Route::get(
             '/organizations/{organization}',

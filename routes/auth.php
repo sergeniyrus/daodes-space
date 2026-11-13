@@ -17,8 +17,14 @@ Route::middleware('guest')->group(function () {
 
     Route::post('register', [RegisteredUserController::class, 'store']);
 
-    Route::get('login', [AuthenticatedSessionController::class, 'create'])
-                ->name('login');
+    // Общая страница выбора типа входа.
+    Route::get('login', function () {
+        return view('auth.portal');
+    })->name('login');
+
+    // Существующая авторизация DAODES для партнёров.
+    Route::get('partner/login', [AuthenticatedSessionController::class, 'create'])
+                ->name('partner.login');
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 

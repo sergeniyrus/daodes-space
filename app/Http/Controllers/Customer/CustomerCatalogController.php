@@ -8,6 +8,25 @@ use Illuminate\View\View;
 
 class CustomerCatalogController extends Controller
 {
+    /**
+     * Публичный список активных организаций с онлайн-каталогом.
+     */
+    public function organizations(): View
+    {
+        $organizations = Organization::query()
+            ->where('status', 'active')
+            ->whereHas('menuSections', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->with('orderSettings')
+            ->orderBy('name')
+            ->get();
+
+        return view('customer.organizations.index', [
+            'organizations' => $organizations,
+        ]);
+    }
+
     public function index(Organization $organization): View
     {
         abort_unless($organization->isActive(), 404);
