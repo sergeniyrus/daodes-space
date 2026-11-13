@@ -1185,6 +1185,82 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertLessThan($busyPosition, $availablePosition);
     }
 
+    public function test_organization_dashboard_shows_order_metrics_scoped_to_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Dashboard cafe');
+        [$otherOrganization, $otherItem] = $this->createOrderableMenu('Other cafe');
+
+        $newOrder = $this->createPickupOrder($customer, $organization, $item);
+        $kitchenOrder = $this->createPickupOrder($customer, $organization, $item);
+        $readyOrder = $this->createPickupOrder($customer, $organization, $item);
+        $deliveryOrder = $this->createPickupOrder($customer, $organization, $item);
+        $completedOrder = $this->createPickupOrder($customer, $organization, $item);
+        $cancelledOrder = $this->createPickupOrder($customer, $organization, $item);
+        $otherOrder = $this->createPickupOrder($customer, $otherOrganization, $otherItem);
+
+        $kitchenOrder->update(['status' => Order::STATUS_PREPARING]);
+        $readyOrder->update(['status' => Order::STATUS_READY]);
+        $deliveryOrder->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_IN_TRANSIT,
+        ]);
+        $completedOrder->update([
+            'status' => Order::STATUS_COMPLETED,
+            'completed_at' => now(),
+        ]);
+        $cancelledOrder->update([
+            'status' => Order::STATUS_CANCELLED,
+            'cancelled_at' => now(),
+        ]);
+        $otherOrder->update(['status' => Order::STATUS_NEW]);
+
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234576'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $deliveryOrder->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        DB::table('payments')->insert([
+            'order_id' => $completedOrder->id,
+            'provider' => 'offline',
+            'method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'status' => Order::PAYMENT_SUCCEEDED,
+            'amount' => '25.00',
+            'currency' => 'EUR',
+            'paid_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $manager = $this->createOrganizationManager($organization);
+
+        $response = $this->actingAs($manager)
+            ->get(route('organizations.manage', $organization));
+
+        $response->assertOk()
+            ->assertSee('Заказов сегодня')
+            ->assertSee('На кухне')
+            ->assertSee('Готовы к выдаче')
+            ->assertSee('У курьеров')
+            ->assertSee('Завершено сегодня')
+            ->assertSee('Отменено сегодня')
+            ->assertSee('25,00 EUR')
+            ->assertSee('Courier test')
+            ->assertSee('1 в доставке');
+
+        $response->assertSee('data-stat="orders-today"', false);
+        $response->assertSee('data-stat="new-orders"', false);
+        $response->assertSee('data-stat="delivery-orders"', false);
+    }
+
     private function createFakeOnlinePayment(): array
     {
         $this->withoutMiddleware(ThrottleRequests::class);

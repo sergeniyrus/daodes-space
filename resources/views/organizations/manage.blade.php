@@ -965,6 +965,117 @@
     }
 }
 
+/* =========================================================
+   АНАЛИТИКА ОНЛАЙН-ЗАКАЗОВ
+   ========================================================= */
+
+.organization-order-dashboard {
+    margin: 0 0 26px;
+    padding: 20px;
+    border: 1px solid rgba(0, 229, 255, 0.22);
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(0, 229, 255, 0.055), rgba(255, 215, 0, 0.035));
+}
+
+.organization-order-dashboard-title {
+    margin: 0 0 5px;
+    color: #00e5ff;
+    font-size: 1.12rem;
+    font-weight: 700;
+}
+
+.organization-order-dashboard-subtitle {
+    margin-bottom: 17px;
+    color: #9298aa;
+    font-size: 0.82rem;
+}
+
+.organization-order-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.organization-order-stat {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 13px;
+    background: rgba(7, 9, 19, 0.72);
+}
+
+.organization-order-stat-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #a7adbd;
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+.organization-order-stat-value {
+    display: block;
+    color: #f5d76e;
+    font-size: 1.65rem;
+    font-weight: 800;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.organization-order-stat-value.turquoise {
+    color: #00e5c3;
+}
+
+.organization-order-stat-value.muted {
+    color: #c5cad5;
+}
+
+.organization-courier-loads {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 16px;
+}
+
+.organization-courier-load {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
+    border: 1px solid rgba(0, 229, 255, 0.18);
+    border-radius: 10px;
+    background: rgba(0, 229, 255, 0.045);
+    color: #dce5ef;
+    font-size: 0.82rem;
+}
+
+.organization-courier-load strong {
+    color: #00e5c3;
+}
+
+@media (max-width: 760px) {
+    .organization-order-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 420px) {
+    .organization-order-dashboard {
+        padding: 14px;
+    }
+
+    .organization-order-stats {
+        gap: 8px;
+    }
+
+    .organization-order-stat {
+        padding: 11px;
+    }
+
+    .organization-order-stat-value {
+        font-size: 1.4rem;
+    }
+}
+
 </style>
 
 
@@ -1014,6 +1125,78 @@
     </div>
 
 </div>
+
+    {{-- =====================================================
+         АНАЛИТИКА ОНЛАЙН-ЗАКАЗОВ
+         ===================================================== --}}
+
+    <section class="organization-order-dashboard">
+        <h2 class="organization-order-dashboard-title">📊 Заказы и выручка</h2>
+        <div class="organization-order-dashboard-subtitle">
+            Операционная сводка за {{ now()->format('d.m.Y') }} и текущая загрузка
+        </div>
+
+        <div class="organization-order-stats">
+            <div class="organization-order-stat" data-stat="orders-today">
+                <span class="organization-order-stat-label">Заказов сегодня</span>
+                <strong class="organization-order-stat-value">{{ (int) ($orderStats->orders_today ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="new-orders">
+                <span class="organization-order-stat-label">Новые</span>
+                <strong class="organization-order-stat-value">{{ (int) ($orderStats->new_orders ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="kitchen-orders">
+                <span class="organization-order-stat-label">На кухне</span>
+                <strong class="organization-order-stat-value">{{ (int) ($orderStats->kitchen_orders ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="ready-orders">
+                <span class="organization-order-stat-label">Готовы к выдаче</span>
+                <strong class="organization-order-stat-value">{{ (int) ($orderStats->ready_orders ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="delivery-orders">
+                <span class="organization-order-stat-label">У курьеров</span>
+                <strong class="organization-order-stat-value">{{ (int) ($orderStats->delivery_orders ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="completed-today">
+                <span class="organization-order-stat-label">Завершено сегодня</span>
+                <strong class="organization-order-stat-value turquoise">{{ (int) ($orderStats->completed_today ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="cancelled-today">
+                <span class="organization-order-stat-label">Отменено сегодня</span>
+                <strong class="organization-order-stat-value muted">{{ (int) ($orderStats->cancelled_today ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="paid-today">
+                <span class="organization-order-stat-label">Оплачено сегодня</span>
+                <strong class="organization-order-stat-value turquoise">{{ number_format((float) $paidToday, 2, ',', ' ') }} {{ $orderSettings?->currency ?? 'EUR' }}</strong>
+            </div>
+        </div>
+
+        @if($courierMemberships->isNotEmpty())
+            <div class="organization-courier-loads">
+                @foreach($courierMemberships as $membership)
+                    <div class="organization-courier-load">
+                        <span>🚚 {{ $membership->employee->name }}</span>
+                        <strong>{{ $membership->employee->active_delivery_orders_count }} в доставке</strong>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        <a
+            href="{{ route('organizations.orders.index', $organization) }}"
+            class="organization-button"
+            style="display: inline-flex; margin-top: 16px; text-decoration: none;"
+        >
+            📋 Открыть все заказы
+        </a>
+    </section>
 
 
     {{-- =====================================================

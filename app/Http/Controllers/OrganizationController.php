@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
+use App\Models\Order;
 use App\Models\OrganizationOrderSetting;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -132,12 +133,87 @@ class OrganizationController extends Controller
             ->orderBy('id')
             ->get();
 
+        /*
+         * Операционная статистика онлайн-заказов.
+         * Все выборки ограничены текущей организацией.
+         */
+        $todayStart = now()->startOfDay();
+        $tomorrowStart = $todayStart->copy()->addDay();
+
+        $orderStats = $organization->orders()
+            ->selectRaw(
+                'COUNT(CASE WHEN created_at >= ? AND created_at < ? THEN 1 END) as orders_today,
+                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as new_orders,
+                 SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) as kitchen_orders,
+                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as ready_orders,
+                 SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) as delivery_orders,
+                 SUM(CASE WHEN status = ? AND completed_at >= ? AND completed_at < ? THEN 1 ELSE 0 END) as completed_today,
+                 SUM(CASE WHEN status = ? AND cancelled_at >= ? AND cancelled_at < ? THEN 1 ELSE 0 END) as cancelled_today',
+                [
+                    $todayStart,
+                    $tomorrowStart,
+                    Order::STATUS_NEW,
+                    Order::STATUS_CONFIRMED,
+                    Order::STATUS_PREPARING,
+                    Order::STATUS_READY,
+                    Order::STATUS_HANDED_TO_COURIER,
+                    Order::STATUS_IN_TRANSIT,
+                    Order::STATUS_COMPLETED,
+                    $todayStart,
+                    $tomorrowStart,
+                    Order::STATUS_CANCELLED,
+                    $todayStart,
+                    $tomorrowStart,
+                ]
+            )
+            ->first();
+
+        $paidToday = DB::table('payments')
+            ->join('orders', 'orders.id', '=', 'payments.order_id')
+            ->where('orders.organization_id', $organization->id)
+            ->where('payments.status', Order::PAYMENT_SUCCEEDED)
+            ->whereNotNull('payments.paid_at')
+            ->where('payments.paid_at', '>=', $todayStart)
+            ->where('payments.paid_at', '<', $tomorrowStart)
+            ->sum('payments.amount');
+
+        $courierLoads = DB::table('order_assignments')
+            ->join('orders', 'orders.id', '=', 'order_assignments.order_id')
+            ->where('orders.organization_id', $organization->id)
+            ->where('order_assignments.role', 'courier')
+            ->whereNull('order_assignments.unassigned_at')
+            ->whereIn('orders.status', [
+                Order::STATUS_HANDED_TO_COURIER,
+                Order::STATUS_IN_TRANSIT,
+            ])
+            ->select(
+                'order_assignments.employee_id',
+                DB::raw('COUNT(DISTINCT orders.id) as active_delivery_orders_count')
+            )
+            ->groupBy('order_assignments.employee_id')
+            ->pluck('active_delivery_orders_count', 'order_assignments.employee_id');
+
+        $courierMemberships = $staffMemberships
+            ->where('role', 'courier')
+            ->where('status', 'active')
+            ->filter(fn ($membership) => $membership->employee !== null);
+
+        foreach ($courierMemberships as $membership) {
+            $membership->employee->setAttribute(
+                'active_delivery_orders_count',
+                (int) ($courierLoads[$membership->employee_id] ?? 0)
+            );
+        }
+
         return view('organizations.manage', [
             'organization' => $organization,
             'orderSettings' => $organization->orderSettings,
             'members' => $members,
             'availableUsers' => $availableUsers,
             'staffMemberships' => $staffMemberships,
+            'orderStats' => $orderStats,
+            'paidToday' => $paidToday,
+            'courierMemberships' => $courierMemberships,
         ]);
     }
 
