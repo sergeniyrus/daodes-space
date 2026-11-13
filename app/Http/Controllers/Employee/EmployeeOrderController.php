@@ -43,6 +43,7 @@ class EmployeeOrderController extends Controller
                 Order::STATUS_READY,
                 Order::STATUS_HANDED_TO_COURIER,
                 Order::STATUS_IN_TRANSIT,
+                Order::STATUS_DELIVERED,
             ];
 
         $ordersQuery = $organization->orders()
@@ -104,6 +105,7 @@ class EmployeeOrderController extends Controller
                 Order::STATUS_READY,
                 Order::STATUS_HANDED_TO_COURIER,
                 Order::STATUS_IN_TRANSIT,
+                Order::STATUS_DELIVERED,
             ])
             ->whereHas('assignments', function ($query) use ($employee) {
                 $query->where('employee_id', $employee->id)
@@ -140,7 +142,7 @@ class EmployeeOrderController extends Controller
         $validated = $request->validate([
             'status' => [
                 'required',
-                'in:preparing,ready,handed_to_courier,in_transit,delivered',
+                'in:preparing,ready,handed_to_courier,in_transit,delivered,completed',
             ],
         ]);
 
@@ -212,7 +214,8 @@ class EmployeeOrderController extends Controller
                 $fromStatus,
                 $toStatus,
                 $lockedOrder->fulfillment_type,
-                $hasActiveCourier
+                $hasActiveCourier,
+                $lockedOrder->payment_status
             );
 
             if ($transitionError !== null) {
@@ -229,19 +232,19 @@ class EmployeeOrderController extends Controller
                 $updates['ready_at'] = now();
             }
 
+            if ($toStatus === Order::STATUS_COMPLETED) {
+                $updates['completed_at'] = now();
+            }
+
             $lockedOrder->update($updates);
 
-            if (in_array($toStatus, [
-                Order::STATUS_HANDED_TO_COURIER,
-                Order::STATUS_DELIVERED,
-            ], true)) {
+            // Назначение курьера сохраняется до полного закрытия заказа.
+            if ($toStatus === Order::STATUS_COMPLETED) {
                 $lockedOrder->assignments()
                     ->where('employee_id', $employee->id)
-                    ->where('role', $membership->role)
+                    ->where('role', 'courier')
                     ->whereNull('unassigned_at')
-                    ->update([
-                        'unassigned_at' => now(),
-                    ]);
+                    ->update(['unassigned_at' => now()]);
             }
 
             $lockedOrder->statusHistory()->create([
@@ -262,6 +265,50 @@ class EmployeeOrderController extends Controller
             ->with('success', 'Статус заказа обновлён.');
     }
 
+    /** Курьер подтверждает получение оплаты при доставке. Онлайн-оплата — только webhook. */
+    public function markPaymentReceived(Request $request, Organization $organization, Order $order): RedirectResponse
+    {
+        $employee = Auth::guard('employee')->user();
+        DB::transaction(function () use ($organization, $order, $employee) {
+            $membership = OrganizationEmployeeMembership::query()
+                ->where('organization_id', $organization->id)->where('employee_id', $employee->id)
+                ->where('status', 'active')->lockForUpdate()->firstOrFail();
+            abort_unless($membership->role === 'courier', 403);
+            $lockedOrder = Order::query()->where('organization_id', $organization->id)
+                ->whereKey($order->id)->lockForUpdate()->firstOrFail();
+            $assignment = $lockedOrder->assignments()->where('employee_id', $employee->id)
+                ->where('role', 'courier')->whereNull('unassigned_at')->lockForUpdate()->first();
+            abort_unless($assignment, 403);
+
+            if ($lockedOrder->fulfillment_type !== Order::FULFILLMENT_DELIVERY
+                || $lockedOrder->status !== Order::STATUS_DELIVERED) {
+                throw ValidationException::withMessages(['payment' => 'Получение оплаты можно подтвердить только после вручения заказа.']);
+            }
+            if (!in_array($lockedOrder->payment_method, [Order::PAYMENT_CASH_ON_RECEIPT, Order::PAYMENT_CARD_ON_RECEIPT], true)) {
+                throw ValidationException::withMessages(['payment' => 'Курьер может подтвердить только оплату наличными или картой при получении. Онлайн-оплата подтверждается автоматически.']);
+            }
+            if ($lockedOrder->payment_status === Order::PAYMENT_SUCCEEDED) return;
+            if ($lockedOrder->payment_status !== Order::PAYMENT_PENDING) {
+                throw ValidationException::withMessages(['payment' => 'Оплата заказа уже находится в конечном состоянии.']);
+            }
+            $payments = $lockedOrder->payments()->where('status', Order::PAYMENT_PENDING)->lockForUpdate()->get();
+            if ($payments->isEmpty()) {
+                throw ValidationException::withMessages(['payment' => 'Не найдена ожидающая оплаты попытка платежа.']);
+            }
+            $paidAt = now();
+            foreach ($payments as $payment) {
+                $metadata = $payment->metadata ?? [];
+                $metadata['received_by_employee_id'] = $employee->id;
+                $metadata['received_by_role'] = 'courier';
+                $metadata['received_at'] = $paidAt->toIso8601String();
+                $payment->update(['status' => Order::PAYMENT_SUCCEEDED, 'paid_at' => $paidAt, 'metadata' => $metadata]);
+            }
+            $lockedOrder->update(['payment_status' => Order::PAYMENT_SUCCEEDED]);
+        }, 3);
+        return redirect()->route('employee.organization.orders.show', [$organization, $order])
+            ->with('success', 'Получение оплаты подтверждено. Теперь заказ можно закрыть.');
+    }
+
     private function statusComment(string $status): string
     {
         return match ($status) {
@@ -270,6 +317,7 @@ class EmployeeOrderController extends Controller
             Order::STATUS_HANDED_TO_COURIER => 'Заказ передан курьеру.',
             Order::STATUS_IN_TRANSIT => 'Курьер принял заказ и начал доставку.',
             Order::STATUS_DELIVERED => 'Курьер отметил заказ как доставленный.',
+            Order::STATUS_COMPLETED => 'Курьер закрыл заказ после подтверждения оплаты.',
             default => 'Статус обновлён сотрудником.',
         };
     }
