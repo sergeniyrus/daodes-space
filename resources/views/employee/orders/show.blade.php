@@ -11,7 +11,9 @@
     $statusLabel = match ($order->status) {
         'ready' => 'Готов, ожидает передачи курьеру',
         'handed_to_courier' => 'Передан курьеру',
-        default => 'В пути',
+        'in_transit' => 'В пути',
+        'delivered' => 'Доставлен — ожидает закрытия',
+        default => 'Статус заказа',
     };
 @endphp
 
@@ -71,7 +73,13 @@
         <div class="courier-order-detail-muted">{{ $organization->name }} · {{ $employee->name }}</div>
         <p style="color:#00e5a8;font-weight:800;">{{ $statusLabel }}</p>
         <div class="courier-order-detail-muted">
-            {{ $order->status === 'ready' ? 'Заказ готов и назначен вам. Ожидайте, пока менеджер или повар передаст его курьеру.' : ($order->status === 'handed_to_courier' ? 'Заказ ожидает начала доставки.' : 'Вы уже направляетесь к клиенту.') }}
+            {{ match ($order->status) {
+                'ready' => 'Заказ готов и назначен вам. Ожидайте, пока менеджер или повар передаст его курьеру.',
+                'handed_to_courier' => 'Заказ ожидает начала доставки.',
+                'in_transit' => 'Вы уже направляетесь к клиенту.',
+                'delivered' => 'Заказ вручён клиенту. Подтвердите полученную оплату, затем закройте заказ.',
+                default => 'Информация о доставке.',
+            } }}
             @if($order->updated_at)
                 <div>Обновлён: {{ $order->updated_at->format('d.m.Y H:i') }}</div>
             @endif
@@ -146,7 +154,7 @@
             <strong>{{ $order->payment_status === 'succeeded' ? 'Оплачено' : ($order->payment_status === 'pending' ? 'Ожидает оплаты' : ($order->payment_status === 'failed' ? 'Ошибка оплаты' : $order->payment_status)) }}</strong>
         </div>
         @if($order->payment_status === 'pending' && in_array($order->payment_method, ['cash_on_receipt', 'card_on_receipt'], true))
-            <p class="courier-order-detail-muted">Получите оплату при вручении. После доставки менеджер отметит оплату в системе.</p>
+            <p class="courier-order-detail-muted">После фактического получения денег нажмите «Подтвердить получение оплаты».</p>
         @elseif($order->payment_method === 'online' && $order->payment_status !== 'succeeded')
             <p class="courier-order-detail-muted">Онлайн-оплата ещё не подтверждена системой. Уточните ситуацию у менеджера.</p>
         @endif
@@ -170,6 +178,21 @@
                     <input type="hidden" name="status" value="delivered">
                     <button class="courier-order-detail-button" type="submit">Подтвердить вручение заказа</button>
                 </form>
+            @elseif($order->status === 'delivered' && $order->payment_status === 'pending' && in_array($order->payment_method, ['cash_on_receipt', 'card_on_receipt'], true))
+                <form method="POST" action="{{ route('employee.organization.orders.payment', [$organization, $order]) }}" onsubmit="return confirm('Подтвердить, что оплата от клиента фактически получена?');">
+                    @csrf
+                    @method('PATCH')
+                    <button class="courier-order-detail-button" type="submit">Подтвердить получение оплаты</button>
+                </form>
+            @elseif($order->status === 'delivered' && $order->payment_status === 'succeeded')
+                <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}" onsubmit="return confirm('Закрыть доставленный и оплаченный заказ?');">
+                    @csrf
+                    @method('PATCH')
+                    <input type="hidden" name="status" value="completed">
+                    <button class="courier-order-detail-button" type="submit">Закрыть заказ</button>
+                </form>
+            @elseif($order->status === 'delivered' && $order->payment_method === 'online' && $order->payment_status !== 'succeeded')
+                <p class="courier-order-detail-muted">Заказ доставлен, но онлайн-оплата ещё не подтверждена. Закрытие недоступно до подтверждения webhook.</p>
             @endif
         </div>
     </section>
