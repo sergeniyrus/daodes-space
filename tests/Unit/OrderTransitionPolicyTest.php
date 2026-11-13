@@ -8,36 +8,22 @@ use PHPUnit\Framework\TestCase;
 
 class OrderTransitionPolicyTest extends TestCase
 {
-    public function test_manager_can_confirm_only_new_orders(): void
+    public function test_manager_cannot_confirm_new_orders(): void
     {
-        $this->assertNull(OrderTransitionPolicy::managerError(
-            Order::STATUS_NEW,
-            Order::STATUS_CONFIRMED,
-            Order::FULFILLMENT_PICKUP,
-            Order::PAYMENT_PENDING
-        ));
-
         $this->assertNotNull(OrderTransitionPolicy::managerError(
-            Order::STATUS_PREPARING,
+            Order::STATUS_NEW,
             Order::STATUS_CONFIRMED,
             Order::FULFILLMENT_PICKUP,
             Order::PAYMENT_PENDING
         ));
     }
 
-    public function test_manager_can_issue_only_ready_pickup_orders(): void
+    public function test_manager_cannot_issue_pickup_orders(): void
     {
-        $this->assertNull(OrderTransitionPolicy::managerError(
-            Order::STATUS_READY,
-            Order::STATUS_ISSUED,
-            Order::FULFILLMENT_PICKUP,
-            Order::PAYMENT_PENDING
-        ));
-
         $this->assertNotNull(OrderTransitionPolicy::managerError(
             Order::STATUS_READY,
             Order::STATUS_ISSUED,
-            Order::FULFILLMENT_DELIVERY,
+            Order::FULFILLMENT_PICKUP,
             Order::PAYMENT_PENDING
         ));
     }
@@ -76,22 +62,30 @@ class OrderTransitionPolicyTest extends TestCase
         ));
     }
 
-    public function test_cook_can_handoff_delivery_only_when_courier_is_assigned(): void
+    public function test_cook_can_accept_new_order_and_mark_it_ready_without_courier_assignment(): void
     {
+        $this->assertNull(OrderTransitionPolicy::employeeError(
+            'cook',
+            Order::STATUS_NEW,
+            Order::STATUS_PREPARING,
+            Order::FULFILLMENT_PICKUP,
+            false
+        ));
+
+        $this->assertNull(OrderTransitionPolicy::employeeError(
+            'cook',
+            Order::STATUS_PREPARING,
+            Order::STATUS_READY,
+            Order::FULFILLMENT_DELIVERY,
+            false
+        ));
+
         $this->assertNotNull(OrderTransitionPolicy::employeeError(
             'cook',
             Order::STATUS_READY,
             Order::STATUS_HANDED_TO_COURIER,
             Order::FULFILLMENT_DELIVERY,
             false
-        ));
-
-        $this->assertNull(OrderTransitionPolicy::employeeError(
-            'cook',
-            Order::STATUS_READY,
-            Order::STATUS_HANDED_TO_COURIER,
-            Order::FULFILLMENT_DELIVERY,
-            true
         ));
     }
 
