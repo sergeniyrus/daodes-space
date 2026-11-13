@@ -269,6 +269,9 @@ class EmployeeInvitationFlowTest extends TestCase
         $organization = $this->createOrganization('No provider test');
         $employee = $this->createEmployee($organization, '+436601234572');
 
+        // Принудительно отключаем SMS-провайдера для этого теста.
+config(['services.sms_ru.api_id' => null]);
+
         $this->assertInstanceOf(UnconfiguredSmsTransport::class, app(SmsTransport::class));
 
         try {
