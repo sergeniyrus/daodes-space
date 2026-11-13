@@ -221,6 +221,10 @@ class EmployeeOrderController extends Controller
                 'status' => $toStatus,
             ];
 
+            if ($toStatus === Order::STATUS_PREPARING && $fromStatus === Order::STATUS_NEW) {
+                $updates['confirmed_at'] = now();
+            }
+
             if ($toStatus === Order::STATUS_READY) {
                 $updates['ready_at'] = now();
             }
