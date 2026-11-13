@@ -373,6 +373,63 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertSame($owner->id, $order->fresh()->customer_id);
     }
 
+    public function test_manager_cannot_assign_employee_from_another_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('First cafe');
+        [$otherOrganization] = $this->createOrderableMenu('Second cafe');
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+        $foreignCook = $this->createOrganizationEmployee(
+            $otherOrganization,
+            'cook',
+            '+436601234572'
+        );
+
+        $this->actingAs($manager)
+            ->post(route('organizations.orders.assign', [$organization, $order]), [
+                'employee_id' => $foreignCook->id,
+                'role' => 'cook',
+            ])
+            ->assertSessionHasErrors('employee_id');
+
+        $this->assertDatabaseMissing('order_assignments', [
+            'order_id' => $order->id,
+            'employee_id' => $foreignCook->id,
+            'role' => 'cook',
+            'unassigned_at' => null,
+        ]);
+    }
+
+    public function test_manager_cannot_assign_courier_to_pickup_order(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234573'
+        );
+
+        $this->actingAs($manager)
+            ->post(route('organizations.orders.assign', [$organization, $order]), [
+                'employee_id' => $courier->id,
+                'role' => 'courier',
+            ])
+            ->assertSessionHasErrors('role');
+
+        $this->assertDatabaseMissing('order_assignments', [
+            'order_id' => $order->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'unassigned_at' => null,
+        ]);
+    }
+
     public function test_marking_an_offline_payment_paid_twice_is_idempotent(): void
     {
         $customer = $this->createVerifiedCustomer();
