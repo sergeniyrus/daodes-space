@@ -14,6 +14,7 @@ use App\Services\EmployeeInvitationService;
 use App\Services\Sms\UnconfiguredSmsTransport;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -29,6 +30,10 @@ class EmployeeInvitationFlowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // The route-level limiter uses the application's Redis cache in CI.
+        // Service-level OTP limits are covered directly in this test suite.
+        $this->withoutMiddleware(ThrottleRequests::class);
 
         $this->createLegacyOrganizationSchema();
     }
