@@ -124,7 +124,8 @@ class EmployeeAuthenticatedSessionController extends Controller
     {
         Auth::guard('employee')->logout();
 
-        $request->session()->regenerateToken();
+        // Rotate the session while preserving any independent DAODES web session.
+        $request->session()->regenerate();
 
         return redirect()
             ->route('employee.login')

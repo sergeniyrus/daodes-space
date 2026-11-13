@@ -26,6 +26,9 @@ class EmployeeInvitationService
     /**
      * Создаёт одноразовый код и передаёт его только SMS-адаптеру.
      * В БД сохраняется исключительно HMAC-хеш кода.
+     *
+     * Ограничение отправки считается на уровне общей учётной записи телефона,
+     * а повторная отправка отзывает только приглашение этой организации.
      */
     public function sendInvitation(
         int $employeeId,
@@ -82,8 +85,10 @@ class EmployeeInvitationService
                 );
             }
 
+            // Приглашения разных организаций не должны отзывать друг друга.
             EmployeePhoneChallenge::query()
                 ->where('employee_id', $employee->id)
+                ->where('organization_id', $organizationId)
                 ->whereNull('consumed_at')
                 ->whereNull('revoked_at')
                 ->update(['revoked_at' => $now]);
@@ -124,6 +129,7 @@ class EmployeeInvitationService
             EmployeePhoneChallenge::query()
                 ->whereKey($payload['challenge_id'])
                 ->whereNull('consumed_at')
+                ->whereNull('revoked_at')
                 ->update(['revoked_at' => now()]);
 
             if ($exception instanceof SmsTransportException) {
@@ -145,14 +151,19 @@ class EmployeeInvitationService
 
     /**
      * Проверяет код и устанавливает пароль сотрудника в одной транзакции.
-     * Возвращает false для любого неверного/истёкшего/повторного кода,
-     * не раскрывая существование телефонного аккаунта.
+     * Код может относиться к любому ещё действующему приглашению сотрудника.
+     * После успешной активации остальные приглашения общей учётной записи
+     * отзываются, чтобы телефон и пароль активировались только один раз.
      */
     public function activate(
         string $phone,
         string $code,
         string $password
     ): bool {
+        if (preg_match('/\A[0-9]{6}\z/', $code) !== 1) {
+            return false;
+        }
+
         return DB::transaction(function () use ($phone, $code, $password) {
             $employee = OrganizationEmployee::query()
                 ->where('phone', $phone)
@@ -163,58 +174,77 @@ class EmployeeInvitationService
                 return false;
             }
 
-            $challenge = EmployeePhoneChallenge::query()
+            $challenges = EmployeePhoneChallenge::query()
                 ->where('employee_id', $employee->id)
+                ->whereNotNull('sent_at')
                 ->whereNull('consumed_at')
                 ->whereNull('revoked_at')
                 ->orderByDesc('id')
                 ->lockForUpdate()
-                ->first();
+                ->get();
 
-            if (!$challenge || !$challenge->sent_at) {
+            if ($challenges->isEmpty()) {
                 return false;
             }
 
-            $membership = $employee->memberships()
-                ->where('organization_id', $challenge->organization_id)
-                ->lockForUpdate()
-                ->first();
+            $matchedChallenge = null;
 
-            if (!$membership || $membership->status === 'blocked') {
-                $challenge->forceFill(['revoked_at' => now()])->save();
+            foreach ($challenges as $challenge) {
+                if (
+                    $challenge->expires_at->isPast() ||
+                    $challenge->attempts >= self::MAX_CODE_ATTEMPTS
+                ) {
+                    $challenge->forceFill([
+                        'revoked_at' => now(),
+                    ])->save();
 
-                return false;
-            }
-
-            if (
-                $challenge->expires_at->isPast() ||
-                $challenge->attempts >= self::MAX_CODE_ATTEMPTS
-            ) {
-                $challenge->forceFill(['revoked_at' => now()])->save();
-
-                return false;
-            }
-
-            $challenge->attempts++;
-            $expectedHash = $this->codeHash($code, (string) $challenge->id);
-
-            if (!hash_equals($challenge->code_hash, $expectedHash)) {
-                if ($challenge->attempts >= self::MAX_CODE_ATTEMPTS) {
-                    $challenge->revoked_at = now();
+                    continue;
                 }
 
-                $challenge->save();
+                $challenge->attempts++;
 
+                $expectedHash = $this->codeHash($code, (string) $challenge->id);
+
+                if (!hash_equals($challenge->code_hash, $expectedHash)) {
+                    if ($challenge->attempts >= self::MAX_CODE_ATTEMPTS) {
+                        $challenge->revoked_at = now();
+                    }
+
+                    $challenge->save();
+
+                    continue;
+                }
+
+                $membership = $employee->memberships()
+                    ->where('organization_id', $challenge->organization_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$membership || $membership->status === 'blocked') {
+                    $challenge->forceFill([
+                        'revoked_at' => now(),
+                    ])->save();
+
+                    continue;
+                }
+
+                $challenge->forceFill([
+                    'consumed_at' => now(),
+                ])->save();
+
+                $matchedChallenge = $challenge;
+                break;
+            }
+
+            if (!$matchedChallenge) {
                 return false;
             }
 
-            $challenge->forceFill([
-                'consumed_at' => now(),
-            ])->save();
-
+            // Телефон — одна общая учётная запись для всех организаций.
+            // После её активации все остальные коды становятся недействительными.
             EmployeePhoneChallenge::query()
                 ->where('employee_id', $employee->id)
-                ->where('id', '!=', $challenge->id)
+                ->where('id', '!=', $matchedChallenge->id)
                 ->whereNull('consumed_at')
                 ->whereNull('revoked_at')
                 ->update(['revoked_at' => now()]);

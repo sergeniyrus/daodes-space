@@ -7,7 +7,7 @@ class SmsProviderNotConfiguredException extends SmsTransportException
     public function __construct()
     {
         parent::__construct(
-            'SMS-провайдер не подключён. Настройте реализацию SmsTransport перед отправкой приглашений.'
+            'SMS-провайдер не выбран и не подключён. Реализуйте SmsTransport и замените привязку в AppServiceProvider.'
         );
     }
 }

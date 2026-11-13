@@ -46,42 +46,37 @@ class OrganizationStaffController extends Controller
         }
 
         $result = DB::transaction(function () use ($validated, $phone, $organization) {
-            $employee = OrganizationEmployee::query()
-                ->where('phone', $phone)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$employee) {
-                $employee = OrganizationEmployee::create([
+            // Уникальный индекс phone гарантирует одну учётную запись на номер.
+            // firstOrCreate обрабатывает конкурентную вставку того же телефона.
+            $employee = OrganizationEmployee::query()->firstOrCreate(
+                ['phone' => $phone],
+                [
                     'name' => $validated['name'],
-                    'phone' => $phone,
-                    // До прохождения собственного процесса активации
-                    // пароль неизвестен менеджеру и не может быть использован.
+                    // Менеджер не знает пароль сотрудника и не может им войти.
                     'password' => Str::random(64),
-                ]);
-            }
+                ]
+            );
 
-            $membership = OrganizationEmployeeMembership::query()
-                ->where('organization_id', $organization->id)
-                ->where('employee_id', $employee->id)
+            $employee = OrganizationEmployee::query()
+                ->whereKey($employee->id)
                 ->lockForUpdate()
-                ->first();
+                ->firstOrFail();
 
-            if ($membership) {
-                return [
-                    'created' => false,
-                    'employee' => $employee,
-                ];
-            }
-
-            $organization->employeeMemberships()->create([
-                'employee_id' => $employee->id,
-                'role' => $validated['role'],
-                'status' => 'pending',
-            ]);
+            // Уникальный индекс пары организация/сотрудник не позволяет
+            // создать дублирующее членство при параллельном приглашении.
+            $membership = OrganizationEmployeeMembership::query()->firstOrCreate(
+                [
+                    'organization_id' => $organization->id,
+                    'employee_id' => $employee->id,
+                ],
+                [
+                    'role' => $validated['role'],
+                    'status' => 'pending',
+                ]
+            );
 
             return [
-                'created' => true,
+                'created' => $membership->wasRecentlyCreated,
                 'employee' => $employee,
             ];
         });

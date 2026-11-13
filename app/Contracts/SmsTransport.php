@@ -5,9 +5,13 @@ namespace App\Contracts;
 interface SmsTransport
 {
     /**
-     * Отправляет SMS через подключённого провайдера.
+     * Provider-neutral boundary for outbound SMS.
      *
-     * Реализация обязана выбрасывать SmsTransportException при ошибке.
+     * The phone number is supplied in E.164 format. Implementations must throw
+     * SmsTransportException when the provider rejects or cannot accept a message.
+     * Never write message contents or one-time codes to application logs.
+     *
+     * Production integration point: AppServiceProvider::register().
      */
     public function send(string $phone, string $message): void;
 }
