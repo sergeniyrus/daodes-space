@@ -137,7 +137,7 @@
             <span class="auth-portal-option-icon" aria-hidden="true">🛍</span>
             <span class="auth-portal-option-title">Клиенты организаций</span>
             <span class="auth-portal-option-description">
-                Вход по номеру телефона с одноразовым кодом для заказов.
+                Вход по номеру телефона и паролю. SMS — только при регистрации и восстановлении доступа.
             </span>
         </a>
     </div>

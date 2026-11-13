@@ -137,9 +137,8 @@
 
             <h1 class="form-title">{{ __('forgot.title') }}</h1>
             
-            <form method="POST" action="{{ route('password.update') }}" id="passwordResetForm">
+            <form method="POST" action="{{ route('partner.password.update') }}" id="passwordResetForm">
                 @csrf
-                @method('PUT')
 
                 <!-- Новый пароль -->
                 <div>
