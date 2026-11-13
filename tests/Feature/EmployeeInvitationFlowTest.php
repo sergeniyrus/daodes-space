@@ -12,9 +12,11 @@ use App\Models\OrganizationEmployeeMembership;
 use App\Models\User;
 use App\Services\EmployeeInvitationService;
 use App\Services\Sms\UnconfiguredSmsTransport;
+use Illuminate\Cache\RateLimiter;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -30,8 +32,20 @@ class EmployeeInvitationFlowTest extends TestCase
     {
         parent::setUp();
 
-        // Keep Laravel's route and login rate limiters isolated from external Redis.
-        config(['cache.default' => 'array']);
+        // Keep route and login rate limiters active but backed by an in-memory
+        // cache so the feature suite does not require an external Redis service.
+        config([
+            'cache.default' => 'array',
+            'cache.stores.array' => [
+                'driver' => 'array',
+                'serialize' => false,
+            ],
+        ]);
+
+        $this->app->instance(
+            RateLimiter::class,
+            new RateLimiter(Cache::store('array'))
+        );
 
         $this->createLegacyOrganizationSchema();
     }
