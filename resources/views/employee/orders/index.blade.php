@@ -81,6 +81,26 @@
 .kds-empty { padding:16px 8px; color:#7f899a; text-align:center; font-size:.85rem; }
 .kds-pagination { margin-top:18px; }
 @media(max-width:900px) { .kds-board { grid-template-columns:1fr; } }
+.courier-board { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; }
+.courier-card { padding:18px; background:linear-gradient(145deg,#151b2c,#0a0e1a); border:1px solid rgba(0,229,212,.34); border-radius:15px; box-shadow:0 8px 24px rgba(0,0,0,.22); }
+.courier-card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+.courier-order-number { color:#ffd700; font-size:1.3rem; font-weight:800; }
+.courier-status { display:inline-flex; align-items:center; min-height:30px; padding:4px 10px; color:#00e5d4; background:rgba(0,229,212,.1); border:1px solid rgba(0,229,212,.3); border-radius:20px; font-size:.82rem; font-weight:800; }
+.courier-wait { margin-top:5px; color:#aeb5c4; font-size:.82rem; }
+.courier-section { margin-top:15px; padding-top:13px; border-top:1px solid rgba(0,229,212,.17); }
+.courier-section-title { margin:0 0 9px; color:#ffd700; font-size:.92rem; font-weight:800; }
+.courier-detail { display:flex; justify-content:space-between; gap:12px; padding:5px 0; color:#e7eaf1; }
+.courier-detail-label { color:#9ca8bb; }
+.courier-items { display:grid; gap:7px; }
+.courier-item { display:flex; justify-content:space-between; gap:12px; color:#f4f4f4; }
+.courier-item-qty { flex:0 0 auto; color:#ffd700; font-weight:800; }
+.courier-address { color:#fff; font-size:1.05rem; font-weight:700; line-height:1.5; overflow-wrap:anywhere; }
+.courier-contact { display:flex; flex-wrap:wrap; gap:9px; margin-top:10px; }
+.courier-contact-link { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:8px 14px; color:#00e5d4; text-decoration:none; border:1px solid rgba(0,229,212,.55); border-radius:22px; font-weight:700; }
+.courier-action { margin-top:17px; } .courier-action form { margin:0; }
+.courier-action .employee-orders-button { width:100%; min-height:54px; border-radius:12px; font-size:1rem; }
+.courier-empty { padding:28px 14px; color:#aeb5c4; text-align:center; }
+@media(max-width:600px) { .employee-orders-page { width:calc(100% - 16px); margin:12px auto 30px; } .employee-orders-panel { padding:13px; border-radius:13px; } .courier-card { padding:14px; } .courier-detail { display:block; } .courier-detail-label { display:block; margin-bottom:2px; font-size:.78rem; } .courier-contact-link { flex:1 1 130px; } }
 @media(max-width:600px) {
     .employee-orders-panel { padding: 15px; }
 }
@@ -209,108 +229,109 @@
             </div>
             <div class="kds-pagination">{{ $orders->links() }}</div>
         @else
-        @forelse($orders as $order)
-            <article class="employee-orders-card">
-                <div class="employee-orders-head">
-                    <div>
-                        <div class="employee-orders-number">
-                            Заказ №{{ $order->order_number }}
-                        </div>
-                        <div class="employee-orders-muted">
-                            {{ $order->created_at?->format('d.m.Y H:i') }}
-                        </div>
-                    </div>
-                    <div class="employee-orders-status">{{ $statusLabels[$order->status] ?? $order->status }}</div>
-                </div>
-
-                <div class="employee-orders-lines">
-                    @foreach($order->items as $item)
+        <div class="courier-board">
+            @forelse($orders as $order)
+                @php
+                    $deliveryAddress = $order->delivery_address ?? [];
+                    $addressLine = $deliveryAddress['address_line'] ?? '';
+                    $courierStatusLabel = $statusLabels[$order->status] ?? $order->status;
+                @endphp
+                <article class="courier-card">
+                    <div class="courier-card-head">
                         <div>
-                            {{ $item->item_name }} × {{ $item->quantity }}
-                            @if($item->weight || $item->unit)
-                                · {{ $item->weight }} {{ $item->unit }}
+                            <div class="courier-order-number">Заказ №{{ $order->order_number }}</div>
+                            <div class="courier-wait" data-courier-created-at="{{ $order->created_at?->toIso8601String() }}">
+                                {{ $order->created_at?->format('d.m.Y H:i') }}
+                            </div>
+                        </div>
+                        <span class="courier-status">{{ $courierStatusLabel }}</span>
+                    </div>
+
+                    <div class="courier-section">
+                        <h2 class="courier-section-title">📍 Адрес доставки</h2>
+                        <div class="courier-address">{{ $addressLine ?: 'Адрес не указан' }}</div>
+                        @if(!empty($deliveryAddress['entrance']) || !empty($deliveryAddress['floor']) || !empty($deliveryAddress['apartment']) || !empty($deliveryAddress['intercom']))
+                            <div class="courier-detail">
+                                <span class="courier-detail-label">Детали адреса</span>
+                                <span>
+                                    @if(!empty($deliveryAddress['entrance'])) Подъезд {{ $deliveryAddress['entrance'] }} @endif
+                                    @if(!empty($deliveryAddress['floor'])) · этаж {{ $deliveryAddress['floor'] }} @endif
+                                    @if(!empty($deliveryAddress['apartment'])) · кв./офис {{ $deliveryAddress['apartment'] }} @endif
+                                    @if(!empty($deliveryAddress['intercom'])) · домофон {{ $deliveryAddress['intercom'] }} @endif
+                                </span>
+                            </div>
+                        @endif
+                        @if($addressLine)
+                            <div class="courier-contact">
+                                <a class="courier-contact-link" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&amp;query={{ urlencode($addressLine) }}">Открыть маршрут ↗</a>
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="courier-section">
+                        <h2 class="courier-section-title">👤 Получатель</h2>
+                        <div class="courier-address">{{ $order->customer_name }}</div>
+                        <div class="courier-contact">
+                            @if($order->customer_phone)
+                                <a class="courier-contact-link" href="tel:{{ preg_replace('/[^0-9+]/', '', $order->customer_phone) }}">Позвонить {{ $order->customer_phone }}</a>
                             @endif
                         </div>
-                    @endforeach
-                </div>
-
-                <div class="employee-orders-muted">
-                    Получение:
-                    @switch($order->fulfillment_type)
-                        @case('delivery') Доставка @break
-                        @case('pickup') Самовывоз @break
-                        @case('dine_in') В заведении @break
-                        @default {{ $order->fulfillment_type }}
-                    @endswitch
-                    @if($order->requested_at)
-                        · Время: {{ $order->requested_at->format('d.m.Y H:i') }}
-                    @endif
-                </div>
-
-                @if($order->fulfillment_type === 'delivery' && $membership->role === 'courier')
-                    <div class="employee-orders-muted" style="margin-top: 8px;">
-                        Адрес: {{ $order->delivery_address['address_line'] ?? '' }}
-                        @if(!empty($order->delivery_address['entrance']))
-                            · подъезд {{ $order->delivery_address['entrance'] }}
-                        @endif
-                        @if(!empty($order->delivery_address['apartment']))
-                            · кв./офис {{ $order->delivery_address['apartment'] }}
-                        @endif
                     </div>
-                    <div class="employee-orders-muted">
-                        Получатель: {{ $order->customer_name }} · {{ $order->customer_phone }}
-                    </div>
-                    @if(!empty($order->delivery_address['delivery_comment']))
-                        <div class="employee-orders-muted">
-                            Комментарий: {{ $order->delivery_address['delivery_comment'] }}
+
+                    @if(!empty($deliveryAddress['delivery_comment']) || $order->customer_comment)
+                        <div class="courier-section">
+                            <h2 class="courier-section-title">💬 Комментарии</h2>
+                            @if(!empty($deliveryAddress['delivery_comment']))
+                                <div>{{ $deliveryAddress['delivery_comment'] }}</div>
+                            @endif
+                            @if($order->customer_comment)
+                                <div class="employee-orders-muted" style="margin-top:7px;">К заказу: {{ $order->customer_comment }}</div>
+                            @endif
                         </div>
                     @endif
-                @endif
 
-                <div style="margin-top: 13px;">
-                    @if($membership->role === 'cook' && $order->status === 'confirmed')
-                        <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="preparing">
-                            <button class="employee-orders-button" type="submit">Начать готовить</button>
-                        </form>
-                    @elseif($membership->role === 'cook' && $order->status === 'preparing')
-                        <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="ready">
-                            <button class="employee-orders-button" type="submit">Заказ готов</button>
-                        </form>
-                    @elseif($membership->role === 'cook' && $order->status === 'ready' && $order->fulfillment_type === 'delivery' && $order->assignments->where('role', 'courier')->whereNull('unassigned_at')->isNotEmpty())
-                        <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="handed_to_courier">
-                            <button class="employee-orders-button" type="submit">Передать курьеру</button>
-                        </form>
-                    @elseif($membership->role === 'courier' && $order->status === 'handed_to_courier')
-                        <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="in_transit">
-                            <button class="employee-orders-button" type="submit">Принять заказ и начать доставку</button>
-                        </form>
-                    @elseif($membership->role === 'courier' && $order->status === 'in_transit')
-                        <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="delivered">
-                            <button class="employee-orders-button" type="submit">Отметить доставленным</button>
-                        </form>
-                    @endif
-                </div>
-            </article>
-        @empty
-            <div class="employee-orders-muted">
-                Заказов, назначенных вам, пока нет.
-            </div>
-        @endforelse
+                    <div class="courier-section">
+                        <h2 class="courier-section-title">Состав заказа</h2>
+                        <div class="courier-items">
+                            @foreach($order->items as $item)
+                                <div class="courier-item">
+                                    <span>{{ $item->item_name }}@if($item->weight || $item->unit) · {{ $item->weight }} {{ $item->unit }}@endif</span>
+                                    <span class="courier-item-qty">× {{ $item->quantity }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="courier-detail" style="margin-top:10px;">
+                            <span class="courier-detail-label">Оплата</span>
+                            <strong>{{ $order->payment_method === 'cash_on_receipt' ? 'Наличные при получении' : ($order->payment_method === 'card_on_receipt' ? 'Картой при получении' : 'Онлайн') }}</strong>
+                        </div>
+                        <div class="courier-detail">
+                            <span class="courier-detail-label">Сумма</span>
+                            <strong>{{ number_format((float) $order->total, 2, ',', ' ') }} {{ $order->currency }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="courier-action">
+                        @if($order->status === 'handed_to_courier')
+                            <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="status" value="in_transit">
+                                <button class="employee-orders-button" type="submit">Принять заказ и начать доставку</button>
+                            </form>
+                        @elseif($order->status === 'in_transit')
+                            <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="status" value="delivered">
+                                <button class="employee-orders-button" type="submit">Отметить доставленным</button>
+                            </form>
+                        @endif
+                    </div>
+                </article>
+            @empty
+                <div class="courier-empty">Назначенных доставок пока нет. Новые заказы появятся здесь автоматически.</div>
+            @endforelse
+        </div>
 
         {{ $orders->links() }}
         @endif
@@ -334,6 +355,20 @@
             const hours = Math.floor(elapsedMinutes / 60);
             const minutes = elapsedMinutes % 60;
             element.textContent = hours > 0 ? ('Ожидание ' + hours + ' ч ' + minutes + ' мин') : ('Ожидание ' + minutes + ' мин');
+        });
+        document.querySelectorAll('[data-courier-created-at]').forEach((element) => {
+            const createdAt = Date.parse(element.dataset.courierCreatedAt);
+            if (Number.isNaN(createdAt)) {
+                element.textContent = 'Время неизвестно';
+                return;
+            }
+            const elapsedMinutes = Math.max(0, Math.floor((Date.now() - createdAt) / 60000));
+            const hours = Math.floor(elapsedMinutes / 60);
+            const minutes = elapsedMinutes % 60;
+            const createdLabel = element.dataset.courierCreatedLabel || element.textContent;
+            element.dataset.courierCreatedLabel = createdLabel;
+            element.textContent = createdLabel + ' · прошло '
+                + (hours > 0 ? (hours + ' ч ' + minutes + ' мин') : (minutes + ' мин'));
         });
     };
     updateKdsTimers();

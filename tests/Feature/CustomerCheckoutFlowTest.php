@@ -1001,6 +1001,58 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertSee('name="status" value="preparing"', false);
     }
 
+    public function test_courier_work_queue_renders_mobile_delivery_details_and_actions(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+            'delivery_address' => [
+                'address_line' => 'Test street 15, Graz',
+                'entrance' => '2',
+                'floor' => '4',
+                'apartment' => '18',
+                'intercom' => '1818',
+                'delivery_comment' => 'Позвонить у подъезда',
+            ],
+            'customer_comment' => 'Без лука',
+        ]);
+
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234573'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $order->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        $response = $this->actingAs($courier, 'employee')
+            ->get(route('employee.organization.orders.updates', $organization));
+
+        $response->assertOk()
+            ->assertSee('courier-board')
+            ->assertSee('courier-card')
+            ->assertSee('Заказ №' . $order->order_number)
+            ->assertSee('Test street 15, Graz')
+            ->assertSee('Подъезд 2')
+            ->assertSee('этаж 4')
+            ->assertSee('кв./офис 18')
+            ->assertSee('Позвонить у подъезда')
+            ->assertSee('Без лука')
+            ->assertSee('Test customer')
+            ->assertSee('tel:+436601234567')
+            ->assertSee('Открыть маршрут')
+            ->assertSee('Принять заказ и начать доставку')
+            ->assertSee('name="status" value="in_transit"', false);
+    }
+
     public function test_employee_order_updates_are_limited_to_their_active_role_assignments(): void
     {
         $customer = $this->createVerifiedCustomer();
