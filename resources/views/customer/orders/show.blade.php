@@ -183,6 +183,17 @@
         <p id="customer-order-payment-status" class="customer-order-detail-muted">
             Состояние оплаты: {{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}
         </p>
+        @if($order->fulfillment_type === 'pickup')
+            <div id="customer-pickup-action" style="margin-top: 15px;" @if($order->status !== 'ready') hidden @endif>
+                <form method="POST" action="{{ route('customer.orders.pickup.confirm', $order) }}" onsubmit="return confirm('Подтвердить, что вы забрали заказ?');">
+                    @csrf
+                    <button type="submit" style="width:100%; min-height:48px; padding:10px 16px; color:#00e5d4; background:rgba(0,229,212,.07); border:1px solid rgba(0,229,212,.65); border-radius:12px; font-weight:800; cursor:pointer;">
+                        Я забрал заказ
+                    </button>
+                </form>
+                <p class="customer-order-detail-muted" style="margin-bottom:0;">Заказ готов. Заберите его и подтвердите получение.</p>
+            </div>
+        @endif
         @if($order->requested_at)
             <p class="customer-order-detail-muted">
                 Желаемое время: {{ $order->requested_at->format('d.m.Y H:i') }}
@@ -290,6 +301,7 @@
     const liveTitle = document.getElementById('customer-order-live-title');
     const liveText = document.getElementById('customer-order-live-text');
     const liveIcon = document.getElementById('customer-order-live-icon');
+    const pickupAction = document.getElementById('customer-pickup-action');
 
     function renderDeliveryStatus(status) {
         if (!liveBanner || !liveTitle || !liveText || !liveIcon) {
@@ -403,6 +415,9 @@
 
             statusElement.textContent = 'Статус: ' + (statusLabels[data.status] || data.status);
             renderDeliveryStatus(data.status);
+            if (pickupAction) {
+                pickupAction.hidden = data.status !== 'ready';
+            }
             paymentElement.textContent = 'Состояние оплаты: '
                 + (paymentLabels[data.payment_status] || data.payment_status);
 
