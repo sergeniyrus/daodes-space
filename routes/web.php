@@ -1096,6 +1096,13 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('orders.index');
 
+        Route::get(
+            '/{organization}/orders/updates',
+            [OrganizationOrderController::class, 'updates']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.updates');
+
         Route::patch(
             '/{organization}/orders/{order}/status',
             [OrganizationOrderController::class, 'updateStatus']

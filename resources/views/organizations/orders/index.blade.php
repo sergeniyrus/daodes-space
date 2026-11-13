@@ -116,7 +116,10 @@
 }
 </style>
 
-<div class="organization-orders-page">
+<div
+    class="organization-orders-page"
+    data-orders-updates-url="{{ route('organizations.orders.updates', $organization) }}"
+>
     @if(session('success'))
         <div class="organization-orders-panel organization-orders-status">
             {{ session('success') }}
@@ -141,7 +144,7 @@
         </div>
     </div>
 
-    <div class="organization-orders-panel">
+    <div class="organization-orders-panel" id="organization-orders-list">
         @forelse($orders as $order)
             <article class="organization-orders-card">
                 <div class="organization-orders-head">
@@ -372,4 +375,66 @@
         {{ $orders->links() }}
     </div>
 </div>
+
+<script>
+(() => {
+    const page = document.querySelector('.organization-orders-page[data-orders-updates-url]');
+    let list = document.getElementById('organization-orders-list');
+
+    if (!page || !list) {
+        return;
+    }
+
+    let requestInProgress = false;
+
+    const refreshOrders = async () => {
+        if (requestInProgress || document.hidden) {
+            return;
+        }
+
+        requestInProgress = true;
+
+        try {
+            const response = await fetch(page.dataset.ordersUpdatesUrl, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'text/html',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                throw new Error('Не удалось обновить список заказов.');
+            }
+
+            const html = await response.text();
+            const documentFromServer = new DOMParser().parseFromString(html, 'text/html');
+            const updatedList = documentFromServer.getElementById('organization-orders-list');
+
+            if (!updatedList) {
+                throw new Error('Сервер вернул некорректный ответ.');
+            }
+
+            if (list.innerHTML !== updatedList.innerHTML) {
+                const replacement = document.importNode(updatedList, true);
+                list.replaceWith(replacement);
+                list = replacement;
+            }
+        } catch (error) {
+            console.warn('Organization orders polling:', error);
+        } finally {
+            requestInProgress = false;
+        }
+    };
+
+    window.setInterval(refreshOrders, 15000);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            refreshOrders();
+        }
+    });
+})();
+</script>
 @endsection

@@ -68,6 +68,11 @@ Route::prefix('staff')
                         [EmployeeOrderController::class, 'index']
                     )->name('orders.index');
 
+                    Route::get(
+                        '/orders/updates',
+                        [EmployeeOrderController::class, 'updates']
+                    )->name('orders.updates');
+
                     Route::patch(
                         '/orders/{order}/status',
                         [EmployeeOrderController::class, 'updateStatus']

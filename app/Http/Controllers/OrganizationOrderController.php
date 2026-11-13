@@ -8,6 +8,7 @@ use App\Models\OrganizationEmployeeMembership;
 use App\Support\OrderTransitionPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -42,6 +43,15 @@ class OrganizationOrderController extends Controller
             'orders' => $orders,
             'staffMemberships' => $staffMemberships,
         ]);
+    }
+
+    public function updates(Organization $organization): Response
+    {
+        $view = $this->index($organization);
+
+        return response()
+            ->view('organizations.orders.index', $view->getData())
+            ->header('Cache-Control', 'private, no-store, max-age=0');
     }
 
     public function updateStatus(

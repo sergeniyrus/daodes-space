@@ -66,7 +66,10 @@
 }
 </style>
 
-<div class="employee-orders-page">
+<div
+    class="employee-orders-page"
+    data-orders-updates-url="{{ route('employee.organization.orders.updates', $organization) }}"
+>
     @if(session('success'))
         <div class="employee-orders-panel employee-orders-status">
             {{ session('success') }}
@@ -94,7 +97,7 @@
         </div>
     </div>
 
-    <div class="employee-orders-panel">
+    <div class="employee-orders-panel" id="employee-orders-list">
         @forelse($orders as $order)
             <article class="employee-orders-card">
                 <div class="employee-orders-head">
@@ -201,4 +204,66 @@
         {{ $orders->links() }}
     </div>
 </div>
+
+<script>
+(() => {
+    const page = document.querySelector('.employee-orders-page[data-orders-updates-url]');
+    let list = document.getElementById('employee-orders-list');
+
+    if (!page || !list) {
+        return;
+    }
+
+    let requestInProgress = false;
+
+    const refreshOrders = async () => {
+        if (requestInProgress || document.hidden) {
+            return;
+        }
+
+        requestInProgress = true;
+
+        try {
+            const response = await fetch(page.dataset.ordersUpdatesUrl, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'text/html',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                throw new Error('Не удалось обновить рабочую очередь.');
+            }
+
+            const html = await response.text();
+            const documentFromServer = new DOMParser().parseFromString(html, 'text/html');
+            const updatedList = documentFromServer.getElementById('employee-orders-list');
+
+            if (!updatedList) {
+                throw new Error('Сервер вернул некорректный ответ.');
+            }
+
+            if (list.innerHTML !== updatedList.innerHTML) {
+                const replacement = document.importNode(updatedList, true);
+                list.replaceWith(replacement);
+                list = replacement;
+            }
+        } catch (error) {
+            console.warn('Employee orders polling:', error);
+        } finally {
+            requestInProgress = false;
+        }
+    };
+
+    window.setInterval(refreshOrders, 15000);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            refreshOrders();
+        }
+    });
+})();
+</script>
 @endsection
