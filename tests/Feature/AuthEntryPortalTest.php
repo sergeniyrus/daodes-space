@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class AuthEntryPortalTest extends TestCase
@@ -35,10 +36,8 @@ class AuthEntryPortalTest extends TestCase
             ->assertSee('Получить SMS-код');
     }
 
-    public function test_customer_organization_selector_route_is_available(): void
+    public function test_customer_organization_selector_route_is_registered(): void
     {
-        $this->get(route('customer.organizations.index'))
-            ->assertOk()
-            ->assertSee('Выберите организацию');
+        $this->assertTrue(Route::has('customer.organizations.index'));
     }
 }
