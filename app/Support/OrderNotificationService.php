@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Order;
 use App\Models\OrderNotification;
+use App\Services\PushNotificationService;
 use Illuminate\Support\Facades\DB;
 
 class OrderNotificationService
@@ -85,15 +86,20 @@ class OrderNotificationService
 
         $statusLabel = $statusLabels[$status] ?? $status;
 
+        $title = 'Статус заказа обновлён';
+        $message = 'Заказ №' . $order->order_number . ': ' . $statusLabel . '.';
+
         OrderNotification::query()->create([
             'organization_id' => $order->organization_id,
             'order_id' => $order->id,
             'recipient_type' => 'customer',
             'recipient_id' => $order->customer_id,
             'event_type' => 'order_status_changed',
-            'title' => 'Статус заказа обновлён',
-            'message' => 'Заказ №' . $order->order_number . ': ' . $statusLabel . '.',
+            'title' => $title,
+            'message' => $message,
         ]);
+
+        app(PushNotificationService::class)->notifyOrderStatus($order, $status, $title, $message);
 
         if ($status === Order::STATUS_READY) {
             $this->sendReadySmsAfterCommit($order);

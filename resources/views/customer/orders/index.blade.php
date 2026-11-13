@@ -57,6 +57,7 @@
 </style>
 
 <div class="customer-orders-page">
+    @include('components.customer-push-subscription')
     <div class="customer-orders-panel">
         <h1 class="customer-orders-title">Мои заказы</h1>
 

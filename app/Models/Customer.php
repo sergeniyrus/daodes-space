@@ -58,4 +58,9 @@ class Customer extends Authenticatable
     {
         return $this->hasMany(CustomerPhoneChallenge::class);
     }
+
+    public function devices(): HasMany
+    {
+        return $this->hasMany(CustomerDevice::class);
+    }
 }

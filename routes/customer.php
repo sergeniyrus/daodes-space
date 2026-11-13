@@ -5,6 +5,7 @@ use App\Http\Controllers\Customer\CustomerCatalogController;
 use App\Http\Controllers\Customer\CustomerCartController;
 use App\Http\Controllers\Customer\CustomerCheckoutController;
 use App\Http\Controllers\Customer\CustomerOrderController;
+use App\Http\Controllers\Customer\CustomerPushController;
 use App\Http\Controllers\OrderNotificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -96,6 +97,12 @@ Route::prefix('customer')
         )->name('orders.index');
 
         Route::middleware('auth:customer')->group(function () {
+            Route::post('/push/devices', [CustomerPushController::class, 'store'])
+                ->name('push.devices.store');
+
+            Route::delete('/push/devices', [CustomerPushController::class, 'destroy'])
+                ->name('push.devices.destroy');
+
             Route::get(
                 '/orders/notifications',
                 [OrderNotificationController::class, 'customerIndex']

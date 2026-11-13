@@ -26,6 +26,9 @@ class OnlineOrdersSchemaTest extends TestCase
             'organization_employees',
             'organization_employee_memberships',
             'employee_phone_challenges',
+            'customer_devices',
+            'push_notifications',
+            'push_notification_deliveries',
         ];
 
         foreach ($tables as $table) {

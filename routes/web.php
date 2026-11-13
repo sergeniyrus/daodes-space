@@ -55,7 +55,11 @@ use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationMenuController;
 use App\Http\Controllers\OrganizationStaffController;
 use App\Http\Controllers\OrganizationOrderController;
+use App\Http\Controllers\Customer\CustomerPushController;
 use App\Http\Controllers\OrderNotificationController;
+
+Route::get('/firebase-messaging-sw.js', [CustomerPushController::class, 'serviceWorker'])
+    ->name('firebase.messaging.sw');
 
 Route::middleware(['auth', ReleaseAdmin::class])
     ->get('/admin/ai/approval', function () {
