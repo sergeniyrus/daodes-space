@@ -118,7 +118,7 @@
 
 <div
     class="organization-orders-page"
-    data-orders-updates-url="{{ route('organizations.orders.updates', $organization) }}"
+    data-orders-updates-url="{{ route('organizations.orders.updates', $organization) }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}"
 >
     @if(session('success'))
         <div class="organization-orders-panel organization-orders-status">
@@ -148,6 +148,66 @@
         'notificationsUrl' => route('organizations.orders.notifications', $organization),
         'notificationReadUrlTemplate' => route('organizations.orders.notifications.read', [$organization, '__ID__']),
     ])
+
+    <div class="organization-orders-panel">
+        <h2 class="organization-orders-title" style="font-size: 1.1rem;">Поиск и фильтры</h2>
+        <form method="GET" action="{{ route('organizations.orders.index', $organization) }}" class="organization-orders-actions" style="align-items: end;">
+            <label class="organization-orders-muted" style="display: grid; gap: 5px; min-width: 190px;">
+                Поиск: номер, клиент или телефон
+                <input class="organization-orders-select" type="search" name="q" value="{{ request('q') }}" maxlength="100" placeholder="Например, 1042 или Иван">
+            </label>
+            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
+                Статус
+                <select class="organization-orders-select" name="status">
+                    <option value="">Все статусы</option>
+                    @foreach($statusLabels as $value => $label)
+                        <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
+                Получение
+                <select class="organization-orders-select" name="fulfillment_type">
+                    <option value="">Все способы</option>
+                    <option value="delivery" @selected(request('fulfillment_type') === 'delivery')>Доставка</option>
+                    <option value="pickup" @selected(request('fulfillment_type') === 'pickup')>Самовывоз</option>
+                    <option value="dine_in" @selected(request('fulfillment_type') === 'dine_in')>В заведении</option>
+                </select>
+            </label>
+            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
+                Способ оплаты
+                <select class="organization-orders-select" name="payment_method">
+                    <option value="">Все способы оплаты</option>
+                    <option value="online" @selected(request('payment_method') === 'online')>Онлайн</option>
+                    <option value="cash_on_receipt" @selected(request('payment_method') === 'cash_on_receipt')>Наличные</option>
+                    <option value="card_on_receipt" @selected(request('payment_method') === 'card_on_receipt')>Терминал</option>
+                </select>
+            </label>
+            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
+                Оплата
+                <select class="organization-orders-select" name="payment_status">
+                    <option value="">Любое состояние</option>
+                    @foreach($paymentLabels as $value => $label)
+                        <option value="{{ $value }}" @selected(request('payment_status') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
+                С даты
+                <input class="organization-orders-select" type="date" name="date_from" value="{{ request('date_from') }}">
+            </label>
+            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
+                По дату
+                <input class="organization-orders-select" type="date" name="date_to" value="{{ request('date_to') }}">
+            </label>
+            <button type="submit" class="organization-orders-button">Применить</button>
+            <button type="submit" formaction="{{ route('organizations.orders.export', $organization) }}" class="organization-orders-button">Скачать CSV</button>
+            <a href="{{ route('organizations.orders.index', $organization) }}" class="organization-orders-button" style="text-decoration: none; display: inline-flex; align-items: center;">Сбросить</a>
+        </form>
+        <div class="organization-orders-muted" style="margin-top: 10px;">
+            Найдено заказов: {{ $orders->total() }}
+        </div>
+    </div>
 
     <div class="organization-orders-panel" id="organization-orders-list">
         @forelse($orders as $order)

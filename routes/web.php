@@ -1105,6 +1105,13 @@ Route::middleware('auth')
             ->name('orders.updates');
 
         Route::get(
+            '/{organization}/orders/export',
+            [OrganizationOrderController::class, 'export']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.export');
+
+        Route::get(
             '/{organization}/orders/notifications',
             [OrderNotificationController::class, 'managerIndex']
         )

@@ -13,20 +13,15 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrganizationOrderController extends Controller
 {
-    public function index(Organization $organization): View
+    public function index(Request $request, Organization $organization): View
     {
-        $orders = $organization->orders()
-            ->with([
-                'customer',
-                'items',
-                'assignments.employee',
-                'statusHistory',
-            ])
-            ->latest()
-            ->paginate(20);
+        $orders = $this->filteredOrdersQuery($request, $organization)
+            ->paginate(20)
+            ->appends($request->query());
 
         $staffMemberships = $organization->employeeMemberships()
             ->with('employee')
@@ -77,13 +72,150 @@ class OrganizationOrderController extends Controller
         ]);
     }
 
-    public function updates(Organization $organization): Response
+    public function updates(Request $request, Organization $organization): Response
     {
-        $view = $this->index($organization);
+        $view = $this->index($request, $organization);
 
         return response()
             ->view('organizations.orders.index', $view->getData())
             ->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
+    /**
+     * Экспорт отфильтрованных заказов текущей организации в CSV.
+     */
+    public function export(Request $request, Organization $organization): StreamedResponse
+    {
+        $ordersQuery = $this->filteredOrdersQuery($request, $organization);
+
+        return response()->streamDownload(function () use ($ordersQuery) {
+            $output = fopen('php://output', 'w');
+
+            if ($output === false) {
+                return;
+            }
+
+            // BOM обеспечивает корректное отображение кириллицы в Excel.
+            fwrite($output, "\xEF\xBB\xBF");
+
+            fputcsv($output, [
+                'Номер заказа',
+                'Дата создания',
+                'Клиент',
+                'Телефон',
+                'Статус',
+                'Получение',
+                'Способ оплаты',
+                'Статус оплаты',
+                'Состав заказа',
+                'Сумма',
+                'Валюта',
+                'Комментарий',
+            ], ';', '"', '\\');
+
+            $safeCsvValue = static function ($value): string {
+                $value = (string) ($value ?? '');
+
+                // Защита от CSV/Excel formula injection для пользовательских полей.
+                if (preg_match('/^\s*[=+@-]/u', $value) === 1) {
+                    return "'" . $value;
+                }
+
+                return $value;
+            };
+
+            $ordersQuery->chunk(500, function ($orders) use ($output, $safeCsvValue) {
+                foreach ($orders as $order) {
+                    $items = $order->items
+                        ->map(fn ($item) => $item->item_name . ' × ' . $item->quantity)
+                        ->implode(' | ');
+
+                    fputcsv($output, [
+                        $safeCsvValue($order->order_number),
+                        $order->created_at?->format('Y-m-d H:i:s'),
+                        $safeCsvValue($order->customer_name),
+                        $safeCsvValue($order->customer_phone),
+                        $safeCsvValue($order->status),
+                        $safeCsvValue($order->fulfillment_type),
+                        $safeCsvValue($order->payment_method),
+                        $safeCsvValue($order->payment_status),
+                        $safeCsvValue($items),
+                        $order->total,
+                        $order->currency,
+                        $safeCsvValue($order->customer_comment),
+                    ], ';', '"', '\\');
+                }
+            });
+
+            fclose($output);
+        }, 'orders-' . $organization->id . '-' . now()->format('Ymd-His') . '.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'private, no-store, max-age=0',
+        ]);
+    }
+
+    /**
+     * Общая выборка истории заказов с фильтрами.
+     * Все условия применяются только к заказам текущей организации.
+     */
+    private function filteredOrdersQuery(Request $request, Organization $organization)
+    {
+        $filters = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:new,awaiting_payment,confirmed,preparing,ready,handed_to_courier,in_transit,issued,served,delivered,completed,cancelled'],
+            'fulfillment_type' => ['nullable', 'in:delivery,pickup,dine_in'],
+            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt'],
+            'payment_status' => ['nullable', 'in:pending,succeeded,failed,cancelled,refunded'],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        if (
+            !empty($filters['date_from'])
+            && !empty($filters['date_to'])
+            && $filters['date_to'] < $filters['date_from']
+        ) {
+            throw ValidationException::withMessages([
+                'date_to' => 'Конечная дата не может быть раньше начальной.',
+            ]);
+        }
+
+        $query = $organization->orders()
+            ->with([
+                'customer',
+                'items',
+                'assignments.employee',
+                'statusHistory',
+            ]);
+
+        if (!empty($filters['q'])) {
+            $search = trim($filters['q']);
+
+            $query->where(function ($builder) use ($search) {
+                $builder
+                    ->where('order_number', 'like', '%' . $search . '%')
+                    ->orWhere('customer_name', 'like', '%' . $search . '%')
+                    ->orWhere('customer_phone', 'like', '%' . $search . '%');
+            });
+        }
+
+        foreach (['status', 'fulfillment_type', 'payment_method', 'payment_status'] as $field) {
+            if (!empty($filters[$field])) {
+                $query->where($field, $filters[$field]);
+            }
+        }
+
+        if (!empty($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        return $query
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
     }
 
     public function updateStatus(

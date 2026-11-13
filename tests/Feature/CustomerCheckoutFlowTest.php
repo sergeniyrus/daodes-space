@@ -1185,6 +1185,85 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertLessThan($busyPosition, $availablePosition);
     }
 
+    public function test_manager_order_history_filters_are_scoped_to_the_current_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('History cafe');
+        [$otherOrganization, $otherItem] = $this->createOrderableMenu('Other history cafe');
+
+        $matchingOrder = $this->createPickupOrder($customer, $organization, $item);
+        $matchingOrder->update([
+            'status' => Order::STATUS_COMPLETED,
+            'payment_status' => Order::PAYMENT_SUCCEEDED,
+        ]);
+
+        $nonMatchingOrder = $this->createPickupOrder($customer, $organization, $item);
+        $nonMatchingOrder->update([
+            'status' => Order::STATUS_NEW,
+        ]);
+
+        $otherOrder = $this->createPickupOrder($customer, $otherOrganization, $otherItem);
+        $otherOrder->update([
+            'status' => Order::STATUS_COMPLETED,
+            'payment_status' => Order::PAYMENT_SUCCEEDED,
+        ]);
+
+        $manager = $this->createOrganizationManager($organization);
+
+        $response = $this->actingAs($manager)
+            ->get(route('organizations.orders.index', [
+                'organization' => $organization->id,
+                'status' => Order::STATUS_COMPLETED,
+                'payment_status' => Order::PAYMENT_SUCCEEDED,
+                'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+            ]));
+
+        $response->assertOk()
+            ->assertSee($matchingOrder->order_number)
+            ->assertDontSee($nonMatchingOrder->order_number)
+            ->assertDontSee($otherOrder->order_number)
+            ->assertSee('Найдено заказов: 1');
+    }
+
+    public function test_manager_can_export_only_filtered_orders_from_their_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('CSV history cafe');
+        [$otherOrganization, $otherItem] = $this->createOrderableMenu('Other CSV cafe');
+
+        $includedOrder = $this->createPickupOrder($customer, $organization, $item);
+        $includedOrder->update([
+            'status' => Order::STATUS_COMPLETED,
+        ]);
+
+        $excludedOrder = $this->createPickupOrder($customer, $organization, $item);
+        $excludedOrder->update([
+            'status' => Order::STATUS_NEW,
+        ]);
+
+        $otherOrder = $this->createPickupOrder($customer, $otherOrganization, $otherItem);
+        $otherOrder->update([
+            'status' => Order::STATUS_COMPLETED,
+        ]);
+
+        $manager = $this->createOrganizationManager($organization);
+
+        $response = $this->actingAs($manager)
+            ->get(route('organizations.orders.export', [
+                'organization' => $organization->id,
+                'status' => Order::STATUS_COMPLETED,
+            ]));
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+
+        $csv = $response->streamedContent();
+
+        $this->assertStringContainsString((string) $includedOrder->order_number, $csv);
+        $this->assertStringNotContainsString((string) $excludedOrder->order_number, $csv);
+        $this->assertStringNotContainsString((string) $otherOrder->order_number, $csv);
+    }
+
     public function test_organization_dashboard_shows_order_metrics_scoped_to_organization(): void
     {
         $customer = $this->createVerifiedCustomer();
