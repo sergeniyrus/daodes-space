@@ -9,7 +9,7 @@ class CustomerDevice extends Model
     protected $fillable = ['customer_id', 'platform', 'device_name', 'push_token', 'token_hash', 'is_active', 'last_seen_at'];
     protected function casts(): array
     {
-        return ['customer_id' => 'integer', 'is_active' => 'boolean', 'last_seen_at' => 'datetime'];
+        return ['customer_id' => 'integer', 'push_token' => 'encrypted', 'is_active' => 'boolean', 'last_seen_at' => 'datetime'];
     }
     public function customer(): BelongsTo
     {

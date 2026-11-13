@@ -2,6 +2,7 @@
 namespace Tests\Feature;
 use App\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 class CustomerPushDeviceTest extends TestCase
 {
@@ -38,6 +39,13 @@ class CustomerPushDeviceTest extends TestCase
             'platform' => 'web',
             'is_active' => true,
         ]);
+
+        $storedToken = DB::table('customer_devices')
+            ->where('token_hash', hash('sha256', $token))
+            ->value('push_token');
+
+        $this->assertNotSame($token, $storedToken);
+        $this->assertSame($token, $customer->devices()->firstOrFail()->push_token);
     }
     public function test_unverified_customer_cannot_register_a_push_device(): void
     {

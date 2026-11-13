@@ -98,9 +98,11 @@ Route::prefix('customer')
 
         Route::middleware('auth:customer')->group(function () {
             Route::post('/push/devices', [CustomerPushController::class, 'store'])
+                ->middleware('throttle:10,1')
                 ->name('push.devices.store');
 
             Route::delete('/push/devices', [CustomerPushController::class, 'destroy'])
+                ->middleware('throttle:20,1')
                 ->name('push.devices.destroy');
 
             Route::get(
