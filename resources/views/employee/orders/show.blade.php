@@ -9,7 +9,7 @@
     $deliveryAddress = $order->delivery_address ?? [];
     $addressLine = $deliveryAddress['address_line'] ?? '';
     $statusLabel = match ($order->status) {
-        'ready' => 'Готов, ожидает передачи курьеру',
+        'ready' => 'Готов — свободен для курьера',
         'handed_to_courier' => 'Передан курьеру',
         'in_transit' => 'В пути',
         'delivered' => 'Доставлен — ожидает закрытия',
@@ -74,7 +74,7 @@
         <p style="color:#00e5a8;font-weight:800;">{{ $statusLabel }}</p>
         <div class="courier-order-detail-muted">
             {{ match ($order->status) {
-                'ready' => 'Заказ готов и назначен вам. Ожидайте, пока менеджер или повар передаст его курьеру.',
+                'ready' => 'Заказ готов. Если вы готовы выполнить доставку, заберите его кнопкой ниже.',
                 'handed_to_courier' => 'Заказ ожидает начала доставки.',
                 'in_transit' => 'Вы уже направляетесь к клиенту.',
                 'delivered' => 'Заказ вручён клиенту. Подтвердите полученную оплату, затем закройте заказ.',
@@ -164,7 +164,12 @@
         </div>
 
         <div class="courier-order-detail-actions">
-            @if($order->status === 'handed_to_courier')
+            @if($order->status === 'ready')
+                <form method="POST" action="{{ route('employee.organization.orders.claim', [$organization, $order]) }}" onsubmit="return confirm('Забрать заказ №{{ $order->order_number }} в доставку?');">
+                    @csrf
+                    <button class="courier-order-detail-button" type="submit">Забрать заказ в доставку</button>
+                </form>
+            @elseif($order->status === 'handed_to_courier')
                 <form method="POST" action="{{ route('employee.organization.orders.status', [$organization, $order]) }}">
                     @csrf
                     @method('PATCH')
