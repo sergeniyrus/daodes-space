@@ -19,10 +19,6 @@ class OrderTransitionPolicy
         string $paymentStatus
     ): ?string {
         return match ($toStatus) {
-            Order::STATUS_CONFIRMED => $fromStatus === Order::STATUS_NEW
-                ? null
-                : 'Подтвердить можно только новый заказ.',
-
             Order::STATUS_ISSUED => (
                 $fromStatus === Order::STATUS_READY
                 && $fulfillmentType === Order::FULFILLMENT_PICKUP
@@ -86,16 +82,11 @@ class OrderTransitionPolicy
     ): ?string {
         if ($role === 'cook') {
             $allowed = (
-                $fromStatus === Order::STATUS_CONFIRMED
+                in_array($fromStatus, [Order::STATUS_NEW, Order::STATUS_CONFIRMED], true)
                 && $toStatus === Order::STATUS_PREPARING
             ) || (
                 $fromStatus === Order::STATUS_PREPARING
                 && $toStatus === Order::STATUS_READY
-            ) || (
-                $fromStatus === Order::STATUS_READY
-                && $toStatus === Order::STATUS_HANDED_TO_COURIER
-                && $fulfillmentType === Order::FULFILLMENT_DELIVERY
-                && $activeCourierAssigned
             );
 
             return $allowed
