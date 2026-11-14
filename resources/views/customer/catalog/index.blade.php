@@ -344,7 +344,7 @@
 }
 .customer-order-products-panel[hidden] { display: none !important; }
 .customer-order-products-heading {
-    display: flex;
+    display: none !important;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
