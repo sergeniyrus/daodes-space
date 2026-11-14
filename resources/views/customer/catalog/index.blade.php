@@ -492,7 +492,11 @@
         min-height: 0;
         overflow: visible;
     }
-    .customer-order-grid .customer-order-item { height: auto; min-height: 250px; }
+    .customer-order-grid .customer-order-item {
+        flex: 0 0 auto;
+        height: auto;
+        min-height: 0;
+    }
     .customer-order-carousel-control { display: none; }
 }
 @media (max-width: 420px) {
@@ -1070,23 +1074,27 @@ body:has(.customer-order-page) {
         font-size: clamp(.68rem, 2.8vw, .8rem);
     }
 
-    .customer-order-sidebar-title,
+    /* Restore the original left alignment of section headings and category rows. */
+    .customer-order-sidebar-title {
+        text-align: left;
+    }
+
     .customer-order-products-heading {
-        text-align: center;
-        justify-content: center;
+        text-align: left;
+        justify-content: space-between;
     }
 
     .customer-order-section-choice {
-        justify-content: center;
-        text-align: center;
+        justify-content: space-between;
+        text-align: left;
     }
 
     .customer-order-section-choice-name {
-        text-align: center;
+        text-align: left;
     }
 
     .customer-order-section-choice-meta {
-        margin-left: 5px;
+        margin-left: 0;
     }
 
     .customer-order-item {
