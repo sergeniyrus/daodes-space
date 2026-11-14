@@ -1294,29 +1294,39 @@ body:has(.customer-order-page) {
 .customer-order-item-content > p + p {
     font-size: .92rem;
 }
-.customer-order-item-meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: nowrap;
-    gap: 12px;
+/* Dedicated metadata row: weight left, price right, directly above the controls. */
+.customer-order-grid .customer-order-item-meta {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    flex-wrap: initial !important;
+    gap: 12px !important;
+    width: 100% !important;
     min-width: 0;
-    padding-top: 2px;
+    margin: 0 !important;
+    padding: 8px 2px 2px !important;
+    border-top: 1px solid rgba(255, 215, 0, .22);
 }
-.customer-order-item-weight {
+.customer-order-grid .customer-order-item-weight {
+    display: block !important;
     min-width: 0;
     color: #aeb5c4;
     font-size: .95rem;
     line-height: 1.3;
+    text-align: left;
     overflow-wrap: anywhere;
 }
-.customer-order-item-meta .customer-order-price {
-    flex: 0 0 auto;
-    margin: 0 0 0 auto;
-    padding: 0;
+.customer-order-grid .customer-order-item-meta .customer-order-price {
+    display: block !important;
+    justify-self: end;
+    margin: 0 !important;
+    padding: 0 !important;
     color: #ffd700;
     font-size: 1.12rem;
     font-weight: 800;
+    line-height: 1.3;
+    text-align: right;
     white-space: nowrap;
 }
 .customer-order-item-image-placeholder {
