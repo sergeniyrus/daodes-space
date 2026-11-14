@@ -626,7 +626,7 @@
     @endif
 </div>
 
-<script></div>
+</div>
 
 <script>
 (() => {
