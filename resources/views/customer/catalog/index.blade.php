@@ -369,7 +369,7 @@
     display: grid;
     grid-auto-flow: column;
     grid-template-rows: repeat(2, minmax(0, 1fr));
-    grid-auto-columns: calc((100% - 28px) / 3);
+    grid-auto-columns: calc((100% - 42px) / 4);
     gap: 14px;
     height: clamp(540px, calc(100vh - 260px), 760px);
     min-height: 540px;
@@ -439,7 +439,7 @@
 }
 @media (min-width: 1600px) {
     .customer-order-page { width: min(2200px, calc(100% - 36px)); }
-    .customer-order-grid { grid-auto-columns: calc((100% - 28px) / 3); }
+    .customer-order-grid { grid-auto-columns: calc((100% - 42px) / 4); }
 }
 @media (max-width: 1000px) {
     .customer-order-layout { grid-template-columns: minmax(165px, 1fr) minmax(0, 4fr); gap: 12px; }
