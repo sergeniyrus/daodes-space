@@ -557,10 +557,60 @@
     text-shadow: 0 0 12px rgba(255, 215, 0, .25);
 }
 .customer-order-header-methods {
+    position: relative;
     color: #bafaf3;
     font-size: clamp(1rem, 1.35vw, 1.4rem);
     line-height: 1.2;
     font-weight: 700;
+    cursor: help;
+}
+.customer-order-header-tooltip {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + 12px);
+    left: 50%;
+    width: min(390px, calc(100vw - 48px));
+    padding: 15px 18px;
+    color: #eaf8f7;
+    text-align: left;
+    white-space: normal;
+    background: linear-gradient(145deg, #101a2b, #080e1b);
+    border: 1px solid rgba(255, 215, 0, .65);
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .55), 0 0 18px rgba(0, 229, 212, .12);
+    font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.55;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, 6px);
+    transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+}
+.customer-order-header-tooltip::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    border: 7px solid transparent;
+    border-bottom-color: rgba(255, 215, 0, .65);
+    transform: translateX(-50%);
+}
+.customer-order-header-methods:hover .customer-order-header-tooltip,
+.customer-order-header-methods:focus-within .customer-order-header-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+.customer-order-header-tooltip-line {
+    display: block;
+}
+.customer-order-header-tooltip-line + .customer-order-header-tooltip-line {
+    margin-top: 5px;
+}
+.customer-order-header-tooltip-accent {
+    color: #ffd700;
 }
 .customer-order-header-delivery {
     color: #f4d77a;
@@ -710,22 +760,27 @@
         <section class="customer-order-header-card customer-order-header-info">
             <h1 class="customer-order-header-organization">{{ $organization->name }}</h1>
             <div class="customer-order-header-menu-title">НАШЕ МЕНЮ</div>
-            <div class="customer-order-header-methods">
+            <div class="customer-order-header-methods" tabindex="0" aria-describedby="customer-order-header-tooltip">
                 @if($settings?->delivery_enabled)Доставка@endif
                 @if($settings?->pickup_enabled) · Самовывоз@endif
                 @if($settings?->dine_in_enabled) · В Ёлках термбурга@endif
-            </div>
-            @if($settings?->delivery_enabled)
-                <div class="customer-order-header-delivery">
-                    Доставка: {{ number_format((float) $settings->delivery_fee, 2, ',', ' ') }} {{ $currencySymbol }}
-                    @if($settings->minimum_order !== null)
-                        · бесплатно от {{ number_format((float) $settings->minimum_order, 2, ',', ' ') }} {{ $currencySymbol }}
+
+                <span class="customer-order-header-tooltip" id="customer-order-header-tooltip" role="tooltip">
+                    @if($settings?->delivery_enabled)
+                        <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">
+                            Доставка: {{ number_format((float) $settings->delivery_fee, 2, ',', ' ') }} {{ $currencySymbol }}
+                            @if($settings->minimum_order !== null)
+                                · бесплатно от {{ number_format((float) $settings->minimum_order, 2, ',', ' ') }} {{ $currencySymbol }}
+                            @endif
+                        </span>
                     @endif
-                </div>
-            @endif
-            @if($settings?->pickup_enabled && $settings->pickup_min_minutes !== null)
-                <div class="customer-order-header-methods">Самовывоз: от {{ $settings->pickup_min_minutes }} мин.</div>
-            @endif
+                    <span class="customer-order-header-tooltip-line">Из Термбурга, Парковая, 23</span>
+                    <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Заказать в нашем кафе в Термбурге</span>
+                    @if($settings?->pickup_enabled && $settings->pickup_min_minutes !== null)
+                        <span class="customer-order-header-tooltip-line">Самовывоз: от {{ $settings->pickup_min_minutes }} мин.</span>
+                    @endif
+                </span>
+            </div>
             @unless($canOrder)
                 <div class="customer-order-header-delivery">Организация временно не принимает онлайн-заказы.</div>
             @endunless
