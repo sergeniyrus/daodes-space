@@ -496,7 +496,7 @@
 }
 .customer-order-header {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 3fr) minmax(0, 6fr) minmax(0, 1fr);
     gap: 14px;
     flex: 0 0 auto;
     margin-bottom: 16px;
