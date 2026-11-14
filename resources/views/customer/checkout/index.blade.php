@@ -269,6 +269,62 @@
     font-size: 1.25rem;
     white-space: nowrap;
 }
+.customer-checkout-delivery-info {
+    display: grid;
+    gap: 9px;
+    margin-top: 14px;
+}
+.customer-checkout-delivery-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 15px;
+    color: #f3edda;
+    background: linear-gradient(105deg, rgba(255, 215, 0, .09), rgba(255, 255, 255, .025));
+    border: 1px solid rgba(255, 215, 0, .28);
+    border-left: 3px solid rgba(255, 215, 0, .85);
+    border-radius: 10px;
+    line-height: 1.45;
+}
+.customer-checkout-delivery-row strong {
+    color: #ffd700;
+    font-size: 1.05rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.customer-checkout-delivery-minimum {
+    background: linear-gradient(105deg, rgba(255, 215, 0, .13), rgba(255, 255, 255, .025));
+    border-color: rgba(255, 215, 0, .38);
+}
+.customer-checkout-delivery-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 10px;
+    padding: 15px 16px;
+    color: #fff2bd;
+    background: linear-gradient(100deg, rgba(255, 215, 0, .17), rgba(255, 215, 0, .055));
+    border: 1px solid rgba(255, 215, 0, .48);
+    border-radius: 11px;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+.customer-checkout-delivery-total strong {
+    color: #ffd700;
+    font-size: 1.3rem;
+    white-space: nowrap;
+    text-shadow: 0 1px 12px rgba(255, 215, 0, .18);
+}
+@media(max-width:480px) {
+    .customer-checkout-delivery-row,
+    .customer-checkout-delivery-total {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+    }
+}
 .customer-checkout-total {
     margin-top: 10px;
     color: #ffd700;
@@ -355,19 +411,21 @@
             <strong>{{ number_format((float) $subtotal, 2, ',', ' ') }} {{ $settings->currency }}</strong>
         </div>
         <div id="customer-delivery-summary" @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'delivery') hidden @endif>
-        @if($minimumOrder !== null)
-            <div class="customer-checkout-note">
-                Минимальная сумма товаров для доставки:
-                <strong>{{ number_format((float) $minimumOrder, 2, ',', ' ') }} {{ $settings->currency }}</strong>
+        <div class="customer-checkout-delivery-info">
+            @if($minimumOrder !== null)
+                <div class="customer-checkout-delivery-row customer-checkout-delivery-minimum">
+                    <span>ℹ️ Минимальная сумма товаров для доставки</span>
+                    <strong>{{ number_format((float) $minimumOrder, 2, ',', ' ') }} {{ $settings->currency }}</strong>
+                </div>
+            @endif
+            <div class="customer-checkout-delivery-row">
+                <span>🚚 Стоимость доставки</span>
+                <strong>{{ number_format((float) $deliveryFee, 2, ',', ' ') }} {{ $settings->currency }}</strong>
             </div>
-        @endif
-        <div class="customer-checkout-line">
-            <span>Доставка (будет добавлена только при доставке)</span>
-            <span>{{ number_format((float) $deliveryFee, 2, ',', ' ') }} {{ $settings->currency }}</span>
         </div>
-        <div class="customer-checkout-total">
+        <div class="customer-checkout-delivery-total">
             <span>Итого при доставке</span>
-            <span>{{ number_format((float) $deliveryTotal, 2, ',', ' ') }} {{ $settings->currency }}</span>
+            <strong>{{ number_format((float) $deliveryTotal, 2, ',', ' ') }} {{ $settings->currency }}</strong>
         </div>
         </div>
 
