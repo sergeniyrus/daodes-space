@@ -1164,27 +1164,20 @@ body:has(.customer-order-page) {
         display: none !important;
     }
 
-    .customer-order-section-group.is-expanded > .customer-order-section-choice {
-        position: relative;
-        z-index: 30;
+    .customer-order-section-group.is-expanded {
         align-self: stretch;
+        overflow: visible !important;
+    }
+
+    .customer-order-section-group.is-expanded > .customer-order-section-choice {
+        position: sticky !important;
+        top: 8px !important;
+        z-index: 100 !important;
+        align-self: stretch;
+        flex: 0 0 auto;
         background: linear-gradient(110deg, #0b2530, #182033);
+        border-color: rgba(255, 215, 0, .85);
         box-shadow: 0 8px 22px rgba(0, 0, 0, .55), 0 0 16px rgba(0, 229, 212, .14);
-    }
-
-    .customer-order-section-choice.customer-order-section-choice-floating {
-        position: fixed !important;
-        z-index: 9999 !important;
-        display: flex !important;
-        margin: 0 !important;
-        box-sizing: border-box !important;
-        background: linear-gradient(110deg, #0b2530, #182033) !important;
-        border: 1px solid rgba(255, 215, 0, .85) !important;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, .65), 0 0 18px rgba(0, 229, 212, .2) !important;
-    }
-
-    .customer-order-section-choice.is-floating-source {
-        visibility: hidden !important;
     }
 
     .customer-order-products-heading {
@@ -1459,9 +1452,6 @@ body:has(.customer-order-page) {
             document.querySelectorAll('[data-section-panel]').forEach((panel) => {
                 panel.hidden = !shouldExpand || panel.dataset.sectionPanel !== sectionId;
             });
-            removeFloatingSectionToggle();
-            requestAnimationFrame(updateFloatingSectionToggle);
-
             const activePanel = document.querySelector('[data-section-panel="' + sectionId + '"]');
             const activeTrack = activePanel?.querySelector('[data-product-carousel]');
             if (shouldExpand && activeTrack) updateCarouselControls(activeTrack);
@@ -1529,61 +1519,6 @@ body:has(.customer-order-page) {
     };
 
     arrangeSectionPanels();
-
-    // Keep the expanded section button fixed at the top while its dish list is being scrolled.
-    let floatingSectionToggle = null;
-    const removeFloatingSectionToggle = () => {
-        if (!floatingSectionToggle) return;
-        floatingSectionToggle.source.classList.remove('is-floating-source');
-        floatingSectionToggle.clone.remove();
-        floatingSectionToggle = null;
-    };
-
-    const updateFloatingSectionToggle = () => {
-        if (!mobileLayout.matches) {
-            removeFloatingSectionToggle();
-            return;
-        }
-
-        const expandedGroup = document.querySelector('.customer-order-section-group.is-expanded');
-        const source = expandedGroup?.querySelector(':scope > [data-section-select][aria-expanded="true"]');
-        if (!expandedGroup || !source) {
-            removeFloatingSectionToggle();
-            return;
-        }
-
-        const sourceRect = source.getBoundingClientRect();
-        const groupRect = expandedGroup.getBoundingClientRect();
-        const topOffset = 8;
-        const toggleHeight = sourceRect.height;
-
-        if (sourceRect.top <= topOffset && groupRect.bottom > topOffset + toggleHeight) {
-            if (!floatingSectionToggle || floatingSectionToggle.source !== source) {
-                removeFloatingSectionToggle();
-                const clone = source.cloneNode(true);
-                clone.classList.add('customer-order-section-choice-floating');
-                clone.removeAttribute('id');
-                clone.removeAttribute('data-section-select');
-                clone.setAttribute('aria-hidden', 'false');
-                clone.style.top = topOffset + 'px';
-                clone.style.left = sourceRect.left + 'px';
-                clone.style.width = sourceRect.width + 'px';
-                clone.addEventListener('click', () => source.click());
-                document.body.appendChild(clone);
-                source.classList.add('is-floating-source');
-                floatingSectionToggle = { source, clone };
-            } else {
-                floatingSectionToggle.clone.style.left = sourceRect.left + 'px';
-                floatingSectionToggle.clone.style.width = sourceRect.width + 'px';
-            }
-        } else {
-            removeFloatingSectionToggle();
-        }
-    };
-
-    document.addEventListener('scroll', updateFloatingSectionToggle, { passive: true, capture: true });
-    window.addEventListener('resize', updateFloatingSectionToggle, { passive: true });
-    updateFloatingSectionToggle();
 
     document.querySelectorAll('[data-product-carousel]').forEach((track) => {
         track.addEventListener('scroll', () => updateCarouselControls(track), { passive: true });
