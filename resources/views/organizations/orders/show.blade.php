@@ -166,7 +166,7 @@
             </div>
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Желаемое время</span>
-                <div class="organization-order-detail__value">{{ $order->requested_at?->format('d.m.Y H:i') ?? 'Не указано' }}</div>
+                <div class="organization-order-detail__value">{{ $order->requested_at?->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') ?? 'Не указано' }}</div>
             </div>
             @if($order->table_number)
                 <div class="organization-order-detail__field">
