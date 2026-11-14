@@ -224,6 +224,266 @@
     .customer-order-toolbar { align-items: stretch; flex-direction: column; }
     .customer-order-link { width: 100%; box-sizing: border-box; }
 }
+
+/* Desktop: слева компактная гармошка разделов, справа каталог блюд. */
+.customer-order-page {
+    width: min(1800px, calc(100% - 28px));
+    max-width: none;
+}
+.customer-order-layout {
+    display: grid;
+    grid-template-columns: minmax(190px, 20%) minmax(0, 80%);
+    gap: 18px;
+    align-items: start;
+    width: 100%;
+}
+.customer-order-sidebar {
+    position: sticky;
+    top: 16px;
+    min-width: 0;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    padding: 13px;
+    background: linear-gradient(145deg, #0b0c18, #14182a 58%, #0b0c18);
+    border: 1px solid rgba(0, 229, 212, .38);
+    border-radius: 16px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, .32);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 229, 212, .5) transparent;
+}
+.customer-order-sidebar-title {
+    margin: 2px 5px 12px;
+    color: #ffd700;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.customer-order-section-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+.customer-order-section-choice {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 11px;
+    color: #c8d0dc;
+    text-align: left;
+    background: linear-gradient(110deg, rgba(0, 229, 212, .045), rgba(255, 255, 255, .018));
+    border: 1px solid rgba(0, 229, 212, .2);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: .2s ease;
+}
+.customer-order-section-choice:hover {
+    color: #fff1a8;
+    border-color: rgba(255, 215, 0, .5);
+    background: rgba(0, 229, 212, .09);
+}
+.customer-order-section-choice[aria-expanded="true"] {
+    color: #ffd700;
+    border-color: rgba(255, 215, 0, .72);
+    background: linear-gradient(110deg, rgba(0, 229, 212, .13), rgba(255, 215, 0, .08));
+    box-shadow: inset 3px 0 #00e5d4, 0 0 14px rgba(0, 229, 212, .07);
+}
+.customer-order-section-choice-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: .9rem;
+    font-weight: 750;
+    line-height: 1.25;
+}
+.customer-order-section-choice-meta {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 8px;
+}
+.customer-order-section-choice-count {
+    min-width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    color: #bafaf3;
+    background: rgba(0, 229, 212, .08);
+    border: 1px solid rgba(0, 229, 212, .25);
+    border-radius: 20px;
+    font-size: .75rem;
+    font-weight: 800;
+}
+.customer-order-section-choice-arrow {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform .2s ease;
+}
+.customer-order-section-choice[aria-expanded="true"] .customer-order-section-choice-arrow {
+    transform: rotate(45deg);
+}
+.customer-order-products {
+    min-width: 0;
+}
+.customer-order-products-panel {
+    min-width: 0;
+    padding: 18px;
+    background:
+        radial-gradient(ellipse at 100% 0%, rgba(255, 215, 0, .10), transparent 45%),
+        linear-gradient(145deg, #111827, #0b1020 60%, #121a2b);
+    border: 1px solid rgba(0, 229, 212, .38);
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, .34);
+}
+.customer-order-products-panel[hidden] { display: none !important; }
+.customer-order-products-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 14px;
+}
+.customer-order-products-heading h2 {
+    margin: 0;
+    color: #ffd700;
+    font-size: clamp(1.1rem, 1.7vw, 1.55rem);
+    font-weight: 850;
+}
+.customer-order-products-heading span {
+    color: #9eabbc;
+    font-size: .85rem;
+}
+.customer-order-carousel {
+    position: relative;
+    min-width: 0;
+}
+.customer-order-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-auto-columns: calc((100% - 28px) / 3);
+    gap: 14px;
+    height: clamp(540px, calc(100vh - 260px), 760px);
+    min-height: 540px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 229, 212, .55) rgba(255, 255, 255, .04);
+    padding: 2px 2px 12px;
+}
+.customer-order-grid::-webkit-scrollbar { height: 8px; }
+.customer-order-grid::-webkit-scrollbar-track { background: rgba(255, 255, 255, .04); border-radius: 8px; }
+.customer-order-grid::-webkit-scrollbar-thumb { background: rgba(0, 229, 212, .48); border-radius: 8px; }
+.customer-order-grid .customer-order-item {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    scroll-snap-align: start;
+    padding: 14px;
+}
+.customer-order-item h3 {
+    font-size: clamp(1rem, 1.15vw, 1.2rem);
+    line-height: 1.3;
+}
+.customer-order-item p {
+    font-size: .88rem;
+    overflow-wrap: anywhere;
+}
+.customer-order-price {
+    font-size: clamp(1.05rem, 1.3vw, 1.3rem);
+}
+.customer-order-carousel-control {
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    width: 38px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffd700;
+    background: rgba(7, 12, 24, .94);
+    border: 1px solid rgba(0, 229, 212, .55);
+    border-radius: 10px;
+    font-size: 1.7rem;
+    cursor: pointer;
+    transform: translateY(-50%);
+    box-shadow: 0 5px 18px rgba(0, 0, 0, .4);
+}
+.customer-order-carousel-control:hover {
+    color: #071018;
+    background: #00e5d4;
+}
+.customer-order-carousel-control:disabled {
+    opacity: .25;
+    cursor: default;
+}
+.customer-order-carousel-control.prev { left: 7px; }
+.customer-order-carousel-control.next { right: 7px; }
+.customer-order-empty {
+    grid-column: 1 / -1;
+    align-self: center;
+    color: #aeb5c4;
+    text-align: center;
+}
+@media (min-width: 1600px) {
+    .customer-order-page { width: min(2200px, calc(100% - 36px)); }
+    .customer-order-grid { grid-auto-columns: calc((100% - 28px) / 3); }
+}
+@media (max-width: 1000px) {
+    .customer-order-layout { grid-template-columns: minmax(165px, 24%) minmax(0, 76%); gap: 12px; }
+    .customer-order-sidebar { padding: 9px; }
+    .customer-order-products-panel { padding: 13px; }
+    .customer-order-grid {
+        grid-auto-columns: calc((100% - 14px) / 2);
+        grid-template-rows: repeat(3, minmax(0, 1fr));
+        height: 720px;
+        min-height: 720px;
+    }
+}
+@media (max-width: 700px) {
+    .customer-order-page { width: calc(100% - 20px); margin-top: 14px; }
+    .customer-order-layout { display: flex; flex-direction: column; }
+    .customer-order-sidebar {
+        position: static;
+        width: 100%;
+        max-height: 240px;
+        box-sizing: border-box;
+    }
+    .customer-order-section-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .customer-order-section-choice { min-height: 42px; padding: 8px; }
+    .customer-order-products { width: 100%; }
+    .customer-order-products-panel { padding: 12px; }
+    .customer-order-grid {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: none;
+        grid-auto-columns: auto;
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+    }
+    .customer-order-grid .customer-order-item { height: auto; min-height: 250px; }
+    .customer-order-carousel-control { display: none; }
+}
+@media (max-width: 420px) {
+    .customer-order-section-list { grid-template-columns: 1fr; }
+    .customer-order-grid { grid-template-columns: 1fr; }
+}
+
 </style>
 
 <div class="customer-order-page">
@@ -272,83 +532,163 @@
         </div>
     </div>
 
-    @forelse($sections as $section)
-        <details class="customer-order-section">
-            <summary>
-                <span class="customer-order-section-title">{{ $section->name }}</span>
-                <span class="customer-order-section-meta">
-                    <span class="customer-order-section-count">{{ $section->activeItems->count() }}</span>
-                    <span class="customer-order-section-chevron" aria-hidden="true"></span>
-                </span>
-            </summary>
+    @if($sections->isNotEmpty())
+        <div class="customer-order-layout">
+            <aside class="customer-order-sidebar" aria-label="Разделы меню">
+                <div class="customer-order-sidebar-title">Разделы меню</div>
+                <nav class="customer-order-section-list">
+                    @foreach($sections as $section)
+                        <button
+                            type="button"
+                            class="customer-order-section-choice"
+                            data-section-select="{{ $section->id }}"
+                            aria-controls="customer-order-products-{{ $section->id }}"
+                            aria-expanded="{{ $loop->first ? 'true' : 'false' }}"
+                        >
+                            <span class="customer-order-section-choice-name">{{ $section->name }}</span>
+                            <span class="customer-order-section-choice-meta">
+                                <span class="customer-order-section-choice-count">{{ $section->activeItems->count() }}</span>
+                                <span class="customer-order-section-choice-arrow" aria-hidden="true"></span>
+                            </span>
+                        </button>
+                    @endforeach
+                </nav>
+            </aside>
 
-            <div class="customer-order-section-content">
-            <div class="customer-order-grid">
-                @forelse($section->activeItems as $item)
-                    <article class="customer-order-item" id="menu-item-{{ $item->id }}">
-                        <h3>{{ $item->name }}</h3>
-
-                        @if($item->description)
-                            <p>{{ $item->description }}</p>
-                        @endif
-
-                        @if($item->weight || $item->unit)
-                            <p>{{ $item->weight }} {{ $item->unit }}</p>
-                        @endif
-
-                        <div class="customer-order-price">
-                            {{ number_format((float) $item->price, 2, ',', ' ') }}
-                            @if($settings?->currency)
-                                {{ $settings->currency }}
-                            @endif
+            <div class="customer-order-products">
+                @foreach($sections as $section)
+                    <section
+                        class="customer-order-products-panel"
+                        id="customer-order-products-{{ $section->id }}"
+                        data-section-panel="{{ $section->id }}"
+                        @if(!$loop->first) hidden @endif
+                    >
+                        <div class="customer-order-products-heading">
+                            <h2>{{ $section->name }}</h2>
+                            <span>{{ $section->activeItems->count() }} блюд</span>
                         </div>
 
-                        @if($canOrder)
-                            <form
-                                method="POST"
-                                action="{{ route('customer.cart.add', $organization) }}"
-                                class="customer-order-add"
-                            >
-                                @csrf
-                                <input type="hidden" name="item_id" value="{{ $item->id }}">
-                                <div class="customer-quantity-stepper">
-                                    <button type="button" data-quantity-change="-1" aria-label="Уменьшить количество">−</button>
-                                    <input type="number" name="quantity" value="1" min="1" max="99" aria-label="Количество">
-                                    <button type="button" data-quantity-change="1" aria-label="Увеличить количество">+</button>
-                                </div>
-                                <button type="submit" class="customer-order-button">
-                                    Добавить
-                                </button>
-                            </form>
-                        @else
-                            <button type="button" class="customer-order-button customer-order-disabled" disabled>
-                                Заказ недоступен
-                            </button>
-                        @endif
-                    </article>
-                @empty
-                    <p class="customer-order-muted">В этом разделе пока нет доступных блюд.</p>
-                @endforelse
+                        <div class="customer-order-carousel">
+                            <button type="button" class="customer-order-carousel-control prev" data-carousel-prev aria-label="Предыдущие блюда">‹</button>
+                            <div class="customer-order-grid" data-product-carousel>
+                                @forelse($section->activeItems as $item)
+                                    <article class="customer-order-item" id="menu-item-{{ $item->id }}">
+                                        <h3>{{ $item->name }}</h3>
+
+                                        @if($item->description)
+                                            <p>{{ $item->description }}</p>
+                                        @endif
+
+                                        @if($item->weight || $item->unit)
+                                            <p>{{ $item->weight }} {{ $item->unit }}</p>
+                                        @endif
+
+                                        <div class="customer-order-price">
+                                            {{ number_format((float) $item->price, 2, ',', ' ') }}
+                                            @if($settings?->currency)
+                                                {{ $settings->currency }}
+                                            @endif
+                                        </div>
+
+                                        @if($canOrder)
+                                            <form
+                                                method="POST"
+                                                action="{{ route('customer.cart.add', $organization) }}"
+                                                class="customer-order-add"
+                                            >
+                                                @csrf
+                                                <input type="hidden" name="item_id" value="{{ $item->id }}">
+                                                <div class="customer-quantity-stepper">
+                                                    <button type="button" data-quantity-change="-1" aria-label="Уменьшить количество">−</button>
+                                                    <input type="number" name="quantity" value="1" min="1" max="99" aria-label="Количество">
+                                                    <button type="button" data-quantity-change="1" aria-label="Увеличить количество">+</button>
+                                                </div>
+                                                <button type="submit" class="customer-order-button">Добавить</button>
+                                            </form>
+                                        @else
+                                            <button type="button" class="customer-order-button customer-order-disabled" disabled>
+                                                Заказ недоступен
+                                            </button>
+                                        @endif
+                                    </article>
+                                @empty
+                                    <p class="customer-order-empty">В этом разделе пока нет доступных блюд.</p>
+                                @endforelse
+                            </div>
+                            <button type="button" class="customer-order-carousel-control next" data-carousel-next aria-label="Следующие блюда">›</button>
+                        </div>
+                    </section>
+                @endforeach
             </div>
-            </div>
-        </details>
-    @empty
-        <div class="customer-order-panel customer-order-muted">
-            Меню пока пустое.
         </div>
-    @endforelse
+    @else
+        <div class="customer-order-panel customer-order-muted">Меню пока пустое.</div>
+    @endif
 </div>
+
+<script></div>
 
 <script>
 (() => {
     document.addEventListener('click', (event) => {
-        const button = event.target.closest('[data-quantity-change]');
-        if (!button) return;
-        const input = button.closest('.customer-quantity-stepper')?.querySelector('input[name="quantity"]');
-        if (!input) return;
-        const current = Number.parseInt(input.value, 10) || 1;
-        const change = Number.parseInt(button.dataset.quantityChange, 10) || 0;
-        input.value = String(Math.min(99, Math.max(1, current + change)));
+        const quantityButton = event.target.closest('[data-quantity-change]');
+        if (quantityButton) {
+            const input = quantityButton.closest('.customer-quantity-stepper')?.querySelector('input[name="quantity"]');
+            if (input) {
+                const current = Number.parseInt(input.value, 10) || 1;
+                const change = Number.parseInt(quantityButton.dataset.quantityChange, 10) || 0;
+                input.value = String(Math.min(99, Math.max(1, current + change)));
+            }
+            return;
+        }
+
+        const sectionButton = event.target.closest('[data-section-select]');
+        if (sectionButton) {
+            const sectionId = sectionButton.dataset.sectionSelect;
+            document.querySelectorAll('[data-section-select]').forEach((button) => {
+                const active = button === sectionButton;
+                button.setAttribute('aria-expanded', active ? 'true' : 'false');
+            });
+            document.querySelectorAll('[data-section-panel]').forEach((panel) => {
+                panel.hidden = panel.dataset.sectionPanel !== sectionId;
+            });
+            return;
+        }
+
+        const carouselButton = event.target.closest('[data-carousel-prev], [data-carousel-next]');
+        if (carouselButton) {
+            const carousel = carouselButton.closest('.customer-order-carousel');
+            const track = carousel?.querySelector('[data-product-carousel]');
+            if (!track) return;
+            const direction = carouselButton.hasAttribute('data-carousel-next') ? 1 : -1;
+            track.scrollBy({ left: direction * track.clientWidth, behavior: 'smooth' });
+        }
+    });
+
+    const updateCarouselControls = (track) => {
+        const carousel = track.closest('.customer-order-carousel');
+        if (!carousel) return;
+        const prev = carousel.querySelector('[data-carousel-prev]');
+        const next = carousel.querySelector('[data-carousel-next]');
+        const maxScroll = track.scrollWidth - track.clientWidth;
+        if (prev) prev.disabled = track.scrollLeft <= 2;
+        if (next) next.disabled = track.scrollLeft >= maxScroll - 2;
+        if (maxScroll <= 2) {
+            if (prev) prev.hidden = true;
+            if (next) next.hidden = true;
+        } else {
+            if (prev) prev.hidden = false;
+            if (next) next.hidden = false;
+        }
+    };
+
+    document.querySelectorAll('[data-product-carousel]').forEach((track) => {
+        track.addEventListener('scroll', () => updateCarouselControls(track), { passive: true });
+        updateCarouselControls(track);
+    });
+
+    window.addEventListener('resize', () => {
+        document.querySelectorAll('[data-product-carousel]').forEach(updateCarouselControls);
     });
 })();
 </script>
