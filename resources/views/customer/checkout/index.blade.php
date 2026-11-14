@@ -69,6 +69,14 @@
     border-radius: 10px;
 }
 .customer-checkout-options input { accent-color: #00e5d4; }
+.customer-checkout-payment-options { display: flex; justify-content: center; flex-wrap: wrap; }
+.customer-checkout-payment-options label { min-width: min(260px, 100%); }
+.customer-checkout-address-details { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.customer-checkout-details { margin: 12px 0; color: #d8dce8; }
+.customer-checkout-details summary { display: inline-flex; align-items: center; gap: 8px; color: #00e5d4; cursor: pointer; font-weight: 700; }
+.customer-checkout-details summary::marker { color: #ffd700; }
+.customer-checkout-details[open] summary { margin-bottom: 4px; }
+.customer-checkout-details .customer-checkout-field { margin-top: 8px; }
 .customer-checkout-line,
 .customer-checkout-total {
     display: flex;
@@ -114,8 +122,14 @@
 .customer-checkout-save-address { display: flex; align-items: flex-start; gap: 10px; padding: 13px; margin-top: 12px; color: #d8dce8; background: rgba(0, 229, 212, .055); border: 1px solid rgba(0, 229, 212, .28); border-radius: 11px; }
 .customer-checkout-save-address input { margin-top: 4px; accent-color: #00e5d4; }
 .customer-checkout-address-book { margin-bottom: 14px; }
+@media(max-width:700px) {
+    .customer-checkout-address-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media(max-width:600px) {
     .customer-checkout-panel { padding: 16px; }
+}
+@media(max-width:420px) {
+    .customer-checkout-address-details { grid-template-columns: 1fr; }
 }
 </style>
 
@@ -153,6 +167,7 @@
             <span>Промежуточный итог</span>
             <span>{{ number_format((float) $subtotal, 2, ',', ' ') }} {{ $settings->currency }}</span>
         </div>
+        <div id="customer-delivery-summary" @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'delivery') hidden @endif>
         @if($minimumOrder !== null)
             <div class="customer-checkout-note">
                 Минимальная сумма товаров для доставки:
@@ -167,6 +182,7 @@
             <span>Итого при доставке</span>
             <span>{{ number_format((float) $deliveryTotal, 2, ',', ' ') }} {{ $settings->currency }}</span>
         </div>
+        </div>
 
     </div>
 
@@ -177,38 +193,6 @@
             name="idempotency_key"
             value="{{ old('idempotency_key', $idempotencyKey) }}"
         >
-
-        <div class="customer-checkout-panel">
-            <h2 class="customer-checkout-title">Контактные данные</h2>
-
-            <div class="customer-checkout-grid">
-                <label class="customer-checkout-field">
-                    Ваше имя
-                    <input
-                        type="text"
-                        name="customer_name"
-                        value="{{ old('customer_name', $customer->name) }}"
-                        maxlength="100"
-                        autocomplete="name"
-                        required
-                    >
-                    @error('customer_name')
-                        <span class="customer-checkout-error">{{ $message }}</span>
-                    @enderror
-                </label>
-
-                <label class="customer-checkout-field">
-                    Подтверждённый телефон
-                    <input type="tel" value="{{ $customer->phone }}" readonly>
-                    <span class="customer-checkout-muted">Телефон подтверждён по SMS.</span>
-                </label>
-            </div>
-
-            <label class="customer-checkout-field">
-                Комментарий к заказу
-                <textarea name="customer_comment" maxlength="2000">{{ old('customer_comment') }}</textarea>
-            </label>
-        </div>
 
         <div class="customer-checkout-panel">
             <h2 class="customer-checkout-title">Способ получения</h2>
@@ -255,26 +239,24 @@
             @enderror
 
             <div class="customer-checkout-grid">
-                <label class="customer-checkout-field">
-                    Желаемое время (обязательно для самовывоза)
+                <label class="customer-checkout-field" id="customer-pickup-time-field" @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'pickup') hidden @endif>
+                    Время самовывоза
                     <input
                         type="datetime-local"
                         name="requested_at"
-                        value="{{ old('requested_at') }}"
-                        min="{{ now()->format('Y-m-d\TH:i') }}"
+                        value="{{ old('requested_at', now()->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->format('Y-m-d\TH:i')) }}"
+                        min="{{ now()->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->format('Y-m-d\TH:i') }}"
                     >
-                    @if($settings->pickup_min_minutes !== null)
-                        <span class="customer-checkout-muted">
-                            Самовывоз не раньше чем через {{ $settings->pickup_min_minutes }} мин.
-                        </span>
-                    @endif
+                    <span class="customer-checkout-muted">
+                        Минимальное время приготовления — 30 минут.
+                    </span>
                     @error('requested_at')
                         <span class="customer-checkout-error">{{ $message }}</span>
                     @enderror
                 </label>
 
-                <label class="customer-checkout-field">
-                    Номер браслета (для заказа в заведении)
+                <label class="customer-checkout-field" id="customer-dine-in-field" @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'dine_in') hidden @endif>
+                    Номер браслета
                     <input
                         type="text"
                         name="table_number"
@@ -286,11 +268,45 @@
             </div>
         </div>
 
+        <div class="customer-checkout-panel">
+            <h2 class="customer-checkout-title">Контактные данные</h2>
+
+            <div class="customer-checkout-grid">
+                <label class="customer-checkout-field">
+                    Имя получателя
+                    <input
+                        type="text"
+                        name="customer_name"
+                        value="{{ old('customer_name', $customer->name) }}"
+                        maxlength="100"
+                        autocomplete="name"
+                        required
+                    >
+                    @error('customer_name')
+                        <span class="customer-checkout-error">{{ $message }}</span>
+                    @enderror
+                </label>
+
+                <label class="customer-checkout-field">
+                    Телефон получателя
+                    <input type="tel" value="{{ $customer->phone }}" readonly>
+                    <span class="customer-checkout-muted">Телефон подтверждён по SMS.</span>
+                </label>
+            </div>
+
+            <details class="customer-checkout-details">
+                <summary>Комментарий к заказу</summary>
+                <label class="customer-checkout-field">
+                    <textarea name="customer_comment" maxlength="2000" placeholder="Дополнительные пожелания к заказу">{{ old('customer_comment') }}</textarea>
+                </label>
+            </details>
+        </div>
+
         <div class="customer-checkout-panel" id="customer-delivery-address-panel"
             @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'delivery') hidden @endif
         >
             <h2 class="customer-checkout-title">Адрес доставки</h2>
-            <div class="customer-checkout-note">Этот раздел нужен только для доставки. Укажите улицу и номер дома в одном поле.</div>
+            <div class="customer-checkout-note">Укажите адрес доставки. Номер дома вводится отдельно.</div>
 
             @if($savedAddresses->isNotEmpty())
                 <label class="customer-checkout-field customer-checkout-address-book">
@@ -313,15 +329,24 @@
                 </label>
             @endif
 
-            <label class="customer-checkout-field">
-                Улица и номер дома
-                <input type="text" name="address_line" id="customer-address-line"
-                    value="{{ old('address_line', $defaultAddress?->address_line) }}"
-                    maxlength="500" placeholder="Например, ул. Ленина, дом 15, корпус 2" autocomplete="street-address">
-                @error('address_line') <span class="customer-checkout-error">{{ $message }}</span> @enderror
-            </label>
-
             <div class="customer-checkout-grid">
+                <label class="customer-checkout-field">
+                    Улица
+                    <input type="text" name="address_line" id="customer-address-line"
+                        value="{{ old('address_line', $defaultAddress?->address_line) }}"
+                        maxlength="500" placeholder="Например, ул. Ленина" autocomplete="address-line1">
+                    @error('address_line') <span class="customer-checkout-error">{{ $message }}</span> @enderror
+                </label>
+                <label class="customer-checkout-field">
+                    Номер дома
+                    <input type="text" name="house_number" id="customer-address-house-number"
+                        value="{{ old('house_number') }}"
+                        maxlength="30" placeholder="Например, 15 корпус 2">
+                    @error('house_number') <span class="customer-checkout-error">{{ $message }}</span> @enderror
+                </label>
+            </div>
+
+            <div class="customer-checkout-grid customer-checkout-address-details">
                 <label class="customer-checkout-field">Подъезд
                     <input id="customer-address-entrance" type="text" name="entrance" value="{{ old('entrance', $defaultAddress?->entrance) }}" maxlength="30">
                 </label>
@@ -336,9 +361,12 @@
                 </label>
             </div>
 
-            <label class="customer-checkout-field">Комментарий курьеру
-                <textarea id="customer-address-comment" name="delivery_comment" maxlength="1000">{{ old('delivery_comment', $defaultAddress?->delivery_comment) }}</textarea>
-            </label>
+            <details class="customer-checkout-details">
+                <summary>Комментарий курьеру</summary>
+                <label class="customer-checkout-field">
+                    <textarea id="customer-address-comment" name="delivery_comment" maxlength="1000" placeholder="Как найти вход, особенности доставки и т. п.">{{ old('delivery_comment', $defaultAddress?->delivery_comment) }}</textarea>
+                </label>
+            </details>
 
             <label class="customer-checkout-save-address">
                 <input type="checkbox" name="save_address" value="1" id="customer-save-address" @checked(old('save_address'))>
@@ -358,7 +386,7 @@
             <div class="customer-checkout-panel">
             <h2 class="customer-checkout-title">Способ оплаты</h2>
 
-            <div class="customer-checkout-options">
+            <div class="customer-checkout-options customer-checkout-payment-options">
                 @if($settings->cash_payment_enabled)
                     <label>
                         <input
@@ -413,6 +441,10 @@
 <script>
 (() => {
     const addressPanel = document.getElementById('customer-delivery-address-panel');
+    const deliverySummary = document.getElementById('customer-delivery-summary');
+    const pickupTimeField = document.getElementById('customer-pickup-time-field');
+    const requestedAt = document.querySelector('input[name="requested_at"]');
+    const dineInField = document.getElementById('customer-dine-in-field');
     const fulfillmentInputs = document.querySelectorAll('input[name="fulfillment_type"]');
     const saveAddress = document.getElementById('customer-save-address');
     const addressLabelWrap = document.getElementById('customer-address-label-wrap');
@@ -420,6 +452,7 @@
     const savedAddressSelect = document.getElementById('customer-saved-address');
     const addressFields = {
         address_line: document.getElementById('customer-address-line'),
+        house_number: document.getElementById('customer-address-house-number'),
         entrance: document.getElementById('customer-address-entrance'),
         floor: document.getElementById('customer-address-floor'),
         apartment: document.getElementById('customer-address-apartment'),
@@ -428,8 +461,15 @@
     };
     function updateFulfillmentFields() {
         const selected = document.querySelector('input[name="fulfillment_type"]:checked');
-        const isDelivery = selected?.value === 'delivery';
+        const fulfillmentType = selected?.value;
+        const isDelivery = fulfillmentType === 'delivery';
+        const isPickup = fulfillmentType === 'pickup';
+        const isDineIn = fulfillmentType === 'dine_in';
         if (addressPanel) addressPanel.hidden = !isDelivery;
+        if (deliverySummary) deliverySummary.hidden = !isDelivery;
+        if (pickupTimeField) pickupTimeField.hidden = !isPickup;
+        if (requestedAt) requestedAt.required = isPickup;
+        if (dineInField) dineInField.hidden = !isDineIn;
         if (addressFields.address_line) addressFields.address_line.required = isDelivery;
 
         if (!isDelivery && saveAddress) {
@@ -449,6 +489,7 @@
         if (!option || !option.value) return;
         const values = {
             address_line: option.dataset.addressLine,
+            house_number: '',
             entrance: option.dataset.entrance,
             floor: option.dataset.floor,
             apartment: option.dataset.apartment,
