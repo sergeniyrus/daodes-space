@@ -59,8 +59,8 @@ class CustomerCheckoutFlowTest extends TestCase
         $response->assertRedirect(route('customer.orders.show', $order));
 
         $this->assertSame('20.00', $order->subtotal);
-        $this->assertSame('5.00', $order->delivery_fee);
-        $this->assertSame('25.00', $order->total);
+        $this->assertSame('0.00', $order->delivery_fee);
+        $this->assertSame('20.00', $order->total);
         $this->assertSame('EUR', $order->currency);
         $this->assertSame(Order::STATUS_NEW, $order->status);
         $this->assertSame('Test street 10', $order->delivery_address['address_line']);
@@ -100,7 +100,7 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertSame('99.00', $item->fresh()->price);
     }
 
-    public function test_delivery_requires_minimum_items_subtotal_without_counting_delivery_fee(): void
+    public function test_delivery_below_free_delivery_threshold_is_allowed_with_delivery_fee(): void
     {
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu();
@@ -111,15 +111,20 @@ class CustomerCheckoutFlowTest extends TestCase
 
         $checkout = $this->openCheckout($customer, $organization, $item);
 
-        $this->post(route('customer.checkout.store'), [
+        $response = $this->post(route('customer.checkout.store'), [
             'idempotency_key' => $checkout->viewData('idempotencyKey'),
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
             'address_line' => 'Test street 10',
-        ])->assertSessionHasErrors('cart');
+        ]);
 
-        $this->assertDatabaseCount('orders', 0);
+        $order = Order::query()->firstOrFail();
+
+        $response->assertRedirect(route('customer.orders.show', $order));
+        $this->assertSame('20.00', $order->subtotal);
+        $this->assertSame('5.00', $order->delivery_fee);
+        $this->assertSame('25.00', $order->total);
     }
 
     public function test_minimum_delivery_order_does_not_restrict_pickup(): void
