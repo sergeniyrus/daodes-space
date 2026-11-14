@@ -1249,60 +1249,75 @@ body:has(.customer-order-page) {
 }
 
 
-/* Dish cards: align typography, spacing and controls with customer cart rows. */
+/* Dish cards: text on the left, reserved photo frame on the right, controls below. */
 .customer-order-grid .customer-order-item {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto auto auto 1fr;
-    align-content: stretch;
-    align-items: center;
-    gap: 9px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 12px;
     padding: 17px;
     background: linear-gradient(135deg, rgba(22, 29, 48, .96), rgba(10, 15, 28, .98));
     border: 1px solid rgba(0, 229, 212, .27);
     border-radius: 15px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035), 0 7px 20px rgba(0, 0, 0, .2);
 }
-.customer-order-grid .customer-order-item > h3 {
-    grid-column: 1 / -1;
-    grid-row: 1;
+.customer-order-item-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    align-items: start;
+    gap: 12px;
+    min-width: 0;
+}
+.customer-order-item-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    gap: 9px;
+}
+.customer-order-item-content > h3 {
     margin: 0;
     color: #fff;
     font-size: 1.12rem;
     font-weight: 800;
     line-height: 1.3;
+    overflow-wrap: anywhere;
 }
-.customer-order-grid .customer-order-item > p {
-    grid-column: 1 / -1;
+.customer-order-item-content > p {
     margin: 0;
     color: #aeb5c4;
     font-size: 1rem;
     line-height: 1.4;
     overflow-wrap: anywhere;
 }
-.customer-order-grid .customer-order-item > p:nth-of-type(1) {
-    grid-row: 2;
-}
-.customer-order-grid .customer-order-item > p:nth-of-type(2) {
-    grid-row: 3;
+.customer-order-item-content > p + p {
     font-size: .92rem;
 }
-.customer-order-grid .customer-order-price {
-    grid-column: 1;
-    grid-row: 4;
-    align-self: end;
-    margin: 0;
+.customer-order-item-content .customer-order-price {
+    margin: auto 0 0;
+    padding-top: 3px;
     color: #ffd700;
     font-size: 1.12rem;
     font-weight: 800;
     white-space: nowrap;
 }
+.customer-order-item-image-placeholder {
+    width: 112px;
+    aspect-ratio: 1 / 1;
+    box-sizing: border-box;
+    border: 2px solid rgba(255, 215, 0, .78);
+    border-radius: 11px;
+    background: linear-gradient(145deg, rgba(255, 215, 0, .045), rgba(255, 255, 255, .012));
+    box-shadow: inset 0 0 14px rgba(255, 215, 0, .045), 0 0 10px rgba(255, 215, 0, .06);
+}
 .customer-order-grid .customer-order-add {
-    grid-column: 2;
-    grid-row: 4;
-    align-self: end;
-    justify-content: flex-end;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
     gap: 10px;
+    width: 100%;
     margin: 0;
 }
 .customer-order-grid .customer-quantity-stepper button {
@@ -1320,47 +1335,37 @@ body:has(.customer-order-page) {
     padding: 7px 13px;
     font-size: .95rem;
 }
+.customer-order-add-disabled .customer-order-button {
+    width: 100%;
+}
 @media (max-width: 700px) {
     .customer-order-grid {
         grid-template-columns: 1fr;
         gap: 12px;
     }
     .customer-order-grid .customer-order-item {
-        grid-template-columns: minmax(0, 1fr) auto;
-        grid-template-rows: auto auto auto auto;
         height: auto;
         min-height: 0;
         padding: 14px;
-        gap: 9px 12px;
     }
-    .customer-order-grid .customer-order-item > h3,
-    .customer-order-grid .customer-order-item > p {
-        grid-column: 1 / -1;
+    .customer-order-item-main {
+        grid-template-columns: minmax(0, 1fr) 104px;
+        gap: 10px;
     }
-    .customer-order-grid .customer-order-price {
-        grid-column: 1;
-        grid-row: 4;
-    }
-    .customer-order-grid .customer-order-add {
-        grid-column: 2;
-        grid-row: 4;
-        flex-wrap: nowrap;
+    .customer-order-item-image-placeholder {
+        width: 104px;
     }
 }
 @media (max-width: 420px) {
-    .customer-order-grid .customer-order-item {
-        grid-template-columns: 1fr;
+    .customer-order-item-main {
+        grid-template-columns: minmax(0, 1fr) 88px;
+        gap: 8px;
     }
-    .customer-order-grid .customer-order-price,
-    .customer-order-grid .customer-order-add {
-        grid-column: 1;
-    }
-    .customer-order-grid .customer-order-price {
-        grid-row: auto;
+    .customer-order-item-image-placeholder {
+        width: 88px;
     }
     .customer-order-grid .customer-order-add {
-        grid-row: auto;
-        justify-content: space-between;
+        gap: 8px;
     }
 }
 
@@ -1487,21 +1492,27 @@ body:has(.customer-order-page) {
                             <div class="customer-order-grid" data-product-carousel>
                                 @forelse($section->activeItems as $item)
                                     <article class="customer-order-item" id="menu-item-{{ $item->id }}">
-                                        <h3>{{ $item->name }}</h3>
+                                        <div class="customer-order-item-main">
+                                            <div class="customer-order-item-content">
+                                                <h3>{{ $item->name }}</h3>
 
-                                        @if($item->description)
-                                            <p>{{ $item->description }}</p>
-                                        @endif
+                                                @if($item->description)
+                                                    <p>{{ $item->description }}</p>
+                                                @endif
 
-                                        @if($item->weight || $item->unit)
-                                            <p>{{ $item->weight }} {{ $item->unit }}</p>
-                                        @endif
+                                                @if($item->weight || $item->unit)
+                                                    <p>{{ $item->weight }} {{ $item->unit }}</p>
+                                                @endif
 
-                                        <div class="customer-order-price">
-                                            {{ number_format((float) $item->price, 2, ',', ' ') }}
-                                            @if($settings?->currency)
-                                                {{ $currencySymbol }}
-                                            @endif
+                                                <div class="customer-order-price">
+                                                    {{ number_format((float) $item->price, 2, ',', ' ') }}
+                                                    @if($settings?->currency)
+                                                        {{ $currencySymbol }}
+                                                    @endif
+                                                </div>
+                                            </div>
+
+                                            <div class="customer-order-item-image-placeholder" aria-label="Место для фотографии блюда"></div>
                                         </div>
 
                                         @if($canOrder)
@@ -1520,9 +1531,11 @@ body:has(.customer-order-page) {
                                                 <button type="submit" class="customer-order-button">Добавить</button>
                                             </form>
                                         @else
-                                            <button type="button" class="customer-order-button customer-order-disabled" disabled>
-                                                Заказ недоступен
-                                            </button>
+                                            <div class="customer-order-add customer-order-add-disabled">
+                                                <button type="button" class="customer-order-button customer-order-disabled" disabled>
+                                                    Заказ недоступен
+                                                </button>
+                                            </div>
                                         @endif
                                     </article>
                                 @empty
