@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
+use App\Models\Order;
 use App\Models\Organization;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -74,9 +75,18 @@ class CustomerCatalogController extends Controller
         }
 
         $customer = Auth::guard('customer')->user();
-        $ordersCount = $customer
-            ? $customer->orders()->where('organization_id', $organization->id)->count()
+        $ordersQuery = $customer
+            ? $customer->orders()->where('organization_id', $organization->id)
+            : null;
+
+        $ordersCount = $ordersQuery ? (clone $ordersQuery)->count() : 0;
+        $ordersInProgressCount = $ordersQuery
+            ? (clone $ordersQuery)->whereNotIn('status', [
+                Order::STATUS_COMPLETED,
+                Order::STATUS_CANCELLED,
+            ])->count()
             : 0;
+        $ordersHistoryCount = $ordersCount - $ordersInProgressCount;
 
         return view('customer.catalog.index', [
             'organization' => $organization,
@@ -86,6 +96,8 @@ class CustomerCatalogController extends Controller
             'cartCount' => $cartCount,
             'cartSubtotal' => $cartSubtotalCents / 100,
             'ordersCount' => $ordersCount,
+            'ordersHistoryCount' => $ordersHistoryCount,
+            'ordersInProgressCount' => $ordersInProgressCount,
             'currencySymbol' => $settings?->currency === 'RUB' ? '₽' : ($settings?->currency ?? ''),
         ]);
     }
