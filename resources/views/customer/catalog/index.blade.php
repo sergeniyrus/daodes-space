@@ -1248,6 +1248,122 @@ body:has(.customer-order-page) {
     }
 }
 
+
+/* Dish cards: align typography, spacing and controls with customer cart rows. */
+.customer-order-grid .customer-order-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto 1fr;
+    align-content: stretch;
+    align-items: center;
+    gap: 9px 16px;
+    padding: 17px;
+    background: linear-gradient(135deg, rgba(22, 29, 48, .96), rgba(10, 15, 28, .98));
+    border: 1px solid rgba(0, 229, 212, .27);
+    border-radius: 15px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035), 0 7px 20px rgba(0, 0, 0, .2);
+}
+.customer-order-grid .customer-order-item > h3 {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    margin: 0;
+    color: #fff;
+    font-size: 1.12rem;
+    font-weight: 800;
+    line-height: 1.3;
+}
+.customer-order-grid .customer-order-item > p {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #aeb5c4;
+    font-size: 1rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+.customer-order-grid .customer-order-item > p:nth-of-type(1) {
+    grid-row: 2;
+}
+.customer-order-grid .customer-order-item > p:nth-of-type(2) {
+    grid-row: 3;
+    font-size: .92rem;
+}
+.customer-order-grid .customer-order-price {
+    grid-column: 1;
+    grid-row: 4;
+    align-self: end;
+    margin: 0;
+    color: #ffd700;
+    font-size: 1.12rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.customer-order-grid .customer-order-add {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: end;
+    justify-content: flex-end;
+    gap: 10px;
+    margin: 0;
+}
+.customer-order-grid .customer-quantity-stepper button {
+    width: 40px;
+    height: 43px;
+    font-size: 1.35rem;
+}
+.customer-order-grid .customer-quantity-stepper input {
+    width: 48px;
+    min-height: 43px;
+    font-size: 1.08rem;
+}
+.customer-order-grid .customer-order-button {
+    min-height: 38px;
+    padding: 7px 13px;
+    font-size: .95rem;
+}
+@media (max-width: 700px) {
+    .customer-order-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .customer-order-grid .customer-order-item {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: auto auto auto auto;
+        height: auto;
+        min-height: 0;
+        padding: 14px;
+        gap: 9px 12px;
+    }
+    .customer-order-grid .customer-order-item > h3,
+    .customer-order-grid .customer-order-item > p {
+        grid-column: 1 / -1;
+    }
+    .customer-order-grid .customer-order-price {
+        grid-column: 1;
+        grid-row: 4;
+    }
+    .customer-order-grid .customer-order-add {
+        grid-column: 2;
+        grid-row: 4;
+        flex-wrap: nowrap;
+    }
+}
+@media (max-width: 420px) {
+    .customer-order-grid .customer-order-item {
+        grid-template-columns: 1fr;
+    }
+    .customer-order-grid .customer-order-price,
+    .customer-order-grid .customer-order-add {
+        grid-column: 1;
+    }
+    .customer-order-grid .customer-order-price {
+        grid-row: auto;
+    }
+    .customer-order-grid .customer-order-add {
+        grid-row: auto;
+        justify-content: space-between;
+    }
+}
+
 </style>
 
 <div class="customer-order-page">
