@@ -132,17 +132,22 @@ class CustomerCheckoutController extends Controller
 
         $defaultAddress = $savedAddresses->firstWhere('is_default', true);
 
-        $deliveryFeeCents = $this->toCents($settings->delivery_fee);
+        $deliveryBaseFeeCents = $this->toCents($settings->delivery_fee);
+
+        $minimumOrderCents = $settings->minimum_order !== null
+            ? $this->toCents($settings->minimum_order)
+            : null;
+
+        $deliveryFeeCents = $minimumOrderCents !== null
+            && $subtotalCents >= $minimumOrderCents
+                ? 0
+                : $deliveryBaseFeeCents;
 
         if ($subtotalCents + $deliveryFeeCents > self::MAX_MONEY_CENTS) {
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Итоговая сумма заказа превышает допустимый предел.');
         }
-
-        $minimumOrderCents = $settings->minimum_order !== null
-            ? $this->toCents($settings->minimum_order)
-            : null;
 
         $priceSnapshot = [];
         foreach ($items as $item) {
@@ -194,10 +199,12 @@ class CustomerCheckoutController extends Controller
             'lines' => $lines,
             'subtotal' => $this->fromCents($subtotalCents),
             'deliveryFee' => $this->fromCents($deliveryFeeCents),
+            'deliveryBaseFee' => $this->fromCents($deliveryBaseFeeCents),
             'deliveryTotal' => $this->fromCents($subtotalCents + $deliveryFeeCents),
             'minimumOrder' => $minimumOrderCents !== null
                 ? $this->fromCents($minimumOrderCents)
                 : null,
+            'currencySymbol' => $settings->currency === 'RUB' ? '₽' : $settings->currency,
             'idempotencyKey' => $idempotencyKey,
         ]);
     }
@@ -579,20 +586,20 @@ class CustomerCheckoutController extends Controller
                 ? $this->toCents($settings->minimum_order)
                 : null;
 
-            if (
-                $validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY
-                && $minimumOrderCents !== null
-                && $subtotalCents < $minimumOrderCents
-            ) {
-                throw ValidationException::withMessages([
-                    'cart' => 'Минимальная сумма товаров для доставки: '
-                        . $this->fromCents($minimumOrderCents) . ' ' . $settings->currency . '.',
-                ]);
-            }
+            // minimum_order — порог бесплатной доставки, а не ограничение
+            // на оформление заказа. Ниже порога применяется обычная стоимость доставки.
+            $deliveryFeeCents = 0;
 
-            $deliveryFeeCents = $validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY
-                ? $this->toCents($settings->delivery_fee)
-                : 0;
+            if ($validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY) {
+                $minimumOrderCents = $settings->minimum_order !== null
+                    ? $this->toCents($settings->minimum_order)
+                    : null;
+
+                $deliveryFeeCents = $minimumOrderCents !== null
+                    && $subtotalCents >= $minimumOrderCents
+                        ? 0
+                        : $this->toCents($settings->delivery_fee);
+            }
 
             $totalCents = $subtotalCents + $deliveryFeeCents;
 
