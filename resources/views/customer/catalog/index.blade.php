@@ -577,7 +577,8 @@
     z-index: 30;
     top: calc(100% + 12px);
     left: 50%;
-    width: min(390px, calc(100vw - 48px));
+    width: max-content;
+    max-width: calc(100vw - 32px);
     padding: 15px 18px;
     color: #eaf8f7;
     text-align: left;
@@ -659,24 +660,49 @@
     font-weight: 800;
     letter-spacing: .035em;
 }
+.customer-order-header-action-stats {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 9px 18px;
+}
+.customer-order-header-action-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #bafaf3;
+    font-size: .92rem;
+    font-weight: 700;
+}
 .customer-order-header-action-count {
-    min-width: 34px;
-    min-height: 30px;
+    min-width: 30px;
+    min-height: 27px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 2px 12px;
-    color: #081016;
-    background: linear-gradient(135deg, #ffe28a, #ffd700);
-    border-radius: 20px;
+    padding: 2px 9px;
+    color: #ffe9a0;
+    background: linear-gradient(145deg, rgba(255, 215, 0, .08), rgba(0, 229, 212, .08));
+    border: 1px solid rgba(255, 215, 0, .62);
+    border-radius: 8px;
     font-size: .9rem;
     font-weight: 900;
-    box-shadow: 0 0 15px rgba(255, 215, 0, .18);
+    line-height: 1;
+    box-shadow: inset 0 0 10px rgba(0, 229, 212, .06);
 }
 .customer-order-header-cart-total {
     color: #00e5d4;
     font-size: .95rem;
     font-weight: 800;
+}
+.customer-order-header-cart-total .customer-order-header-action-stat {
+    color: #bafaf3;
+}
+.customer-order-header-cart-total strong {
+    color: #ffe9a0;
+    font-weight: 900;
 }
 .customer-order-layout {
     flex: 1 1 auto;
@@ -775,10 +801,12 @@
                         <span class="customer-order-header-tooltip" id="customer-order-delivery-tooltip" role="tooltip">
                             <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">
                                 Доставка: {{ number_format((float) $settings->delivery_fee, 2, ',', ' ') }} {{ $currencySymbol }}
-                                @if($settings->minimum_order !== null)
-                                    · бесплатно от {{ number_format((float) $settings->minimum_order, 2, ',', ' ') }} {{ $currencySymbol }}
-                                @endif
                             </span>
+                            @if($settings->minimum_order !== null)
+                                <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">
+                                    Бесплатно от {{ number_format((float) $settings->minimum_order, 2, ',', ' ') }} {{ $currencySymbol }}
+                                </span>
+                            @endif
                         </span>
                     </span>
                 @endif
@@ -808,17 +836,27 @@
             <a class="customer-order-header-action"
                href="{{ auth('customer')->check() ? route('customer.orders.index') : route('customer.login') }}">
                 <span class="customer-order-header-action-title">Мои заказы</span>
-                <span class="customer-order-header-action-count">{{ $ordersCount }}</span>
-                <span class="customer-order-header-methods">Всего заказов в этой организации</span>
+                <span class="customer-order-header-action-stats">
+                    <span class="customer-order-header-action-stat">
+                        История <span class="customer-order-header-action-count">{{ $ordersHistoryCount }}</span>
+                    </span>
+                    <span class="customer-order-header-action-stat">
+                        В работе <span class="customer-order-header-action-count">{{ $ordersInProgressCount }}</span>
+                    </span>
+                </span>
             </a>
         </section>
 
         <section class="customer-order-header-card">
             <a class="customer-order-header-action" href="{{ route('customer.cart') }}">
-                <span class="customer-order-header-action-title">🛒 Корзина</span>
-                <span class="customer-order-header-action-count">{{ $cartCount }} товаров</span>
-                <span class="customer-order-header-cart-total">
-                    {{ number_format((float) $cartSubtotal, 2, ',', ' ') }} {{ $currencySymbol }}
+                <span class="customer-order-header-action-title">Корзина</span>
+                <span class="customer-order-header-action-stats">
+                    <span class="customer-order-header-action-stat">
+                        Выбрано <span class="customer-order-header-action-count">{{ $cartCount }}</span>
+                    </span>
+                    <span class="customer-order-header-action-stat customer-order-header-cart-total">
+                        Начислено <strong>{{ number_format((float) $cartSubtotal, 2, ',', ' ') }} {{ $currencySymbol }}</strong>
+                    </span>
                 </span>
             </a>
         </section>
