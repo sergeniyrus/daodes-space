@@ -349,8 +349,8 @@ class CustomerCheckoutController extends Controller
             $validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP
         ) {
             $minimumPickupMinutes = max(30, (int) ($settings->pickup_min_minutes ?? 0));
-            $minimumPickupTime = now()->addMinutes($minimumPickupMinutes);
-            $requestedAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at']);
+            $minimumPickupTime = Carbon::now('Asia/Krasnoyarsk')->addMinutes($minimumPickupMinutes);
+            $requestedAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at'], 'Asia/Krasnoyarsk');
 
             if ($requestedAt->lt($minimumPickupTime)) {
                 throw ValidationException::withMessages([
@@ -527,9 +527,9 @@ class CustomerCheckoutController extends Controller
                 $validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP
             ) {
                 $minimumPickupMinutes = max(30, (int) ($settings->pickup_min_minutes ?? 0));
-                $requestedAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at']);
+                $requestedAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at'], 'Asia/Krasnoyarsk');
 
-                if ($requestedAt->lt(now()->addMinutes($minimumPickupMinutes))) {
+                if ($requestedAt->lt(Carbon::now('Asia/Krasnoyarsk')->addMinutes($minimumPickupMinutes))) {
                     throw ValidationException::withMessages([
                         'requested_at' => 'Время самовывоза должно быть не раньше чем через '
                             . $minimumPickupMinutes . ' мин.',
@@ -643,7 +643,7 @@ class CustomerCheckoutController extends Controller
                     ? ($validated['table_number'] ?? null)
                     : null,
                 'requested_at' => !empty($validated['requested_at'])
-                    ? Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at'])
+                    ? Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at'], 'Asia/Krasnoyarsk')->utc()
                     : null,
                 'subtotal' => $this->fromCents($subtotalCents),
                 'delivery_fee' => $this->fromCents($deliveryFeeCents),
