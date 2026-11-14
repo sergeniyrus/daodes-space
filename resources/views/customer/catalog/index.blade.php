@@ -496,7 +496,7 @@
 }
 .customer-order-header {
     display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 6fr) minmax(132px, 1fr);
+    grid-template-columns: minmax(0, 30fr) minmax(0, 60fr) minmax(0, 10fr) !important;
     gap: 14px;
     flex: 0 0 auto;
     margin-bottom: 16px;
@@ -768,7 +768,7 @@
 }
 @media (max-width: 1000px) {
     .customer-order-header {
-        grid-template-columns: minmax(0, 3fr) minmax(0, 6fr) minmax(132px, 1fr);
+        grid-template-columns: minmax(0, 30fr) minmax(0, 60fr) minmax(0, 10fr) !important;
         gap: 10px;
     }
     .customer-order-header-card {
