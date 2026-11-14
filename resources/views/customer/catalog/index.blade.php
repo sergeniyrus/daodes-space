@@ -1731,12 +1731,10 @@ body:has(.customer-order-page) {
                     pageGrid.className = 'customer-order-carousel-page-grid';
                     pageGrid.style.cssText = 'display:contents';
 
-                    items.slice(index, index + 8).forEach((item) => page.appendChild(item));
+                    // The page itself is the 4 x 2 grid; display:contents lets its cards fill it.
+                    items.slice(index, index + 8).forEach((item) => pageGrid.appendChild(item));
                     page.appendChild(pageGrid);
                     track.appendChild(page);
-
-                    // Move the eight cards into a dedicated 4 x 2 grid.
-                    items.slice(index, index + 8).forEach((item) => pageGrid.appendChild(item));
                 }
             }
 
