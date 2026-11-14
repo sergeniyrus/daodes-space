@@ -19,7 +19,8 @@
     border-radius: 18px;
     box-shadow: 0 12px 35px rgba(0, 0, 0, .35);
 }
-.customer-cart-title { margin: 0 0 18px; color: #ffd700; }
+.customer-cart-title { margin: 0 0 22px; color: #ffd700; font-size: clamp(2rem, 4vw, 2.7rem); text-align: center; }
+.customer-cart-organization { margin: 0 0 18px; color: #d9deeb; font-size: 1.25rem; font-weight: 700; }
 .customer-cart-line {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto auto;
@@ -28,17 +29,17 @@
     border: 1px solid rgba(0, 229, 212, .27); border-radius: 15px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035), 0 7px 20px rgba(0, 0, 0, .2);
 }
-.customer-cart-name { color: #fff; font-weight: 700; }
-.customer-cart-muted { color: #aeb5c4; font-size: .9rem; }
-.customer-cart-price { color: #ffd700; font-weight: 700; white-space: nowrap; }
+.customer-cart-name { color: #fff; font-size: 1.12rem; font-weight: 800; }
+.customer-cart-muted { color: #aeb5c4; font-size: 1rem; }
+.customer-cart-price { color: #ffd700; font-size: 1.12rem; font-weight: 800; white-space: nowrap; }
 .customer-cart-actions { display: flex; gap: 10px; align-items: center; }
+.customer-cart-update-form { display: flex; align-items: center; gap: 0; }
 .customer-cart-stepper { display: inline-flex; align-items: center; overflow: hidden; border: 1px solid rgba(0, 229, 212, .55); border-radius: 11px; background: #090e1a; }
-.customer-cart-stepper button { width: 37px; height: 39px; color: #00e5d4; background: rgba(0, 229, 212, .09); border: 0; cursor: pointer; font-size: 1.2rem; font-weight: 800; }
+.customer-cart-stepper button { width: 40px; height: 43px; color: #00e5d4; background: rgba(0, 229, 212, .09); border: 0; cursor: pointer; font-size: 1.35rem; font-weight: 800; }
 .customer-cart-stepper button:hover { color: #081016; background: #00e5d4; }
-.customer-cart-stepper input { width: 42px; min-height: 39px; padding: 4px 2px; color: #fff; background: transparent; border: 0; border-left: 1px solid rgba(0, 229, 212, .2); border-right: 1px solid rgba(0, 229, 212, .2); border-radius: 0; text-align: center; appearance: textfield; -moz-appearance: textfield; }
+.customer-cart-stepper input { width: 48px; min-height: 43px; padding: 4px 2px; color: #fff; background: transparent; border: 0; border-left: 1px solid rgba(0, 229, 212, .2); border-right: 1px solid rgba(0, 229, 212, .2); border-radius: 0; text-align: center; font-size: 1.08rem; appearance: textfield; -moz-appearance: textfield; }
 .customer-cart-stepper input::-webkit-inner-spin-button,
 .customer-cart-stepper input::-webkit-outer-spin-button { appearance: none; margin: 0; }
-.customer-cart-update { min-height: 35px; padding: 6px 10px; font-size: .82rem; }
 .customer-cart-button {
     min-height: 38px;
     padding: 7px 13px;
@@ -60,13 +61,25 @@
     font-size: 1.2rem;
     font-weight: 700;
 }
-.customer-cart-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.customer-cart-links { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px; margin-top: 24px; }
 .customer-cart-links a { color: #00e5d4; text-decoration: none; }
+.customer-cart-links form { margin: 0; }
+.customer-cart-nav-button { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 8px 17px; text-decoration: none !important; }
+.customer-cart-clear-form { order: 2; }
+.customer-cart-checkout { order: 1; }
+.customer-cart-back { order: 3; }
+.customer-cart-remove { color: #ff8585; border-color: rgba(255, 100, 100, .6); }
+.customer-cart-remove:hover { color: #fff; background: #a83242; border-color: #ff8585; }
 .customer-cart-unavailable { color: #ff9292; }
 @media(max-width:650px) {
     .customer-cart-panel { padding: 16px; }
     .customer-cart-line { grid-template-columns: 1fr; gap: 11px; padding: 14px; }
     .customer-cart-actions { flex-wrap: wrap; justify-content: space-between; }
+    .customer-cart-links { flex-direction: column; }
+    .customer-cart-links > *, .customer-cart-links form, .customer-cart-links form button { width: 100%; }
+    .customer-cart-clear-form { order: 2; }
+    .customer-cart-checkout { order: 1; }
+    .customer-cart-back { order: 3; }
 }
 </style>
 
@@ -87,7 +100,7 @@
                 <a href="{{ route('customer.login') }}">Войти в клиентский кабинет</a>
             </div>
         @else
-            <p class="customer-cart-muted">{{ $organization->name }}</p>
+            <p class="customer-cart-organization">{{ $organization->name }}</p>
 
             @foreach($lines as $line)
                 <div class="customer-cart-line" id="cart-item-{{ $line['item_id'] }}">
@@ -128,7 +141,6 @@
                                     <input type="number" name="quantity" value="{{ $line['quantity'] }}" min="1" max="99" aria-label="Количество">
                                     <button type="button" data-cart-quantity-change="1" aria-label="Увеличить количество">+</button>
                                 </div>
-                                <button class="customer-cart-button customer-cart-update" type="submit">Обновить</button>
                             </form>
                         @endif
 
@@ -151,18 +163,6 @@
                 </span>
             </div>
 
-            @if($canOrder)
-                <div style="margin-top: 20px;">
-                    <a
-                        href="{{ route('customer.checkout') }}"
-                        class="customer-cart-button"
-                        style="display: inline-flex; align-items: center; text-decoration: none;"
-                    >
-                        Перейти к оформлению
-                    </a>
-                </div>
-            @endif
-
             @if(!$canOrder)
                 <p class="customer-cart-unavailable">
                     Организация временно не принимает онлайн-заказы. Состав корзины сохранён.
@@ -170,14 +170,23 @@
             @endif
 
             <div class="customer-cart-links">
-                <a href="{{ route('customer.catalog', $organization) }}">← Вернуться в меню</a>
-                <form method="POST" action="{{ route('customer.cart.clear') }}">
+                @if($canOrder)
+                    <a href="{{ route('customer.checkout') }}" class="customer-cart-button customer-cart-nav-button customer-cart-checkout">
+                        Перейти к оформлению
+                    </a>
+                @endif
+
+                <form method="POST" action="{{ route('customer.cart.clear') }}" class="customer-cart-clear-form" onsubmit="return confirm('Вы действительно хотите очистить всю корзину?');">
                     @csrf
                     @method('DELETE')
-                    <button class="customer-cart-button customer-cart-remove" type="submit">
+                    <button class="customer-cart-button customer-cart-remove customer-cart-nav-button" type="submit">
                         Очистить корзину
                     </button>
                 </form>
+
+                <a href="{{ route('customer.catalog', $organization) }}" class="customer-cart-button customer-cart-nav-button customer-cart-back">
+                    ← Вернуться в меню
+                </a>
             </div>
         @endif
     </div>
