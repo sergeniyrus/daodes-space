@@ -69,7 +69,9 @@
 </head>
 
 <body>
-    @include('menu')
+    @unless (request()->routeIs('customer.*'))
+        @include('menu')
+    @endunless
     @yield('main')
     @include('footer')
     @include('components.cookie-consent')
