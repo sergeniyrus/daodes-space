@@ -275,12 +275,22 @@ class CustomerCheckoutController extends Controller
             'save_address' => ['nullable', 'boolean'],
             'address_label' => ['required_if:save_address,1', 'nullable', 'string', 'max:50'],
             'address_line' => ['required_if:fulfillment_type,delivery', 'nullable', 'string', 'max:500'],
+            'house_number' => ['nullable', 'string', 'max:30'],
             'entrance' => ['nullable', 'string', 'max:30'],
             'floor' => ['nullable', 'string', 'max:30'],
             'apartment' => ['nullable', 'string', 'max:30'],
             'intercom' => ['nullable', 'string', 'max:50'],
             'delivery_comment' => ['nullable', 'string', 'max:1000'],
         ]);
+
+        if (
+            $validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY
+            && !empty($validated['house_number'])
+        ) {
+            $validated['address_line'] = trim(
+                $validated['address_line'] . ', ' . $validated['house_number']
+            );
+        }
 
         $organization = Organization::query()
             ->with('orderSettings')
@@ -337,15 +347,15 @@ class CustomerCheckoutController extends Controller
 
         if (
             $validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP
-            && $settings->pickup_min_minutes !== null
         ) {
-            $minimumPickupTime = now()->addMinutes($settings->pickup_min_minutes);
+            $minimumPickupMinutes = max(30, (int) ($settings->pickup_min_minutes ?? 0));
+            $minimumPickupTime = now()->addMinutes($minimumPickupMinutes);
             $requestedAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at']);
 
             if ($requestedAt->lt($minimumPickupTime)) {
                 throw ValidationException::withMessages([
                     'requested_at' => 'Самовывоз доступен не раньше чем через '
-                        . $settings->pickup_min_minutes . ' мин.',
+                        . $minimumPickupMinutes . ' мин.',
                 ]);
             }
         }
@@ -515,14 +525,14 @@ class CustomerCheckoutController extends Controller
 
             if (
                 $validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP
-                && $settings->pickup_min_minutes !== null
             ) {
+                $minimumPickupMinutes = max(30, (int) ($settings->pickup_min_minutes ?? 0));
                 $requestedAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at']);
 
-                if ($requestedAt->lt(now()->addMinutes($settings->pickup_min_minutes))) {
+                if ($requestedAt->lt(now()->addMinutes($minimumPickupMinutes))) {
                     throw ValidationException::withMessages([
                         'requested_at' => 'Время самовывоза должно быть не раньше чем через '
-                            . $settings->pickup_min_minutes . ' мин.',
+                            . $minimumPickupMinutes . ' мин.',
                     ]);
                 }
             }
