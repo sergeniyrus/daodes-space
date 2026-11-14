@@ -467,14 +467,14 @@
         align-items: start;
         gap: 8px;
     }
-    .customer-order-section-list > .customer-order-products-panel {
+    .customer-order-section-group > .customer-order-products-panel {
         grid-column: 1 / -1;
         width: 100%;
         min-width: 0;
         margin: 0 0 8px;
         box-sizing: border-box;
     }
-    .customer-order-section-list > .customer-order-products-panel[hidden] {
+    .customer-order-section-group > .customer-order-products-panel[hidden] {
         display: none !important;
     }
     .customer-order-section-choice {
@@ -1135,42 +1135,46 @@ body:has(.customer-order-page) {
 }
 
 
-/* Mobile category panels: show the section title and the complete dish list. */
+/* Mobile category groups: keep the expanded section toggle sticky above its dishes. */
 @media (max-width: 700px) {
-    .customer-order-section-list > .customer-order-products-panel {
-        display: block;
+    .customer-order-section-group {
+        display: contents;
+    }
+
+    .customer-order-section-group.is-expanded {
+        display: flex;
+        flex-direction: column;
         grid-column: 1 / -1;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .customer-order-section-group > .customer-order-products-panel {
+        display: block;
         width: 100%;
         height: auto;
         min-height: 0;
         max-height: none;
+        margin: 0 0 8px;
         overflow: visible !important;
+        box-sizing: border-box;
+    }
+
+    .customer-order-section-group > .customer-order-products-panel[hidden] {
+        display: none !important;
+    }
+
+    .customer-order-section-group.is-expanded > .customer-order-section-choice {
+        position: sticky;
+        top: 8px;
+        z-index: 30;
+        align-self: stretch;
+        background: linear-gradient(110deg, #0b2530, #182033);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, .55), 0 0 16px rgba(0, 229, 212, .14);
     }
 
     .customer-order-products-heading {
-        display: flex !important;
-        width: 100%;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        margin: 0 0 14px;
-        padding: 0 0 10px;
-        border-bottom: 1px solid rgba(0, 229, 212, .28);
-        visibility: visible !important;
-    }
-
-    .customer-order-products-heading h2 {
-        display: block !important;
-        margin: 0;
-        color: #ffd700 !important;
-        text-align: left;
-        visibility: visible !important;
-    }
-
-    .customer-order-products-heading span {
-        display: block !important;
-        flex: 0 0 auto;
-        visibility: visible !important;
+        display: none !important;
     }
 
     .customer-order-carousel {
@@ -1434,7 +1438,9 @@ body:has(.customer-order-page) {
             const shouldExpand = !isExpanded;
 
             document.querySelectorAll('[data-section-select]').forEach((button) => {
-                button.setAttribute('aria-expanded', button === sectionButton && shouldExpand ? 'true' : 'false');
+                const isActive = button === sectionButton && shouldExpand;
+                button.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+                button.closest('[data-section-group]')?.classList.toggle('is-expanded', isActive);
             });
             document.querySelectorAll('[data-section-panel]').forEach((panel) => {
                 panel.hidden = !shouldExpand || panel.dataset.sectionPanel !== sectionId;
@@ -1481,13 +1487,27 @@ body:has(.customer-order-page) {
         if (!sectionList || !productsContainer) return;
 
         document.querySelectorAll('[data-section-select]').forEach((button) => {
-            const panel = document.querySelector('[data-section-panel="' + button.dataset.sectionSelect + '"]');
+            const sectionId = button.dataset.sectionSelect;
+            const panel = document.querySelector('[data-section-panel="' + sectionId + '"]');
             if (!panel) return;
 
+            let group = button.closest('[data-section-group]');
+            if (!group) {
+                group = document.createElement('div');
+                group.className = 'customer-order-section-group';
+                group.dataset.sectionGroup = sectionId;
+                button.parentNode.insertBefore(group, button);
+                group.appendChild(button);
+            }
+
             if (mobileLayout.matches) {
-                button.insertAdjacentElement('afterend', panel);
+                group.appendChild(button);
+                group.appendChild(panel);
+                group.classList.toggle('is-expanded', button.getAttribute('aria-expanded') === 'true');
             } else {
+                sectionList.appendChild(group);
                 productsContainer.appendChild(panel);
+                group.classList.remove('is-expanded');
             }
         });
     };
