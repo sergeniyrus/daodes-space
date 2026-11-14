@@ -958,6 +958,174 @@ body:has(.customer-order-page) {
     }
 }
 
+
+/* Compact, centered mobile catalog header and controls. */
+@media (max-width: 700px) {
+    .customer-order-page {
+        width: calc(100% - 16px);
+        margin: 8px auto 18px;
+    }
+
+    .customer-order-header {
+        width: 100%;
+        justify-items: stretch;
+        align-items: stretch;
+        gap: 7px;
+        margin-bottom: 10px;
+    }
+
+    .customer-order-header-info {
+        height: auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 8px 10px;
+        text-align: center;
+    }
+
+    .customer-order-header-info > * {
+        width: 100%;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+        line-height: 1.15;
+    }
+
+    .customer-order-header-organization {
+        font-size: clamp(1.15rem, 5.2vw, 1.55rem);
+        line-height: 1.12;
+    }
+
+    .customer-order-header-menu-title {
+        margin: 0;
+        font-size: clamp(1.3rem, 5.8vw, 1.8rem);
+        letter-spacing: .12em;
+        line-height: 1.05;
+        transform: none;
+    }
+
+    .customer-order-header-methods {
+        margin: 0;
+        font-size: clamp(.82rem, 3.4vw, .98rem);
+        line-height: 1.25;
+        text-align: center;
+    }
+
+    .customer-order-header-delivery {
+        margin-top: 2px !important;
+        font-size: .82rem;
+        line-height: 1.2;
+    }
+
+    .customer-order-header-card:not(.customer-order-header-info) {
+        min-height: 0;
+        padding: 6px;
+        text-align: center;
+    }
+
+    .customer-order-header-action {
+        min-height: 68px;
+        height: 100%;
+        padding: 7px 5px;
+        gap: 5px;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .customer-order-header-action-title {
+        font-size: clamp(.9rem, 3.8vw, 1.05rem);
+        line-height: 1.1;
+    }
+
+    .customer-order-header-action-stats {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+    }
+
+    .customer-order-header-action-stat {
+        justify-content: center;
+        gap: 5px;
+        font-size: clamp(.68rem, 2.8vw, .8rem);
+        line-height: 1.1;
+    }
+
+    .customer-order-header-action-count {
+        min-width: 23px;
+        min-height: 21px;
+        padding: 2px 5px;
+        font-size: .75rem;
+    }
+
+    .customer-order-header-cart-total {
+        font-size: clamp(.68rem, 2.8vw, .8rem);
+    }
+
+    .customer-order-sidebar-title,
+    .customer-order-products-heading {
+        text-align: center;
+        justify-content: center;
+    }
+
+    .customer-order-section-choice {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .customer-order-section-choice-name {
+        text-align: center;
+    }
+
+    .customer-order-section-choice-meta {
+        margin-left: 5px;
+    }
+
+    .customer-order-item {
+        align-items: center;
+        text-align: center;
+    }
+
+    .customer-order-item h3,
+    .customer-order-item p,
+    .customer-order-price {
+        width: 100%;
+        text-align: center;
+    }
+
+    .customer-order-add {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 420px) {
+    .customer-order-header-info {
+        padding: 7px 8px;
+        gap: 2px;
+    }
+
+    .customer-order-header-organization {
+        font-size: clamp(1.08rem, 5vw, 1.35rem);
+    }
+
+    .customer-order-header-menu-title {
+        font-size: clamp(1.2rem, 5.6vw, 1.55rem);
+    }
+
+    .customer-order-header-methods {
+        font-size: .78rem;
+    }
+}
+
 </style>
 
 <div class="customer-order-page">
