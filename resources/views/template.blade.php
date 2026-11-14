@@ -73,7 +73,9 @@
         @include('menu')
     @endunless
     @yield('main')
-    @include('footer')
+    @unless (request()->routeIs('customer.*'))
+        @include('footer')
+    @endunless
     @include('components.cookie-consent')
 
     {{-- Скрипты из дочерних шаблонов (в конце body — правильно!) --}}
