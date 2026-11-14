@@ -1294,9 +1294,26 @@ body:has(.customer-order-page) {
 .customer-order-item-content > p + p {
     font-size: .92rem;
 }
-.customer-order-item-content .customer-order-price {
-    margin: auto 0 0;
-    padding-top: 3px;
+.customer-order-item-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 12px;
+    min-width: 0;
+    padding-top: 2px;
+}
+.customer-order-item-weight {
+    min-width: 0;
+    color: #aeb5c4;
+    font-size: .95rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+.customer-order-item-meta .customer-order-price {
+    flex: 0 0 auto;
+    margin: 0 0 0 auto;
+    padding: 0;
     color: #ffd700;
     font-size: 1.12rem;
     font-weight: 800;
@@ -1500,19 +1517,21 @@ body:has(.customer-order-page) {
                                                     <p>{{ $item->description }}</p>
                                                 @endif
 
-                                                @if($item->weight || $item->unit)
-                                                    <p>{{ $item->weight }} {{ $item->unit }}</p>
-                                                @endif
-
-                                                <div class="customer-order-price">
-                                                    {{ number_format((float) $item->price, 2, ',', ' ') }}
-                                                    @if($settings?->currency)
-                                                        {{ $currencySymbol }}
-                                                    @endif
-                                                </div>
                                             </div>
 
                                             <div class="customer-order-item-image-placeholder" aria-label="Место для фотографии блюда"></div>
+                                        </div>
+
+                                        <div class="customer-order-item-meta">
+                                            @if($item->weight || $item->unit)
+                                                <span class="customer-order-item-weight">{{ $item->weight }} {{ $item->unit }}</span>
+                                            @endif
+                                            <div class="customer-order-price">
+                                                {{ number_format((float) $item->price, 2, ',', ' ') }}
+                                                @if($settings?->currency)
+                                                    {{ $currencySymbol }}
+                                                @endif
+                                            </div>
                                         </div>
 
                                         @if($canOrder)
