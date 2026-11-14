@@ -496,7 +496,7 @@
 }
 .customer-order-header {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 3fr) minmax(0, 6fr) minmax(0, 1fr);
     gap: 14px;
     flex: 0 0 auto;
     margin-bottom: 16px;
@@ -575,6 +575,17 @@
     display: inline-block;
     cursor: help;
     outline: none;
+}
+.customer-order-header-method-delivery .customer-order-header-tooltip {
+    left: 0;
+    transform: translate(0, 6px);
+}
+.customer-order-header-method-delivery .customer-order-header-tooltip::before {
+    left: 22px;
+}
+.customer-order-header-method-delivery:hover .customer-order-header-tooltip,
+.customer-order-header-method-delivery:focus .customer-order-header-tooltip {
+    transform: translate(0, 0);
 }
 .customer-order-header-method:focus-visible {
     color: #ffd700;
@@ -808,7 +819,7 @@
             <div class="customer-order-header-menu-title">НАШЕ МЕНЮ</div>
             <div class="customer-order-header-methods">
                 @if($settings?->delivery_enabled)
-                    <span class="customer-order-header-method" tabindex="0" aria-describedby="customer-order-delivery-tooltip">
+                    <span class="customer-order-header-method customer-order-header-method-delivery" tabindex="0" aria-describedby="customer-order-delivery-tooltip">
                         Доставка
                         <span class="customer-order-header-tooltip" id="customer-order-delivery-tooltip" role="tooltip">
                             <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">
