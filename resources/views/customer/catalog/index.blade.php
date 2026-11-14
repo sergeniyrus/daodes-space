@@ -557,12 +557,20 @@
     text-shadow: 0 0 12px rgba(255, 215, 0, .25);
 }
 .customer-order-header-methods {
-    position: relative;
     color: #bafaf3;
     font-size: clamp(1rem, 1.35vw, 1.4rem);
     line-height: 1.2;
     font-weight: 700;
+}
+.customer-order-header-method {
+    position: relative;
+    display: inline-block;
     cursor: help;
+    outline: none;
+}
+.customer-order-header-method:focus-visible {
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, .45);
 }
 .customer-order-header-tooltip {
     position: absolute;
@@ -597,8 +605,8 @@
     border-bottom-color: rgba(255, 215, 0, .65);
     transform: translateX(-50%);
 }
-.customer-order-header-methods:hover .customer-order-header-tooltip,
-.customer-order-header-methods:focus-within .customer-order-header-tooltip {
+.customer-order-header-method:hover .customer-order-header-tooltip,
+.customer-order-header-method:focus .customer-order-header-tooltip {
     opacity: 1;
     visibility: visible;
     transform: translate(-50%, 0);
@@ -760,26 +768,36 @@
         <section class="customer-order-header-card customer-order-header-info">
             <h1 class="customer-order-header-organization">{{ $organization->name }}</h1>
             <div class="customer-order-header-menu-title">НАШЕ МЕНЮ</div>
-            <div class="customer-order-header-methods" tabindex="0" aria-describedby="customer-order-header-tooltip">
-                @if($settings?->delivery_enabled)Доставка@endif
-                @if($settings?->pickup_enabled) · Самовывоз@endif
-                @if($settings?->dine_in_enabled) · В Ёлках термбурга@endif
-
-                <span class="customer-order-header-tooltip" id="customer-order-header-tooltip" role="tooltip">
-                    @if($settings?->delivery_enabled)
-                        <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">
-                            Доставка: {{ number_format((float) $settings->delivery_fee, 2, ',', ' ') }} {{ $currencySymbol }}
-                            @if($settings->minimum_order !== null)
-                                · бесплатно от {{ number_format((float) $settings->minimum_order, 2, ',', ' ') }} {{ $currencySymbol }}
-                            @endif
+            <div class="customer-order-header-methods">
+                @if($settings?->delivery_enabled)
+                    <span class="customer-order-header-method" tabindex="0" aria-describedby="customer-order-delivery-tooltip">
+                        Доставка
+                        <span class="customer-order-header-tooltip" id="customer-order-delivery-tooltip" role="tooltip">
+                            <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">
+                                Доставка: {{ number_format((float) $settings->delivery_fee, 2, ',', ' ') }} {{ $currencySymbol }}
+                                @if($settings->minimum_order !== null)
+                                    · бесплатно от {{ number_format((float) $settings->minimum_order, 2, ',', ' ') }} {{ $currencySymbol }}
+                                @endif
+                            </span>
                         </span>
-                    @endif
-                    <span class="customer-order-header-tooltip-line">Из Термбурга, Парковая, 23</span>
-                    <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Заказать в нашем кафе в Термбурге</span>
-                    @if($settings?->pickup_enabled && $settings->pickup_min_minutes !== null)
-                        <span class="customer-order-header-tooltip-line">Самовывоз: от {{ $settings->pickup_min_minutes }} мин.</span>
-                    @endif
-                </span>
+                    </span>
+                @endif
+                @if($settings?->pickup_enabled)
+                    <span class="customer-order-header-method" tabindex="0" aria-describedby="customer-order-pickup-tooltip">
+                        · Самовывоз
+                        <span class="customer-order-header-tooltip" id="customer-order-pickup-tooltip" role="tooltip">
+                            <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Термбург, Парковая, 23</span>
+                        </span>
+                    </span>
+                @endif
+                @if($settings?->dine_in_enabled)
+                    <span class="customer-order-header-method" tabindex="0" aria-describedby="customer-order-cafe-tooltip">
+                        · В Ёлках термбурга
+                        <span class="customer-order-header-tooltip" id="customer-order-cafe-tooltip" role="tooltip">
+                            <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Заказать в нашем кафе в Термбурге</span>
+                        </span>
+                    </span>
+                @endif
             </div>
             @unless($canOrder)
                 <div class="customer-order-header-delivery">Организация временно не принимает онлайн-заказы.</div>
