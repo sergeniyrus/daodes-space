@@ -244,8 +244,8 @@
                     <input
                         type="datetime-local"
                         name="requested_at"
-                        value="{{ old('requested_at', now()->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->format('Y-m-d\TH:i')) }}"
-                        min="{{ now()->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->format('Y-m-d\TH:i') }}"
+                        value="{{ old('requested_at', now()->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->ceilUnit('minute')->format('Y-m-d\TH:i')) }}"
+                        min="{{ now()->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->ceilUnit('minute')->format('Y-m-d\TH:i') }}"
                     >
                     <span class="customer-checkout-muted">
                         Минимальное время приготовления — 30 минут.
