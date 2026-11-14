@@ -1563,6 +1563,7 @@ body:has(.customer-order-page) {
                 const clone = source.cloneNode(true);
                 clone.classList.add('customer-order-section-choice-floating');
                 clone.removeAttribute('id');
+                clone.removeAttribute('data-section-select');
                 clone.setAttribute('aria-hidden', 'false');
                 clone.style.top = topOffset + 'px';
                 clone.style.left = sourceRect.left + 'px';
