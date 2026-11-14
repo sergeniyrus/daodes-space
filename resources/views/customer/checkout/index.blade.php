@@ -393,7 +393,6 @@
             @error('payment_method')
                 <div class="customer-checkout-error">{{ $message }}</div>
             @enderror
-        </div>
 
         <div class="customer-checkout-actions">
             <button type="submit" class="customer-checkout-button">
@@ -405,6 +404,7 @@
             >
                 Вернуться в корзину
             </a>
+        </div>
         </div>
     </form>
 </div>
