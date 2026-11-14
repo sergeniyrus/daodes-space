@@ -400,7 +400,7 @@
                         <span class="customer-checkout-item-quantity">× {{ $line['quantity'] }}</span>
                     </div>
                     <strong class="customer-checkout-item-price">
-                        {{ number_format((float) $line['line_total'], 2, ',', ' ') }} {{ $settings->currency }}
+                        {{ number_format((float) $line['line_total'], 2, ',', ' ') }} {{ $currencySymbol }}
                     </strong>
                 </div>
             @endforeach
@@ -408,24 +408,28 @@
 
         <div class="customer-checkout-subtotal">
             <span>Промежуточный итог</span>
-            <strong>{{ number_format((float) $subtotal, 2, ',', ' ') }} {{ $settings->currency }}</strong>
+            <strong>{{ number_format((float) $subtotal, 2, ',', ' ') }} {{ $currencySymbol }}</strong>
         </div>
         <div id="customer-delivery-summary" @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'delivery') hidden @endif>
         <div class="customer-checkout-delivery-info">
             @if($minimumOrder !== null)
                 <div class="customer-checkout-delivery-row customer-checkout-delivery-minimum">
-                    <span>ℹ️ Минимальная сумма товаров для доставки</span>
-                    <strong>{{ number_format((float) $minimumOrder, 2, ',', ' ') }} {{ $settings->currency }}</strong>
+                    <span>🎁 Бесплатная доставка от суммы товаров</span>
+                    <strong>{{ number_format((float) $minimumOrder, 2, ',', ' ') }} {{ $currencySymbol }}</strong>
                 </div>
             @endif
             <div class="customer-checkout-delivery-row">
                 <span>🚚 Стоимость доставки</span>
-                <strong>{{ number_format((float) $deliveryFee, 2, ',', ' ') }} {{ $settings->currency }}</strong>
+                @if((float) $deliveryFee <= 0)
+                    <strong style="color: #39d98a;">Бесплатно</strong>
+                @else
+                    <strong>{{ number_format((float) $deliveryBaseFee, 2, ',', ' ') }} {{ $currencySymbol }}</strong>
+                @endif
             </div>
         </div>
         <div class="customer-checkout-delivery-total">
             <span>Итого при доставке</span>
-            <strong>{{ number_format((float) $deliveryTotal, 2, ',', ' ') }} {{ $settings->currency }}</strong>
+            <strong>{{ number_format((float) $deliveryTotal, 2, ',', ' ') }} {{ $currencySymbol }}</strong>
         </div>
         </div>
 
