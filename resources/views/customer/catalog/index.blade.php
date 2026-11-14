@@ -549,12 +549,17 @@
     text-shadow: 0 0 14px rgba(255, 215, 0, .17);
 }
 .customer-order-header-menu-title {
+    width: 100%;
     color: #ffd700;
     font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
-    font-size: clamp(1.15rem, 1.65vw, 1.75rem);
+    font-size: clamp(1.8rem, 3.4vw, 3.1rem);
     font-weight: 900;
-    letter-spacing: .2em;
-    text-shadow: 0 0 12px rgba(255, 215, 0, .25);
+    letter-spacing: clamp(.12em, .42vw, .28em);
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    text-shadow: 0 0 16px rgba(255, 215, 0, .32);
+    transform: scaleX(1.22);
 }
 .customer-order-header-methods {
     color: #bafaf3;
@@ -773,7 +778,11 @@
     }
     .customer-order-header-info > * { padding: 3px 0; }
     .customer-order-header-organization { font-size: clamp(1.35rem, 6vw, 1.8rem); }
-    .customer-order-header-menu-title { font-size: clamp(1.05rem, 4.5vw, 1.35rem); }
+    .customer-order-header-menu-title {
+        font-size: clamp(1.35rem, 6vw, 2rem);
+        letter-spacing: clamp(.1em, 1.2vw, .2em);
+        transform: scaleX(1.08);
+    }
     .customer-order-header-methods { font-size: clamp(.9rem, 3.5vw, 1.05rem); }
     .customer-order-header-delivery { font-size: clamp(.88rem, 3.3vw, 1rem); }
     .customer-order-header-action { min-height: 78px; }
