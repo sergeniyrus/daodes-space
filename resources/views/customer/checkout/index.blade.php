@@ -150,9 +150,15 @@
         @endforeach
 
         <div class="customer-checkout-line">
-            <span>Товары</span>
+            <span>Промежуточный итог</span>
             <span>{{ number_format((float) $subtotal, 2, ',', ' ') }} {{ $settings->currency }}</span>
         </div>
+        @if($minimumOrder !== null)
+            <div class="customer-checkout-note">
+                Минимальная сумма товаров для доставки:
+                <strong>{{ number_format((float) $minimumOrder, 2, ',', ' ') }} {{ $settings->currency }}</strong>
+            </div>
+        @endif
         <div class="customer-checkout-line">
             <span>Доставка (будет добавлена только при доставке)</span>
             <span>{{ number_format((float) $deliveryFee, 2, ',', ' ') }} {{ $settings->currency }}</span>
@@ -162,11 +168,6 @@
             <span>{{ number_format((float) $deliveryTotal, 2, ',', ' ') }} {{ $settings->currency }}</span>
         </div>
 
-        @if($minimumOrder !== null)
-            <div class="customer-checkout-note">
-                Минимальная сумма товаров: {{ number_format((float) $minimumOrder, 2, ',', ' ') }} {{ $settings->currency }}.
-            </div>
-        @endif
     </div>
 
     <form method="POST" action="{{ route('customer.checkout.store') }}">
