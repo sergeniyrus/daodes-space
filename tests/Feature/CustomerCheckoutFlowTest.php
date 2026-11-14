@@ -148,6 +148,46 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertSame('0.00', $order->delivery_fee);
     }
 
+    public function test_pickup_requires_at_least_thirty_minutes_even_when_no_setting_is_configured(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'requested_at' => now()->addMinutes(20)->format('Y-m-d\\TH:i'),
+            ])
+            ->assertRedirect(route('customer.checkout'))
+            ->assertSessionHasErrors('requested_at');
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_delivery_house_number_is_combined_with_street_in_legacy_address_snapshot(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'address_line' => 'Main street',
+            'house_number' => '15 корпус 2',
+        ])->assertRedirect();
+
+        $order = Order::query()->firstOrFail();
+
+        $this->assertSame('Main street, 15 корпус 2', $order->delivery_address['address_line']);
+    }
+
     public function test_customer_can_explicitly_save_a_delivery_address_with_a_custom_label(): void
     {
         $customer = $this->createVerifiedCustomer();
