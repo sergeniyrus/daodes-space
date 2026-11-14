@@ -959,6 +959,20 @@ body:has(.customer-order-page) {
 }
 
 
+/* Center the complete customer catalog container in the mobile viewport. */
+@media (max-width: 700px) {
+    .customer-order-page {
+        position: relative;
+        left: 50%;
+        width: min(680px, calc(100vw - 16px));
+        max-width: calc(100vw - 16px);
+        margin-left: 0;
+        margin-right: 0;
+        box-sizing: border-box;
+        transform: translateX(-50%);
+    }
+}
+
 /* Compact, centered mobile catalog header and controls. */
 @media (max-width: 700px) {
     .customer-order-page {
