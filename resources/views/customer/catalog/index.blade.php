@@ -532,7 +532,7 @@
     min-width: 0;
     width: 100%;
     display: flex;
-    align-items: center;
+    /* align-items: center; */
     justify-content: center;
     text-align: center;
     overflow-wrap: anywhere;
@@ -552,20 +552,23 @@
     width: 100%;
     color: #ffd700;
     font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
-    font-size: clamp(1.8rem, 3.4vw, 3.1rem);
+    font-size: clamp(1.8rem, 3vw, 3.1rem);
     font-weight: 900;
     letter-spacing: clamp(.12em, .42vw, .28em);
     line-height: 1;
-    text-align: center;
+    text-align: center;    
     white-space: nowrap;
     text-shadow: 0 0 16px rgba(255, 215, 0, .32);
     transform: scaleX(1.22);
+    margin-top: 30px ;
+    /* padding: 10px 15px; */
 }
 .customer-order-header-methods {
-    color: #bafaf3;
+    color: #00e5d4;
     font-size: clamp(1rem, 1.35vw, 1.4rem);
-    line-height: 1.2;
+    /* line-height: 1.2; */
     font-weight: 700;
+    margin-top: 35px;
 }
 .customer-order-header-method {
     position: relative;
