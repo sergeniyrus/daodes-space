@@ -100,6 +100,54 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertSame('99.00', $item->fresh()->price);
     }
 
+    public function test_delivery_requires_minimum_items_subtotal_without_counting_delivery_fee(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $organization->orderSettings->update([
+            'minimum_order' => '25.00',
+        ]);
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'address_line' => 'Test street 10',
+        ])->assertSessionHasErrors('cart');
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_minimum_delivery_order_does_not_restrict_pickup(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $organization->orderSettings->update([
+            'minimum_order' => '25.00',
+        ]);
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $response = $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'requested_at' => now()->addHour()->format('Y-m-d\\TH:i'),
+        ]);
+
+        $order = Order::query()->firstOrFail();
+
+        $response->assertRedirect(route('customer.orders.show', $order));
+        $this->assertSame('20.00', $order->subtotal);
+        $this->assertSame('0.00', $order->delivery_fee);
+    }
+
     public function test_customer_can_explicitly_save_a_delivery_address_with_a_custom_label(): void
     {
         $customer = $this->createVerifiedCustomer();
