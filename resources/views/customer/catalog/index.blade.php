@@ -1262,6 +1262,17 @@ body:has(.customer-order-page) {
     border-radius: 15px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035), 0 7px 20px rgba(0, 0, 0, .2);
 }
+.customer-order-grid .customer-order-item-title {
+    display: block;
+    width: 100%;
+    margin: 0 0 10px !important;
+    color: #fff;
+    font-size: 1.12rem;
+    font-weight: 800;
+    line-height: 1.3;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
 .customer-order-item-main {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 112px;
@@ -1275,14 +1286,6 @@ body:has(.customer-order-page) {
     align-items: flex-start;
     min-width: 0;
     gap: 9px;
-}
-.customer-order-item-content > h3 {
-    margin: 0;
-    color: #fff;
-    font-size: 1.12rem;
-    font-weight: 800;
-    line-height: 1.3;
-    overflow-wrap: anywhere;
 }
 .customer-order-item-content > p {
     margin: 0;
@@ -1341,11 +1344,19 @@ body:has(.customer-order-page) {
 .customer-order-grid .customer-order-add {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between !important;
     flex-wrap: nowrap;
     gap: 10px;
     width: 100%;
     margin: 0;
+}
+.customer-order-grid .customer-order-add .customer-quantity-stepper {
+    flex: 0 0 auto;
+    margin-right: auto;
+}
+.customer-order-grid .customer-order-add .customer-order-button {
+    flex: 0 0 auto;
+    margin-left: auto;
 }
 .customer-order-grid .customer-quantity-stepper button {
     width: 40px;
@@ -1519,14 +1530,13 @@ body:has(.customer-order-page) {
                             <div class="customer-order-grid" data-product-carousel>
                                 @forelse($section->activeItems as $item)
                                     <article class="customer-order-item" id="menu-item-{{ $item->id }}">
+                                        <h3 class="customer-order-item-title">{{ $item->name }}</h3>
+
                                         <div class="customer-order-item-main">
                                             <div class="customer-order-item-content">
-                                                <h3>{{ $item->name }}</h3>
-
                                                 @if($item->description)
                                                     <p>{{ $item->description }}</p>
                                                 @endif
-
                                             </div>
 
                                             <div class="customer-order-item-image-placeholder" aria-label="Место для фотографии блюда"></div>
@@ -1557,7 +1567,7 @@ body:has(.customer-order-page) {
                                                     <input type="number" name="quantity" value="1" min="1" max="99" aria-label="Количество">
                                                     <button type="button" data-quantity-change="1" aria-label="Увеличить количество">+</button>
                                                 </div>
-                                                <button type="submit" class="customer-order-button">Добавить</button>
+                                                <button type="submit" class="customer-order-button">В корзину</button>
                                             </form>
                                         @else
                                             <div class="customer-order-add customer-order-add-disabled">
