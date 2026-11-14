@@ -959,20 +959,6 @@ body:has(.customer-order-page) {
 }
 
 
-/* Center the complete customer catalog container in the mobile viewport. */
-@media (max-width: 700px) {
-    .customer-order-page {
-        position: relative;
-        left: 50%;
-        width: min(680px, calc(100vw - 16px));
-        max-width: calc(100vw - 16px);
-        margin-left: 0;
-        margin-right: 0;
-        box-sizing: border-box;
-        transform: translateX(-50%);
-    }
-}
-
 /* Compact, centered mobile catalog header and controls. */
 @media (max-width: 700px) {
     .customer-order-page {
@@ -1137,6 +1123,43 @@ body:has(.customer-order-page) {
 
     .customer-order-header-methods {
         font-size: .78rem;
+    }
+}
+
+
+/* Center the complete group of customer catalog blocks on mobile.
+   If its content is taller than the screen, normal page scrolling is preserved. */
+@media (max-width: 700px) {
+    .customer-order-page {
+        position: static;
+        left: auto;
+        transform: none;
+        width: min(680px, calc(100vw - 16px));
+        max-width: calc(100vw - 16px);
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0 auto;
+        padding: 12px 0;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .customer-order-header,
+    .customer-order-layout {
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+        box-sizing: border-box;
+    }
+
+    .customer-order-sidebar,
+    .customer-order-products,
+    .customer-order-products-panel {
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 }
 
