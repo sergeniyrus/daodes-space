@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\MenuItem;
 use App\Models\Organization;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class CustomerCatalogController extends Controller
@@ -41,10 +43,40 @@ class CustomerCatalogController extends Controller
 
         $cart = session('customer_order_cart', []);
         $cartCount = 0;
+        $cartSubtotalCents = 0;
 
-        if ((int) ($cart['organization_id'] ?? 0) === (int) $organization->id) {
-            $cartCount = array_sum($cart['items'] ?? []);
+        if (
+            (int) ($cart['organization_id'] ?? 0) === (int) $organization->id
+            && is_array($cart['items'] ?? null)
+            && $cart['items'] !== []
+        ) {
+            $quantities = $cart['items'];
+            $cartCount = array_sum(array_map('intval', $quantities));
+
+            $cartItems = MenuItem::query()
+                ->whereIn('id', array_map('intval', array_keys($quantities)))
+                ->where('is_active', true)
+                ->whereHas('section', function ($query) use ($organization) {
+                    $query->where('organization_id', $organization->id)
+                        ->where('is_active', true);
+                })
+                ->get()
+                ->keyBy('id');
+
+            foreach ($quantities as $itemId => $quantity) {
+                $item = $cartItems->get((int) $itemId);
+                $quantity = (int) $quantity;
+
+                if ($item && $quantity > 0 && $quantity <= 99) {
+                    $cartSubtotalCents += (int) round((float) $item->price * 100) * $quantity;
+                }
+            }
         }
+
+        $customer = Auth::guard('customer')->user();
+        $ordersCount = $customer
+            ? $customer->orders()->where('organization_id', $organization->id)->count()
+            : 0;
 
         return view('customer.catalog.index', [
             'organization' => $organization,
@@ -52,6 +84,9 @@ class CustomerCatalogController extends Controller
             'sections' => $sections,
             'canOrder' => $settings?->canAcceptOrders() ?? false,
             'cartCount' => $cartCount,
+            'cartSubtotal' => $cartSubtotalCents / 100,
+            'ordersCount' => $ordersCount,
+            'currencySymbol' => $settings?->currency === 'RUB' ? '₽' : ($settings?->currency ?? ''),
         ]);
     }
 }
