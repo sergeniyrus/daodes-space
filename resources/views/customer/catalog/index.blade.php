@@ -457,12 +457,28 @@
     .customer-order-sidebar {
         position: static;
         width: 100%;
-        max-height: 240px;
+        max-height: none;
+        overflow: visible;
         box-sizing: border-box;
     }
     .customer-order-section-list {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: 8px;
+    }
+    .customer-order-section-list > .customer-order-products-panel {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+        margin: 0 0 8px;
+        box-sizing: border-box;
+    }
+    .customer-order-section-list > .customer-order-products-panel[hidden] {
+        display: none !important;
+    }
+    .customer-order-section-choice {
+        align-self: start;
     }
     .customer-order-section-choice { min-height: 42px; padding: 8px; }
     .customer-order-products { width: 100%; }
@@ -816,7 +832,17 @@
     .customer-order-grid { height: 720px; min-height: 720px; }
 }
 @media (max-width: 700px) {
-    .customer-order-header { grid-template-columns: 1fr; gap: 9px; }
+    /* Mobile header: organization/menu full width, actions side by side. */
+    .customer-order-header {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 9px;
+    }
+    .customer-order-header-info {
+        grid-column: 1 / -1;
+    }
+    .customer-order-header-card:not(.customer-order-header-info) {
+        min-width: 0;
+    }
     .customer-order-header-card { min-height: 0; padding: 13px; }
     .customer-order-header-action { padding: 12px; gap: 8px; }
     .customer-order-header-action-stats { flex-direction: row; gap: 9px 18px; }
@@ -1125,16 +1151,19 @@ body:has(.customer-order-page) {
         const sectionButton = event.target.closest('[data-section-select]');
         if (sectionButton) {
             const sectionId = sectionButton.dataset.sectionSelect;
+            const isExpanded = sectionButton.getAttribute('aria-expanded') === 'true';
+            const shouldExpand = !isExpanded;
+
             document.querySelectorAll('[data-section-select]').forEach((button) => {
-                const active = button === sectionButton;
-                button.setAttribute('aria-expanded', active ? 'true' : 'false');
+                button.setAttribute('aria-expanded', button === sectionButton && shouldExpand ? 'true' : 'false');
             });
             document.querySelectorAll('[data-section-panel]').forEach((panel) => {
-                panel.hidden = panel.dataset.sectionPanel !== sectionId;
+                panel.hidden = !shouldExpand || panel.dataset.sectionPanel !== sectionId;
             });
+
             const activePanel = document.querySelector('[data-section-panel="' + sectionId + '"]');
             const activeTrack = activePanel?.querySelector('[data-product-carousel]');
-            if (activeTrack) updateCarouselControls(activeTrack);
+            if (shouldExpand && activeTrack) updateCarouselControls(activeTrack);
             return;
         }
 
@@ -1165,14 +1194,44 @@ body:has(.customer-order-page) {
         }
     };
 
+    const sectionList = document.querySelector('.customer-order-section-list');
+    const productsContainer = document.querySelector('.customer-order-products');
+    const mobileLayout = window.matchMedia('(max-width: 700px)');
+
+    const arrangeSectionPanels = () => {
+        if (!sectionList || !productsContainer) return;
+
+        document.querySelectorAll('[data-section-select]').forEach((button) => {
+            const panel = document.querySelector('[data-section-panel="' + button.dataset.sectionSelect + '"]');
+            if (!panel) return;
+
+            if (mobileLayout.matches) {
+                button.insertAdjacentElement('afterend', panel);
+            } else {
+                productsContainer.appendChild(panel);
+            }
+        });
+    };
+
+    arrangeSectionPanels();
+
     document.querySelectorAll('[data-product-carousel]').forEach((track) => {
         track.addEventListener('scroll', () => updateCarouselControls(track), { passive: true });
         updateCarouselControls(track);
     });
 
-    window.addEventListener('resize', () => {
+    const handleLayoutChange = () => {
+        arrangeSectionPanels();
         document.querySelectorAll('[data-product-carousel]').forEach(updateCarouselControls);
-    });
+    };
+
+    if (typeof mobileLayout.addEventListener === 'function') {
+        mobileLayout.addEventListener('change', handleLayoutChange);
+    } else {
+        mobileLayout.addListener(handleLayoutChange);
+    }
+
+    window.addEventListener('resize', handleLayoutChange);
 })();
 </script>
 @endsection
