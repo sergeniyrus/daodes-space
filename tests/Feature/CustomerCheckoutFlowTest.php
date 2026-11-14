@@ -138,7 +138,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_PICKUP,
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-            'requested_at' => now()->addHour()->format('Y-m-d\\TH:i'),
+            'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\\TH:i'),
         ]);
 
         $order = Order::query()->firstOrFail();
@@ -160,7 +160,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 'customer_name' => 'Test customer',
                 'fulfillment_type' => Order::FULFILLMENT_PICKUP,
                 'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-                'requested_at' => now()->addMinutes(20)->format('Y-m-d\\TH:i'),
+                'requested_at' => now('Asia/Krasnoyarsk')->addMinutes(20)->format('Y-m-d\\TH:i'),
             ])
             ->assertRedirect(route('customer.checkout'))
             ->assertSessionHasErrors('requested_at');
@@ -227,7 +227,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_PICKUP,
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-            'requested_at' => now()->addHour()->format('Y-m-d\TH:i'),
+            'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
         ];
 
         $firstResponse = $this->post(route('customer.checkout.store'), $payload);
@@ -259,7 +259,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 'customer_name' => 'Test customer',
                 'fulfillment_type' => Order::FULFILLMENT_PICKUP,
                 'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-                'requested_at' => now()->addHour()->format('Y-m-d\TH:i'),
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             ]);
 
         $response->assertRedirect(route('customer.checkout'));
@@ -791,7 +791,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 'customer_name' => 'Test customer',
                 'fulfillment_type' => Order::FULFILLMENT_PICKUP,
                 'payment_method' => Order::PAYMENT_ONLINE,
-                'requested_at' => now()->addHour()->format('Y-m-d\\TH:i'),
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\\TH:i'),
             ])
             ->assertRedirect(route('customer.checkout'))
             ->assertSessionHasErrors('payment_method');
@@ -1706,7 +1706,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_PICKUP,
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-            'requested_at' => now()->addHour()->format('Y-m-d\\TH:i'),
+            'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\\TH:i'),
         ])->assertRedirect();
 
         return Order::query()->latest('id')->firstOrFail();
