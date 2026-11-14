@@ -848,6 +848,16 @@
 }
 
 
+/* Keep header tooltips above the category sidebar and product panels. */
+.customer-order-header {
+    position: relative;
+    z-index: 50;
+}
+.customer-order-layout {
+    position: relative;
+    z-index: 1;
+}
+
 /* Full-page TV2 background for the customer catalog. */
 body:has(.customer-order-page) {
     min-height: 100vh;
