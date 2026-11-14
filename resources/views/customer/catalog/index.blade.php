@@ -519,34 +519,55 @@
 }
 .customer-order-header-info {
     border-color: rgba(255, 215, 0, .52);
+    height: 190px;
+    min-height: 190px;
+    display: grid;
+    grid-template-rows: 40fr 30fr 15fr 15fr;
+    align-content: stretch;
+    justify-content: stretch;
+    gap: 0;
+    padding: 10px 18px;
+}
+.customer-order-header-info > * {
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow-wrap: anywhere;
+    box-sizing: border-box;
 }
 .customer-order-header-organization {
     color: #fff1b0;
     font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
-    font-size: clamp(1.05rem, 1.45vw, 1.55rem);
+    font-size: clamp(1.45rem, 2.15vw, 2.35rem);
     font-weight: 800;
-    line-height: 1.15;
+    line-height: 1.08;
+    text-align: center;
     overflow-wrap: anywhere;
     text-shadow: 0 0 14px rgba(255, 215, 0, .17);
 }
 .customer-order-header-menu-title {
     color: #ffd700;
     font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
-    font-size: clamp(.9rem, 1.15vw, 1.15rem);
+    font-size: clamp(1.15rem, 1.65vw, 1.75rem);
     font-weight: 900;
-    letter-spacing: .18em;
+    letter-spacing: .2em;
     text-shadow: 0 0 12px rgba(255, 215, 0, .25);
 }
 .customer-order-header-methods {
     color: #bafaf3;
-    font-size: .86rem;
-    line-height: 1.35;
+    font-size: clamp(1rem, 1.35vw, 1.4rem);
+    line-height: 1.2;
+    font-weight: 700;
 }
 .customer-order-header-delivery {
     color: #f4d77a;
-    font-size: .88rem;
-    font-weight: 700;
-    line-height: 1.35;
+    font-size: clamp(.95rem, 1.25vw, 1.3rem);
+    font-weight: 800;
+    line-height: 1.2;
+    text-align: center;
 }
 .customer-order-header-action {
     position: relative;
@@ -660,6 +681,17 @@
 @media (max-width: 700px) {
     .customer-order-header { grid-template-columns: 1fr; gap: 9px; }
     .customer-order-header-card { min-height: 0; padding: 13px; }
+    .customer-order-header-info {
+        height: auto;
+        min-height: 190px;
+        grid-template-rows: minmax(62px, 40fr) minmax(48px, 30fr) minmax(34px, 15fr) minmax(38px, 15fr);
+        padding: 10px 13px;
+    }
+    .customer-order-header-info > * { padding: 3px 0; }
+    .customer-order-header-organization { font-size: clamp(1.35rem, 6vw, 1.8rem); }
+    .customer-order-header-menu-title { font-size: clamp(1.05rem, 4.5vw, 1.35rem); }
+    .customer-order-header-methods { font-size: clamp(.9rem, 3.5vw, 1.05rem); }
+    .customer-order-header-delivery { font-size: clamp(.88rem, 3.3vw, 1rem); }
     .customer-order-header-action { min-height: 78px; }
     .customer-order-page { height: auto; overflow: visible; }
 }
