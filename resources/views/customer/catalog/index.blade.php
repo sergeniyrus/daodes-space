@@ -1401,6 +1401,53 @@ body:has(.customer-order-page) {
     }
 }
 
+
+/* Desktop carousel: paginate dishes in fixed groups of eight (4 columns x 2 rows). */
+.customer-order-grid[data-product-carousel] {
+    display: flex !important;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0 !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0;
+}
+.customer-order-carousel-page {
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    box-sizing: border-box;
+    scroll-snap-align: start;
+}
+.customer-order-carousel-page .customer-order-item {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    scroll-snap-align: none;
+}
+@media (max-width: 700px) {
+    .customer-order-grid[data-product-carousel] {
+        display: grid !important;
+        grid-auto-flow: row;
+        grid-template-columns: 1fr;
+        grid-template-rows: none;
+        gap: 12px;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+    .customer-order-carousel-page {
+        display: contents;
+    }
+}
+
 </style>
 
 <div class="customer-order-page">
@@ -1651,6 +1698,53 @@ body:has(.customer-order-page) {
     const productsContainer = document.querySelector('.customer-order-products');
     const mobileLayout = window.matchMedia('(max-width: 700px)');
 
+    // On desktop each carousel page contains exactly eight dishes.
+    // On mobile the page wrappers are removed so every dish remains in normal page flow.
+    const arrangeCarouselPages = () => {
+        document.querySelectorAll('[data-product-carousel]').forEach((track) => {
+            const layout = mobileLayout.matches ? 'mobile' : 'desktop';
+            if (track.dataset.carouselLayout === layout) return;
+
+            const items = [];
+            Array.from(track.children).forEach((child) => {
+                if (child.classList.contains('customer-order-carousel-page')) {
+                    const pageGrid = child.querySelector('.customer-order-carousel-page-grid');
+                    if (pageGrid) items.push(...Array.from(pageGrid.children));
+                } else if (
+                    child.classList.contains('customer-order-item') ||
+                    child.classList.contains('customer-order-empty')
+                ) {
+                    items.push(child);
+                }
+            });
+
+            track.replaceChildren();
+
+            if (layout === 'mobile') {
+                items.forEach((item) => track.appendChild(item));
+            } else {
+                for (let index = 0; index < items.length; index += 8) {
+                    const page = document.createElement('div');
+                    page.className = 'customer-order-carousel-page';
+
+                    const pageGrid = document.createElement('div');
+                    pageGrid.className = 'customer-order-carousel-page-grid';
+                    pageGrid.style.cssText = 'display:contents';
+
+                    items.slice(index, index + 8).forEach((item) => page.appendChild(item));
+                    page.appendChild(pageGrid);
+                    track.appendChild(page);
+
+                    // Move the eight cards into a dedicated 4 x 2 grid.
+                    items.slice(index, index + 8).forEach((item) => pageGrid.appendChild(item));
+                }
+            }
+
+            track.dataset.carouselLayout = layout;
+            track.scrollLeft = 0;
+        });
+    };
+
     const arrangeSectionPanels = () => {
         if (!sectionList || !productsContainer) return;
 
@@ -1681,6 +1775,7 @@ body:has(.customer-order-page) {
     };
 
     arrangeSectionPanels();
+    arrangeCarouselPages();
 
     document.querySelectorAll('[data-product-carousel]').forEach((track) => {
         track.addEventListener('scroll', () => updateCarouselControls(track), { passive: true });
@@ -1689,6 +1784,7 @@ body:has(.customer-order-page) {
 
     const handleLayoutChange = () => {
         arrangeSectionPanels();
+        arrangeCarouselPages();
         document.querySelectorAll('[data-product-carousel]').forEach(updateCarouselControls);
     };
 
