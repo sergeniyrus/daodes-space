@@ -1274,18 +1274,16 @@ body:has(.customer-order-page) {
     overflow-wrap: anywhere;
 }
 .customer-order-item-main {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 112px;
-    align-items: start;
-    gap: 12px;
+    display: flow-root;
     min-width: 0;
 }
 .customer-order-item-content {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    display: block;
     min-width: 0;
-    gap: 9px;
+}
+.customer-order-item-image-placeholder {
+    float: right;
+    margin: 0 0 10px 12px;
 }
 .customer-order-item-content > p {
     margin: 0;
@@ -1333,6 +1331,7 @@ body:has(.customer-order-page) {
     white-space: nowrap;
 }
 .customer-order-item-image-placeholder {
+    float: right;
     width: 112px;
     aspect-ratio: 1 / 1;
     box-sizing: border-box;
@@ -1386,21 +1385,15 @@ body:has(.customer-order-page) {
         min-height: 0;
         padding: 14px;
     }
-    .customer-order-item-main {
-        grid-template-columns: minmax(0, 1fr) 104px;
-        gap: 10px;
-    }
     .customer-order-item-image-placeholder {
         width: 104px;
+        margin-left: 10px;
     }
 }
 @media (max-width: 420px) {
-    .customer-order-item-main {
-        grid-template-columns: minmax(0, 1fr) 88px;
-        gap: 8px;
-    }
     .customer-order-item-image-placeholder {
         width: 88px;
+        margin-left: 8px;
     }
     .customer-order-grid .customer-order-add {
         gap: 8px;
@@ -1533,13 +1526,13 @@ body:has(.customer-order-page) {
                                         <h3 class="customer-order-item-title">{{ $item->name }}</h3>
 
                                         <div class="customer-order-item-main">
+                                            <div class="customer-order-item-image-placeholder" aria-label="Место для фотографии блюда"></div>
+
                                             <div class="customer-order-item-content">
                                                 @if($item->description)
                                                     <p>{{ $item->description }}</p>
                                                 @endif
                                             </div>
-
-                                            <div class="customer-order-item-image-placeholder" aria-label="Место для фотографии блюда"></div>
                                         </div>
 
                                         <div class="customer-order-item-meta">
