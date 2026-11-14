@@ -85,6 +85,121 @@
     padding: 9px 0;
     border-bottom: 1px solid rgba(0, 229, 212, .16);
 }
+.customer-checkout-order-panel {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse at 92% 0%, rgba(0, 229, 212, .12), transparent 42%),
+        radial-gradient(ellipse at 0% 100%, rgba(255, 215, 0, .08), transparent 38%),
+        linear-gradient(145deg, #090b16, #171b2c 58%, #090b16);
+}
+.customer-checkout-order-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 22px;
+    right: 22px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00e5d4 25%, #ffd700 75%, transparent);
+    opacity: .9;
+}
+.customer-checkout-order-panel .customer-checkout-title {
+    margin-bottom: 7px;
+    color: #ffd700;
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    letter-spacing: .035em;
+    text-shadow: 0 2px 14px rgba(255, 215, 0, .18);
+}
+.customer-checkout-organization {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin: 2px 0 18px;
+    padding: 7px 12px;
+    color: #bafaf3;
+    background: rgba(0, 229, 212, .075);
+    border: 1px solid rgba(0, 229, 212, .25);
+    border-radius: 8px;
+    font-size: 1.08rem;
+    font-weight: 700;
+    letter-spacing: .025em;
+}
+.customer-checkout-organization::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    background: #00e5d4;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0, 229, 212, .75);
+}
+.customer-checkout-order-items {
+    display: grid;
+    gap: 9px;
+}
+.customer-checkout-order-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 15px;
+    background: linear-gradient(105deg, rgba(0, 229, 212, .075), rgba(255, 255, 255, .025) 52%, rgba(255, 215, 0, .045));
+    border: 1px solid rgba(0, 229, 212, .2);
+    border-left: 3px solid rgba(0, 229, 212, .8);
+    border-radius: 11px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035), 0 5px 15px rgba(0, 0, 0, .12);
+}
+.customer-checkout-item-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 11px;
+    min-width: 0;
+}
+.customer-checkout-item-name {
+    color: #f5f2e8;
+    font-size: 1.04rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+.customer-checkout-item-quantity {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    padding: 3px 9px;
+    color: #00e5d4;
+    background: rgba(0, 229, 212, .1);
+    border: 1px solid rgba(0, 229, 212, .25);
+    border-radius: 20px;
+    font-size: .86rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.customer-checkout-item-price {
+    color: #ffd700;
+    font-size: 1.08rem;
+    font-weight: 800;
+    text-align: right;
+    white-space: nowrap;
+    text-shadow: 0 1px 10px rgba(255, 215, 0, .12);
+}
+.customer-checkout-subtotal {
+    align-items: center;
+    margin-top: 13px;
+    padding: 15px 16px;
+    color: #f2ead1;
+    background: linear-gradient(100deg, rgba(255, 215, 0, .12), rgba(255, 215, 0, .045));
+    border: 1px solid rgba(255, 215, 0, .32);
+    border-radius: 11px;
+    font-size: 1rem;
+    font-weight: 700;
+}
+.customer-checkout-subtotal strong {
+    color: #ffd700;
+    font-size: 1.25rem;
+    white-space: nowrap;
+}
 .customer-checkout-total {
     margin-top: 10px;
     color: #ffd700;
@@ -148,25 +263,27 @@
         </div>
     @endif
 
-    <div class="customer-checkout-panel">
+    <div class="customer-checkout-panel customer-checkout-order-panel">
         <h1 class="customer-checkout-title">Оформление заказа</h1>
-        <div class="customer-checkout-muted">{{ $organization->name }}</div>
+        <div class="customer-checkout-organization">{{ $organization->name }}</div>
 
-        @foreach($lines as $line)
-            <div class="customer-checkout-line">
-                <span>
-                    {{ $line['item']->name }} × {{ $line['quantity'] }}
-                </span>
-                <strong>
-                    {{ number_format((float) $line['line_total'], 2, ',', ' ') }}
-                    {{ $settings->currency }}
-                </strong>
-            </div>
-        @endforeach
+        <div class="customer-checkout-order-items">
+            @foreach($lines as $line)
+                <div class="customer-checkout-order-item">
+                    <div class="customer-checkout-item-info">
+                        <span class="customer-checkout-item-name">{{ $line['item']->name }}</span>
+                        <span class="customer-checkout-item-quantity">× {{ $line['quantity'] }}</span>
+                    </div>
+                    <strong class="customer-checkout-item-price">
+                        {{ number_format((float) $line['line_total'], 2, ',', ' ') }} {{ $settings->currency }}
+                    </strong>
+                </div>
+            @endforeach
+        </div>
 
-        <div class="customer-checkout-line">
+        <div class="customer-checkout-subtotal">
             <span>Промежуточный итог</span>
-            <span>{{ number_format((float) $subtotal, 2, ',', ' ') }} {{ $settings->currency }}</span>
+            <strong>{{ number_format((float) $subtotal, 2, ',', ' ') }} {{ $settings->currency }}</strong>
         </div>
         <div id="customer-delivery-summary" @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'delivery') hidden @endif>
         @if($minimumOrder !== null)
