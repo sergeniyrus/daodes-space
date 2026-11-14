@@ -351,6 +351,7 @@
     margin: 0 0 14px;
 }
 .customer-order-products-heading h2 {
+    display: none !important;
     margin: 0;
     color: #ffd700;
     font-size: clamp(1.1rem, 1.7vw, 1.55rem);
