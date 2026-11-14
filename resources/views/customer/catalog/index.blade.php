@@ -1135,6 +1135,72 @@ body:has(.customer-order-page) {
 }
 
 
+/* Mobile category panels: show the section title and the complete dish list. */
+@media (max-width: 700px) {
+    .customer-order-section-list > .customer-order-products-panel {
+        display: block;
+        grid-column: 1 / -1;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        overflow: visible !important;
+    }
+
+    .customer-order-products-heading {
+        display: flex !important;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 0 0 14px;
+        padding: 0 0 10px;
+        border-bottom: 1px solid rgba(0, 229, 212, .28);
+        visibility: visible !important;
+    }
+
+    .customer-order-products-heading h2 {
+        display: block !important;
+        margin: 0;
+        color: #ffd700 !important;
+        text-align: left;
+        visibility: visible !important;
+    }
+
+    .customer-order-products-heading span {
+        display: block !important;
+        flex: 0 0 auto;
+        visibility: visible !important;
+    }
+
+    .customer-order-carousel {
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .customer-order-grid {
+        display: grid;
+        grid-auto-flow: row;
+        grid-template-rows: none;
+        grid-auto-columns: auto;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        align-content: start;
+    }
+
+    .customer-order-grid .customer-order-item {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+}
+
 /* Center the complete group of customer catalog blocks on mobile.
    If its content is taller than the screen, normal page scrolling is preserved. */
 @media (max-width: 700px) {
