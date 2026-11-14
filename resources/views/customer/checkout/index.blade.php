@@ -112,6 +112,7 @@
     align-items: center;
     gap: 12px;
     margin-top: 18px;
+    justify-content: center;
 }
 .customer-checkout-button--secondary {
     text-decoration: none;
@@ -244,11 +245,11 @@
                     <input
                         type="datetime-local"
                         name="requested_at"
-                        value="{{ old('requested_at', now()->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->ceilUnit('minute')->format('Y-m-d\TH:i')) }}"
-                        min="{{ now()->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->ceilUnit('minute')->format('Y-m-d\TH:i') }}"
+                        value="{{ old('requested_at', now('Asia/Krasnoyarsk')->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->ceilUnit('minute')->format('Y-m-d\TH:i')) }}"
+                        min="{{ now('Asia/Krasnoyarsk')->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->ceilUnit('minute')->format('Y-m-d\TH:i') }}"
                     >
                     <span class="customer-checkout-muted">
-                        Минимальное время приготовления — 30 минут.
+                        Минимальное время приготовления — 30 минут. Время указано по Красноярску (UTC+7).
                     </span>
                     @error('requested_at')
                         <span class="customer-checkout-error">{{ $message }}</span>
