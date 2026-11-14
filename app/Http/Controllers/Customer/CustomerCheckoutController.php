@@ -591,10 +591,6 @@ class CustomerCheckoutController extends Controller
             $deliveryFeeCents = 0;
 
             if ($validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY) {
-                $minimumOrderCents = $settings->minimum_order !== null
-                    ? $this->toCents($settings->minimum_order)
-                    : null;
-
                 $deliveryFeeCents = $minimumOrderCents !== null
                     && $subtotalCents >= $minimumOrderCents
                         ? 0
