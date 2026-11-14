@@ -569,9 +569,13 @@ class CustomerCheckoutController extends Controller
                 ? $this->toCents($settings->minimum_order)
                 : null;
 
-            if ($minimumOrderCents !== null && $subtotalCents < $minimumOrderCents) {
+            if (
+                $validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY
+                && $minimumOrderCents !== null
+                && $subtotalCents < $minimumOrderCents
+            ) {
                 throw ValidationException::withMessages([
-                    'cart' => 'Минимальная сумма заказа: '
+                    'cart' => 'Минимальная сумма товаров для доставки: '
                         . $this->fromCents($minimumOrderCents) . ' ' . $settings->currency . '.',
                 ]);
             }
