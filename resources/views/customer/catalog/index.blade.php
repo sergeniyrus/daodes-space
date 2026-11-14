@@ -568,7 +568,7 @@
     font-size: clamp(1rem, 1.35vw, 1.4rem);
     /* line-height: 1.2; */
     font-weight: 700;
-    margin-top: 35px;
+    margin-top: 15px;
 }
 .customer-order-header-method {
     position: relative;
