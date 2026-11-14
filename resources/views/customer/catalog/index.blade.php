@@ -78,13 +78,99 @@
     border-radius: 18px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045), 0 12px 32px rgba(0, 0, 0, .38);
 }
-.customer-order-section h2 {
-    margin: 0 0 16px;
-    padding: 0 0 11px;
-    color: #00e5d4;
-    border-bottom: 1px solid rgba(0, 229, 212, .3);
+.customer-order-section {
+    padding: 0 !important;
+    overflow: hidden;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+.customer-order-section[open] {
+    border-color: rgba(255, 215, 0, .58) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045), 0 14px 36px rgba(0, 0, 0, .42), 0 0 18px rgba(0, 229, 212, .06);
+}
+.customer-order-section > summary {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-height: 68px;
+    padding: 17px 22px;
+    color: #ffd700;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+    background:
+        radial-gradient(ellipse at 100% 0%, rgba(255, 215, 0, .10), transparent 48%),
+        linear-gradient(110deg, rgba(0, 229, 212, .075), rgba(255, 255, 255, .018));
+    transition: background .2s ease, color .2s ease;
+}
+.customer-order-section > summary::-webkit-details-marker { display: none; }
+.customer-order-section > summary::marker { content: ""; }
+.customer-order-section > summary:hover {
+    color: #fff1a8;
+    background:
+        radial-gradient(ellipse at 100% 0%, rgba(255, 215, 0, .15), transparent 48%),
+        linear-gradient(110deg, rgba(0, 229, 212, .12), rgba(255, 255, 255, .025));
+}
+.customer-order-section[open] > summary {
+    border-bottom: 1px solid rgba(0, 229, 212, .28);
+}
+.customer-order-section-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+    margin: 0;
+    color: inherit;
+    font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+    font-weight: 800;
+    letter-spacing: .025em;
     text-shadow: 0 0 12px rgba(0, 229, 212, .12);
 }
+.customer-order-section-title::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 50%;
+    background: #00e5d4;
+    box-shadow: 0 0 10px rgba(0, 229, 212, .75);
+}
+.customer-order-section-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    flex: 0 0 auto;
+}
+.customer-order-section-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    color: #bafaf3;
+    background: rgba(0, 229, 212, .09);
+    border: 1px solid rgba(0, 229, 212, .3);
+    border-radius: 20px;
+    font-size: .82rem;
+    font-weight: 800;
+}
+.customer-order-section-chevron {
+    width: 11px;
+    height: 11px;
+    border-right: 2px solid #ffd700;
+    border-bottom: 2px solid #ffd700;
+    transform: rotate(45deg) translateY(-3px);
+    transition: transform .22s ease;
+}
+.customer-order-section[open] .customer-order-section-chevron {
+    transform: rotate(225deg) translate(-2px, -1px);
+}
+.customer-order-section-content {
+    padding: 20px 22px 22px;
+}
+
 .customer-order-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
@@ -132,7 +218,9 @@
 .customer-order-disabled { opacity: .55; cursor: not-allowed; }
 @media (max-width: 600px) {
     .customer-order-panel { padding: 17px; }
-    .customer-order-section { padding: 15px; }
+    .customer-order-section > summary { min-height: 60px; padding: 15px; }
+    .customer-order-section-content { padding: 15px; }
+    .customer-order-section-meta { gap: 9px; }
     .customer-order-toolbar { align-items: stretch; flex-direction: column; }
     .customer-order-link { width: 100%; box-sizing: border-box; }
 }
@@ -185,9 +273,16 @@
     </div>
 
     @forelse($sections as $section)
-        <section class="customer-order-section">
-            <h2>{{ $section->name }}</h2>
+        <details class="customer-order-section">
+            <summary>
+                <span class="customer-order-section-title">{{ $section->name }}</span>
+                <span class="customer-order-section-meta">
+                    <span class="customer-order-section-count">{{ $section->activeItems->count() }}</span>
+                    <span class="customer-order-section-chevron" aria-hidden="true"></span>
+                </span>
+            </summary>
 
+            <div class="customer-order-section-content">
             <div class="customer-order-grid">
                 @forelse($section->activeItems as $item)
                     <article class="customer-order-item" id="menu-item-{{ $item->id }}">
@@ -235,7 +330,8 @@
                     <p class="customer-order-muted">В этом разделе пока нет доступных блюд.</p>
                 @endforelse
             </div>
-        </section>
+            </div>
+        </details>
     @empty
         <div class="customer-order-panel customer-order-muted">
             Меню пока пустое.
