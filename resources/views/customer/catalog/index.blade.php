@@ -484,6 +484,186 @@
     .customer-order-grid { grid-template-columns: 1fr; }
 }
 
+/* Fixed three-column menu header and viewport layout. */
+.customer-order-page {
+    width: min(1800px, calc(100% - 28px));
+    height: calc(100vh - 115px);
+    min-height: 560px;
+    margin: 12px auto 18px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.customer-order-header {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    flex: 0 0 auto;
+    margin-bottom: 16px;
+}
+.customer-order-header-card {
+    min-width: 0;
+    min-height: 132px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 7px;
+    padding: 15px 18px;
+    background:
+        radial-gradient(ellipse at 100% 0%, rgba(255, 215, 0, .12), transparent 55%),
+        linear-gradient(145deg, #0b0c18, #14182a 58%, #0b0c18);
+    border: 1px solid rgba(0, 229, 212, .38);
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .3);
+    box-sizing: border-box;
+}
+.customer-order-header-info {
+    border-color: rgba(255, 215, 0, .52);
+}
+.customer-order-header-organization {
+    color: #fff1b0;
+    font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+    font-size: clamp(1.05rem, 1.45vw, 1.55rem);
+    font-weight: 800;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+    text-shadow: 0 0 14px rgba(255, 215, 0, .17);
+}
+.customer-order-header-menu-title {
+    color: #ffd700;
+    font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+    font-size: clamp(.9rem, 1.15vw, 1.15rem);
+    font-weight: 900;
+    letter-spacing: .18em;
+    text-shadow: 0 0 12px rgba(255, 215, 0, .25);
+}
+.customer-order-header-methods {
+    color: #bafaf3;
+    font-size: .86rem;
+    line-height: 1.35;
+}
+.customer-order-header-delivery {
+    color: #f4d77a;
+    font-size: .88rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+.customer-order-header-action {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    color: #ffe9a0;
+    text-align: center;
+    text-decoration: none;
+    background: linear-gradient(145deg, rgba(0, 229, 212, .11), rgba(255, 215, 0, .075));
+    border: 1px solid rgba(255, 215, 0, .38);
+    border-radius: 12px;
+    box-sizing: border-box;
+    transition: .2s ease;
+}
+.customer-order-header-action:hover {
+    color: #fff;
+    border-color: #00e5d4;
+    background: linear-gradient(145deg, rgba(0, 229, 212, .2), rgba(255, 215, 0, .13));
+    box-shadow: 0 0 22px rgba(0, 229, 212, .12);
+}
+.customer-order-header-action-title {
+    font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+    font-size: clamp(1.05rem, 1.5vw, 1.45rem);
+    font-weight: 800;
+    letter-spacing: .035em;
+}
+.customer-order-header-action-count {
+    min-width: 34px;
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 12px;
+    color: #081016;
+    background: linear-gradient(135deg, #ffe28a, #ffd700);
+    border-radius: 20px;
+    font-size: .9rem;
+    font-weight: 900;
+    box-shadow: 0 0 15px rgba(255, 215, 0, .18);
+}
+.customer-order-header-cart-total {
+    color: #00e5d4;
+    font-size: .95rem;
+    font-weight: 800;
+}
+.customer-order-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+    overflow: hidden;
+}
+.customer-order-sidebar {
+    height: 100%;
+    max-height: none;
+    box-sizing: border-box;
+}
+.customer-order-products,
+.customer-order-products-panel,
+.customer-order-carousel {
+    height: 100%;
+    min-height: 0;
+}
+.customer-order-products-panel {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.customer-order-products-heading {
+    flex: 0 0 auto;
+}
+.customer-order-products-heading span {
+    color: #f2d98a;
+    font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+    font-size: clamp(1rem, 1.35vw, 1.35rem);
+    font-weight: 800;
+    letter-spacing: .035em;
+    text-shadow: 0 0 12px rgba(255, 215, 0, .16);
+}
+.customer-order-grid {
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+}
+@media (max-width: 1000px) {
+    .customer-order-page {
+        height: auto;
+        min-height: 0;
+        overflow: visible;
+    }
+    .customer-order-layout {
+        flex: none;
+        overflow: visible;
+    }
+    .customer-order-sidebar,
+    .customer-order-products,
+    .customer-order-products-panel,
+    .customer-order-carousel {
+        height: auto;
+    }
+    .customer-order-products-panel { display: block; }
+    .customer-order-grid { height: 720px; min-height: 720px; }
+}
+@media (max-width: 700px) {
+    .customer-order-header { grid-template-columns: 1fr; gap: 9px; }
+    .customer-order-header-card { min-height: 0; padding: 13px; }
+    .customer-order-header-action { min-height: 78px; }
+    .customer-order-page { height: auto; overflow: visible; }
+}
+
 </style>
 
 <div class="customer-order-page">
@@ -494,42 +674,49 @@
         <div class="customer-order-alert error">{{ session('error') }}</div>
     @endif
 
-    <div class="customer-order-panel">
-        <h1 class="customer-order-title">{{ $organization->name }}</h1>
-        <div class="customer-order-muted">Меню организации</div>
-
-        <div class="customer-order-toolbar">
-            <div class="customer-order-muted">
-                @if($canOrder)
-                    @if($settings->delivery_enabled) Доставка @endif
-                    @if($settings->pickup_enabled) · Самовывоз @endif
-                    @if($settings->dine_in_enabled) · В заведении @endif
-                    <br>
-                    Валюта: {{ $settings->currency }}
-                    @if($settings->delivery_enabled)
-                        <br>Доставка: {{ number_format((float) $settings->delivery_fee, 2, ',', ' ') }} {{ $settings->currency }}
-                    @endif
-                    @if($settings->minimum_order)
-                        <br>Минимальный заказ: {{ number_format((float) $settings->minimum_order, 2, ',', ' ') }} {{ $settings->currency }}
-                    @endif
-                    @if($settings->pickup_enabled && $settings->pickup_min_minutes !== null)
-                        <br>Самовывоз: от {{ $settings->pickup_min_minutes }} мин.
-                    @endif
-                @else
-                    Организация пока не принимает онлайн-заказы. Меню доступно для просмотра, но добавить блюда в корзину и оформить заказ пока нельзя.
-                @endif
+    <div class="customer-order-header">
+        <section class="customer-order-header-card customer-order-header-info">
+            <h1 class="customer-order-header-organization">{{ $organization->name }}</h1>
+            <div class="customer-order-header-menu-title">НАШЕ МЕНЮ</div>
+            <div class="customer-order-header-methods">
+                @if($settings?->delivery_enabled)Доставка@endif
+                @if($settings?->pickup_enabled) · Самовывоз@endif
+                @if($settings?->dine_in_enabled) · В Ёлках термбурга@endif
             </div>
-
-            @if(auth('customer')->check())
-                <a class="customer-order-link" href="{{ route('customer.orders.index') }}">
-                    Мои заказы
-                </a>
+            @if($settings?->delivery_enabled)
+                <div class="customer-order-header-delivery">
+                    Доставка: {{ number_format((float) $settings->delivery_fee, 2, ',', ' ') }} {{ $currencySymbol }}
+                    @if($settings->minimum_order !== null)
+                        · бесплатно от {{ number_format((float) $settings->minimum_order, 2, ',', ' ') }} {{ $currencySymbol }}
+                    @endif
+                </div>
             @endif
+            @if($settings?->pickup_enabled && $settings->pickup_min_minutes !== null)
+                <div class="customer-order-header-methods">Самовывоз: от {{ $settings->pickup_min_minutes }} мин.</div>
+            @endif
+            @unless($canOrder)
+                <div class="customer-order-header-delivery">Организация временно не принимает онлайн-заказы.</div>
+            @endunless
+        </section>
 
-            <a class="customer-order-link" href="{{ route('customer.cart') }}">
-                🛒 Корзина{{ $cartCount ? ' · ' . $cartCount : '' }}
+        <section class="customer-order-header-card">
+            <a class="customer-order-header-action"
+               href="{{ auth('customer')->check() ? route('customer.orders.index') : route('customer.login') }}">
+                <span class="customer-order-header-action-title">Мои заказы</span>
+                <span class="customer-order-header-action-count">{{ $ordersCount }}</span>
+                <span class="customer-order-header-methods">Всего заказов в этой организации</span>
             </a>
-        </div>
+        </section>
+
+        <section class="customer-order-header-card">
+            <a class="customer-order-header-action" href="{{ route('customer.cart') }}">
+                <span class="customer-order-header-action-title">🛒 Корзина</span>
+                <span class="customer-order-header-action-count">{{ $cartCount }} товаров</span>
+                <span class="customer-order-header-cart-total">
+                    {{ number_format((float) $cartSubtotal, 2, ',', ' ') }} {{ $currencySymbol }}
+                </span>
+            </a>
+        </section>
     </div>
 
     @if($sections->isNotEmpty())
@@ -586,7 +773,7 @@
                                         <div class="customer-order-price">
                                             {{ number_format((float) $item->price, 2, ',', ' ') }}
                                             @if($settings?->currency)
-                                                {{ $settings->currency }}
+                                                {{ $currencySymbol }}
                                             @endif
                                         </div>
 
@@ -624,8 +811,6 @@
     @else
         <div class="customer-order-panel customer-order-muted">Меню пока пустое.</div>
     @endif
-</div>
-
 </div>
 
 <script>
