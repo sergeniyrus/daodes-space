@@ -847,6 +847,48 @@
     .customer-order-page { height: auto; overflow: visible; }
 }
 
+
+/* Full-page TV2 background for the customer catalog. */
+body:has(.customer-order-page) {
+    min-height: 100vh;
+    background-color: #071018 !important;
+    background-image:
+        linear-gradient(180deg, rgba(4, 9, 16, .28), rgba(4, 9, 16, .48)),
+        url('/images/tv2.png?v=2') !important;
+    background-position: center center !important;
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+    background-attachment: fixed !important;
+}
+.customer-order-page {
+    background: transparent !important;
+}
+.customer-order-header-card,
+.customer-order-sidebar {
+    background:
+        radial-gradient(ellipse at 100% 0%, rgba(255, 215, 0, .12), transparent 55%),
+        linear-gradient(145deg, rgba(11, 12, 24, .82), rgba(20, 24, 42, .78) 58%, rgba(11, 12, 24, .84)) !important;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+.customer-order-products-panel {
+    background:
+        radial-gradient(ellipse at 100% 0%, rgba(255, 215, 0, .10), transparent 45%),
+        linear-gradient(145deg, rgba(17, 24, 39, .84), rgba(11, 16, 32, .80) 60%, rgba(18, 26, 43, .84)) !important;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+.customer-order-item {
+    background: rgba(12, 15, 28, .84) !important;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+@media (max-width: 700px) {
+    body:has(.customer-order-page) {
+        background-attachment: scroll !important;
+    }
+}
+
 </style>
 
 <div class="customer-order-page">
