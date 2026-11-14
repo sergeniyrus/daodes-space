@@ -110,6 +110,75 @@
     letter-spacing: .035em;
     text-shadow: 0 2px 14px rgba(255, 215, 0, .18);
 }
+.customer-checkout-section-panel {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse at 94% 0%, rgba(0, 229, 212, .09), transparent 43%),
+        radial-gradient(ellipse at 0% 100%, rgba(255, 215, 0, .055), transparent 40%),
+        linear-gradient(145deg, #090b16, #171b2c 58%, #090b16);
+    border-color: rgba(0, 229, 212, .32);
+}
+.customer-checkout-section-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 22px;
+    right: 22px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00e5d4 28%, #ffd700 72%, transparent);
+    opacity: .85;
+}
+.customer-checkout-section-panel .customer-checkout-title {
+    position: relative;
+    margin: 0 0 17px;
+    padding-bottom: 11px;
+    color: #ffd700;
+    font-size: clamp(1.2rem, 2.7vw, 1.55rem);
+    letter-spacing: .025em;
+    text-shadow: 0 2px 13px rgba(255, 215, 0, .16);
+    border-bottom: 1px solid rgba(0, 229, 212, .2);
+}
+.customer-checkout-section-panel .customer-checkout-options label {
+    min-height: 52px;
+    box-sizing: border-box;
+    padding: 14px 16px;
+    background: linear-gradient(110deg, rgba(0, 229, 212, .075), rgba(255, 255, 255, .025));
+    border: 1px solid rgba(0, 229, 212, .28);
+    border-radius: 11px;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.customer-checkout-section-panel .customer-checkout-options label:has(input:checked) {
+    color: #fff5cf;
+    background: linear-gradient(110deg, rgba(0, 229, 212, .15), rgba(255, 215, 0, .075));
+    border-color: rgba(255, 215, 0, .7);
+    box-shadow: inset 0 0 18px rgba(0, 229, 212, .055), 0 0 15px rgba(255, 215, 0, .07);
+}
+.customer-checkout-section-panel .customer-checkout-field {
+    color: #e4e8f1;
+}
+.customer-checkout-section-panel .customer-checkout-field > input,
+.customer-checkout-section-panel .customer-checkout-field > select,
+.customer-checkout-section-panel .customer-checkout-field > textarea {
+    background: rgba(5, 8, 17, .88);
+    border-color: rgba(0, 229, 212, .38);
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, .22);
+}
+.customer-checkout-section-panel .customer-checkout-field > input:focus,
+.customer-checkout-section-panel .customer-checkout-field > select:focus,
+.customer-checkout-section-panel .customer-checkout-field > textarea:focus {
+    border-color: #ffd700;
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, .08);
+}
+.customer-checkout-section-panel .customer-checkout-details {
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 229, 212, .15);
+}
+.customer-checkout-section-panel .customer-checkout-payment-options label {
+    justify-content: center;
+    text-align: center;
+    font-weight: 700;
+}
 .customer-checkout-organization {
     display: inline-flex;
     align-items: center;
@@ -312,7 +381,7 @@
             value="{{ old('idempotency_key', $idempotencyKey) }}"
         >
 
-        <div class="customer-checkout-panel">
+        <div class="customer-checkout-panel customer-checkout-section-panel">
             <h2 class="customer-checkout-title">Способ получения</h2>
 
             <div class="customer-checkout-options">
@@ -386,7 +455,7 @@
             </div>
         </div>
 
-        <div class="customer-checkout-panel">
+        <div class="customer-checkout-panel customer-checkout-section-panel">
             <h2 class="customer-checkout-title">Контактные данные</h2>
 
             <div class="customer-checkout-grid">
@@ -501,7 +570,7 @@
 
 
 
-            <div class="customer-checkout-panel">
+            <div class="customer-checkout-panel customer-checkout-section-panel">
             <h2 class="customer-checkout-title">Способ оплаты</h2>
 
             <div class="customer-checkout-options customer-checkout-payment-options">
