@@ -848,6 +848,39 @@
 }
 
 
+/* Use the full viewport for the customer catalog on desktop without vertical scrolling. */
+@media (min-width: 1001px) {
+    html:has(.customer-order-page),
+    body:has(.customer-order-page) {
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .customer-order-page {
+        height: calc(100vh - 30px);
+        min-height: 0;
+        margin-top: 12px;
+        margin-bottom: 18px;
+    }
+
+    .customer-order-sidebar {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .customer-order-section-list {
+        flex: 1 1 auto;
+        min-height: 0;
+        justify-content: space-evenly;
+    }
+
+    .customer-order-section-choice {
+        flex: 1 1 0;
+        min-height: 0;
+    }
+}
+
 /* Keep header tooltips above the category sidebar and product panels. */
 .customer-order-header {
     position: relative;
