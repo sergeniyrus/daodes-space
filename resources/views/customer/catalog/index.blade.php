@@ -232,7 +232,7 @@
 }
 .customer-order-layout {
     display: grid;
-    grid-template-columns: minmax(190px, 20%) minmax(0, 80%);
+    grid-template-columns: minmax(190px, 1fr) minmax(0, 4fr);
     gap: 18px;
     align-items: start;
     width: 100%;
@@ -441,7 +441,7 @@
     .customer-order-grid { grid-auto-columns: calc((100% - 28px) / 3); }
 }
 @media (max-width: 1000px) {
-    .customer-order-layout { grid-template-columns: minmax(165px, 24%) minmax(0, 76%); gap: 12px; }
+    .customer-order-layout { grid-template-columns: minmax(165px, 1fr) minmax(0, 4fr); gap: 12px; }
     .customer-order-sidebar { padding: 9px; }
     .customer-order-products-panel { padding: 13px; }
     .customer-order-grid {
@@ -652,6 +652,9 @@
             document.querySelectorAll('[data-section-panel]').forEach((panel) => {
                 panel.hidden = panel.dataset.sectionPanel !== sectionId;
             });
+            const activePanel = document.querySelector('[data-section-panel="' + sectionId + '"]');
+            const activeTrack = activePanel?.querySelector('[data-product-carousel]');
+            if (activeTrack) updateCarouselControls(activeTrack);
             return;
         }
 
