@@ -1,4 +1,4 @@
-@extends('template')
+@extends('customer.layouts.workspace')
 
 @section('title_page')
     Заказ №{{ $order->order_number }}
@@ -7,7 +7,7 @@
 
 @endsection
 
-@section('main')
+@section('customer-content')
 @php
     $statusLabels = [
         'new' => 'Новый',
