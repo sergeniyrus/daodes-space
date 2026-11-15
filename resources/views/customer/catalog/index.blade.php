@@ -289,7 +289,10 @@
     const requestedSection = new URLSearchParams(window.location.search).get('section');
     if (requestedSection) {
         const requestedButton = document.querySelector('[data-section-select="' + requestedSection + '"]');
-        if (requestedButton) requestedButton.click();
+        if (requestedButton) {
+            requestedButton.setAttribute('aria-expanded', 'false');
+            requestedButton.click();
+        }
     }
 
     document.querySelectorAll('[data-product-carousel]').forEach((track) => {
