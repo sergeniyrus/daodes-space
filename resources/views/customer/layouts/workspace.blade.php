@@ -540,7 +540,7 @@
     height: 190px;
     min-height: 190px;
     display: grid;
-    grid-template-rows: 40fr 30fr 15fr 15fr;
+    grid-template-rows: 30fr 60fr 10fr;
     align-content: stretch;
     justify-content: stretch;
     gap: 0;
@@ -550,7 +550,7 @@
     min-width: 0;
     width: 100%;
     display: flex;
-    /* align-items: center; */
+    align-items: center;
     justify-content: center;
     text-align: center;
     overflow-wrap: anywhere;
@@ -578,7 +578,7 @@
     white-space: nowrap;
     text-shadow: 0 0 16px rgba(255, 215, 0, .32);
     transform: scaleX(1.22);
-    margin-top: 30px ;
+    margin-top: 0;
     /* padding: 10px 15px; */
 }
 .customer-order-header-methods {
@@ -586,7 +586,7 @@
     font-size: clamp(1rem, 1.35vw, 1.4rem);
     /* line-height: 1.2; */
     font-weight: 700;
-    margin-top: 15px;
+    margin-top: 0;
 }
 .customer-order-header-method {
     position: relative;
@@ -1577,6 +1577,24 @@ body:has(.customer-order-page) {
     }
 }
 </style>
+
+{{-- Каталог уже получает эти данные от контроллера. Используем их как fallback,
+     если общий composer не смог определить организацию для шапки. --}}
+@php
+    if (!isset($customerWorkspace) && isset($organization)) {
+        $customerWorkspace = [
+            'organization' => $organization,
+            'settings' => $settings ?? null,
+            'sections' => $sections ?? collect(),
+            'canOrder' => $canOrder ?? false,
+            'cartCount' => $cartCount ?? 0,
+            'cartSubtotal' => $cartSubtotal ?? 0,
+            'ordersHistoryCount' => $ordersHistoryCount ?? 0,
+            'ordersInProgressCount' => $ordersInProgressCount ?? 0,
+            'currencySymbol' => $currencySymbol ?? '',
+        ];
+    }
+@endphp
 
 @if(isset($customerWorkspace))
 <div class="customer-order-page {{ request()->routeIs('customer.catalog') ? 'customer-workspace-catalog' : 'customer-workspace-other' }}">
