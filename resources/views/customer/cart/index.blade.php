@@ -1,10 +1,10 @@
-@extends('template')
+@extends('customer.layouts.workspace')
 
 @section('title_page')
     Корзина
 @endsection
 
-@section('main')
+@section('customer-content')
 <style>
 .customer-cart-page {
     width: min(900px, calc(100% - 24px));
