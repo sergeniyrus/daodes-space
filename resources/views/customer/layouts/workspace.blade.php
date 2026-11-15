@@ -834,44 +834,106 @@
     .customer-order-grid { height: 720px; min-height: 720px; }
 }
 @media (max-width: 700px) {
-    /* Mobile header: organization/menu full width, actions side by side. */
+    /* На мобильных в шапке остаётся только раскрываемый первый блок. */
     .customer-order-header {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 9px;
+        display: block;
+        position: relative;
+        z-index: 100;
+        margin-bottom: 12px;
+    }
+    .customer-order-header-mobile {
+        display: block;
+        position: relative;
     }
     .customer-order-header-info {
-        grid-column: 1 / -1;
-    }
-    .customer-order-header-card:not(.customer-order-header-info) {
-        min-width: 0;
-    }
-    .customer-order-header-card { min-height: 0; padding: 13px; }
-    .customer-order-header-action { padding: 12px; gap: 8px; }
-    .customer-order-header-action-stats { flex-direction: row; gap: 9px 18px; }
-    .customer-order-header-action-stat { font-size: .92rem; gap: 7px; }
-    .customer-order-header-action-count {
-        min-width: 30px;
-        min-height: 27px;
-        padding: 2px 9px;
-        font-size: .9rem;
-    }
-    .customer-order-header-cart-total { font-size: .95rem; }
-    .customer-order-header-info {
+        width: 100%;
         height: auto;
-        min-height: 190px;
-        grid-template-rows: minmax(62px, 40fr) minmax(48px, 30fr) minmax(34px, 15fr) minmax(38px, 15fr);
-        padding: 10px 13px;
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto auto auto auto;
+        gap: 5px;
+        padding: 12px 42px 12px 13px;
+        cursor: pointer;
+        list-style: none;
+        position: relative;
+        text-align: center;
     }
-    .customer-order-header-info > * { padding: 3px 0; }
-    .customer-order-header-organization { font-size: clamp(1.35rem, 6vw, 1.8rem); }
+    .customer-order-header-info::-webkit-details-marker { display: none; }
+    .customer-order-header-info::marker { content: ""; }
+    .customer-order-header-info::after {
+        content: "⌄";
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        color: #ffd700;
+        font-size: 1.8rem;
+        font-weight: 900;
+        transform: translateY(-50%);
+        transition: transform .2s ease;
+    }
+    .customer-order-header-mobile[open] .customer-order-header-info::after {
+        transform: translateY(-50%) rotate(180deg);
+    }
+    .customer-order-header-info > * { padding: 2px 0; }
+    .customer-order-header-organization { font-size: clamp(1.2rem, 5.5vw, 1.65rem); }
     .customer-order-header-menu-title {
-        font-size: clamp(1.35rem, 6vw, 2rem);
-        letter-spacing: clamp(.1em, 1.2vw, .2em);
-        transform: scaleX(1.08);
+        font-size: clamp(1.25rem, 5.5vw, 1.8rem);
+        letter-spacing: clamp(.08em, 1vw, .18em);
+        transform: none;
     }
-    .customer-order-header-methods { font-size: clamp(.9rem, 3.5vw, 1.05rem); }
-    .customer-order-header-delivery { font-size: clamp(.88rem, 3.3vw, 1rem); }
-    .customer-order-header-action { min-height: 78px; }
+    .customer-order-header-methods { font-size: clamp(.82rem, 3.4vw, 1rem); }
+    .customer-order-header-delivery { font-size: .85rem; }
+    .customer-order-header-card:not(.customer-order-header-info) { display: none; }
+
+    .customer-order-header-mobile-menu {
+        display: none;
+        position: absolute;
+        top: calc(100% + 7px);
+        left: 0;
+        right: 0;
+        z-index: 120;
+        max-height: min(70vh, 560px);
+        overflow-y: auto;
+        padding: 12px;
+        border: 1px solid rgba(0, 229, 212, .55);
+        border-radius: 14px;
+        background: linear-gradient(155deg, rgba(12, 29, 34, .99), rgba(19, 20, 28, .99));
+        box-shadow: 0 14px 35px rgba(0, 0, 0, .55), 0 0 18px rgba(0, 229, 212, .12);
+    }
+    .customer-order-header-mobile[open] .customer-order-header-mobile-menu {
+        display: grid;
+        gap: 8px;
+    }
+    .customer-order-mobile-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 13px;
+        border: 1px solid rgba(0, 229, 212, .28);
+        border-radius: 9px;
+        color: #eaf8f7;
+        background: rgba(0, 229, 212, .055);
+        text-decoration: none;
+        font-weight: 800;
+    }
+    .customer-order-mobile-link.is-active {
+        color: #ffe59a;
+        border-color: rgba(255, 215, 0, .65);
+        background: rgba(255, 215, 0, .09);
+    }
+    .customer-order-mobile-link small {
+        color: #00e5d4;
+        font-size: .82rem;
+        font-weight: 700;
+    }
+    .customer-order-mobile-menu-title {
+        padding: 7px 4px 2px;
+        color: #ffd700;
+        font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+        font-weight: 800;
+        letter-spacing: .06em;
+    }
     .customer-order-page { height: auto; overflow: visible; }
 }
 
@@ -1609,7 +1671,8 @@ body:has(.customer-order-page) {
 @if(isset($customerWorkspace))
 <div class="customer-order-page {{ request()->routeIs('customer.catalog') ? 'customer-workspace-catalog' : 'customer-workspace-other' }}">
     <div class="customer-order-header">
-        <section class="customer-order-header-card customer-order-header-info">
+        <details class="customer-order-header-mobile">
+        <summary class="customer-order-header-card customer-order-header-info">
             <h1 class="customer-order-header-organization">{{ $customerWorkspace['organization']->name }}</h1>
             <div class="customer-order-header-menu-title">НАШЕ МЕНЮ</div>
             <div class="customer-order-header-methods">
@@ -1648,7 +1711,30 @@ body:has(.customer-order-page) {
             @unless($customerWorkspace['canOrder'])
                 <div class="customer-order-header-delivery">Организация временно не принимает онлайн-заказы.</div>
             @endunless
-        </section>
+        </summary>
+        <nav class="customer-order-header-mobile-menu" aria-label="Мобильная навигация">
+            <a class="customer-order-mobile-link {{ request()->routeIs('customer.orders.*') ? 'is-active' : '' }}"
+               href="{{ auth('customer')->check() ? route('customer.orders.index') : route('customer.login') }}">
+                <span>Мои заказы</span>
+                <small>История: {{ $customerWorkspace['ordersHistoryCount'] }} · В работе: {{ $customerWorkspace['ordersInProgressCount'] }}</small>
+            </a>
+            <a class="customer-order-mobile-link {{ request()->routeIs('customer.cart') || request()->routeIs('customer.checkout') ? 'is-active' : '' }}"
+               href="{{ route('customer.cart') }}">
+                <span>Корзина</span>
+                <small>{{ $customerWorkspace['cartCount'] }} блюд · {{ number_format((float) $customerWorkspace['cartSubtotal'], 2, ',', ' ') }} {{ $customerWorkspace['currencySymbol'] }}</small>
+            </a>
+            @if($customerWorkspace['sections']->isNotEmpty())
+                <div class="customer-order-mobile-menu-title">Разделы меню</div>
+                @foreach($customerWorkspace['sections'] as $section)
+                    <a class="customer-order-mobile-link"
+                       href="{{ route('customer.catalog', $customerWorkspace['organization']) }}?section={{ $section->id }}">
+                        <span>{{ $section->name }}</span>
+                        <small>{{ $section->activeItems->count() }} блюд</small>
+                    </a>
+                @endforeach
+            @endif
+        </nav>
+        </details>
 
         <section class="customer-order-header-card {{ request()->routeIs('customer.orders.*') ? 'is-active' : '' }}">
             <a class="customer-order-header-action" href="{{ auth('customer')->check() ? route('customer.orders.index') : route('customer.login') }}">
