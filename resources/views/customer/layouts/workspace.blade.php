@@ -1654,6 +1654,32 @@ body:has(.customer-order-page) {
         margin: 0 auto;
     }
 }
+/* В мобильном выпадающем меню показываем два исходных блока шапки,
+   сохраняя их карточное оформление и активное состояние. */
+@media (max-width: 700px) {
+    .customer-order-header-mobile-menu {
+        grid-template-columns: 1fr;
+    }
+    .customer-order-header-mobile-menu .customer-order-header-card {
+        display: flex !important;
+        width: 100%;
+        min-height: 92px;
+        height: auto;
+        margin: 0;
+        padding: 13px 15px;
+        box-sizing: border-box;
+    }
+    .customer-order-header-mobile-menu .customer-order-header-action {
+        width: 100%;
+    }
+    .customer-order-header-mobile-menu .customer-order-header-action-title {
+        font-size: 1.12rem;
+    }
+    .customer-order-header-mobile-menu .customer-order-header-action-stats {
+        flex-wrap: wrap;
+        gap: 8px 14px;
+    }
+}
 </style>
 
 {{-- Каталог уже получает эти данные от контроллера. Используем их как fallback,
@@ -1719,26 +1745,24 @@ body:has(.customer-order-page) {
             @endunless
         </summary>
         <nav class="customer-order-header-mobile-menu" aria-label="Мобильная навигация">
-            <a class="customer-order-mobile-link {{ request()->routeIs('customer.orders.*') ? 'is-active' : '' }}"
-               href="{{ auth('customer')->check() ? route('customer.orders.index') : route('customer.login') }}">
-                <span>Мои заказы</span>
-                <small>История: {{ $customerWorkspace['ordersHistoryCount'] }} · В работе: {{ $customerWorkspace['ordersInProgressCount'] }}</small>
-            </a>
-            <a class="customer-order-mobile-link {{ request()->routeIs('customer.cart') || request()->routeIs('customer.checkout') ? 'is-active' : '' }}"
-               href="{{ route('customer.cart') }}">
-                <span>Корзина</span>
-                <small>{{ $customerWorkspace['cartCount'] }} блюд · {{ number_format((float) $customerWorkspace['cartSubtotal'], 2, ',', ' ') }} {{ $customerWorkspace['currencySymbol'] }}</small>
-            </a>
-            @if($customerWorkspace['sections']->isNotEmpty())
-                <div class="customer-order-mobile-menu-title">Разделы меню</div>
-                @foreach($customerWorkspace['sections'] as $section)
-                    <a class="customer-order-mobile-link"
-                       href="{{ route('customer.catalog', $customerWorkspace['organization']) }}?section={{ $section->id }}">
-                        <span>{{ $section->name }}</span>
-                        <small>{{ $section->activeItems->count() }} блюд</small>
-                    </a>
-                @endforeach
-            @endif
+            <section class="customer-order-header-card {{ request()->routeIs('customer.orders.*') ? 'is-active' : '' }}">
+                <a class="customer-order-header-action" href="{{ auth('customer')->check() ? route('customer.orders.index') : route('customer.login') }}">
+                    <span class="customer-order-header-action-title">Мои заказы</span>
+                    <span class="customer-order-header-action-stats">
+                        <span class="customer-order-header-action-stat">История <span class="customer-order-header-action-count">{{ $customerWorkspace['ordersHistoryCount'] }}</span></span>
+                        <span class="customer-order-header-action-stat">В работе <span class="customer-order-header-action-count">{{ $customerWorkspace['ordersInProgressCount'] }}</span></span>
+                    </span>
+                </a>
+            </section>
+            <section class="customer-order-header-card {{ request()->routeIs('customer.cart') || request()->routeIs('customer.checkout') ? 'is-active' : '' }}">
+                <a class="customer-order-header-action" href="{{ route('customer.cart') }}">
+                    <span class="customer-order-header-action-title">Корзина</span>
+                    <span class="customer-order-header-action-stats">
+                        <span class="customer-order-header-action-stat">Выбрано <span class="customer-order-header-action-count">{{ $customerWorkspace['cartCount'] }}</span></span>
+                        <span class="customer-order-header-action-stat customer-order-header-cart-total">Начислено <strong>{{ number_format((float) $customerWorkspace['cartSubtotal'], 2, ',', ' ') }} {{ $customerWorkspace['currencySymbol'] }}</strong></span>
+                    </span>
+                </a>
+            </section>
         </nav>
         </details>
 
