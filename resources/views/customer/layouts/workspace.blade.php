@@ -512,6 +512,12 @@
     flex-direction: column;
     overflow: hidden;
 }
+.customer-order-header-mobile {
+    display: contents;
+}
+.customer-order-header-mobile-menu {
+    display: none;
+}
 .customer-order-header {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
