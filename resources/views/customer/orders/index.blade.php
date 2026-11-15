@@ -1,10 +1,10 @@
-@extends('template')
+@extends('customer.layouts.workspace')
 
 @section('title_page')
     Мои заказы
 @endsection
 
-@section('main')
+@section('customer-content')
 @php
     $statusLabels = [
         'new' => 'Новый',
