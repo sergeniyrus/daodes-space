@@ -40,6 +40,97 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+
+
+        // Общая шапка и категории клиентского кабинета.
+        View::composer('customer.layouts.workspace', function ($view) {
+            $cart = session('customer_order_cart', []);
+            $organization = request()->route('organization');
+            $order = request()->route('order');
+
+            if ($order instanceof \App\Models\Order) {
+                $organization = $order->organization;
+            }
+
+            if (!$organization && !empty($cart['organization_id'])) {
+                $organization = \App\Models\Organization::query()
+                    ->with('orderSettings')
+                    ->find((int) $cart['organization_id']);
+            }
+
+            if (!$organization && session()->has('customer_workspace_organization_id')) {
+                $organization = \App\Models\Organization::query()
+                    ->with('orderSettings')
+                    ->find((int) session('customer_workspace_organization_id'));
+            }
+
+            $customer = auth('customer')->user();
+            if (!$organization && $customer) {
+                $lastOrder = $customer->orders()->with('organization.orderSettings')->latest()->first();
+                $organization = $lastOrder?->organization;
+            }
+
+            if (!$organization || !$organization->isActive()) {
+                return;
+            }
+
+            session(['customer_workspace_organization_id' => $organization->id]);
+            $settings = $organization->orderSettings;
+            $sections = $organization->menuSections()
+                ->where('is_active', true)
+                ->with('activeItems')
+                ->orderBy('sort_order')
+                ->get();
+
+            $cartCount = 0;
+            $cartSubtotalCents = 0;
+            if (
+                (int) ($cart['organization_id'] ?? 0) === (int) $organization->id
+                && is_array($cart['items'] ?? null)
+            ) {
+                $quantities = $cart['items'];
+                $cartCount = array_sum(array_map('intval', $quantities));
+                if ($quantities !== []) {
+                    $cartItems = \App\Models\MenuItem::query()
+                        ->whereIn('id', array_map('intval', array_keys($quantities)))
+                        ->where('is_active', true)
+                        ->whereHas('section', function ($query) use ($organization) {
+                            $query->where('organization_id', $organization->id)->where('is_active', true);
+                        })
+                        ->get()->keyBy('id');
+
+                    foreach ($quantities as $itemId => $quantity) {
+                        $item = $cartItems->get((int) $itemId);
+                        $quantity = (int) $quantity;
+                        if ($item && $quantity > 0 && $quantity <= 99) {
+                            $cartSubtotalCents += (int) round((float) $item->price * 100) * $quantity;
+                        }
+                    }
+                }
+            }
+
+            $ordersQuery = $customer ? $customer->orders()->where('organization_id', $organization->id) : null;
+            $ordersCount = $ordersQuery ? (clone $ordersQuery)->count() : 0;
+            $ordersInProgressCount = $ordersQuery
+                ? (clone $ordersQuery)->whereNotIn('status', [
+                    \App\Models\Order::STATUS_COMPLETED,
+                    \App\Models\Order::STATUS_CANCELLED,
+                ])->count()
+                : 0;
+
+            $view->with('customerWorkspace', [
+                'organization' => $organization,
+                'settings' => $settings,
+                'sections' => $sections,
+                'canOrder' => $settings?->canAcceptOrders() ?? false,
+                'cartCount' => $cartCount,
+                'cartSubtotal' => $cartSubtotalCents / 100,
+                'ordersHistoryCount' => $ordersCount - $ordersInProgressCount,
+                'ordersInProgressCount' => $ordersInProgressCount,
+                'currencySymbol' => $settings?->currency === 'RUB' ? '₽' : ($settings?->currency ?? ''),
+            ]);
+        });
+
         // Регистрация кастомного правила валидации reCAPTCHA
         Validator::extend('recaptcha', function ($attribute, $value, $parameters, $validator) {
             return (new Recaptcha)->passes($attribute, $value);
