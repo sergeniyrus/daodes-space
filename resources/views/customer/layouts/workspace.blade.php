@@ -1,9 +1,5 @@
 @extends('template')
 
-@section('title_page')
-    @yield('title_page')
-@endsection
-
 @section('main')
 <style>
 
@@ -1533,7 +1529,7 @@ body:has(.customer-order-page) {
 .customer-workspace-other .customer-cart-page,
 .customer-workspace-other .customer-orders-page,
 .customer-workspace-other .customer-checkout-page,
-.customer-workspace-other .customer-order-detail-page {
+.customer-workspace-other .customer-order-detail {
     width: 100%;
     max-width: none;
     margin: 0 auto;
@@ -1575,7 +1571,7 @@ body:has(.customer-order-page) {
     .customer-workspace-other .customer-cart-page,
     .customer-workspace-other .customer-orders-page,
     .customer-workspace-other .customer-checkout-page,
-    .customer-workspace-other .customer-order-detail-page {
+    .customer-workspace-other .customer-order-detail {
         width: 100%;
         margin: 0 auto;
     }
