@@ -1448,6 +1448,58 @@ body:has(.customer-order-page) {
     }
 }
 
+
+/* Layer mobile header tooltips above cards and speed up menu interactions. */
+.customer-order-header {
+    position: relative;
+    z-index: 500;
+}
+.customer-order-header-info {
+    position: relative;
+    z-index: 501;
+    overflow: visible;
+}
+.customer-order-header-methods {
+    position: relative;
+    z-index: 502;
+}
+.customer-order-header-tooltip {
+    z-index: 1000;
+    transition: opacity .1s ease, transform .1s ease, visibility .1s ease;
+}
+.customer-order-section-choice,
+.customer-order-section-choice-arrow,
+.customer-order-section > summary,
+.customer-order-section-chevron,
+.customer-order-section {
+    transition-duration: .12s !important;
+}
+.customer-order-grid[data-product-carousel] {
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+}
+.customer-order-carousel-page {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+@media (max-width: 700px) {
+    .customer-order-header {
+        z-index: 500;
+    }
+    .customer-order-header-info {
+        z-index: 501;
+        overflow: visible !important;
+    }
+    .customer-order-header-methods {
+        z-index: 502;
+    }
+    .customer-order-header-tooltip {
+        z-index: 1000;
+        max-width: calc(100vw - 28px);
+        white-space: normal;
+    }
+}
+
 </style>
 
 <div class="customer-order-page">
@@ -1673,7 +1725,32 @@ body:has(.customer-order-page) {
             const track = carousel?.querySelector('[data-product-carousel]');
             if (!track) return;
             const direction = carouselButton.hasAttribute('data-carousel-next') ? 1 : -1;
-            track.scrollBy({ left: direction * track.clientWidth, behavior: 'smooth' });
+            const pages = Array.from(track.querySelectorAll(':scope > .customer-order-carousel-page'));
+            if (!pages.length) return;
+
+            const trackRect = track.getBoundingClientRect();
+            const currentScroll = track.scrollLeft;
+            let nearestIndex = 0;
+            let nearestDistance = Number.POSITIVE_INFINITY;
+
+            pages.forEach((page, index) => {
+                const pageLeft = page.getBoundingClientRect().left - trackRect.left + currentScroll;
+                const distance = Math.abs(pageLeft - currentScroll);
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestIndex = index;
+                }
+            });
+
+            const currentIndex = Number.isInteger(Number(track.dataset.carouselTargetPage))
+                ? Number(track.dataset.carouselTargetPage)
+                : nearestIndex;
+            const targetIndex = Math.max(0, Math.min(pages.length - 1, currentIndex + direction));
+            const targetPage = pages[targetIndex];
+
+            track.dataset.carouselTargetPage = String(targetIndex);
+            const targetLeft = targetPage.getBoundingClientRect().left - trackRect.left + currentScroll;
+            track.scrollTo({ left: targetLeft, behavior: 'smooth' });
         }
     });
 
@@ -1739,6 +1816,7 @@ body:has(.customer-order-page) {
             }
 
             track.dataset.carouselLayout = layout;
+            track.dataset.carouselTargetPage = '0';
             track.scrollLeft = 0;
         });
     };
@@ -1777,6 +1855,10 @@ body:has(.customer-order-page) {
 
     document.querySelectorAll('[data-product-carousel]').forEach((track) => {
         track.addEventListener('scroll', () => updateCarouselControls(track), { passive: true });
+        track.addEventListener('scrollend', () => {
+            delete track.dataset.carouselTargetPage;
+            updateCarouselControls(track);
+        });
         updateCarouselControls(track);
     });
 
