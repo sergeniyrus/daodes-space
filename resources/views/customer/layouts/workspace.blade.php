@@ -1526,6 +1526,16 @@ body:has(.customer-order-page) {
     min-height: 0;
     overflow: hidden;
 }
+
+/* Checkout and other customer pages scroll inside the central work area.
+   The fixed header and category sidebar remain in place. */
+.customer-workspace-other .customer-order-products.customer-workspace-content {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+}
 .customer-workspace-other .customer-cart-page,
 .customer-workspace-other .customer-orders-page,
 .customer-workspace-other .customer-checkout-page,
