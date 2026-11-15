@@ -1,10 +1,10 @@
-@extends('template')
+@extends('customer.layouts.workspace')
 
 @section('title_page')
     Оформление заказа
 @endsection
 
-@section('main')
+@section('customer-content')
 <style>
 .customer-checkout-page {
     width: min(980px, calc(100% - 24px));
