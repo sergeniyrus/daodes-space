@@ -1458,8 +1458,8 @@ body:has(.customer-order-page) {
 /* Mobile catalog: keep the menu centered with a fixed 16px gutter on both sides. */
 @media (max-width: 700px) {
     .customer-workspace-catalog .customer-order-page {
-        width: min(680px, calc(100vw - 32px)) !important;
-        max-width: calc(100vw - 32px) !important;
+        width: 96% !important;
+        max-width: 96% !important;
         margin-left: auto !important;
         margin-right: auto !important;
         padding-left: 0 !important;
@@ -1492,9 +1492,9 @@ body:has(.customer-order-page) {
        независимо от координат, сохранённых JavaScript при переносе в body. */
     .customer-workspace-catalog .customer-order-section-choice.is-scroll-pinned,
     .customer-workspace-catalog .customer-order-section-choice.is-scroll-pinned[aria-expanded="true"] {
-        left: max(16px, calc((100vw - 680px) / 2)) !important;
-        width: min(680px, calc(100vw - 32px)) !important;
-        max-width: calc(100vw - 32px) !important;
+        left: 2% !important;
+        width: 96% !important;
+        max-width: 96% !important;
         box-sizing: border-box !important;
     }
 }
