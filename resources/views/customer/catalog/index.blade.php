@@ -149,7 +149,8 @@
             // Кнопка остаётся в потоке документа и закрепляется через position: sticky.
             if (shouldExpand && mobileLayout.matches) {
                 requestAnimationFrame(() => {
-                    const top = sectionButton.getBoundingClientRect().top + window.scrollY;
+                    // Оставляем место над кнопкой, чтобы заголовок категории не упирался в край экрана.
+                    const top = sectionButton.getBoundingClientRect().top + window.scrollY - 64;
                     window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
                 });
             }
