@@ -158,9 +158,21 @@
                         const placeholder = pinCategoryButton(sectionButton, sectionGroup);
                         if (!placeholder) return;
 
-                        const placeholderTop = placeholder.getBoundingClientRect().top + window.scrollY;
+                        // Новый раздел всегда начинаем с первой карточки.
+                        // Сбрасываем возможную внутреннюю вертикальную прокрутку
+                        // и выравниваем начало панели сразу под закреплённой кнопкой.
+                        if (activePanel) {
+                            activePanel.scrollTop = 0;
+                            const panelTrack = activePanel.querySelector('[data-product-carousel]');
+                            if (panelTrack) panelTrack.scrollTop = 0;
+                        }
+
+                        const panelTop = activePanel
+                            ? activePanel.getBoundingClientRect().top + window.scrollY
+                            : placeholder.getBoundingClientRect().top + window.scrollY + sectionButton.offsetHeight;
+
                         window.scrollTo({
-                            top: Math.max(0, placeholderTop),
+                            top: Math.max(0, panelTop - sectionButton.offsetHeight),
                             behavior: 'smooth'
                         });
                     });
@@ -272,7 +284,15 @@
         ].join(';');
 
         button.parentNode.insertBefore(placeholder, button);
-        pinnedCategory = { button, group, placeholder };
+        pinnedCategory = {
+            button,
+            group,
+            placeholder,
+            // Пока автоматическая прокрутка после открытия не довела
+            // исходное место кнопки до верхнего края, ручное правило
+            // открепления при движении вверх не применяется.
+            hasReachedPinnedTop: placeholder.getBoundingClientRect().top <= 1
+        };
         lastPinnedScrollY = window.scrollY;
 
         // Кнопка вынесена из всех контейнеров прокрутки и эффектов предков.
@@ -313,10 +333,16 @@
         if (pinnedCategory?.button === activeButton && pinnedCategory.placeholder) {
             const placeholderRect = pinnedCategory.placeholder.getBoundingClientRect();
 
-            // При прокрутке обратно вверх возвращаем кнопку в её исходное
-            // место, как только это место снова появляется в окне просмотра.
-            // Ниже исходной позиции кнопка остаётся закреплённой.
-            if (isScrollingUp && placeholderRect.top > 1) {
+            // Сначала ждём завершения автоматического выравнивания нового
+            // раздела. Только после достижения верхнего края включаем правило
+            // ручного открепления при прокрутке обратно вверх.
+            if (!pinnedCategory.hasReachedPinnedTop && placeholderRect.top <= 1) {
+                pinnedCategory.hasReachedPinnedTop = true;
+            }
+
+            // При ручной прокрутке вверх возвращаем кнопку в меню,
+            // когда её исходное место снова появляется ниже верхнего края.
+            if (pinnedCategory.hasReachedPinnedTop && isScrollingUp && placeholderRect.top > 1) {
                 releasePinnedCategory();
                 return;
             }
