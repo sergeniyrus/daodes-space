@@ -1310,7 +1310,7 @@ body:has(.customer-order-page) {
         box-sizing: border-box;
     }
 
-    .customer-order-section-group.is-expanded > .customer-order-section-choice {
+    .customer-order-section-choice.is-sticky {
         position: -webkit-sticky !important;
         position: sticky !important;
         top: 0 !important;
