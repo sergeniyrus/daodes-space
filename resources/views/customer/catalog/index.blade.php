@@ -150,9 +150,19 @@
             if (shouldExpand && mobileLayout.matches) {
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        const buttonTop = sectionButton.getBoundingClientRect().top + window.scrollY;
-                        window.scrollTo({ top: Math.max(0, buttonTop), behavior: 'smooth' });
-                        updatePinnedCategory();
+                        const sectionGroup = sectionButton.closest('[data-section-group]');
+                        if (!sectionGroup) return;
+
+                        // Закрепляем кнопку сразу после раскрытия, не ожидая
+                        // scroll-события или точного совпадения координат.
+                        const placeholder = pinCategoryButton(sectionButton, sectionGroup);
+                        if (!placeholder) return;
+
+                        const placeholderTop = placeholder.getBoundingClientRect().top + window.scrollY;
+                        window.scrollTo({
+                            top: Math.max(0, placeholderTop),
+                            behavior: 'smooth'
+                        });
                     });
                 });
             }
@@ -237,6 +247,43 @@
         pinnedCategory = null;
     }
 
+    function pinCategoryButton(button, group) {
+        if (!mobileLayout.matches || !button || !group) return null;
+
+        if (pinnedCategory?.button === button && pinnedCategory.placeholder) {
+            return pinnedCategory.placeholder;
+        }
+
+        if (pinnedCategory) releasePinnedCategory();
+
+        const buttonRect = button.getBoundingClientRect();
+        const groupRect = group.getBoundingClientRect();
+        const placeholder = document.createElement('span');
+        placeholder.className = 'customer-order-section-pin-placeholder';
+        placeholder.setAttribute('aria-hidden', 'true');
+        placeholder.style.cssText = [
+            'display:block',
+            'flex:0 0 auto',
+            'height:' + buttonRect.height + 'px',
+            'width:' + groupRect.width + 'px',
+            'visibility:hidden',
+            'pointer-events:none'
+        ].join(';');
+
+        button.parentNode.insertBefore(placeholder, button);
+        pinnedCategory = { button, group, placeholder };
+
+        // Кнопка вынесена из всех контейнеров прокрутки и эффектов предков.
+        document.body.appendChild(button);
+
+        const placeholderRect = placeholder.getBoundingClientRect();
+        button.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
+        button.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
+        button.classList.add('is-scroll-pinned');
+
+        return placeholder;
+    }
+
     function updatePinnedCategory() {
         if (!mobileLayout.matches) {
             releasePinnedCategory();
@@ -257,60 +304,17 @@
             releasePinnedCategory();
         }
 
-        if (!pinnedCategory) {
-            pinnedCategory = { button: activeButton, group: activeGroup, placeholder: null };
-        }
-
-        const { button, group } = pinnedCategory;
-        const buttonRectBeforePin = button.getBoundingClientRect();
-        const buttonHeight = button.offsetHeight;
-
-        // Закрепляем именно в момент, когда сама кнопка доходит до верхней
-        // границы экрана. После закрепления не отпускаем её при дальнейшей
-        // прокрутке вниз или вверх — только до закрытия/смены раздела.
-        const isAlreadyPinned = Boolean(pinnedCategory.placeholder);
-        const shouldPin = isAlreadyPinned || buttonRectBeforePin.top <= 1;
-
-        if (!shouldPin) {
-            if (pinnedCategory.placeholder) {
-                releasePinnedCategory();
-            } else {
-                pinnedCategory = null;
-            }
+        if (pinnedCategory?.button === activeButton && pinnedCategory.placeholder) {
+            const placeholderRect = pinnedCategory.placeholder.getBoundingClientRect();
+            activeButton.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
+            activeButton.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
             return;
         }
 
-        if (!pinnedCategory.placeholder) {
-            const buttonRect = button.getBoundingClientRect();
-            const placeholder = document.createElement('span');
-            placeholder.className = 'customer-order-section-pin-placeholder';
-            placeholder.setAttribute('aria-hidden', 'true');
-            placeholder.style.cssText = [
-                'display:block',
-                'flex:0 0 auto',
-                'height:' + buttonRect.height + 'px',
-                'width:' + buttonRect.width + 'px',
-                'visibility:hidden',
-                'pointer-events:none'
-            ].join(';');
-
-            button.parentNode.insertBefore(placeholder, button);
-            pinnedCategory.placeholder = placeholder;
-
-            // Выводим настоящий элемент из sidebar с backdrop-filter в body:
-            // теперь fixed всегда отсчитывается от окна браузера.
-            document.body.appendChild(button);
+        // Кнопка фиксируется при достижении верхнего края окна.
+        if (activeButton.getBoundingClientRect().top <= 1) {
+            pinCategoryButton(activeButton, activeGroup);
         }
-
-        const placeholder = pinnedCategory.placeholder;
-        const groupWidth = group.getBoundingClientRect().width;
-        placeholder.style.width = groupWidth + 'px';
-        placeholder.style.height = buttonHeight + 'px';
-
-        const placeholderRect = placeholder.getBoundingClientRect();
-        button.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
-        button.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
-        button.classList.add('is-scroll-pinned');
     }
 
     let pinnedUpdateFrame = 0;
