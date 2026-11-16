@@ -99,6 +99,9 @@ class CustomerCartService
         if ($customer) {
             $this->persist($customer, $normalized);
             session()->put($this->syncKey($customer, $organizationId), true);
+        } else {
+            // Новая гостевая корзина должна снова объединиться при следующем входе.
+            $this->forgetSyncMarkersForOrganization($organizationId);
         }
     }
 
@@ -171,6 +174,20 @@ class CustomerCartService
         }
 
         return $normalized;
+    }
+
+    private function forgetSyncMarkersForOrganization(int $organizationId): void
+    {
+        $suffix = '_' . $organizationId;
+
+        foreach (array_keys(session()->all()) as $key) {
+            if (
+                str_starts_with($key, 'customer_order_cart_synced_')
+                && str_ends_with($key, $suffix)
+            ) {
+                session()->forget($key);
+            }
+        }
     }
 
     private function syncKey(Customer $customer, int $organizationId): string
