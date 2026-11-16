@@ -1265,6 +1265,15 @@ body:has(.customer-order-page) {
 
 /* Mobile category groups: keep the expanded section toggle sticky above its dishes. */
 @media (max-width: 700px) {
+    /* Sticky category must follow the document viewport, not an inner clipped container. */
+    .customer-order-page,
+    .customer-order-layout,
+    .customer-order-sidebar,
+    .customer-order-section-list,
+    .customer-order-section-group {
+        overflow: visible !important;
+    }
+
     .customer-order-section-group {
         display: contents;
     }
@@ -1294,21 +1303,23 @@ body:has(.customer-order-page) {
 
     .customer-order-section-group.is-expanded {
         align-self: stretch;
+        display: flex;
+        flex-direction: column;
         overflow: visible !important;
-        /* Сохраняем место исходной кнопки, пока сама кнопка закреплена сверху экрана. */
-        padding-top: 52px;
+        padding-top: 0;
         box-sizing: border-box;
     }
 
     .customer-order-section-group.is-expanded > .customer-order-section-choice {
-        position: fixed !important;
-        top: 8px !important;
-        left: 10px !important;
-        right: 10px !important;
-        z-index: 10000 !important;
-        width: auto !important;
-        max-width: none !important;
+        position: -webkit-sticky !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 2000 !important;
+        align-self: stretch;
+        flex: 0 0 auto;
+        width: 100%;
         min-height: 42px;
+        margin: 0;
         box-sizing: border-box;
         background: linear-gradient(110deg, #0b2530, #182033) !important;
         border-color: rgba(255, 215, 0, .9) !important;
