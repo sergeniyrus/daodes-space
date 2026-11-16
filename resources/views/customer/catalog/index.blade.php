@@ -135,71 +135,13 @@
             document.querySelectorAll('[data-section-select]').forEach((button) => {
                 const isActive = button === sectionButton && shouldExpand;
                 button.setAttribute('aria-expanded', isActive ? 'true' : 'false');
-                button.closest('[data-section-group]')?.classList.toggle('is-expanded', isActive);
+                const buttonGroup = button.closest('[data-section-group]')
+                    || (pinnedCategory?.button === button ? pinnedCategory.group : null);
+                buttonGroup?.classList.toggle('is-expanded', isActive);
             });
             document.querySelectorAll('[data-section-panel]').forEach((panel) => {
                 panel.hidden = !shouldExpand || panel.dataset.sectionPanel !== sectionId;
             });
-    // На мобильных закрепляем именно выбранную кнопку после достижения верхнего края.
-    // Placeholder сохраняет её исходное место в потоке, пока сама кнопка временно fixed.
-    let pinnedCategory = null;
-
-    function releasePinnedCategory() {
-        if (!pinnedCategory) return;
-        const { button, placeholder } = pinnedCategory;
-        button.classList.remove('is-scroll-pinned');
-        button.style.removeProperty('--customer-pinned-left');
-        button.style.removeProperty('--customer-pinned-width');
-        placeholder?.remove();
-        pinnedCategory = null;
-    }
-
-    function updatePinnedCategory() {
-        if (!mobileLayout.matches) {
-            releasePinnedCategory();
-            return;
-        }
-
-        const activeButton = document.querySelector('[data-section-select][aria-expanded="true"]');
-        const activeGroup = activeButton?.closest('[data-section-group]');
-        if (!activeButton || !activeGroup || !activeGroup.classList.contains('is-expanded')) {
-            releasePinnedCategory();
-            return;
-        }
-
-        if (pinnedCategory?.button !== activeButton) releasePinnedCategory();
-
-        if (!pinnedCategory) {
-            const placeholder = document.createElement('span');
-            placeholder.setAttribute('aria-hidden', 'true');
-            placeholder.className = 'customer-order-section-pin-placeholder';
-            placeholder.style.display = 'block';
-            placeholder.style.height = activeButton.offsetHeight + 'px';
-            placeholder.style.visibility = 'hidden';
-            activeButton.parentNode.insertBefore(placeholder, activeButton);
-            pinnedCategory = { button: activeButton, group: activeGroup, placeholder };
-        }
-
-        const { button, group, placeholder } = pinnedCategory;
-        const groupRect = group.getBoundingClientRect();
-        const placeholderRect = placeholder.getBoundingClientRect();
-        const buttonHeight = button.offsetHeight;
-
-        // Закрепляем на время прокрутки содержимого выбранного раздела.
-        if (groupRect.top <= 0 && groupRect.bottom > buttonHeight) {
-            button.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
-            button.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
-            button.classList.add('is-scroll-pinned');
-        } else {
-            button.classList.remove('is-scroll-pinned');
-            button.style.removeProperty('--customer-pinned-left');
-            button.style.removeProperty('--customer-pinned-width');
-        }
-    }
-
-    window.addEventListener('scroll', updatePinnedCategory, { passive: true });
-    window.addEventListener('resize', updatePinnedCategory);
-
             const activePanel = document.querySelector('[data-section-panel="' + sectionId + '"]');
             const activeTrack = activePanel?.querySelector('[data-product-carousel]');
             if (shouldExpand && activeTrack) updateCarouselControls(activeTrack);
@@ -272,6 +214,95 @@
     const sectionList = document.querySelector('.customer-order-section-list');
     const productsContainer = document.querySelector('.customer-order-products');
     const mobileLayout = window.matchMedia('(max-width: 700px)');
+
+    // Состояние закрепления одно на всю страницу. Обработчики прокрутки регистрируются
+    // один раз, а не при каждом нажатии на кнопку категории.
+    let pinnedCategory = null;
+
+    function releasePinnedCategory() {
+        if (!pinnedCategory) return;
+
+        const { button, placeholder } = pinnedCategory;
+        button.classList.remove('is-scroll-pinned');
+        button.style.removeProperty('--customer-pinned-left');
+        button.style.removeProperty('--customer-pinned-width');
+
+        if (placeholder?.parentNode) {
+            placeholder.parentNode.insertBefore(button, placeholder.nextSibling);
+            placeholder.remove();
+        }
+
+        pinnedCategory = null;
+    }
+
+    function updatePinnedCategory() {
+        if (!mobileLayout.matches) {
+            releasePinnedCategory();
+            return;
+        }
+
+        const activeButton = document.querySelector('[data-section-select][aria-expanded="true"]');
+        const activeGroup = pinnedCategory?.button === activeButton
+            ? pinnedCategory.group
+            : activeButton?.closest('[data-section-group]');
+
+        if (!activeButton || !activeGroup || !activeGroup.classList.contains('is-expanded')) {
+            releasePinnedCategory();
+            return;
+        }
+
+        if (pinnedCategory && pinnedCategory.button !== activeButton) {
+            releasePinnedCategory();
+        }
+
+        if (!pinnedCategory) {
+            pinnedCategory = { button: activeButton, group: activeGroup, placeholder: null };
+        }
+
+        const { button, group } = pinnedCategory;
+        const groupRect = group.getBoundingClientRect();
+        const buttonHeight = button.offsetHeight;
+        const shouldPin = groupRect.top <= 0 && groupRect.bottom > buttonHeight;
+
+        if (!shouldPin) {
+            if (pinnedCategory.placeholder) {
+                releasePinnedCategory();
+            } else {
+                pinnedCategory = null;
+            }
+            return;
+        }
+
+        if (!pinnedCategory.placeholder) {
+            const buttonRect = button.getBoundingClientRect();
+            const placeholder = document.createElement('span');
+            placeholder.className = 'customer-order-section-pin-placeholder';
+            placeholder.setAttribute('aria-hidden', 'true');
+            placeholder.style.cssText = [
+                'display:block',
+                'flex:0 0 auto',
+                'height:' + buttonRect.height + 'px',
+                'width:' + buttonRect.width + 'px',
+                'visibility:hidden',
+                'pointer-events:none'
+            ].join(';');
+
+            button.parentNode.insertBefore(placeholder, button);
+            pinnedCategory.placeholder = placeholder;
+
+            // Выводим настоящий элемент из sidebar с backdrop-filter в body:
+            // теперь fixed всегда отсчитывается от окна браузера.
+            document.body.appendChild(button);
+        }
+
+        const placeholderRect = pinnedCategory.placeholder.getBoundingClientRect();
+        button.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
+        button.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
+        button.classList.add('is-scroll-pinned');
+    }
+
+    window.addEventListener('scroll', updatePinnedCategory, { passive: true });
+    window.addEventListener('resize', updatePinnedCategory);
 
     // On desktop each carousel page contains exactly eight dishes.
     // On mobile the page wrappers are removed so every dish remains in normal page flow.
@@ -381,6 +412,7 @@
     });
 
     const handleLayoutChange = () => {
+        releasePinnedCategory();
         arrangeSectionPanels();
         arrangeCarouselPages();
         document.querySelectorAll('[data-product-carousel]').forEach(updateCarouselControls);
