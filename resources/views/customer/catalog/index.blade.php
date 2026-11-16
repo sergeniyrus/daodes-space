@@ -264,7 +264,12 @@
         const { button, group } = pinnedCategory;
         const groupRect = group.getBoundingClientRect();
         const buttonHeight = button.offsetHeight;
-        const shouldPin = groupRect.top <= 0 && groupRect.bottom > buttonHeight;
+
+        // После первого закрепления не отпускаем кнопку при прокрутке к концу
+        // длинного списка или обратно вверх. Снять закрепление может только
+        // закрытие/переключение раздела либо выход из мобильного режима.
+        const isAlreadyPinned = Boolean(pinnedCategory.placeholder);
+        const shouldPin = isAlreadyPinned || groupRect.top <= 0;
 
         if (!shouldPin) {
             if (pinnedCategory.placeholder) {
