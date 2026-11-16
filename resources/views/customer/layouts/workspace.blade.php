@@ -1300,7 +1300,7 @@ body:has(.customer-order-page) {
     .customer-order-section-group.is-expanded > .customer-order-section-choice {
         position: -webkit-sticky !important;
         position: sticky !important;
-        top: 0 !important;
+        top: 8px !important;
         z-index: 2000 !important;
         align-self: flex-start;
         flex: 0 0 auto;
