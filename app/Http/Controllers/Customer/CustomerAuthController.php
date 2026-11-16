@@ -30,7 +30,7 @@ class CustomerAuthController extends Controller
     /**
      * Вход клиента по телефону и постоянному паролю.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, CustomerCartService $cartService): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
             'phone' => ['required', 'string', 'max:32'],
@@ -81,6 +81,13 @@ class CustomerAuthController extends Controller
 
         RateLimiter::clear($throttleKey);
         $request->session()->regenerate();
+
+        // Переносим гостевую корзину в постоянную корзину клиента.
+        $sessionCart = session(CustomerCartService::SESSION_KEY, []);
+        $cartService->loadForOrganization(
+            $customer,
+            (int) ($sessionCart['organization_id'] ?? 0) ?: null
+        );
 
         return redirect()->intended(route('customer.organizations.index'));
     }
@@ -146,6 +153,8 @@ class CustomerAuthController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('customer')->logout();
+        // Постоянная корзина остаётся в аккаунте, а сессионная копия очищается.
+        $request->session()->forget(CustomerCartService::SESSION_KEY);
         $request->session()->regenerateToken();
 
         return redirect()->route('customer.login')
