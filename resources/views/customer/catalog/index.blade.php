@@ -7,12 +7,7 @@
 @section('customer-content')
 
 
-@if(session('success'))
-        <div class="customer-order-alert">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="customer-order-alert error">{{ session('error') }}</div>
-    @endif
+
 
 
 
