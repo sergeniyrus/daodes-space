@@ -245,7 +245,11 @@ class CustomerCheckoutController extends Controller
                 ->with('success', 'Этот заказ уже был оформлен ранее.');
         }
 
-        $cart = session(self::SESSION_KEY, []);
+        $sessionCart = session(self::SESSION_KEY, []);
+        $cart = $cartService->loadForOrganization(
+            $customer,
+            (int) ($sessionCart['organization_id'] ?? 0) ?: null
+        );
         $organizationId = (int) ($cart['organization_id'] ?? 0);
         $quantities = $cart['items'] ?? [];
 
