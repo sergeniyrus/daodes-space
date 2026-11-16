@@ -49,18 +49,18 @@ class AppServiceProvider extends ServiceProvider
             $organization = request()->route('organization');
             $order = request()->route('order');
 
-            if ($order instanceof \\App\\Models\\Order) {
+            if ($order instanceof \App\Models\Order) {
                 $organization = $order->organization;
             }
 
             if (!$organization && !empty($cart['organization_id'])) {
-                $organization = \\App\\Models\\Organization::query()
+                $organization = \App\Models\Organization::query()
                     ->with('orderSettings')
                     ->find((int) $cart['organization_id']);
             }
 
             if (!$organization && session()->has('customer_workspace_organization_id')) {
-                $organization = \\App\\Models\\Organization::query()
+                $organization = \App\Models\Organization::query()
                     ->with('orderSettings')
                     ->find((int) session('customer_workspace_organization_id'));
             }
@@ -108,7 +108,7 @@ class AppServiceProvider extends ServiceProvider
                 $quantities = $cart['items'];
                 $cartCount = array_sum(array_map('intval', $quantities));
                 if ($quantities !== []) {
-                    $cartItems = \\App\\Models\\MenuItem::query()
+                    $cartItems = \App\Models\MenuItem::query()
                         ->whereIn('id', array_map('intval', array_keys($quantities)))
                         ->where('is_active', true)
                         ->whereHas('section', function ($query) use ($organization) {
@@ -130,8 +130,8 @@ class AppServiceProvider extends ServiceProvider
             $ordersCount = $ordersQuery ? (clone $ordersQuery)->count() : 0;
             $ordersInProgressCount = $ordersQuery
                 ? (clone $ordersQuery)->whereNotIn('status', [
-                    \\App\\Models\\Order::STATUS_COMPLETED,
-                    \\App\\Models\\Order::STATUS_CANCELLED,
+                    \App\Models\Order::STATUS_COMPLETED,
+                    \App\Models\Order::STATUS_CANCELLED,
                 ])->count()
                 : 0;
 
