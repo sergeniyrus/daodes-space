@@ -1295,20 +1295,24 @@ body:has(.customer-order-page) {
     .customer-order-section-group.is-expanded {
         align-self: stretch;
         overflow: visible !important;
+        /* Сохраняем место исходной кнопки, пока сама кнопка закреплена сверху экрана. */
+        padding-top: 52px;
+        box-sizing: border-box;
     }
 
     .customer-order-section-group.is-expanded > .customer-order-section-choice {
-        position: -webkit-sticky !important;
-        position: sticky !important;
+        position: fixed !important;
         top: 8px !important;
-        z-index: 2000 !important;
-        align-self: flex-start;
-        flex: 0 0 auto;
-        width: 100%;
+        left: 10px !important;
+        right: 10px !important;
+        z-index: 10000 !important;
+        width: auto !important;
+        max-width: none !important;
+        min-height: 42px;
         box-sizing: border-box;
         background: linear-gradient(110deg, #0b2530, #182033) !important;
-        border-color: rgba(255, 215, 0, .85);
-        box-shadow: 0 8px 22px rgba(0, 0, 0, .55), 0 0 16px rgba(0, 229, 212, .14);
+        border-color: rgba(255, 215, 0, .9) !important;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, .65), 0 0 18px rgba(0, 229, 212, .2);
     }
 
     .customer-order-products-heading {
