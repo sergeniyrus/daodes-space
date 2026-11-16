@@ -479,10 +479,26 @@
         updateCarouselControls(track);
     });
 
+    let previousMobileLayout = mobileLayout.matches;
+
+    // Перестраиваем DOM и снимаем закрепление только при реальном переходе
+    // между мобильной и настольной раскладкой. На мобильных браузерах обычная
+    // прокрутка может менять высоту viewport и вызывать resize — это не должно
+    // сбрасывать закреплённую кнопку.
     const handleLayoutChange = () => {
-        releasePinnedCategory();
-        arrangeSectionPanels();
-        arrangeCarouselPages();
+        const currentMobileLayout = mobileLayout.matches;
+
+        if (currentMobileLayout !== previousMobileLayout) {
+            releasePinnedCategory();
+            previousMobileLayout = currentMobileLayout;
+            arrangeSectionPanels();
+            arrangeCarouselPages();
+        } else if (pinnedCategory?.placeholder && pinnedCategory.button) {
+            const placeholderRect = pinnedCategory.placeholder.getBoundingClientRect();
+            pinnedCategory.button.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
+            pinnedCategory.button.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
+        }
+
         document.querySelectorAll('[data-product-carousel]').forEach(updateCarouselControls);
     };
 
@@ -492,6 +508,7 @@
         mobileLayout.addListener(handleLayoutChange);
     }
 
+    // Resize мобильной адресной строки не снимает закрепление.
     window.addEventListener('resize', handleLayoutChange);
 })();
 </script>
