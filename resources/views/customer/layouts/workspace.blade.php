@@ -1263,6 +1263,20 @@ body:has(.customer-order-page) {
 }
 
 
+
+/* Каталог на мобильных должен прокручиваться документом, а не внутренним main.
+   Иначе sticky привязывается к отдельной области прокрутки и кнопка не держится у верха экрана. */
+@media (max-width: 700px) {
+    .customer-workspace-catalog .customer-workspace-content {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow-x: visible !important;
+        overflow-y: visible !important;
+        overscroll-behavior-y: auto;
+        -webkit-overflow-scrolling: auto;
+    }
+}
+
 /* Mobile category groups: keep the expanded section toggle sticky above its dishes. */
 @media (max-width: 700px) {
     /* Sticky category must follow the document viewport, not an inner clipped container. */
