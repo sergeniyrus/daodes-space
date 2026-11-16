@@ -314,6 +314,8 @@
     }
 
     window.addEventListener('scroll', updatePinnedCategory, { passive: true });
+    // Capture также ловит прокрутку внутренних контейнеров, если браузер использует их.
+    document.addEventListener('scroll', updatePinnedCategory, { passive: true, capture: true });
     window.addEventListener('resize', updatePinnedCategory);
 
     // On desktop each carousel page contains exactly eight dishes.
