@@ -47,6 +47,11 @@ class Customer extends Authenticatable
         )->withPivot('source')->withTimestamps();
     }
 
+    public function carts(): HasMany
+    {
+        return $this->hasMany(CustomerCart::class);
+    }
+
     public function addresses(): HasMany
     {
         return $this->hasMany(CustomerAddress::class);
