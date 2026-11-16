@@ -44,30 +44,39 @@ class AppServiceProvider extends ServiceProvider
 
         // Общая шапка и категории клиентского кабинета.
         View::composer('customer.layouts.workspace', function ($view) {
+            $customer = auth('customer')->user();
             $cart = session('customer_order_cart', []);
             $organization = request()->route('organization');
             $order = request()->route('order');
 
-            if ($order instanceof \App\Models\Order) {
+            if ($order instanceof \\App\\Models\\Order) {
                 $organization = $order->organization;
             }
 
             if (!$organization && !empty($cart['organization_id'])) {
-                $organization = \App\Models\Organization::query()
+                $organization = \\App\\Models\\Organization::query()
                     ->with('orderSettings')
                     ->find((int) $cart['organization_id']);
             }
 
             if (!$organization && session()->has('customer_workspace_organization_id')) {
-                $organization = \App\Models\Organization::query()
+                $organization = \\App\\Models\\Organization::query()
                     ->with('orderSettings')
                     ->find((int) session('customer_workspace_organization_id'));
             }
 
-            $customer = auth('customer')->user();
             if (!$organization && $customer) {
-                $lastOrder = $customer->orders()->with('organization.orderSettings')->latest()->first();
-                $organization = $lastOrder?->organization;
+                $savedCart = $customer->carts()
+                    ->with('organization.orderSettings')
+                    ->latest('updated_at')
+                    ->first();
+
+                $organization = $savedCart?->organization;
+
+                if (!$organization) {
+                    $lastOrder = $customer->orders()->with('organization.orderSettings')->latest()->first();
+                    $organization = $lastOrder?->organization;
+                }
             }
 
             if (!$organization || !$organization->isActive()) {
@@ -75,6 +84,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             session(['customer_workspace_organization_id' => $organization->id]);
+
+            if ($customer) {
+                $cart = app(\\App\\Services\\CustomerCartService::class)
+                    ->loadForOrganization($customer, (int) $organization->id);
+            } else {
+                $cart = session('customer_order_cart', []);
+            }
+
             $settings = $organization->orderSettings;
             $sections = $organization->menuSections()
                 ->where('is_active', true)
@@ -91,7 +108,7 @@ class AppServiceProvider extends ServiceProvider
                 $quantities = $cart['items'];
                 $cartCount = array_sum(array_map('intval', $quantities));
                 if ($quantities !== []) {
-                    $cartItems = \App\Models\MenuItem::query()
+                    $cartItems = \\App\\Models\\MenuItem::query()
                         ->whereIn('id', array_map('intval', array_keys($quantities)))
                         ->where('is_active', true)
                         ->whereHas('section', function ($query) use ($organization) {
@@ -113,8 +130,8 @@ class AppServiceProvider extends ServiceProvider
             $ordersCount = $ordersQuery ? (clone $ordersQuery)->count() : 0;
             $ordersInProgressCount = $ordersQuery
                 ? (clone $ordersQuery)->whereNotIn('status', [
-                    \App\Models\Order::STATUS_COMPLETED,
-                    \App\Models\Order::STATUS_CANCELLED,
+                    \\App\\Models\\Order::STATUS_COMPLETED,
+                    \\App\\Models\\Order::STATUS_CANCELLED,
                 ])->count()
                 : 0;
 
