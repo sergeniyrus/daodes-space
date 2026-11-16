@@ -1326,10 +1326,12 @@ body:has(.customer-order-page) {
 
     .customer-order-section-group.is-expanded > .customer-order-section-choice {
         position: -webkit-sticky !important;
+        position: -webkit-sticky !important;
         position: sticky !important;
         top: 0 !important;
         z-index: 2000 !important;
-        align-self: stretch;
+        /* Не растягиваем sticky-элемент по высоте flex-контейнера. */
+        align-self: flex-start !important;
         flex: 0 0 auto;
         width: 100%;
         min-height: 42px;
