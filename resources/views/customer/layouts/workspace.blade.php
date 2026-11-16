@@ -68,7 +68,7 @@
     position: fixed;
     top: 18px;
     right: 20px;
-    z-index: 2000;
+    z-index: 2147483647;
     display: flex;
     align-items: center;
     gap: 13px;
@@ -1941,6 +1941,11 @@ body:has(.customer-order-page) {
 (() => {
     const toast = document.querySelector('[data-customer-toast]');
     if (!toast) return;
+
+    // Toast переносим непосредственно в body: закреплённая категория
+    // тоже находится в body, поэтому уведомление должно быть выше неё.
+    document.body.appendChild(toast);
+    toast.style.setProperty('z-index', '2147483647', 'important');
 
     let dismissTimer = window.setTimeout(dismissToast, 4800);
 
