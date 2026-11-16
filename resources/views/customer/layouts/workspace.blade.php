@@ -478,20 +478,6 @@
     .customer-order-section-choice {
         align-self: start;
     }
-    .customer-order-section-group {
-        position: relative;
-        overflow: visible;
-    }
-    /* Активная категория остаётся у верхнего края экрана,
-       пока пользователь прокручивает блюда внутри раскрытого раздела. */
-    .customer-order-section-group > .customer-order-section-choice[aria-expanded="true"] {
-        position: sticky;
-        top: 0;
-        z-index: 80;
-        align-self: stretch;
-        background: linear-gradient(110deg, #10272b, #1b202b 72%, #292515);
-        box-shadow: 0 5px 16px rgba(0, 0, 0, .42), 0 2px 0 rgba(0, 229, 212, .22);
-    }
     .customer-order-section-choice { min-height: 42px; padding: 8px; }
     .customer-order-products { width: 100%; }
     .customer-order-products-panel { padding: 12px; }
@@ -1183,7 +1169,7 @@ body:has(.customer-order-page) {
 
     .customer-order-section-group.is-expanded > .customer-order-section-choice {
         position: sticky !important;
-        top: 8px !important;
+        top: 0 !important;
         z-index: 100 !important;
         align-self: stretch;
         flex: 0 0 auto;
