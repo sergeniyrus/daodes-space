@@ -86,7 +86,7 @@ class AppServiceProvider extends ServiceProvider
             session(['customer_workspace_organization_id' => $organization->id]);
 
             if ($customer) {
-                $cart = app(\\App\\Services\\CustomerCartService::class)
+                $cart = app(\App\Services\CustomerCartService::class)
                     ->loadForOrganization($customer, (int) $organization->id);
             } else {
                 $cart = session('customer_order_cart', []);
