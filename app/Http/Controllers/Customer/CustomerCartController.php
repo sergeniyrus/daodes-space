@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\Organization;
+use App\Services\CustomerCartService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,9 +15,19 @@ class CustomerCartController extends Controller
 {
     private const SESSION_KEY = 'customer_order_cart';
 
-    public function index(): View
+    public function index(CustomerCartService $cartService): View
     {
-        $cart = session(self::SESSION_KEY, []);
+        /** @var Customer|null $customer */
+        $customer = auth('customer')->user();
+
+        $sessionCart = session(self::SESSION_KEY, []);
+        $cart = $customer
+            ? $cartService->loadForOrganization(
+                $customer,
+                (int) ($sessionCart['organization_id'] ?? 0) ?: null
+            )
+            : $sessionCart;
+
         $organizationId = (int) ($cart['organization_id'] ?? 0);
         $quantities = $cart['items'] ?? [];
 
@@ -33,7 +45,7 @@ class CustomerCartController extends Controller
             ->find($organizationId);
 
         if (!$organization || !$organization->isActive()) {
-            session()->forget(self::SESSION_KEY);
+            $cartService->clearForOrganization($customer, $organizationId);
 
             return view('customer.cart.index', [
                 'organization' => null,
@@ -76,8 +88,11 @@ class CustomerCartController extends Controller
         ]);
     }
 
-    public function add(Request $request, Organization $organization): RedirectResponse
-    {
+    public function add(
+        Request $request,
+        Organization $organization,
+        CustomerCartService $cartService
+    ): RedirectResponse {
         abort_unless($organization->isActive(), 404);
 
         $settings = $organization->orderSettings;
@@ -102,10 +117,15 @@ class CustomerCartController extends Controller
             })
             ->firstOrFail();
 
-        $cart = session(self::SESSION_KEY, [
-            'organization_id' => $organization->id,
-            'items' => [],
-        ]);
+        /** @var Customer|null $customer */
+        $customer = auth('customer')->user();
+
+        $cart = $customer
+            ? $cartService->loadForOrganization($customer, (int) $organization->id)
+            : session(self::SESSION_KEY, [
+                'organization_id' => $organization->id,
+                'items' => [],
+            ]);
 
         if (
             !empty($cart['items'])
@@ -133,7 +153,7 @@ class CustomerCartController extends Controller
         }
 
         $cart['items'][$item->id] = $newQuantity;
-        session()->put(self::SESSION_KEY, $cart);
+        $cartService->save($customer, $cart);
         session()->forget('customer_order_checkout_snapshots');
         session()->forget('customer_order_checkout_snapshot');
 
@@ -142,13 +162,25 @@ class CustomerCartController extends Controller
             ->with('success', 'Товар добавлен в корзину.');
     }
 
-    public function update(Request $request, MenuItem $menuItem): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        MenuItem $menuItem,
+        CustomerCartService $cartService
+    ): RedirectResponse {
         $validated = $request->validate([
             'quantity' => ['required', 'integer', 'min:1', 'max:99'],
         ]);
 
-        $cart = session(self::SESSION_KEY, []);
+        /** @var Customer|null $customer */
+        $customer = auth('customer')->user();
+        $sessionCart = session(self::SESSION_KEY, []);
+        $cart = $customer
+            ? $cartService->loadForOrganization(
+                $customer,
+                (int) ($sessionCart['organization_id'] ?? 0) ?: null
+            )
+            : $sessionCart;
+
         $organizationId = (int) ($cart['organization_id'] ?? 0);
 
         abort_unless(
@@ -163,29 +195,31 @@ class CustomerCartController extends Controller
         );
 
         $cart['items'][$menuItem->id] = (int) $validated['quantity'];
-        session()->put(self::SESSION_KEY, $cart);
+        $cartService->save($customer, $cart);
         session()->forget('customer_order_checkout_snapshots');
         session()->forget('customer_order_checkout_snapshot');
 
         return redirect()->to(route('customer.cart') . '#cart-item-' . $menuItem->id);
     }
 
-    public function remove(int $menuItemId): RedirectResponse
-    {
-        $cart = session(self::SESSION_KEY, []);
+    public function remove(
+        CustomerCartService $cartService,
+        int $menuItemId
+    ): RedirectResponse {
+        /** @var Customer|null $customer */
+        $customer = auth('customer')->user();
+        $sessionCart = session(self::SESSION_KEY, []);
+        $cart = $customer
+            ? $cartService->loadForOrganization(
+                $customer,
+                (int) ($sessionCart['organization_id'] ?? 0) ?: null
+            )
+            : $sessionCart;
 
-        abort_unless(
-            isset($cart['items'][$menuItemId]),
-            404
-        );
+        abort_unless(isset($cart['items'][$menuItemId]), 404);
 
         unset($cart['items'][$menuItemId]);
-
-        if (empty($cart['items'])) {
-            session()->forget(self::SESSION_KEY);
-        } else {
-            session()->put(self::SESSION_KEY, $cart);
-        }
+        $cartService->save($customer, $cart);
 
         session()->forget('customer_order_checkout_snapshots');
         session()->forget('customer_order_checkout_snapshot');
@@ -193,9 +227,24 @@ class CustomerCartController extends Controller
         return redirect()->route('customer.cart');
     }
 
-    public function clear(): RedirectResponse
+    public function clear(CustomerCartService $cartService): RedirectResponse
     {
-        session()->forget(self::SESSION_KEY);
+        /** @var Customer|null $customer */
+        $customer = auth('customer')->user();
+        $cart = session(self::SESSION_KEY, []);
+
+        if ($customer) {
+            $cart = $cartService->loadForOrganization(
+                $customer,
+                (int) ($cart['organization_id'] ?? 0) ?: null
+            );
+        }
+
+        $cartService->clearForOrganization(
+            $customer,
+            (int) ($cart['organization_id'] ?? 0)
+        );
+
         session()->forget('customer_order_checkout_snapshots');
         session()->forget('customer_order_checkout_snapshot');
 
