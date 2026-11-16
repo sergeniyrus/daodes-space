@@ -1277,7 +1277,7 @@ body:has(.customer-order-page) {
     }
 }
 
-/* Mobile category groups: keep the expanded section toggle sticky above its dishes. */
+/* Mobile category groups: keep the expanded section toggle pinned above its dishes. */
 @media (max-width: 700px) {
     /* Sticky category must follow the document viewport, not an inner clipped container. */
     .customer-order-page,
