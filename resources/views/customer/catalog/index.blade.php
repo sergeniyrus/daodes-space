@@ -316,43 +316,46 @@
             return;
         }
 
-        const activeButton = document.querySelector('[data-section-select][aria-expanded="true"]');
-        const activeGroup = pinnedCategory?.button === activeButton
-            ? pinnedCategory.group
-            : activeButton?.closest('[data-section-group]');
+        // Если кнопка уже вынесена в body и закреплена, больше не проверяем
+        // её группу через closest()/активный список: после переноса кнопки
+        // структура DOM и события прокрутки могут отличаться на мобильных
+        // браузерах. Состояние закрепления хранится до явного закрытия раздела
+        // или возврата вверх к исходному месту кнопки.
+        if (pinnedCategory?.button && pinnedCategory.placeholder) {
+            const pinnedButton = pinnedCategory.button;
 
-        if (!activeButton || !activeGroup || !activeGroup.classList.contains('is-expanded')) {
-            releasePinnedCategory();
-            return;
-        }
+            if (pinnedButton.getAttribute('aria-expanded') !== 'true') {
+                releasePinnedCategory();
+                return;
+            }
 
-        if (pinnedCategory && pinnedCategory.button !== activeButton) {
-            releasePinnedCategory();
-        }
-
-        if (pinnedCategory?.button === activeButton && pinnedCategory.placeholder) {
             const placeholderRect = pinnedCategory.placeholder.getBoundingClientRect();
 
-            // Сначала ждём завершения автоматического выравнивания нового
-            // раздела. Только после достижения верхнего края включаем правило
-            // ручного открепления при прокрутке обратно вверх.
             if (!pinnedCategory.hasReachedPinnedTop && placeholderRect.top <= 1) {
                 pinnedCategory.hasReachedPinnedTop = true;
             }
 
-            // При ручной прокрутке вверх возвращаем кнопку в меню,
-            // когда её исходное место снова появляется ниже верхнего края.
+            // Открепляем только при движении вверх, когда исходная позиция
+            // кнопки снова появляется ниже верхнего края экрана.
             if (pinnedCategory.hasReachedPinnedTop && isScrollingUp && placeholderRect.top > 1) {
                 releasePinnedCategory();
                 return;
             }
 
-            activeButton.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
-            activeButton.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
+            pinnedButton.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
+            pinnedButton.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
             return;
         }
 
-        // Кнопка фиксируется при достижении верхнего края окна.
+        const activeButton = document.querySelector('[data-section-select][aria-expanded="true"]');
+        const activeGroup = activeButton?.closest('[data-section-group]');
+
+        if (!activeButton || !activeGroup || !activeGroup.classList.contains('is-expanded')) {
+            return;
+        }
+
+        // На случай, если раздел был раскрыт без обработчика клика,
+        // закрепляем кнопку при достижении верхнего края окна.
         if (activeButton.getBoundingClientRect().top <= 1) {
             pinCategoryButton(activeButton, activeGroup);
         }
