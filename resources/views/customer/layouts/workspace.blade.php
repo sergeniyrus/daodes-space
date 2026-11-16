@@ -1298,11 +1298,14 @@ body:has(.customer-order-page) {
     }
 
     .customer-order-section-group.is-expanded > .customer-order-section-choice {
+        position: -webkit-sticky !important;
         position: sticky !important;
         top: 0 !important;
-        z-index: 100 !important;
-        align-self: stretch;
+        z-index: 1000 !important;
+        align-self: flex-start;
         flex: 0 0 auto;
+        width: 100%;
+        box-sizing: border-box;
         background: linear-gradient(110deg, #0b2530, #182033);
         border-color: rgba(255, 215, 0, .85);
         box-shadow: 0 8px 22px rgba(0, 0, 0, .55), 0 0 16px rgba(0, 229, 212, .14);
