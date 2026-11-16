@@ -62,6 +62,136 @@
     border-color: rgba(255, 100, 100, .55);
     background: rgba(255, 70, 70, .08);
 }
+
+/* Фирменные всплывающие уведомления клиентского меню. */
+.customer-order-toast {
+    position: fixed;
+    top: 18px;
+    right: 20px;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    width: min(410px, calc(100vw - 32px));
+    padding: 15px 46px 17px 16px;
+    color: #f4f4f4;
+    background:
+        radial-gradient(circle at 0 0, rgba(0, 229, 212, .16), transparent 48%),
+        linear-gradient(135deg, #101522 0%, #171b2b 55%, #0b0c18 100%);
+    border: 1px solid rgba(0, 229, 212, .58);
+    border-left: 3px solid #00e5d4;
+    border-radius: 13px;
+    box-shadow: 0 14px 38px rgba(0, 0, 0, .48), 0 0 22px rgba(0, 229, 212, .12);
+    overflow: hidden;
+    animation: customer-toast-enter .32s ease-out both;
+}
+.customer-order-toast[hidden] { display: none !important; }
+.customer-order-toast-icon {
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    color: #071817;
+    background: linear-gradient(145deg, #65fff0, #00cbbb);
+    border: 1px solid rgba(255, 215, 0, .7);
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(0, 229, 212, .32);
+    font-size: 19px;
+    font-weight: 900;
+}
+.customer-order-toast-message {
+    min-width: 0;
+    color: #f4f4f4;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 600;
+}
+.customer-order-toast-title {
+    display: block;
+    margin-bottom: 2px;
+    color: #ffd700;
+    font-family: 'Crimson Text', serif;
+    font-size: 17px;
+    line-height: 1.15;
+    letter-spacing: .35px;
+}
+.customer-order-toast-close {
+    position: absolute;
+    top: 7px;
+    right: 9px;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: rgba(220, 230, 240, .7);
+    background: transparent;
+    border: 0;
+    border-radius: 50%;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+.customer-order-toast-close:hover {
+    color: #ffd700;
+    background: rgba(255, 215, 0, .1);
+}
+.customer-order-toast-progress {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: rgba(0, 229, 212, .14);
+}
+.customer-order-toast-progress::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform-origin: left;
+    background: linear-gradient(90deg, #00e5d4, #ffd700);
+    animation: customer-toast-progress 4.8s linear forwards;
+}
+.customer-order-toast.error {
+    border-color: rgba(255, 100, 100, .62);
+    border-left-color: #ff6969;
+    background:
+        radial-gradient(circle at 0 0, rgba(255, 80, 80, .16), transparent 48%),
+        linear-gradient(135deg, #17121b 0%, #211824 55%, #100d16 100%);
+}
+.customer-order-toast.error .customer-order-toast-icon {
+    color: #fff;
+    background: linear-gradient(145deg, #ff9999, #d94355);
+    border-color: rgba(255, 215, 0, .35);
+    box-shadow: 0 0 15px rgba(255, 80, 80, .22);
+}
+.customer-order-toast.error .customer-order-toast-title { color: #ff9b9b; }
+@keyframes customer-toast-enter {
+    from { opacity: 0; transform: translate3d(18px, -8px, 0) scale(.97); }
+    to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes customer-toast-progress {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}
+@media (max-width: 700px) {
+    .customer-order-toast {
+        top: 12px;
+        right: 12px;
+        left: 12px;
+        width: auto;
+        padding: 13px 42px 15px 13px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .customer-order-toast,
+    .customer-order-toast-progress::after {
+        animation: none !important;
+    }
+}
 .customer-order-page > .customer-order-section {
     position: relative;
     isolation: isolate;
@@ -1607,6 +1737,24 @@ body:has(.customer-order-page) {
 
 @if(isset($customerWorkspace))
 <div class="customer-order-page {{ request()->routeIs('customer.catalog') ? 'customer-workspace-catalog' : 'customer-workspace-other' }}">
+    @if(session('success') || session('error'))
+        @php($toastIsError = session()->has('error'))
+        <div
+            class="customer-order-toast{{ $toastIsError ? ' error' : '' }}"
+            role="{{ $toastIsError ? 'alert' : 'status' }}"
+            aria-live="{{ $toastIsError ? 'assertive' : 'polite' }}"
+            data-customer-toast
+        >
+            <span class="customer-order-toast-icon" aria-hidden="true">{{ $toastIsError ? '!' : '✓' }}</span>
+            <span class="customer-order-toast-message">
+                <span class="customer-order-toast-title">{{ $toastIsError ? 'Внимание' : 'Готово' }}</span>
+                {{ session('error') ?: session('success') }}
+            </span>
+            <button type="button" class="customer-order-toast-close" data-customer-toast-close aria-label="Закрыть уведомление">×</button>
+            <span class="customer-order-toast-progress" aria-hidden="true"></span>
+        </div>
+    @endif
+
     <div class="customer-order-header">
         <section class="customer-order-header-card customer-order-header-info">
             <h1 class="customer-order-header-organization">{{ $customerWorkspace['organization']->name }}</h1>
@@ -1710,4 +1858,32 @@ body:has(.customer-order-page) {
 @else
     @yield('customer-content')
 @endif
+
+<script>
+(() => {
+    const toast = document.querySelector('[data-customer-toast]');
+    if (!toast) return;
+
+    let dismissTimer = window.setTimeout(dismissToast, 4800);
+
+    function dismissToast() {
+        if (!toast.isConnected) return;
+        toast.style.transition = 'opacity .22s ease, transform .22s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate3d(12px, -6px, 0)';
+        window.setTimeout(() => toast.remove(), 240);
+    }
+
+    toast.addEventListener('mouseenter', () => window.clearTimeout(dismissTimer));
+    toast.addEventListener('mouseleave', () => {
+        window.clearTimeout(dismissTimer);
+        dismissTimer = window.setTimeout(dismissToast, 1800);
+    });
+
+    toast.querySelector('[data-customer-toast-close]')?.addEventListener('click', () => {
+        window.clearTimeout(dismissTimer);
+        dismissToast();
+    });
+})();
+</script>
 @endsection
