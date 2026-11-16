@@ -1324,27 +1324,9 @@ body:has(.customer-order-page) {
         box-sizing: border-box;
     }
 
-    .customer-order-section-group.is-expanded {
-        position: relative;
-    }
-
-    .customer-order-section-choice.is-scroll-pinned {
-        position: fixed !important;
-        top: 0 !important;
-        left: var(--customer-pinned-left, 0px) !important;
-        width: var(--customer-pinned-width, 100%) !important;
-        z-index: 10000 !important;
-        margin: 0 !important;
-        border-radius: 0 0 10px 10px !important;
-    }
-
     .customer-order-section-group.is-expanded > .customer-order-section-choice {
-        position: -webkit-sticky !important;
-        position: -webkit-sticky !important;
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 2000 !important;
-        /* Не растягиваем sticky-элемент по высоте flex-контейнера. */
+        position: relative;
+        z-index: 2;
         align-self: flex-start !important;
         flex: 0 0 auto;
         width: 100%;
@@ -1354,6 +1336,18 @@ body:has(.customer-order-page) {
         background: linear-gradient(110deg, #0b2530, #182033) !important;
         border-color: rgba(255, 215, 0, .9) !important;
         box-shadow: 0 8px 22px rgba(0, 0, 0, .65), 0 0 18px rgba(0, 229, 212, .2);
+    }
+
+    /* Закреплённая кнопка находится непосредственно в body, вне sidebar и backdrop-filter. */
+    .customer-order-section-choice.is-scroll-pinned {
+        position: fixed !important;
+        top: env(safe-area-inset-top, 0px) !important;
+        left: var(--customer-pinned-left, 0px) !important;
+        width: var(--customer-pinned-width, 100%) !important;
+        z-index: 10000 !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        border-radius: 0 0 10px 10px !important;
     }
 
     .customer-order-products-heading {
