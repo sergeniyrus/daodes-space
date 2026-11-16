@@ -228,6 +228,7 @@
     // Состояние закрепления одно на всю страницу. Обработчики прокрутки регистрируются
     // один раз, а не при каждом нажатии на кнопку категории.
     let pinnedCategory = null;
+    let lastPinnedScrollY = window.scrollY;
 
     function releasePinnedCategory() {
         if (!pinnedCategory) return;
@@ -272,6 +273,7 @@
 
         button.parentNode.insertBefore(placeholder, button);
         pinnedCategory = { button, group, placeholder };
+        lastPinnedScrollY = window.scrollY;
 
         // Кнопка вынесена из всех контейнеров прокрутки и эффектов предков.
         document.body.appendChild(button);
@@ -285,6 +287,10 @@
     }
 
     function updatePinnedCategory() {
+        const currentScrollY = window.scrollY;
+        const isScrollingUp = currentScrollY < lastPinnedScrollY - 0.5;
+        lastPinnedScrollY = currentScrollY;
+
         if (!mobileLayout.matches) {
             releasePinnedCategory();
             return;
@@ -306,6 +312,15 @@
 
         if (pinnedCategory?.button === activeButton && pinnedCategory.placeholder) {
             const placeholderRect = pinnedCategory.placeholder.getBoundingClientRect();
+
+            // При прокрутке обратно вверх возвращаем кнопку в её исходное
+            // место, как только это место снова появляется в окне просмотра.
+            // Ниже исходной позиции кнопка остаётся закреплённой.
+            if (isScrollingUp && placeholderRect.top > 1) {
+                releasePinnedCategory();
+                return;
+            }
+
             activeButton.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
             activeButton.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
             return;
