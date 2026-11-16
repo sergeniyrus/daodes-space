@@ -223,6 +223,7 @@
         if (!pinnedCategory) return;
 
         const { button, placeholder } = pinnedCategory;
+        const shouldRestoreFocus = document.activeElement === button;
         button.classList.remove('is-scroll-pinned');
         button.style.removeProperty('--customer-pinned-left');
         button.style.removeProperty('--customer-pinned-width');
@@ -230,6 +231,7 @@
         if (placeholder?.parentNode) {
             placeholder.parentNode.insertBefore(button, placeholder.nextSibling);
             placeholder.remove();
+            if (shouldRestoreFocus) button.focus({ preventScroll: true });
         }
 
         pinnedCategory = null;
@@ -295,7 +297,12 @@
             document.body.appendChild(button);
         }
 
-        const placeholderRect = pinnedCategory.placeholder.getBoundingClientRect();
+        const placeholder = pinnedCategory.placeholder;
+        const groupWidth = group.getBoundingClientRect().width;
+        placeholder.style.width = groupWidth + 'px';
+        placeholder.style.height = buttonHeight + 'px';
+
+        const placeholderRect = placeholder.getBoundingClientRect();
         button.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
         button.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
         button.classList.add('is-scroll-pinned');
