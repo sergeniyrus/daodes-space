@@ -1324,6 +1324,20 @@ body:has(.customer-order-page) {
         box-sizing: border-box;
     }
 
+    .customer-order-section-group.is-expanded {
+        position: relative;
+    }
+
+    .customer-order-section-choice.is-scroll-pinned {
+        position: fixed !important;
+        top: 0 !important;
+        left: var(--customer-pinned-left, 0px) !important;
+        width: var(--customer-pinned-width, 100%) !important;
+        z-index: 10000 !important;
+        margin: 0 !important;
+        border-radius: 0 0 10px 10px !important;
+    }
+
     .customer-order-section-group.is-expanded > .customer-order-section-choice {
         position: -webkit-sticky !important;
         position: -webkit-sticky !important;
