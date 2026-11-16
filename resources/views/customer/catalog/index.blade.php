@@ -278,10 +278,21 @@
         });
     };
 
+    // На мобильных при обычном открытии меню все разделы свёрнуты.
+    // Если передан section (после добавления блюда), откроем именно его.
+    const requestedSection = new URLSearchParams(window.location.search).get('section');
+
+    if (mobileLayout.matches) {
+        document.querySelectorAll('[data-section-select]').forEach((button) => {
+            button.setAttribute('aria-expanded', 'false');
+        });
+        document.querySelectorAll('[data-section-panel]').forEach((panel) => {
+            panel.hidden = true;
+        });
+    }
+
     arrangeSectionPanels();
     arrangeCarouselPages();
-
-    const requestedSection = new URLSearchParams(window.location.search).get('section');
     if (requestedSection) {
         const requestedButton = document.querySelector('[data-section-select="' + requestedSection + '"]');
         if (requestedButton) {
