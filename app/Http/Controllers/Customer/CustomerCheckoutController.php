@@ -23,7 +23,7 @@ class CustomerCheckoutController extends Controller
     private const SESSION_KEY = 'customer_order_cart';
     private const MAX_MONEY_CENTS = 999999999999;
 
-    public function create(Request $request): View|RedirectResponse
+    public function create(Request $request, \\App\\Services\\CustomerCartService $cartService): View|RedirectResponse
     {
         $customer = Auth::guard('customer')->user();
 
@@ -42,7 +42,7 @@ class CustomerCheckoutController extends Controller
                 ->first();
 
             if ($existingOrder) {
-                session()->forget(self::SESSION_KEY);
+                $cartService->clearForOrganization($customer, (int) $existingOrder->organization_id);
                 session()->forget('customer_order_checkout_snapshots');
                 session()->forget('customer_order_checkout_snapshot');
 
@@ -52,7 +52,11 @@ class CustomerCheckoutController extends Controller
             }
         }
 
-        $cart = session(self::SESSION_KEY, []);
+        $sessionCart = session(self::SESSION_KEY, []);
+        $cart = $cartService->loadForOrganization(
+            $customer,
+            (int) ($sessionCart['organization_id'] ?? 0) ?: null
+        );
         $organizationId = (int) ($cart['organization_id'] ?? 0);
         $quantities = $cart['items'] ?? [];
 
@@ -209,7 +213,7 @@ class CustomerCheckoutController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, \\App\\Services\\CustomerCartService $cartService): RedirectResponse
     {
         /** @var Customer|null $customer */
         $customer = Auth::guard('customer')->user();
@@ -232,7 +236,7 @@ class CustomerCheckoutController extends Controller
             ->first();
 
         if ($existingOrder) {
-            session()->forget(self::SESSION_KEY);
+            $cartService->clearForOrganization($customer, (int) $existingOrder->organization_id);
             session()->forget('customer_order_checkout_snapshots');
             session()->forget('customer_order_checkout_snapshot');
 
@@ -723,7 +727,7 @@ class CustomerCheckoutController extends Controller
             return $order;
         }, 3);
 
-        session()->forget(self::SESSION_KEY);
+        $cartService->clearForOrganization($customer, (int) $organizationId);
         session()->forget('customer_order_checkout_snapshots');
         session()->forget('customer_order_checkout_snapshot');
 
