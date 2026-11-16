@@ -1455,6 +1455,41 @@ body:has(.customer-order-page) {
 }
 
 
+/* Mobile catalog: section menu and its pinned toggle must never exceed the phone viewport. */
+@media (max-width: 700px) {
+    .customer-workspace-catalog .customer-order-page,
+    .customer-workspace-catalog .customer-order-layout,
+    .customer-workspace-catalog .customer-order-sidebar,
+    .customer-workspace-catalog .customer-order-section-list,
+    .customer-workspace-catalog .customer-order-section-group,
+    .customer-workspace-catalog .customer-order-products-panel {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .customer-workspace-catalog .customer-order-page {
+        width: min(680px, calc(100vw - 16px)) !important;
+        max-width: calc(100vw - 16px) !important;
+    }
+
+    .customer-workspace-catalog .customer-order-section-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .customer-workspace-catalog .customer-order-section-group.is-expanded {
+        grid-column: 1 / -1;
+    }
+
+    .customer-workspace-catalog .customer-order-section-choice.is-scroll-pinned,
+    .customer-workspace-catalog .customer-order-section-choice.is-scroll-pinned[aria-expanded="true"] {
+        left: 8px !important;
+        width: min(680px, calc(100vw - 16px)) !important;
+        max-width: calc(100vw - 16px) !important;
+    }
+}
+
 /* Dish cards: text on the left, reserved photo frame on the right, controls below. */
 .customer-order-grid .customer-order-item {
     display: flex;
