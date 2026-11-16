@@ -1295,26 +1295,20 @@ body:has(.customer-order-page) {
     .customer-order-section-group.is-expanded {
         align-self: stretch;
         overflow: visible !important;
-        padding-top: 50px;
-        box-sizing: border-box;
     }
 
     .customer-order-section-group.is-expanded > .customer-order-section-choice {
-        position: fixed !important;
+        position: -webkit-sticky !important;
+        position: sticky !important;
         top: 0 !important;
-        left: 10px !important;
-        right: 10px !important;
         z-index: 2000 !important;
         align-self: flex-start;
         flex: 0 0 auto;
-        width: auto !important;
-        max-width: none !important;
+        width: 100%;
         box-sizing: border-box;
         background: linear-gradient(110deg, #0b2530, #182033) !important;
         border-color: rgba(255, 215, 0, .85);
         box-shadow: 0 8px 22px rgba(0, 0, 0, .55), 0 0 16px rgba(0, 229, 212, .14);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
     }
 
     .customer-order-products-heading {
