@@ -122,7 +122,7 @@ class CustomerAuthController extends Controller
         return back()->with('status', 'Код отправлен.')->withInput(['phone' => $phone]);
     }
 
-    public function verifyCode(Request $request, CustomerPhoneOtpService $otp): RedirectResponse
+    public function verifyCode(Request $request, CustomerPhoneOtpService $otp, CustomerCartService $cartService): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
             'phone' => ['required', 'string', 'max:32'],
@@ -147,6 +147,12 @@ class CustomerAuthController extends Controller
 
         Auth::guard('customer')->login($customer);
         $request->session()->regenerate();
+
+        $sessionCart = session(CustomerCartService::SESSION_KEY, []);
+        $cartService->loadForOrganization(
+            $customer,
+            (int) ($sessionCart['organization_id'] ?? 0) ?: null
+        );
 
         return redirect()->intended(route('customer.organizations.index'));
     }
