@@ -144,6 +144,15 @@
             const activePanel = document.querySelector('[data-section-panel="' + sectionId + '"]');
             const activeTrack = activePanel?.querySelector('[data-product-carousel]');
             if (shouldExpand && activeTrack) updateCarouselControls(activeTrack);
+
+            // На мобильном прокручиваем страницу к раскрытой категории.
+            // Кнопка остаётся в потоке документа и закрепляется через position: sticky.
+            if (shouldExpand && mobileLayout.matches) {
+                requestAnimationFrame(() => {
+                    const top = sectionButton.getBoundingClientRect().top + window.scrollY;
+                    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+                });
+            }
             return;
         }
 
