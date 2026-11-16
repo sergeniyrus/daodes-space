@@ -17,6 +17,7 @@ class OnlineOrdersSchemaTest extends TestCase
             'customer_organizations',
             'customer_phone_challenges',
             'customer_addresses',
+            'customer_carts',
             'orders',
             'order_items',
             'order_status_history',
@@ -93,6 +94,12 @@ class OnlineOrdersSchemaTest extends TestCase
             'phone',
             'phone_verified_at',
             'user_id',
+        ]));
+
+        $this->assertTrue(Schema::hasColumns('customer_carts', [
+            'customer_id',
+            'organization_id',
+            'items',
         ]));
 
         $this->assertTrue(Schema::hasColumns('customer_phone_challenges', [
