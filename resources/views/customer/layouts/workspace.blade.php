@@ -1455,9 +1455,18 @@ body:has(.customer-order-page) {
 }
 
 
-/* Mobile catalog: section menu and its pinned toggle must never exceed the phone viewport. */
+/* Mobile catalog: keep the menu centered with a fixed 16px gutter on both sides. */
 @media (max-width: 700px) {
-    .customer-workspace-catalog .customer-order-page,
+    .customer-workspace-catalog .customer-order-page {
+        width: min(680px, calc(100vw - 32px)) !important;
+        max-width: calc(100vw - 32px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        box-sizing: border-box !important;
+    }
+
     .customer-workspace-catalog .customer-order-layout,
     .customer-workspace-catalog .customer-order-sidebar,
     .customer-workspace-catalog .customer-order-section-list,
@@ -1466,12 +1475,9 @@ body:has(.customer-order-page) {
         width: 100% !important;
         min-width: 0 !important;
         max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
         box-sizing: border-box !important;
-    }
-
-    .customer-workspace-catalog .customer-order-page {
-        width: min(680px, calc(100vw - 16px)) !important;
-        max-width: calc(100vw - 16px) !important;
     }
 
     .customer-workspace-catalog .customer-order-section-list {
@@ -1482,11 +1488,14 @@ body:has(.customer-order-page) {
         grid-column: 1 / -1;
     }
 
+    /* Закреплённая кнопка выравнивается по центру с теми же отступами,
+       независимо от координат, сохранённых JavaScript при переносе в body. */
     .customer-workspace-catalog .customer-order-section-choice.is-scroll-pinned,
     .customer-workspace-catalog .customer-order-section-choice.is-scroll-pinned[aria-expanded="true"] {
-        left: 8px !important;
-        width: min(680px, calc(100vw - 16px)) !important;
-        max-width: calc(100vw - 16px) !important;
+        left: max(16px, calc((100vw - 680px) / 2)) !important;
+        width: min(680px, calc(100vw - 32px)) !important;
+        max-width: calc(100vw - 32px) !important;
+        box-sizing: border-box !important;
     }
 }
 
