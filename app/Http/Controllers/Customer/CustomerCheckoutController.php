@@ -9,6 +9,7 @@ use App\Models\MenuSection;
 use App\Models\Order;
 use App\Models\Organization;
 use App\Models\OrganizationOrderSetting;
+use App\Services\CustomerCartService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,7 @@ class CustomerCheckoutController extends Controller
     private const SESSION_KEY = 'customer_order_cart';
     private const MAX_MONEY_CENTS = 999999999999;
 
-    public function create(Request $request, \\App\\Services\\CustomerCartService $cartService): View|RedirectResponse
+    public function create(Request $request, CustomerCartService $cartService): View|RedirectResponse
     {
         $customer = Auth::guard('customer')->user();
 
@@ -213,7 +214,7 @@ class CustomerCheckoutController extends Controller
         ]);
     }
 
-    public function store(Request $request, \\App\\Services\\CustomerCartService $cartService): RedirectResponse
+    public function store(Request $request, CustomerCartService $cartService): RedirectResponse
     {
         /** @var Customer|null $customer */
         $customer = Auth::guard('customer')->user();
