@@ -140,20 +140,77 @@
             document.querySelectorAll('[data-section-panel]').forEach((panel) => {
                 panel.hidden = !shouldExpand || panel.dataset.sectionPanel !== sectionId;
             });
+    // На мобильных закрепляем именно выбранную кнопку после достижения верхнего края.
+    // Placeholder сохраняет её исходное место в потоке, пока сама кнопка временно fixed.
+    let pinnedCategory = null;
+
+    function releasePinnedCategory() {
+        if (!pinnedCategory) return;
+        const { button, placeholder } = pinnedCategory;
+        button.classList.remove('is-scroll-pinned');
+        button.style.removeProperty('--customer-pinned-left');
+        button.style.removeProperty('--customer-pinned-width');
+        placeholder?.remove();
+        pinnedCategory = null;
+    }
+
+    function updatePinnedCategory() {
+        if (!mobileLayout.matches) {
+            releasePinnedCategory();
+            return;
+        }
+
+        const activeButton = document.querySelector('[data-section-select][aria-expanded="true"]');
+        const activeGroup = activeButton?.closest('[data-section-group]');
+        if (!activeButton || !activeGroup || !activeGroup.classList.contains('is-expanded')) {
+            releasePinnedCategory();
+            return;
+        }
+
+        if (pinnedCategory?.button !== activeButton) releasePinnedCategory();
+
+        if (!pinnedCategory) {
+            const placeholder = document.createElement('span');
+            placeholder.setAttribute('aria-hidden', 'true');
+            placeholder.className = 'customer-order-section-pin-placeholder';
+            placeholder.style.display = 'block';
+            placeholder.style.height = activeButton.offsetHeight + 'px';
+            placeholder.style.visibility = 'hidden';
+            activeButton.parentNode.insertBefore(placeholder, activeButton);
+            pinnedCategory = { button: activeButton, group: activeGroup, placeholder };
+        }
+
+        const { button, group, placeholder } = pinnedCategory;
+        const groupRect = group.getBoundingClientRect();
+        const placeholderRect = placeholder.getBoundingClientRect();
+        const buttonHeight = button.offsetHeight;
+
+        // Закрепляем на время прокрутки содержимого выбранного раздела.
+        if (groupRect.top <= 0 && groupRect.bottom > buttonHeight) {
+            button.style.setProperty('--customer-pinned-left', placeholderRect.left + 'px');
+            button.style.setProperty('--customer-pinned-width', placeholderRect.width + 'px');
+            button.classList.add('is-scroll-pinned');
+        } else {
+            button.classList.remove('is-scroll-pinned');
+            button.style.removeProperty('--customer-pinned-left');
+            button.style.removeProperty('--customer-pinned-width');
+        }
+    }
+
+    window.addEventListener('scroll', updatePinnedCategory, { passive: true });
+    window.addEventListener('resize', updatePinnedCategory);
+
             const activePanel = document.querySelector('[data-section-panel="' + sectionId + '"]');
             const activeTrack = activePanel?.querySelector('[data-product-carousel]');
             if (shouldExpand && activeTrack) updateCarouselControls(activeTrack);
 
-            // После раскрытия прокручиваем страницу к фактическому месту кнопки.
-            // Кнопка остаётся в обычном потоке и закрепляется только когда доходит до верха.
+            releasePinnedCategory();
             if (shouldExpand && mobileLayout.matches) {
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
                         const buttonTop = sectionButton.getBoundingClientRect().top + window.scrollY;
-                        window.scrollTo({
-                            top: Math.max(0, buttonTop),
-                            behavior: 'smooth'
-                        });
+                        window.scrollTo({ top: Math.max(0, buttonTop), behavior: 'smooth' });
+                        updatePinnedCategory();
                     });
                 });
             }
