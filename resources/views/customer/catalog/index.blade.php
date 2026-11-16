@@ -132,9 +132,6 @@
             const sectionId = sectionButton.dataset.sectionSelect;
             const isExpanded = sectionButton.getAttribute('aria-expanded') === 'true';
             const shouldExpand = !isExpanded;
-            // Считываем исходное положение до применения fixed-кнопки.
-            const sectionDocumentTop = sectionButton.getBoundingClientRect().top + window.scrollY;
-
             document.querySelectorAll('[data-section-select]').forEach((button) => {
                 const isActive = button === sectionButton && shouldExpand;
                 button.setAttribute('aria-expanded', isActive ? 'true' : 'false');
@@ -147,12 +144,17 @@
             const activeTrack = activePanel?.querySelector('[data-product-carousel]');
             if (shouldExpand && activeTrack) updateCarouselControls(activeTrack);
 
-            // При раскрытии прокручиваем страницу к естественному месту категории.
-            // Исходное место кнопки сохраняется отступом у группы, а кнопка остаётся доступна сверху.
+            // После раскрытия прокручиваем страницу к фактическому месту кнопки.
+            // Кнопка остаётся в обычном потоке и закрепляется только когда доходит до верха.
             if (shouldExpand && mobileLayout.matches) {
                 requestAnimationFrame(() => {
-                    const top = sectionDocumentTop - 8;
-                    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+                    requestAnimationFrame(() => {
+                        const buttonTop = sectionButton.getBoundingClientRect().top + window.scrollY;
+                        window.scrollTo({
+                            top: Math.max(0, buttonTop),
+                            behavior: 'smooth'
+                        });
+                    });
                 });
             }
             return;
