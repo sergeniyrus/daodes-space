@@ -34,6 +34,42 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->createLegacyOrganizationSchema();
     }
 
+    public function test_customer_cart_is_restored_from_database_in_a_new_session(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $this->actingAs($customer, 'customer')
+            ->withSession([
+                'customer_order_cart' => [
+                    'organization_id' => $organization->id,
+                    'items' => [$item->id => 2],
+                ],
+            ])
+            ->get(route('customer.cart'))
+            ->assertOk()
+            ->assertViewHas('lines', function ($lines) use ($item) {
+                return $lines->first()['item_id'] === $item->id
+                    && $lines->first()['quantity'] === 2;
+            });
+
+        $this->assertDatabaseHas('customer_carts', [
+            'customer_id' => $customer->id,
+            'organization_id' => $organization->id,
+        ]);
+
+        // Имитируем вход того же клиента с другого устройства без сессионной корзины.
+        $this->flushSession();
+
+        $this->actingAs($customer, 'customer')
+            ->get(route('customer.cart'))
+            ->assertOk()
+            ->assertViewHas('lines', function ($lines) use ($item) {
+                return $lines->first()['item_id'] === $item->id
+                    && $lines->first()['quantity'] === 2;
+            });
+    }
+
     public function test_verified_customer_can_create_delivery_order_with_server_calculated_totals_and_snapshots(): void
     {
         $customer = $this->createVerifiedCustomer();
