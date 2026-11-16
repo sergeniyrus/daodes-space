@@ -1367,14 +1367,18 @@ body:has(.customer-order-page) {
         transform: none;
         width: min(680px, calc(100vw - 16px));
         max-width: calc(100vw - 16px);
+        height: auto !important;
         min-height: 100vh;
         min-height: 100dvh;
+        max-height: none !important;
         margin: 0 auto;
         padding: 12px 0;
         box-sizing: border-box;
         display: flex;
+        flex: 0 0 auto;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
+        overflow: visible !important;
     }
 
     .customer-order-header,
