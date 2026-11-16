@@ -1339,15 +1339,47 @@ body:has(.customer-order-page) {
     }
 
     /* Закреплённая кнопка находится непосредственно в body, вне sidebar и backdrop-filter. */
-    .customer-order-section-choice.is-scroll-pinned {
+    .customer-order-section-choice.is-scroll-pinned,
+    .customer-order-section-choice.is-scroll-pinned[aria-expanded="true"] {
         position: fixed !important;
         top: env(safe-area-inset-top, 0px) !important;
         left: var(--customer-pinned-left, 0px) !important;
         width: var(--customer-pinned-width, 100%) !important;
-        z-index: 10000 !important;
+        min-height: 48px !important;
+        z-index: 2147483000 !important;
+        display: flex !important;
+        align-items: center !important;
         margin: 0 !important;
+        padding: 10px 14px !important;
         box-sizing: border-box !important;
-        border-radius: 0 0 10px 10px !important;
+        color: #ffe36b !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        background: linear-gradient(110deg, #071923 0%, #0d2b38 52%, #172238 100%) !important;
+        background-color: #0d2431 !important;
+        border: 1px solid rgba(255, 215, 0, .95) !important;
+        border-left: 4px solid #00e5d4 !important;
+        border-radius: 0 0 12px 12px !important;
+        box-shadow: 0 9px 28px rgba(0, 0, 0, .88), 0 0 0 1px rgba(0, 229, 212, .3), 0 0 22px rgba(0, 229, 212, .28) !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, .9) !important;
+        transform: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    .customer-order-section-choice.is-scroll-pinned .customer-order-section-choice-name,
+    .customer-order-section-choice.is-scroll-pinned .customer-order-section-choice-meta,
+    .customer-order-section-choice.is-scroll-pinned .customer-order-section-choice-arrow {
+        color: #ffe36b !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+
+    .customer-order-section-choice.is-scroll-pinned .customer-order-section-choice-count {
+        color: #c9fff8 !important;
+        background: #123c46 !important;
+        border-color: rgba(0, 229, 212, .7) !important;
     }
 
     .customer-order-products-heading {
