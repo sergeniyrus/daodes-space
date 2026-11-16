@@ -262,14 +262,14 @@
         }
 
         const { button, group } = pinnedCategory;
-        const groupRect = group.getBoundingClientRect();
+        const buttonRectBeforePin = button.getBoundingClientRect();
         const buttonHeight = button.offsetHeight;
 
-        // После первого закрепления не отпускаем кнопку при прокрутке к концу
-        // длинного списка или обратно вверх. Снять закрепление может только
-        // закрытие/переключение раздела либо выход из мобильного режима.
+        // Закрепляем именно в момент, когда сама кнопка доходит до верхней
+        // границы экрана. После закрепления не отпускаем её при дальнейшей
+        // прокрутке вниз или вверх — только до закрытия/смены раздела.
         const isAlreadyPinned = Boolean(pinnedCategory.placeholder);
-        const shouldPin = isAlreadyPinned || groupRect.top <= 0;
+        const shouldPin = isAlreadyPinned || buttonRectBeforePin.top <= 1;
 
         if (!shouldPin) {
             if (pinnedCategory.placeholder) {
@@ -313,10 +313,19 @@
         button.classList.add('is-scroll-pinned');
     }
 
-    window.addEventListener('scroll', updatePinnedCategory, { passive: true });
-    // Capture также ловит прокрутку внутренних контейнеров, если браузер использует их.
-    document.addEventListener('scroll', updatePinnedCategory, { passive: true, capture: true });
-    window.addEventListener('resize', updatePinnedCategory);
+    let pinnedUpdateFrame = 0;
+    const schedulePinnedCategoryUpdate = () => {
+        if (pinnedUpdateFrame) return;
+        pinnedUpdateFrame = requestAnimationFrame(() => {
+            pinnedUpdateFrame = 0;
+            updatePinnedCategory();
+        });
+    };
+
+    // Отслеживаем и прокрутку страницы, и вложенных прокручиваемых областей.
+    window.addEventListener('scroll', schedulePinnedCategoryUpdate, { passive: true });
+    document.addEventListener('scroll', schedulePinnedCategoryUpdate, { passive: true, capture: true });
+    window.addEventListener('resize', schedulePinnedCategoryUpdate);
 
     // On desktop each carousel page contains exactly eight dishes.
     // On mobile the page wrappers are removed so every dish remains in normal page flow.
