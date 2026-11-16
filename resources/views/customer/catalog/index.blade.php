@@ -135,6 +135,7 @@
             document.querySelectorAll('[data-section-select]').forEach((button) => {
                 const isActive = button === sectionButton && shouldExpand;
                 button.setAttribute('aria-expanded', isActive ? 'true' : 'false');
+                button.classList.toggle('is-sticky', isActive);
                 button.closest('[data-section-group]')?.classList.toggle('is-expanded', isActive);
             });
             document.querySelectorAll('[data-section-panel]').forEach((panel) => {
