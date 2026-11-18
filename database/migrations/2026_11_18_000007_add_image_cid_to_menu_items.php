@@ -17,10 +17,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (Schema::hasTable('menu_items') && Schema::hasColumn('menu_items', 'image_cid')) {
-            Schema::table('menu_items', function (Blueprint $table) {
-                $table->dropColumn('image_cid');
-            });
-        }
+        // Не удаляем существующие таблицы, столбцы и данные при откате.
     }
 };
