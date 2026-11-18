@@ -119,6 +119,16 @@ class OrganizationTVController extends Controller
             return $currentCount + 1;
         });
 
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'tv_screen.created',
+            'Создан TV-экран ' . $newCount,
+            ['screens_count' => $newCount - 1],
+            ['screens_count' => $newCount],
+            'tv_screen',
+            $newCount
+        );
+
         return redirect()
             ->route('organizations.manage', $organization)
             ->with('success', 'TV-экран ' . $newCount . ' создан.');
@@ -135,7 +145,7 @@ class OrganizationTVController extends Controller
             'rotation_seconds' => ['required', 'integer', 'min:0', 'max:3600'],
         ]);
 
-        DB::transaction(function () use ($organization, $screen, $validated) {
+        $beforeConfig = DB::transaction(function () use ($organization, $screen, $validated) {
             $lockedOrganization = Organization::query()
                 ->whereKey($organization->id)
                 ->lockForUpdate()
@@ -145,6 +155,7 @@ class OrganizationTVController extends Controller
             abort_unless($screen >= 1 && $screen <= $screenCount, 404);
 
             $screenConfigs = $lockedOrganization->tv_screens_config ?? [];
+            $beforeConfig = $screenConfigs[$screen] ?? [];
             $screenConfigs[$screen] = [
                 'name' => trim($validated['screen_name']),
                 'background_fit' => $validated['background_fit'],
@@ -153,7 +164,23 @@ class OrganizationTVController extends Controller
 
             $lockedOrganization->tv_screens_config = $screenConfigs;
             $lockedOrganization->save();
+
+            return $beforeConfig;
         });
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'tv_screen.settings_updated',
+            'Обновлены настройки TV-экрана ' . $screen,
+            $beforeConfig,
+            [
+                'name' => trim($validated['screen_name']),
+                'background_fit' => $validated['background_fit'],
+                'rotation_seconds' => (int) $validated['rotation_seconds'],
+            ],
+            'tv_screen',
+            $screen
+        );
 
         return redirect()
             ->route('organizations.manage', $organization)
@@ -173,6 +200,7 @@ class OrganizationTVController extends Controller
         $directory = public_path('images/org/' . $organization->id . '/tv-backgrounds');
         $backupDirectory = $directory . '/.tv-delete-' . (string) Str::uuid();
         $deleteResult = 'stale';
+        $deletedScreenConfig = [];
         $originalsCleared = false;
 
         try {
@@ -182,7 +210,8 @@ class OrganizationTVController extends Controller
                 $expectedCount,
                 $directory,
                 $backupDirectory,
-                &$originalsCleared
+                &$originalsCleared,
+                &$deletedScreenConfig
             ) {
                 // Количество экранов читаем только после блокировки строки организации.
                 $lockedOrganization = Organization::query()
@@ -254,6 +283,7 @@ class OrganizationTVController extends Controller
                     ->decrement('tv_screen');
 
                 $screenConfigs = $lockedOrganization->tv_screens_config ?? [];
+                $deletedScreenConfig = $screenConfigs[$screen] ?? [];
                 unset($screenConfigs[$screen]);
 
                 $renumberedConfigs = [];
@@ -326,6 +356,16 @@ class OrganizationTVController extends Controller
                 ->route('organizations.manage', $organization)
                 ->with('error', 'Нельзя удалить последний TV-экран.');
         }
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'tv_screen.deleted',
+            'Удалён TV-экран ' . $screen,
+            $deletedScreenConfig,
+            ['screens_count' => $expectedCount - 1],
+            'tv_screen',
+            $screen
+        );
 
         if (File::isDirectory($backupDirectory)) {
             File::deleteDirectory($backupDirectory);
@@ -458,6 +498,16 @@ class OrganizationTVController extends Controller
             File::deleteDirectory($backupDirectory);
         }
 
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'tv_background.updated',
+            'Обновлён фон TV-экрана ' . $screen,
+            [],
+            ['extension' => $extension],
+            'tv_background',
+            $screen
+        );
+
         return redirect()
             ->route('organizations.manage', $organization)
             ->with('success', 'Фон TV-экрана ' . $screen . ' успешно обновлён.');
@@ -492,6 +542,16 @@ class OrganizationTVController extends Controller
                 }
             }
         });
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'tv_background.deleted',
+            'Удалён фон TV-экрана ' . $screen,
+            [],
+            [],
+            'tv_background',
+            $screen
+        );
 
         return redirect()
             ->route('organizations.manage', $organization)
