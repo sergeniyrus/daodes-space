@@ -15,6 +15,7 @@ class MenuSection extends Model
         'organization_id',
         'name',
         'sort_order',
+        'tv_screen',
         'is_active',
         'delivery_enabled',
         'pickup_enabled',
