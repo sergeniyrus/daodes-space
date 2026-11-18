@@ -111,13 +111,15 @@ class OrganizationTVController extends Controller
         $directory = public_path('images/org/' . $organization->id . '/tv-backgrounds');
         $backupDirectory = $directory . '/.tv-delete-' . (string) Str::uuid();
         $deletedScreen = false;
+        $originalsCleared = false;
 
         try {
             $deletedScreen = DB::transaction(function () use (
                 $organization,
                 $screen,
                 $directory,
-                $backupDirectory
+                $backupDirectory,
+                &$originalsCleared
             ) {
                 // Количество экранов читаем только после блокировки строки организации.
                 $lockedOrganization = Organization::query()
@@ -142,7 +144,20 @@ class OrganizationTVController extends Controller
                         $source = $directory . '/tv' . $oldScreen . '.' . $extension;
 
                         if (is_file($source)) {
-                            File::move($source, $backupDirectory . '/tv' . $oldScreen . '.' . $extension);
+                            File::copy($source, $backupDirectory . '/tv' . $oldScreen . '.' . $extension);
+                        }
+                    }
+                }
+
+                // Оригиналы удаляем только после успешного резервного копирования всех файлов.
+                $originalsCleared = true;
+
+                foreach (range($screen, $lockedCount) as $oldScreen) {
+                    foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
+                        $original = $directory . '/tv' . $oldScreen . '.' . $extension;
+
+                        if (is_file($original)) {
+                            File::delete($original);
                         }
                     }
                 }
@@ -174,24 +189,25 @@ class OrganizationTVController extends Controller
         } catch (\Throwable $exception) {
             // Компенсируем файловые операции, если БД не смогла зафиксировать изменения.
             if (File::isDirectory($backupDirectory)) {
-                // Удаляем возможные частично созданные файлы со сдвинутыми номерами.
-                foreach (range($screen, 20) as $oldScreen) {
-                    foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
-                        $current = $directory . '/tv' . $oldScreen . '.' . $extension;
+                if ($originalsCleared) {
+                    // Удаляем частично созданные файлы и возвращаем исходные.
+                    foreach (range($screen, 20) as $oldScreen) {
+                        foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
+                            $current = $directory . '/tv' . $oldScreen . '.' . $extension;
 
-                        if (is_file($current)) {
-                            File::delete($current);
+                            if (is_file($current)) {
+                                File::delete($current);
+                            }
                         }
                     }
-                }
 
-                // Возвращаем исходные файлы на прежние номера.
-                foreach (range($screen, 20) as $oldScreen) {
-                    foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
-                        $backup = $backupDirectory . '/tv' . $oldScreen . '.' . $extension;
+                    foreach (range($screen, 20) as $oldScreen) {
+                        foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
+                            $backup = $backupDirectory . '/tv' . $oldScreen . '.' . $extension;
 
-                        if (is_file($backup)) {
-                            File::move($backup, $directory . '/tv' . $oldScreen . '.' . $extension);
+                            if (is_file($backup)) {
+                                File::move($backup, $directory . '/tv' . $oldScreen . '.' . $extension);
+                            }
                         }
                     }
                 }
