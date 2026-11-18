@@ -1922,6 +1922,69 @@ body.customer-menu-image-open { overflow: hidden !important; }
     .customer-order-item-image-button { width: 88px; margin: 0 auto 10px; }
 }
 
+
+/* Desktop: описание блюда раскрывается по кнопке «Состав». */
+@media (min-width: 701px) {
+    .customer-order-item-description-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 8px;
+        padding: 5px 10px;
+        color: #00e5d4;
+        background: rgba(0, 229, 212, .07);
+        border: 1px solid rgba(0, 229, 212, .42);
+        border-radius: 16px;
+        font-size: .78rem;
+        font-weight: 750;
+        cursor: pointer;
+        transition: .18s ease;
+    }
+    .customer-order-item-description-toggle:hover,
+    .customer-order-item-description-toggle[aria-expanded="true"] {
+        color: #ffd700;
+        border-color: rgba(255, 215, 0, .65);
+        background: rgba(255, 215, 0, .07);
+    }
+    .customer-order-item-description-toggle svg {
+        width: 14px;
+        height: 14px;
+        flex: 0 0 14px;
+    }
+    .customer-order-item-description {
+        display: none;
+        padding: 8px 10px;
+        background: rgba(0, 229, 212, .045);
+        border-left: 2px solid rgba(0, 229, 212, .55);
+        border-radius: 0 8px 8px 0;
+    }
+    .customer-order-item-description.is-description-open {
+        display: block;
+    }
+}
+@media (max-width: 700px) {
+    .customer-order-item-description-toggle {
+        display: none !important;
+    }
+    .customer-order-item-description {
+        display: block !important;
+    }
+    .customer-order-grid .customer-order-item-image-button {
+        width: 94%;
+        max-width: 420px;
+        aspect-ratio: 16 / 10;
+        margin: 0 auto;
+    }
+}
+@media (max-width: 420px) {
+    .customer-order-grid .customer-order-item-image-button {
+        width: 94%;
+        max-width: 420px;
+        aspect-ratio: 16 / 10;
+        margin: 0 auto;
+    }
+}
+
 </style>
 
 {{-- Каталог уже получает эти данные от контроллера. Используем их как fallback,
