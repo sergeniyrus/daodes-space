@@ -1217,9 +1217,9 @@
                             <label class="menu-section-setting">
                                 <span>TV экран</span>
                                 <select name="tv_screen" class="menu-section-select" aria-label="TV экран">
-                                    <option value="1" {{ (int) $section->tv_screen === 1 ? 'selected' : '' }}>TV 1</option>
-                                    <option value="2" {{ (int) $section->tv_screen === 2 ? 'selected' : '' }}>TV 2</option>
-                                    <option value="3" {{ (int) $section->tv_screen === 3 ? 'selected' : '' }}>TV 3</option>
+                                    @foreach($tvScreens as $screen)
+                                        <option value="{{ $screen }}" {{ (int) $section->tv_screen === (int) $screen ? 'selected' : '' }}>TV {{ $screen }}</option>
+                                    @endforeach
                                 </select>
                             </label>
 
