@@ -2239,7 +2239,7 @@
                     @method('PATCH')
 
                     <label for="tv-screen-name-{{ $screen }}">Название экрана</label>
-                    <input id="tv-screen-name-{{ $screen }}" type="text" name="name" maxlength="60" value="{{ $tvScreenName }}" required>
+                    <input id="tv-screen-name-{{ $screen }}" type="text" name="screen_name" maxlength="60" value="{{ $tvScreenName }}" required>
 
                     <label for="tv-background-fit-{{ $screen }}">Отображение фона</label>
                     <select id="tv-background-fit-{{ $screen }}" name="background_fit">
@@ -2250,7 +2250,7 @@
 
                     <label for="tv-rotation-{{ $screen }}">Автопереключение экранов, секунд</label>
                     <input id="tv-rotation-{{ $screen }}" type="number" name="rotation_seconds" min="0" max="3600" value="{{ (int) ($tvScreenConfig['rotation_seconds'] ?? 0) }}">
-                    <small>0 — выключено. Если включено, экран будет переключаться по кругу между экранами организации.</small>
+                    <small>0 — выключено для этого экрана. Для непрерывного переключения задайте интервал на каждом экране.</small>
 
                     <button type="submit" class="organization-button">Сохранить настройки экрана</button>
                 </form>
@@ -2326,7 +2326,9 @@ document.addEventListener('DOMContentLoaded', function () {
  }
  tabs.forEach(tab=>tab.addEventListener('click',()=>activateTab(tab.dataset.tab)));
  let initialTab='overview';try{initialTab=sessionStorage.getItem(storageKey)||'overview';}catch(error){}
- @if($errors->has('currency') || $errors->has('delivery_fee') || $errors->has('minimum_order') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled'))
+ @if($errors->has('screen_name') || $errors->has('background_fit') || $errors->has('rotation_seconds'))
+ initialTab='tv';
+ @elseif($errors->has('currency') || $errors->has('delivery_fee') || $errors->has('minimum_order') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled'))
  initialTab='settings';
  @elseif($errors->has('name') || $errors->has('phone') || $errors->has('role') || $errors->has('user_id'))
  initialTab='team';
