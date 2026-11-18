@@ -55,7 +55,9 @@
                                         <h3 class="customer-order-item-title">{{ $item->name }}</h3>
 
                                         <div class="customer-order-item-main">
-                                            <div class="customer-order-item-image-placeholder" aria-label="Место для фотографии блюда"></div>
+                                            <button type="button" class="customer-order-item-image-button" data-menu-image-open data-image-src="{{ $item->image_path ? asset($item->image_path) : asset('images/org/' . $organization->id . '/not-img.png') }}" aria-label="Увеличить фотографию: {{ $item->name }}">
+                                                <img src="{{ $item->image_path ? asset($item->image_path) : asset('images/org/' . $organization->id . '/not-img.png') }}" alt="{{ $item->name }}" loading="lazy" onerror="this.onerror=null;this.src='{{ asset('images/not-img.png') }}';">
+                                            </button>
 
                                             <div class="customer-order-item-content">
                                                 @if($item->description)
@@ -113,6 +115,11 @@
         <div class="customer-order-panel customer-order-muted">Меню пока пустое.</div>
     @endif
 
+
+<div class="customer-menu-image-viewer" id="customer-menu-image-viewer" hidden aria-hidden="true">
+    <button type="button" class="customer-menu-image-viewer-close" data-menu-image-close aria-label="Закрыть">×</button>
+    <img src="" alt="" id="customer-menu-image-viewer-img">
+</div>
 <script>
 (() => {
     document.addEventListener('click', (event) => {
@@ -513,6 +520,35 @@
 
     // Resize мобильной адресной строки не снимает закрепление.
     window.addEventListener('resize', handleLayoutChange);
+
+    const imageViewer = document.getElementById('customer-menu-image-viewer');
+    const imageViewerImage = document.getElementById('customer-menu-image-viewer-img');
+    const closeImageViewer = () => {
+        if (!imageViewer) return;
+        imageViewer.hidden = true;
+        imageViewer.setAttribute('aria-hidden', 'true');
+        imageViewerImage.src = '';
+        document.body.classList.remove('customer-menu-image-open');
+    };
+    document.addEventListener('click', (event) => {
+        const imageButton = event.target.closest('[data-menu-image-open]');
+        if (imageButton && imageViewer && imageViewerImage) {
+            event.preventDefault();
+            imageViewerImage.src = imageButton.dataset.imageSrc;
+            imageViewerImage.alt = imageButton.querySelector('img')?.alt || '';
+            imageViewer.hidden = false;
+            imageViewer.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('customer-menu-image-open');
+            return;
+        }
+        if (event.target.closest('[data-menu-image-close]') || event.target === imageViewer) {
+            closeImageViewer();
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && imageViewer && !imageViewer.hidden) closeImageViewer();
+    });
+
 })();
 </script>
 @endsection
