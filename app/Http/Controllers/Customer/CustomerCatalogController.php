@@ -57,6 +57,10 @@ class CustomerCatalogController extends Controller
             $cartItems = MenuItem::query()
                 ->whereIn('id', array_map('intval', array_keys($quantities)))
                 ->where('is_active', true)
+                ->where(function ($query) {
+                    $query->where('delivery_enabled', true)
+                        ->orWhere('pickup_enabled', true);
+                })
                 ->whereHas('section', function ($query) use ($organization) {
                     $query->where('organization_id', $organization->id)
                         ->where('is_active', true);
