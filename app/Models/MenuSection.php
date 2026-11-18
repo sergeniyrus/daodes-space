@@ -59,22 +59,16 @@ class MenuSection extends Model
             MenuItem::class
         )
             ->where('is_active', true)
-            ->where(function ($query) {
-                if ($this->delivery_enabled) {
-                    $query->where('delivery_enabled', true);
-                }
-
-                if ($this->pickup_enabled) {
-                    if ($this->delivery_enabled) {
-                        $query->orWhere('pickup_enabled', true);
-                    } else {
-                        $query->where('pickup_enabled', true);
-                    }
-                }
-
-                if (!$this->delivery_enabled && !$this->pickup_enabled) {
-                    $query->whereRaw('1 = 0');
-                }
+            ->whereHas('section', function ($sectionQuery) {
+                $sectionQuery->where(function ($availabilityQuery) {
+                    $availabilityQuery->where(function ($methodQuery) {
+                        $methodQuery->where('menu_sections.delivery_enabled', true)
+                            ->where('menu_items.delivery_enabled', true);
+                    })->orWhere(function ($methodQuery) {
+                        $methodQuery->where('menu_sections.pickup_enabled', true)
+                            ->where('menu_items.pickup_enabled', true);
+                    });
+                });
             })
             ->orderBy(
                 'sort_order'
