@@ -131,11 +131,13 @@ class CustomerCartController extends Controller
             ->whereHas('section', function ($query) use ($organization) {
                 $query->where('organization_id', $organization->id)
                     ->where('is_active', true)
-                    ->where(function ($sectionQuery) {
-                        $sectionQuery->where(function ($methodQuery) {
-                            $methodQuery->where('delivery_enabled', true);
+                    ->where(function ($availabilityQuery) {
+                        $availabilityQuery->where(function ($methodQuery) {
+                            $methodQuery->where('menu_sections.delivery_enabled', true)
+                                ->where('menu_items.delivery_enabled', true);
                         })->orWhere(function ($methodQuery) {
-                            $methodQuery->where('pickup_enabled', true);
+                            $methodQuery->where('menu_sections.pickup_enabled', true)
+                                ->where('menu_items.pickup_enabled', true);
                         });
                     });
             })
