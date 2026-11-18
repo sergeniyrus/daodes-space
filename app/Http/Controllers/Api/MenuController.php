@@ -44,6 +44,7 @@ class MenuController extends Controller
                                     'unit' => $item->unit,
                                     'price' => $item->price,
                                     'description' => $item->description,
+                                    'image_url' => $item->image_url,
                                     'sort_order' => $item->sort_order,
                                 ];
                             }
