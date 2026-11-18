@@ -308,6 +308,50 @@
     margin: 0;
 }
 
+.menu-section-settings-form {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 9px;
+    padding: 10px;
+    background: rgba(0, 229, 255, .045);
+    border: 1px solid rgba(0, 229, 255, .2);
+    border-radius: 12px;
+}
+
+.menu-section-setting {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: #aaa;
+    font-size: .75rem;
+}
+
+.menu-section-select {
+    min-height: 38px;
+    padding: 4px 9px;
+    color: #fff;
+    background: #171927;
+    border: 1px solid rgba(0, 229, 255, .55);
+    border-radius: 9px;
+}
+
+.menu-section-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 38px;
+    color: #ddd;
+    font-size: .82rem;
+    white-space: nowrap;
+}
+
+.menu-section-check input {
+    accent-color: #00e5ff;
+    width: 17px;
+    height: 17px;
+}
+
 .menu-sort-input {
     width: 64px;
     min-height: 38px;
@@ -572,14 +616,23 @@
         margin-left: 0;
     }
 
-    .menu-section.collapsed .menu-section-actions {
-        display: none;
+    .menu-section-actions {
+        display: flex;
+        margin-top: 12px;
+        justify-content: flex-start;
     }
 
-    .menu-section-actions {
-        margin-top: 12px;
+    .menu-section-settings-form {
+        align-items: stretch;
+        width: 100%;
+    }
 
-        justify-content: flex-start;
+    .menu-section-setting {
+        flex: 1 1 90px;
+    }
+
+    .menu-section-settings-form .menu-admin-button {
+        flex: 1 1 100%;
     }
 
     .menu-item {
@@ -748,25 +801,49 @@
                     <div class="menu-section-quick-actions" data-stop-propagation>
                         <form
                             method="POST"
-                            action="{{ route('organizations.menu.sections.sort', [
+                            action="{{ route('organizations.menu.sections.quick_settings', [
                                 'organization' => $organization,
                                 'section' => $section,
                             ]) }}"
-                            class="menu-quick-form"
+                            class="menu-section-settings-form"
                         >
                             @csrf
                             @method('PATCH')
-                            <label class="menu-item-badge" for="section-sort-{{ $section->id }}">№</label>
-                            <input
-                                id="section-sort-{{ $section->id }}"
-                                class="menu-sort-input"
-                                type="number"
-                                name="sort_order"
-                                min="0"
-                                value="{{ $section->sort_order }}"
-                                aria-label="Порядок раздела"
-                            >
-                            <button type="submit" class="menu-admin-button menu-quick-button">Сохранить</button>
+
+                            <label class="menu-section-setting">
+                                <span>Порядок</span>
+                                <input
+                                    class="menu-sort-input"
+                                    type="number"
+                                    name="sort_order"
+                                    min="0"
+                                    value="{{ $section->sort_order }}"
+                                    aria-label="Порядок раздела"
+                                >
+                            </label>
+
+                            <label class="menu-section-setting">
+                                <span>TV экран</span>
+                                <select name="tv_screen" class="menu-section-select" aria-label="TV экран">
+                                    <option value="1" {{ (int) $section->tv_screen === 1 ? 'selected' : '' }}>TV 1</option>
+                                    <option value="2" {{ (int) $section->tv_screen === 2 ? 'selected' : '' }}>TV 2</option>
+                                    <option value="3" {{ (int) $section->tv_screen === 3 ? 'selected' : '' }}>TV 3</option>
+                                </select>
+                            </label>
+
+                            <label class="menu-section-check">
+                                <input type="hidden" name="delivery_enabled" value="0">
+                                <input type="checkbox" name="delivery_enabled" value="1" {{ $section->delivery_enabled ? 'checked' : '' }}>
+                                <span>Доставка</span>
+                            </label>
+
+                            <label class="menu-section-check">
+                                <input type="hidden" name="pickup_enabled" value="0">
+                                <input type="checkbox" name="pickup_enabled" value="1" {{ $section->pickup_enabled ? 'checked' : '' }}>
+                                <span>Самовывоз</span>
+                            </label>
+
+                            <button type="submit" class="menu-admin-button menu-quick-button">Сохранить настройки</button>
                         </form>
 
                         <form
@@ -784,7 +861,7 @@
                                 class="menu-admin-button menu-quick-button {{ $section->is_active ? 'danger' : 'cyan' }}"
                                 title="{{ $section->is_active ? 'Выключить раздел' : 'Включить раздел' }}"
                             >
-                                {{ $section->is_active ? 'Выключить' : 'Включить' }}
+                                {{ $section->is_active ? 'Выключить раздел' : 'Включить раздел' }}
                             </button>
                         </form>
                     </div>
