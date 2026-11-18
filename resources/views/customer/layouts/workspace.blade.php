@@ -1979,9 +1979,10 @@ body.customer-menu-image-open { overflow: hidden !important; }
     }
     .customer-order-grid .customer-order-item-image-button {
         flex: 0 0 auto;
-        width: min(100%, 142px);
-        max-width: 142px;
-        aspect-ratio: 3 / 2;
+        width: 100%;
+        max-width: none;
+        max-height: 120px;
+        aspect-ratio: 16 / 9;
         height: auto;
         margin: 0 auto 2px;
     }
