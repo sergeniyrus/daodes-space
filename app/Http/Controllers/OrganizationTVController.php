@@ -174,18 +174,24 @@ class OrganizationTVController extends Controller
         } catch (\\Throwable $exception) {
             // Компенсируем файловые операции, если БД не смогла зафиксировать изменения.
             if (File::isDirectory($backupDirectory)) {
+                // Удаляем возможные частично созданные файлы со сдвинутыми номерами.
+                foreach (range($screen, 20) as $oldScreen) {
+                    foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
+                        $current = $directory . '/tv' . $oldScreen . '.' . $extension;
+
+                        if (is_file($current)) {
+                            File::delete($current);
+                        }
+                    }
+                }
+
+                // Возвращаем исходные файлы на прежние номера.
                 foreach (range($screen, 20) as $oldScreen) {
                     foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
                         $backup = $backupDirectory . '/tv' . $oldScreen . '.' . $extension;
 
                         if (is_file($backup)) {
-                            $original = $directory . '/tv' . $oldScreen . '.' . $extension;
-
-                            if (is_file($original)) {
-                                File::delete($original);
-                            }
-
-                            File::move($backup, $original);
+                            File::move($backup, $directory . '/tv' . $oldScreen . '.' . $extension);
                         }
                     }
                 }
