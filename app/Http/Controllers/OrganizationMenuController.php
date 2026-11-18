@@ -575,9 +575,21 @@ class OrganizationMenuController extends Controller
             'sort_order' => ['required', 'integer', 'min:0'],
         ]);
 
+        $beforeSortOrder = (int) $item->sort_order;
+
         $item->update([
             'sort_order' => $validated['sort_order'],
         ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_item.sorted',
+            'Изменён порядок блюда «' . $item->name . '»',
+            ['sort_order' => $beforeSortOrder],
+            ['sort_order' => (int) $item->sort_order],
+            'menu_item',
+            $item->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
@@ -595,9 +607,21 @@ class OrganizationMenuController extends Controller
         $this->ensureSectionBelongsToOrganization($section, $organization);
         $this->ensureItemBelongsToSection($item, $section);
 
+        $beforeActive = (bool) $item->is_active;
+
         $item->update([
             'is_active' => !$item->is_active,
         ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_item.toggled',
+            ($item->is_active ? 'Включено' : 'Выключено') . ' блюдо «' . $item->name . '»',
+            ['is_active' => $beforeActive],
+            ['is_active' => (bool) $item->is_active],
+            'menu_item',
+            $item->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
