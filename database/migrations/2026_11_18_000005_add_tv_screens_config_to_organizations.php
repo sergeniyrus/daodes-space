@@ -17,10 +17,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (Schema::hasTable('organizations') && Schema::hasColumn('organizations', 'tv_screens_config')) {
-            Schema::table('organizations', function (Blueprint $table) {
-                $table->dropColumn('tv_screens_config');
-            });
-        }
+        // Не удаляем существующие таблицы, столбцы и данные при откате.
     }
 };
