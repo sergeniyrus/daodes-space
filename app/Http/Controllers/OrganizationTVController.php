@@ -163,11 +163,12 @@ class OrganizationTVController extends Controller
 
             $screenConfigs = $lockedOrganization->tv_screens_config ?? [];
             $beforeConfig = $screenConfigs[$screen] ?? [];
-            $screenConfigs[$screen] = [
+            // Сохраняем CID фона при изменении остальных настроек экрана.
+            $screenConfigs[$screen] = array_merge($beforeConfig, [
                 'name' => trim($validated['screen_name']),
                 'background_fit' => $validated['background_fit'],
                 'rotation_seconds' => (int) $validated['rotation_seconds'],
-            ];
+            ]);
 
             $lockedOrganization->tv_screens_config = $screenConfigs;
             $lockedOrganization->save();
