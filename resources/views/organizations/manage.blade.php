@@ -237,6 +237,17 @@
    ЗАГОЛОВОК СЕКЦИИ
    ========================================================= */
 
+.organization-activity-list { display: grid; gap: 9px; }
+.organization-activity-item {
+    padding: 11px 13px;
+    border: 1px solid rgba(0, 229, 212, .18);
+    border-radius: 10px;
+    background: rgba(8, 16, 25, .48);
+}
+.organization-activity-item strong { display: block; color: #f0d68a; font-size: .9rem; }
+.organization-activity-meta { display: flex; flex-wrap: wrap; gap: 7px 14px; margin-top: 5px; color: #929daf; font-size: .76rem; }
+.organization-activity-item details { margin-top: 8px; color: #aeb9c8; font-size: .78rem; }
+.organization-activity-item pre { overflow-x: auto; padding: 8px; color: #dce4e8; background: rgba(0,0,0,.24); border-radius: 7px; white-space: pre-wrap; }
 .organization-section-title {
     color: gold;
 
@@ -1378,6 +1389,31 @@
         >
             📋 Открыть все заказы
         </a>
+    </section>
+
+    <section class="organization-section">
+        <h2 class="organization-section-title">История действий</h2>
+        @if($activityLogs->isEmpty())
+            <div class="organization-empty">Пока нет записей об изменениях организации.</div>
+        @else
+            <div class="organization-activity-list">
+                @foreach($activityLogs as $activity)
+                    <article class="organization-activity-item">
+                        <strong>{{ $activity->description }}</strong>
+                        <div class="organization-activity-meta">
+                            <span>{{ $activity->actor?->name ?? 'Система' }}</span>
+                            <span>{{ $activity->created_at?->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</span>
+                        </div>
+                        @if($activity->before_values || $activity->after_values)
+                            <details>
+                                <summary>Посмотреть изменения</summary>
+                                <pre>{{ json_encode(['до' => $activity->before_values, 'после' => $activity->after_values], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                            </details>
+                        @endif
+                    </article>
+                @endforeach
+            </div>
+        @endif
     </section>
 </section>
 
