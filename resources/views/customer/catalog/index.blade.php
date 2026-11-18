@@ -598,6 +598,11 @@
 
     const imageViewer = document.getElementById('customer-menu-image-viewer');
     const imageViewerImage = document.getElementById('customer-menu-image-viewer-img');
+    // Выносим полноэкранный просмотр из карточек и контейнеров каталога.
+    // Это устраняет ограничения stacking context и overflow на мобильных устройствах.
+    if (imageViewer && imageViewer.parentNode !== document.body) {
+        document.body.appendChild(imageViewer);
+    }
     const closeImageViewer = () => {
         if (!imageViewer) return;
         imageViewer.hidden = true;
