@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up() {
+        if (!Schema::hasTable('mail_templates')) {
         Schema::create('mail_templates', function (Blueprint $table) {
             $table->id();
             $table->string('name');
@@ -13,6 +14,9 @@ return new class extends Migration {
             $table->text('body');
             $table->timestamps();
         });
+        }
     }
-    public function down() { Schema::dropIfExists('mail_templates'); }
-};
+    public function down(): void
+    {
+        // Не удаляем таблицы и данные: они могли существовать до запуска миграции.
+    };
