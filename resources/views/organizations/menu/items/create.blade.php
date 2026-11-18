@@ -3,55 +3,6 @@
 @section('title_page')
     Новое блюдо — {{ $section->name }}
 
-<script>
-(() => {
-    const initializeMenuImagePreview = () => {
-        const input = document.getElementById('menu-image-input');
-        const preview = document.getElementById('menu-image-preview');
-
-        if (!input || !preview || input.dataset.previewInitialized === '1') {
-            return;
-        }
-
-        input.dataset.previewInitialized = '1';
-
-        let previewUrl = null;
-
-        input.addEventListener('change', () => {
-            const file = input.files && input.files[0];
-
-            if (!file) {
-                return;
-            }
-
-            if (!file.type.startsWith('image/')) {
-                input.value = '';
-                return;
-            }
-
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-            }
-
-            previewUrl = URL.createObjectURL(file);
-            preview.src = previewUrl;
-        });
-
-        window.addEventListener('beforeunload', () => {
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        });
-    };
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeMenuImagePreview, { once: true });
-    } else {
-        initializeMenuImagePreview();
-    }
-})();
-</script>
-
 @endsection
 
 @section('main')
@@ -423,3 +374,57 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+(() => {
+    'use strict';
+
+    const initializeMenuImagePreview = () => {
+        const input = document.getElementById('menu-image-input');
+        const preview = document.getElementById('menu-image-preview');
+
+        if (!input || !preview || input.dataset.previewInitialized === '1') {
+            return;
+        }
+
+        input.dataset.previewInitialized = '1';
+
+        let previewUrl = null;
+
+        input.addEventListener('change', () => {
+            const file = input.files && input.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                input.value = '';
+                return;
+            }
+
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+
+            previewUrl = URL.createObjectURL(file);
+            preview.src = previewUrl;
+            preview.style.display = 'block';
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeMenuImagePreview, { once: true });
+    } else {
+        initializeMenuImagePreview();
+    }
+})();
+</script>
+@endpush
