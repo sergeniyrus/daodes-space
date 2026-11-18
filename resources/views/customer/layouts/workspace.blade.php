@@ -1891,7 +1891,29 @@ body:has(.customer-order-page) {
 }
 body.customer-menu-image-open { overflow: hidden !important; }
 @media (max-width: 700px) {
-    .customer-order-item-image-button { width: 104px; margin: 0 auto 10px; }
+    /* Mobile dish card order: title, centered photo, description, then existing details/actions. */
+    .customer-order-grid .customer-order-item-title {
+        order: 0;
+    }
+    .customer-order-grid .customer-order-item-main {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .customer-order-grid .customer-order-item-image-button {
+        order: 0;
+        float: none;
+        flex: 0 0 auto;
+        align-self: center;
+        width: 104px;
+        margin: 0 auto;
+    }
+    .customer-order-grid .customer-order-item-content {
+        order: 1;
+        width: 100%;
+        text-align: left;
+    }
     .customer-menu-image-viewer { padding: 0; }
     .customer-menu-image-viewer img { max-width: 100vw; max-height: 100dvh; border: 0; border-radius: 0; }
     .customer-menu-image-viewer-close { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); }
