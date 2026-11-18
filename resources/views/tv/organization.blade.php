@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#07130f">
-    <title>{{ $organization->name }} — TV{{ $screen }}</title>
+    <title>{{ $organization->name }} — {{ $screenName }}</title>
     <style>
         * { box-sizing: border-box; }
         html, body { width: 100%; min-height: 100%; margin: 0; }
@@ -20,7 +20,7 @@
                 radial-gradient(circle at 15% 10%, rgba(0, 229, 212, .15), transparent 35%),
                 radial-gradient(circle at 85% 85%, rgba(212, 175, 55, .13), transparent 35%),
                 linear-gradient(135deg, #07130f, #101a18 55%, #07130f);
-            background-size: cover;
+            background-size: @if($backgroundUrl) {{ $backgroundFit === 'stretch' ? '100% 100%' : $backgroundFit }}, @endif cover, cover, cover;
             background-position: center;
             background-attachment: fixed;
         }
@@ -93,7 +93,7 @@
     <main class="tv-page">
         <header class="tv-heading">
             <div class="tv-brand">{{ $organization->name }}</div>
-            <div class="tv-number">МЕНЮ · TV{{ $screen }}</div>
+            <div class="tv-number">МЕНЮ · {{ $screenName }}</div>
         </header>
 
         <div class="tv-sections">
@@ -126,5 +126,17 @@
             @endforelse
         </div>
     </main>
+    @if($rotationSeconds > 0 && $screenCount > 1)
+        <script>
+            (() => {
+                const nextScreen = {{ $screen >= $screenCount ? 1 : $screen + 1 }};
+                window.setTimeout(() => {
+                    const nextUrl = new URL(window.location.href);
+                    nextUrl.searchParams.set('screen', String(nextScreen));
+                    window.location.replace(nextUrl.toString());
+                }, {{ $rotationSeconds * 1000 }});
+            })();
+        </script>
+    @endif
 </body>
 </html>
