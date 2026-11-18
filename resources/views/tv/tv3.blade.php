@@ -62,7 +62,7 @@
             min-height: 600px;
             overflow: hidden;
 
-            background: url('/images/tv3.png?v=2') center / cover no-repeat;
+            background: url('/images/tv-backgrounds/tv3.png?v=2') center / cover no-repeat;
         }
 
         .tv-content {
