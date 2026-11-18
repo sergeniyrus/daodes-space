@@ -360,7 +360,7 @@
             @if($item->image_path)
                 <label class="menu-form-checkbox" style="justify-content:center;margin-top:10px;"><input type="checkbox" name="remove_image" value="1"> Удалить фотографию</label>
             @endif
-            <small class="menu-form-label">JPG, PNG или WEBP, до 5 МБ.</small>
+            <small class="menu-form-label">JPG, PNG или WEBP, до 10 МБ.</small>
         </div>
 
         <div class="menu-form-group">
