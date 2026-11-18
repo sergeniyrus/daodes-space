@@ -310,23 +310,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (Schema::hasTable('history_pays')) Schema::dropIfExists('history_pays');
-        if (Schema::hasTable('seed')) Schema::dropIfExists('seed');
-        if (Schema::hasTable('comments_news')) Schema::dropIfExists('comments_news');
-        if (Schema::hasTable('news')) Schema::dropIfExists('news');
-        if (Schema::hasTable('comments_offers')) Schema::dropIfExists('comments_offers');
-        if (Schema::hasTable('offer_votes')) Schema::dropIfExists('offer_votes');
-        if (Schema::hasTable('discussions')) Schema::dropIfExists('discussions');
-        if (Schema::hasTable('task_votes')) Schema::dropIfExists('task_votes');
-        if (Schema::hasTable('tasks')) Schema::dropIfExists('tasks');
-        if (Schema::hasTable('bids')) Schema::dropIfExists('bids');
-        if (Schema::hasTable('offers')) Schema::dropIfExists('offers');
-        if (Schema::hasTable('wallets')) Schema::dropIfExists('wallets');
-        if (Schema::hasTable('user_profiles')) Schema::dropIfExists('user_profiles');
-        if (Schema::hasTable('spam')) Schema::dropIfExists('spam');
-        if (Schema::hasTable('spammers')) Schema::dropIfExists('spammers');
-        if (Schema::hasTable('category_offers')) Schema::dropIfExists('category_offers');
-        if (Schema::hasTable('category_tasks')) Schema::dropIfExists('category_tasks');
-        if (Schema::hasTable('category_news')) Schema::dropIfExists('category_news');
+        // Не удаляем существующие таблицы и данные при откате миграции.
     }
 };
