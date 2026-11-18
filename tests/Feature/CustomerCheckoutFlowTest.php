@@ -1873,6 +1873,22 @@ class CustomerCheckoutFlowTest extends TestCase
             });
         }
 
+        if (!Schema::hasTable('organization_activity_logs')) {
+            Schema::create('organization_activity_logs', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('organization_id');
+                $table->unsignedBigInteger('actor_id')->nullable();
+                $table->string('action', 80);
+                $table->string('subject_type', 100)->nullable();
+                $table->unsignedBigInteger('subject_id')->nullable();
+                $table->string('description', 255);
+                $table->json('before_values')->nullable();
+                $table->json('after_values')->nullable();
+                $table->timestamps();
+                $table->index(['organization_id', 'created_at'], 'org_activity_org_created_idx');
+            });
+        }
+
         if (!Schema::hasTable('organization_users')) {
             Schema::create('organization_users', function (Blueprint $table) {
                 $table->id();
