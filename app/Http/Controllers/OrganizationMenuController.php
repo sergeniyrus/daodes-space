@@ -160,6 +160,35 @@ class OrganizationMenuController extends Controller
     }
 
     /**
+     * Быстрое управление настройками раздела прямо из списка меню.
+     */
+    public function updateSectionQuickSettings(
+        Request $request,
+        Organization $organization,
+        MenuSection $section
+    ): RedirectResponse {
+        $this->ensureSectionBelongsToOrganization($section, $organization);
+
+        $validated = $request->validate([
+            'sort_order' => ['required', 'integer', 'min:0'],
+            'tv_screen' => ['required', 'integer', 'in:1,2,3'],
+            'delivery_enabled' => ['nullable', 'boolean'],
+            'pickup_enabled' => ['nullable', 'boolean'],
+        ]);
+
+        $section->update([
+            'sort_order' => $validated['sort_order'],
+            'tv_screen' => $validated['tv_screen'],
+            'delivery_enabled' => $request->boolean('delivery_enabled'),
+            'pickup_enabled' => $request->boolean('pickup_enabled'),
+        ]);
+
+        return redirect()
+            ->route('organizations.menu.index', $organization)
+            ->with('success', 'Настройки раздела «' . $section->name . '» сохранены.');
+    }
+
+    /**
      * Быстрое изменение порядка раздела без открытия редактора.
      */
     public function updateSectionSort(
