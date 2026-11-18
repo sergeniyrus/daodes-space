@@ -1580,16 +1580,7 @@ body:has(.customer-order-page) {
     text-align: right;
     white-space: nowrap;
 }
-.customer-order-item-image-placeholder {
-    float: right;
-    width: 112px;
-    aspect-ratio: 1 / 1;
-    box-sizing: border-box;
-    border: 2px solid rgba(255, 215, 0, .78);
-    border-radius: 11px;
-    background: linear-gradient(145deg, rgba(255, 215, 0, .045), rgba(255, 255, 255, .012));
-    box-shadow: inset 0 0 14px rgba(255, 215, 0, .045), 0 0 10px rgba(255, 215, 0, .06);
-}
+.customer-order-item-image-placeholder { display:none; }
 .customer-order-grid .customer-order-add {
     display: flex;
     align-items: center;
@@ -1837,6 +1828,78 @@ body:has(.customer-order-page) {
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
 }
+
+/* Dish photos: compact thumbnail, tap to open a full-screen viewer. */
+.customer-order-item-image-button {
+    float: right;
+    display: block;
+    width: 112px;
+    aspect-ratio: 1 / 1;
+    margin: 0 0 10px 12px;
+    padding: 0;
+    overflow: hidden;
+    cursor: zoom-in;
+    border: 2px solid rgba(255, 215, 0, .78);
+    border-radius: 11px;
+    background: #090e1a;
+    box-shadow: inset 0 0 14px rgba(255, 215, 0, .045), 0 0 10px rgba(255, 215, 0, .06);
+}
+.customer-order-item-image-button img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.customer-menu-image-viewer[hidden] { display: none !important; }
+.customer-menu-image-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    background: rgba(3, 5, 12, .97);
+    backdrop-filter: blur(12px);
+}
+.customer-menu-image-viewer img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border: 1px solid rgba(255, 215, 0, .55);
+    border-radius: 12px;
+    box-shadow: 0 0 35px rgba(0, 229, 212, .13);
+}
+.customer-menu-image-viewer-close {
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    z-index: 1;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 215, 0, .65);
+    border-radius: 50%;
+    color: #ffd700;
+    background: rgba(10, 14, 27, .9);
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+}
+body.customer-menu-image-open { overflow: hidden !important; }
+@media (max-width: 700px) {
+    .customer-order-item-image-button { width: 104px; margin-left: 10px; }
+    .customer-menu-image-viewer { padding: 0; }
+    .customer-menu-image-viewer img { max-width: 100vw; max-height: 100dvh; border: 0; border-radius: 0; }
+    .customer-menu-image-viewer-close { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); }
+}
+@media (max-width: 420px) {
+    .customer-order-item-image-button { width: 88px; margin-left: 8px; }
+}
+
 </style>
 
 {{-- Каталог уже получает эти данные от контроллера. Используем их как fallback,
