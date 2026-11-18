@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up() {
+        if (!Schema::hasTable('recipients')) {
         Schema::create('recipients', function (Blueprint $table) {
             $table->id();
             $table->string('name');
@@ -13,6 +14,9 @@ return new class extends Migration {
             $table->string('imported_from')->nullable();
             $table->timestamps();
         });
+        }
     }
-    public function down() { Schema::dropIfExists('recipients'); }
-};
+    public function down(): void
+    {
+        // Не удаляем таблицы и данные: они могли существовать до запуска миграции.
+    };
