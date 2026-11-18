@@ -22,13 +22,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (
-            Schema::hasTable('menu_sections') &&
-            Schema::hasColumn('menu_sections', 'tv_screen')
-        ) {
-            Schema::table('menu_sections', function (Blueprint $table) {
-                $table->dropColumn('tv_screen');
-            });
-        }
+        // Не удаляем существующие таблицы, столбцы и данные при откате.
     }
 };
