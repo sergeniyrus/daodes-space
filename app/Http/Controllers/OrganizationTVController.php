@@ -156,7 +156,9 @@ class OrganizationTVController extends Controller
                         $source = $directory . '/tv' . $oldScreen . '.' . $extension;
 
                         if (is_file($source)) {
-                            File::copy($source, $backupDirectory . '/tv' . $oldScreen . '.' . $extension);
+                            if (!File::copy($source, $backupDirectory . '/tv' . $oldScreen . '.' . $extension)) {
+                                throw new RuntimeException('Не удалось создать резервную копию фона TV-экрана.');
+                            }
                         }
                     }
                 }
@@ -180,7 +182,9 @@ class OrganizationTVController extends Controller
                         $source = $backupDirectory . '/tv' . $oldScreen . '.' . $extension;
 
                         if (is_file($source)) {
-                            File::copy($source, $directory . '/tv' . ($oldScreen - 1) . '.' . $extension);
+                            if (!File::copy($source, $directory . '/tv' . ($oldScreen - 1) . '.' . $extension)) {
+                                throw new RuntimeException('Не удалось перенести фон TV-экрана.');
+                            }
                         }
                     }
                 }
@@ -300,15 +304,21 @@ class OrganizationTVController extends Controller
                 // Сначала сохраняем новый файл под временным именем.
                 $request->file('background')->move($directory, $temporaryName);
 
+                if (!is_file($directory . '/' . $temporaryName)) {
+                    throw new RuntimeException('Не удалось временно сохранить загруженное изображение.');
+                }
+
                 // Резервируем существующий фон до замены.
                 foreach (['png', 'jpg', 'jpeg', 'webp'] as $oldExtension) {
                     $oldPath = $directory . '/tv' . $screen . '.' . $oldExtension;
 
                     if (is_file($oldPath)) {
-                        File::copy(
+                        if (!File::copy(
                             $oldPath,
                             $backupDirectory . '/tv' . $screen . '.' . $oldExtension
-                        );
+                        )) {
+                            throw new RuntimeException('Не удалось создать резервную копию старого фона.');
+                        }
                     }
                 }
 
