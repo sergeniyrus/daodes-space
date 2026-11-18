@@ -70,8 +70,8 @@
                                         </div>
 
                                         <div class="customer-order-item-main">
-                                            <button type="button" class="customer-order-item-image-button" data-menu-image-open data-image-src="{{ $item->image_path ? asset($item->image_path) : asset('images/org/' . $organization->id . '/not-img.png') }}" aria-label="Увеличить фотографию: {{ $item->name }}">
-                                                <img src="{{ $item->image_path ? asset($item->image_path) : asset('images/org/' . $organization->id . '/not-img.png') }}" alt="{{ $item->name }}" loading="lazy" onerror="this.onerror=null;this.src='{{ asset('images/org/' . $organization->id . '/not-img.png') }}';">
+                                            <button type="button" class="customer-order-item-image-button" data-menu-image-open data-image-src="{{ $item->image_url ?: asset('images/org/' . $organization->id . '/not-img.png') }}" aria-label="Увеличить фотографию: {{ $item->name }}">
+                                                <img src="{{ $item->image_url ?: asset('images/org/' . $organization->id . '/not-img.png') }}" alt="{{ $item->name }}" loading="lazy" onerror="this.onerror=null;this.src='{{ asset('images/org/' . $organization->id . '/not-img.png') }}';">
                                             </button>
 
                                             <div class="customer-order-item-content">
