@@ -62,6 +62,7 @@ class OrganizationMenuController extends Controller
             ],
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
+            'tv_screen' => ['required', 'integer', 'in:1,2,3'],
         ]);
 
         $maxSortOrder = $organization->menuSections()
