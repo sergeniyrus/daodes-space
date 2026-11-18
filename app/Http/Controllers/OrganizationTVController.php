@@ -257,7 +257,7 @@ class OrganizationTVController extends Controller
     public function uploadBackground(Request $request, Organization $organization)
     {
         $validated = $request->validate([
-            'screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
+            'screen' => ['required', 'integer', 'min:1', 'max:20'],
             'background' => ['required', 'image', 'mimes:png,jpg,jpeg,webp', 'max:10240'],
         ], [
             'background.required' => 'Выберите изображение для загрузки.',
@@ -268,19 +268,103 @@ class OrganizationTVController extends Controller
 
         $screen = (int) $validated['screen'];
         $directory = public_path('images/org/' . $organization->id . '/tv-backgrounds');
+        $backupDirectory = $directory . '/.tv-upload-' . (string) Str::uuid();
+        $extension = $request->file('background')->extension();
+        $temporaryName = '.tv-upload-' . (string) Str::uuid() . '.tmp';
+        $temporaryPath = $directory . '/' . $temporaryName;
+        $originalsCleared = false;
 
-        File::ensureDirectoryExists($directory);
+        try {
+            DB::transaction(function () use (
+                $organization,
+                $screen,
+                $directory,
+                $backupDirectory,
+                $extension,
+                $temporaryName,
+                $request,
+                &$originalsCleared
+            ) {
+                $lockedOrganization = Organization::query()
+                    ->whereKey($organization->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-        foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
-            $oldPath = $directory . '/tv' . $screen . '.' . $extension;
+                $screenCount = max(1, (int) ($lockedOrganization->tv_screens_count ?? 3));
+                abort_unless($screen <= $screenCount, 404);
 
-            if (is_file($oldPath)) {
-                File::delete($oldPath);
+                File::ensureDirectoryExists($directory);
+                File::ensureDirectoryExists($backupDirectory);
+
+                // Сначала сохраняем новый файл под временным именем.
+                $request->file('background')->move($directory, $temporaryName);
+
+                // Резервируем существующий фон до замены.
+                foreach (['png', 'jpg', 'jpeg', 'webp'] as $oldExtension) {
+                    $oldPath = $directory . '/tv' . $screen . '.' . $oldExtension;
+
+                    if (is_file($oldPath)) {
+                        File::copy(
+                            $oldPath,
+                            $backupDirectory . '/tv' . $screen . '.' . $oldExtension
+                        );
+                    }
+                }
+
+                $originalsCleared = true;
+
+                foreach (['png', 'jpg', 'jpeg', 'webp'] as $oldExtension) {
+                    $oldPath = $directory . '/tv' . $screen . '.' . $oldExtension;
+
+                    if (is_file($oldPath)) {
+                        File::delete($oldPath);
+                    }
+                }
+
+                $temporaryPath = $directory . '/' . $temporaryName;
+                $finalPath = $directory . '/tv' . $screen . '.' . $extension;
+
+                if (!File::move($temporaryPath, $finalPath)) {
+                    throw new RuntimeException('Не удалось сохранить новый фон TV-экрана.');
+                }
+            });
+        } catch (\Throwable $exception) {
+            if ($originalsCleared) {
+                foreach (['png', 'jpg', 'jpeg', 'webp'] as $oldExtension) {
+                    $currentPath = $directory . '/tv' . $screen . '.' . $oldExtension;
+
+                    if (is_file($currentPath)) {
+                        File::delete($currentPath);
+                    }
+                }
+
+                foreach (['png', 'jpg', 'jpeg', 'webp'] as $oldExtension) {
+                    $backupPath = $backupDirectory . '/tv' . $screen . '.' . $oldExtension;
+
+                    if (is_file($backupPath)) {
+                        File::move($backupPath, $directory . '/tv' . $screen . '.' . $oldExtension);
+                    }
+                }
             }
+
+            if (is_file($temporaryPath)) {
+                File::delete($temporaryPath);
+            }
+
+            if (File::isDirectory($backupDirectory)) {
+                File::deleteDirectory($backupDirectory);
+            }
+
+            throw $exception;
         }
 
-        $extension = $request->file('background')->extension();
-        $request->file('background')->move($directory, 'tv' . $screen . '.' . $extension);
+        if (is_file($temporaryPath)) {
+            File::delete($temporaryPath);
+        }
+
+        if (File::isDirectory($backupDirectory)) {
+            File::deleteDirectory($backupDirectory);
+        }
 
         return redirect()
             ->route('organizations.manage', $organization)
@@ -293,19 +377,29 @@ class OrganizationTVController extends Controller
     public function deleteBackground(Request $request, Organization $organization)
     {
         $validated = $request->validate([
-            'screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
+            'screen' => ['required', 'integer', 'min:1', 'max:20'],
         ]);
 
         $screen = (int) $validated['screen'];
         $directory = public_path('images/org/' . $organization->id . '/tv-backgrounds');
 
-        foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
-            $path = $directory . '/tv' . $screen . '.' . $extension;
+        DB::transaction(function () use ($organization, $screen, $directory) {
+            $lockedOrganization = Organization::query()
+                ->whereKey($organization->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            if (is_file($path)) {
-                File::delete($path);
+            $screenCount = max(1, (int) ($lockedOrganization->tv_screens_count ?? 3));
+            abort_unless($screen <= $screenCount, 404);
+
+            foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
+                $path = $directory . '/tv' . $screen . '.' . $extension;
+
+                if (is_file($path)) {
+                    File::delete($path);
+                }
             }
-        }
+        });
 
         return redirect()
             ->route('organizations.manage', $organization)
