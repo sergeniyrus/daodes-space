@@ -33,6 +33,7 @@ class OrganizationMenuController extends Controller
         return view('organizations.menu.index', [
             'organization' => $organization,
             'sections' => $sections,
+            'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
         ]);
     }
 
@@ -44,6 +45,7 @@ class OrganizationMenuController extends Controller
     ): View {
         return view('organizations.menu.sections.create', [
             'organization' => $organization,
+            'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
         ]);
     }
 
@@ -62,7 +64,7 @@ class OrganizationMenuController extends Controller
             ],
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
-            'tv_screen' => ['required', 'integer', 'in:1,2,3'],
+            'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
         ]);
 
         $maxSortOrder = $organization->menuSections()
@@ -103,6 +105,7 @@ class OrganizationMenuController extends Controller
         return view('organizations.menu.sections.edit', [
             'organization' => $organization,
             'section' => $section,
+            'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
         ]);
     }
 
@@ -136,7 +139,7 @@ class OrganizationMenuController extends Controller
             ],
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
-            'tv_screen' => ['required', 'integer', 'in:1,2,3'],
+            'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
         ]);
 
         $section->update([
@@ -172,7 +175,7 @@ class OrganizationMenuController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'sort_order' => ['required', 'integer', 'min:0'],
-            'tv_screen' => ['required', 'integer', 'in:1,2,3'],
+            'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
         ]);
