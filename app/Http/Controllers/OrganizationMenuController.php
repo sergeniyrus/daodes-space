@@ -187,6 +187,7 @@ class OrganizationMenuController extends Controller
 
         return redirect()
             ->route('organizations.menu.index', $organization)
+            ->withFragment('menu-section-' . $section->id)
             ->with('success', 'Настройки раздела «' . $section->name . '» сохранены.');
     }
 
