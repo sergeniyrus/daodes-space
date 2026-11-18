@@ -155,7 +155,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'provider' => 'offline',
             'method' => Order::PAYMENT_CASH_ON_RECEIPT,
             'status' => Order::PAYMENT_PENDING,
-            'amount' => '25.00',
+            'amount' => '20.00',
             'currency' => 'EUR',
         ]);
 
