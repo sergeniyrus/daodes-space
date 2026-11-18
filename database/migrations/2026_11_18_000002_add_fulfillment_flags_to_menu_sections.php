@@ -8,19 +8,38 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('menu_sections', function (Blueprint $table) {
-            $table->boolean('delivery_enabled')->default(true)->after('is_active');
-            $table->boolean('pickup_enabled')->default(true)->after('delivery_enabled');
-        });
+        if (!Schema::hasTable('menu_sections')) {
+            return;
+        }
+
+        if (!Schema::hasColumn('menu_sections', 'delivery_enabled')) {
+            Schema::table('menu_sections', function (Blueprint $table) {
+                $table->boolean('delivery_enabled')->default(true)->after('is_active');
+            });
+        }
+
+        if (!Schema::hasColumn('menu_sections', 'pickup_enabled')) {
+            Schema::table('menu_sections', function (Blueprint $table) {
+                $table->boolean('pickup_enabled')->default(true)->after('delivery_enabled');
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('menu_sections', function (Blueprint $table) {
-            $table->dropColumn([
-                'delivery_enabled',
-                'pickup_enabled',
-            ]);
-        });
+        if (!Schema::hasTable('menu_sections')) {
+            return;
+        }
+
+        $columns = array_values(array_filter(
+            ['delivery_enabled', 'pickup_enabled'],
+            fn (string $column) => Schema::hasColumn('menu_sections', $column)
+        ));
+
+        if ($columns !== []) {
+            Schema::table('menu_sections', function (Blueprint $table) use ($columns) {
+                $table->dropColumn($columns);
+            });
+        }
     }
 };
