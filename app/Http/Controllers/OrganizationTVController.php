@@ -160,11 +160,6 @@ class OrganizationTVController extends Controller
             ->with('success', 'Настройки TV-экрана ' . $screen . ' сохранены.');
     }
 
-        return redirect()
-            ->route('organizations.manage', $organization)
-            ->with('success', 'TV-экран ' . $newCount . ' создан.');
-    }
-
     /**
      * Удаление TV-экрана с перенумерацией последующих экранов.
      */
