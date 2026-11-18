@@ -1919,7 +1919,7 @@
             </label>
 
             <label class="organization-order-field">
-                Минимальная сумма заказа
+                Бесплатная доставка от суммы товаров
                 <input
                     type="number"
                     name="minimum_order"
@@ -1928,7 +1928,7 @@
                     min="0"
                     max="9999999999.99"
                     step="0.01"
-                    placeholder="Не ограничено"
+                    placeholder="Без порога"
                 >
                 @error('minimum_order')
                     <span class="organization-order-error">{{ $message }}</span>
