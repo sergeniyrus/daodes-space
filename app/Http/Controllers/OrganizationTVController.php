@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Organization;
+use App\Services\IPFSService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -55,21 +56,27 @@ class OrganizationTVController extends Controller
             ->orderBy('id')
             ->get();
 
-        $backgroundUrl = null;
-
-        foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
-            $backgroundPath = 'images/org/' . $organization->id
-                . '/tv-backgrounds/tv' . $screen . '.' . $extension;
-
-            if (is_file(public_path($backgroundPath))) {
-                $backgroundUrl = asset($backgroundPath);
-                break;
-            }
-        }
-
         $screenCount = max(1, (int) ($organization->tv_screens_count ?? 3));
         $screenConfigs = $organization->tv_screens_config ?? [];
         $screenConfig = $screenConfigs[$screen] ?? [];
+        $backgroundUrl = null;
+
+        if (!empty($screenConfig['background_cid'])) {
+            $backgroundUrl = app(IPFSService::class)->gatewayUrl(
+                $screenConfig['background_cid']
+            );
+        } else {
+            // Совместимость со старыми фонами до их переноса в IPFS.
+            foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
+                $backgroundPath = 'images/org/' . $organization->id
+                    . '/tv-backgrounds/tv' . $screen . '.' . $extension;
+
+                if (is_file(public_path($backgroundPath))) {
+                    $backgroundUrl = asset($backgroundPath);
+                    break;
+                }
+            }
+        }
         $backgroundFit = in_array($screenConfig['background_fit'] ?? 'cover', ['cover', 'contain', 'stretch'], true)
             ? $screenConfig['background_fit']
             : 'cover';
@@ -393,117 +400,43 @@ class OrganizationTVController extends Controller
         ]);
 
         $screen = (int) $validated['screen'];
-        $directory = public_path('images/org/' . $organization->id . '/tv-backgrounds');
-        $backupDirectory = $directory . '/.tv-upload-' . (string) Str::uuid();
-        $extension = $request->file('background')->extension();
-        $temporaryName = '.tv-upload-' . (string) Str::uuid() . '.tmp';
-        $temporaryPath = $directory . '/' . $temporaryName;
-        $originalsCleared = false;
 
-        try {
-            DB::transaction(function () use (
-                $organization,
-                $screen,
-                $directory,
-                $backupDirectory,
-                $extension,
-                $temporaryName,
-                $request,
-                &$originalsCleared
-            ) {
-                $lockedOrganization = Organization::query()
-                    ->whereKey($organization->id)
-                    ->lockForUpdate()
-                    ->firstOrFail();
+        // Сначала загружаем и проверяем новый фон. Старый CID не меняется,
+        // если IPFS не подтвердил целостность нового файла.
+        $uploadResult = app(IPFSService::class)->uploadFileAndVerify(
+            $request->file('background')
+        );
+        $cid = $uploadResult['cid'];
 
-                $screenCount = max(1, (int) ($lockedOrganization->tv_screens_count ?? 3));
-                abort_unless($screen <= $screenCount, 404);
+        DB::transaction(function () use ($organization, $screen, $cid) {
+            $lockedOrganization = Organization::query()
+                ->whereKey($organization->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-                File::ensureDirectoryExists($directory);
-                File::ensureDirectoryExists($backupDirectory);
+            $screenCount = max(1, (int) ($lockedOrganization->tv_screens_count ?? 3));
+            abort_unless($screen <= $screenCount, 404);
 
-                // Сначала сохраняем новый файл под временным именем.
-                $request->file('background')->move($directory, $temporaryName);
+            $screenConfigs = $lockedOrganization->tv_screens_config ?? [];
+            $screenConfig = $screenConfigs[$screen] ?? [
+                'name' => 'TV-экран ' . $screen,
+                'background_fit' => 'cover',
+                'rotation_seconds' => 0,
+            ];
 
-                if (!is_file($directory . '/' . $temporaryName)) {
-                    throw new RuntimeException('Не удалось временно сохранить загруженное изображение.');
-                }
+            $screenConfig['background_cid'] = $cid;
+            $screenConfigs[$screen] = $screenConfig;
 
-                // Резервируем существующий фон до замены.
-                foreach (['png', 'jpg', 'jpeg', 'webp'] as $oldExtension) {
-                    $oldPath = $directory . '/tv' . $screen . '.' . $oldExtension;
-
-                    if (is_file($oldPath)) {
-                        if (!File::copy(
-                            $oldPath,
-                            $backupDirectory . '/tv' . $screen . '.' . $oldExtension
-                        )) {
-                            throw new RuntimeException('Не удалось создать резервную копию старого фона.');
-                        }
-                    }
-                }
-
-                $originalsCleared = true;
-
-                foreach (['png', 'jpg', 'jpeg', 'webp'] as $oldExtension) {
-                    $oldPath = $directory . '/tv' . $screen . '.' . $oldExtension;
-
-                    if (is_file($oldPath)) {
-                        File::delete($oldPath);
-                    }
-                }
-
-                $temporaryPath = $directory . '/' . $temporaryName;
-                $finalPath = $directory . '/tv' . $screen . '.' . $extension;
-
-                if (!File::move($temporaryPath, $finalPath)) {
-                    throw new RuntimeException('Не удалось сохранить новый фон TV-экрана.');
-                }
-            });
-        } catch (\Throwable $exception) {
-            if ($originalsCleared) {
-                foreach (['png', 'jpg', 'jpeg', 'webp'] as $oldExtension) {
-                    $currentPath = $directory . '/tv' . $screen . '.' . $oldExtension;
-
-                    if (is_file($currentPath)) {
-                        File::delete($currentPath);
-                    }
-                }
-
-                foreach (['png', 'jpg', 'jpeg', 'webp'] as $oldExtension) {
-                    $backupPath = $backupDirectory . '/tv' . $screen . '.' . $oldExtension;
-
-                    if (is_file($backupPath)) {
-                        File::move($backupPath, $directory . '/tv' . $screen . '.' . $oldExtension);
-                    }
-                }
-            }
-
-            if (is_file($temporaryPath)) {
-                File::delete($temporaryPath);
-            }
-
-            if (File::isDirectory($backupDirectory)) {
-                File::deleteDirectory($backupDirectory);
-            }
-
-            throw $exception;
-        }
-
-        if (is_file($temporaryPath)) {
-            File::delete($temporaryPath);
-        }
-
-        if (File::isDirectory($backupDirectory)) {
-            File::deleteDirectory($backupDirectory);
-        }
+            $lockedOrganization->tv_screens_config = $screenConfigs;
+            $lockedOrganization->save();
+        });
 
         app(\App\Services\OrganizationActivityLogger::class)->record(
             $organization,
             'tv_background.updated',
             'Обновлён фон TV-экрана ' . $screen,
             [],
-            ['extension' => $extension],
+            ['cid' => $cid],
             'tv_background',
             $screen
         );
@@ -525,7 +458,7 @@ class OrganizationTVController extends Controller
         $screen = (int) $validated['screen'];
         $directory = public_path('images/org/' . $organization->id . '/tv-backgrounds');
 
-        DB::transaction(function () use ($organization, $screen, $directory) {
+        DB::transaction(function () use ($organization, $screen) {
             $lockedOrganization = Organization::query()
                 ->whereKey($organization->id)
                 ->lockForUpdate()
@@ -534,14 +467,23 @@ class OrganizationTVController extends Controller
             $screenCount = max(1, (int) ($lockedOrganization->tv_screens_count ?? 3));
             abort_unless($screen <= $screenCount, 404);
 
-            foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
-                $path = $directory . '/tv' . $screen . '.' . $extension;
+            $screenConfigs = $lockedOrganization->tv_screens_config ?? [];
 
-                if (is_file($path)) {
-                    File::delete($path);
-                }
+            if (isset($screenConfigs[$screen])) {
+                unset($screenConfigs[$screen]['background_cid']);
+                $lockedOrganization->tv_screens_config = $screenConfigs;
+                $lockedOrganization->save();
             }
         });
+
+        // Удаляем только локальную legacy-копию. CID-объект в IPFS не удаляем.
+        foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
+            $legacyPath = $directory . '/tv' . $screen . '.' . $extension;
+
+            if (is_file($legacyPath)) {
+                File::delete($legacyPath);
+            }
+        }
 
         app(\App\Services\OrganizationActivityLogger::class)->record(
             $organization,
