@@ -352,12 +352,12 @@
 
         <div class="menu-form-group">
             <label class="menu-form-label">Фотография блюда</label>
-            <img id="menu-image-preview" class="menu-image-preview" src="{{ $item->image_path ? asset($item->image_path) : asset('images/org/' . $organization->id . '/not-img.png') }}" alt="Предпросмотр фотографии" onerror="this.onerror=null;this.src='{{ asset('images/org/' . $organization->id . '/not-img.png') }}';">
+            <img id="menu-image-preview" class="menu-image-preview" src="{{ $item->image_url ?: asset('images/org/' . $organization->id . '/not-img.png') }}" alt="Предпросмотр фотографии" onerror="this.onerror=null;this.src='{{ asset('images/org/' . $organization->id . '/not-img.png') }}';">
             <div class="menu-image-actions">
                 <label for="menu-image-input">Выбрать изображение</label>
                 <input id="menu-image-input" type="file" name="image" accept="image/jpeg,image/png,image/webp">
             </div>
-            @if($item->image_path)
+            @if($item->image_path || $item->image_cid)
                 <label class="menu-form-checkbox" style="justify-content:center;margin-top:10px;"><input type="checkbox" name="remove_image" value="1"> Удалить фотографию</label>
             @endif
             <small class="menu-form-label">JPG, PNG или WEBP, до 10 МБ.</small>
