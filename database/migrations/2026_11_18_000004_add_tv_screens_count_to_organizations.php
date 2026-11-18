@@ -11,8 +11,7 @@ return new class extends Migration
         if (!Schema::hasColumn('organizations', 'tv_screens_count')) {
             Schema::table('organizations', function (Blueprint $table) {
                 $table->unsignedTinyInteger('tv_screens_count')
-                    ->default(3)
-                    ->after('status');
+                    ->default(3);
             });
         }
     }
