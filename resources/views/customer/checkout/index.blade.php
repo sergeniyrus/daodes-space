@@ -69,6 +69,8 @@
     border-radius: 10px;
 }
 .customer-checkout-options input { accent-color: #00e5d4; }
+.customer-checkout-options label.is-unavailable { opacity: .42; cursor: not-allowed; }
+.customer-checkout-options label.is-unavailable input { cursor: not-allowed; }
 .customer-checkout-payment-options { display: flex; justify-content: center; flex-wrap: wrap; }
 .customer-checkout-payment-options label { min-width: min(260px, 100%); }
 .customer-checkout-address-details { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -410,7 +412,7 @@
             <span>Промежуточный итог</span>
             <strong>{{ number_format((float) $subtotal, 2, ',', ' ') }} {{ $currencySymbol }}</strong>
         </div>
-        <div id="customer-delivery-summary" @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'delivery') hidden @endif>
+        <div id="customer-delivery-summary" @if($selectedFulfillment !== 'delivery') hidden @endif>
         <div class="customer-checkout-delivery-info">
             @if($minimumOrder !== null)
                 <div class="customer-checkout-delivery-row customer-checkout-delivery-minimum">
@@ -448,47 +450,59 @@
 
             <div class="customer-checkout-options">
                 @if($settings->delivery_enabled)
-                    <label>
+                    <label @if(!$canUseDelivery) class="is-unavailable" @endif>
                         <input
                             type="radio"
                             name="fulfillment_type"
                             value="delivery"
-                            @checked(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) === 'delivery')
+                            @checked($selectedFulfillment === 'delivery')
+                            @disabled(!$canUseDelivery)
                         >
                         🚚 Доставка
                     </label>
                 @endif
 
                 @if($settings->pickup_enabled)
-                    <label>
+                    <label @if(!$canUsePickup) class="is-unavailable" @endif>
                         <input
                             type="radio"
                             name="fulfillment_type"
                             value="pickup"
-                            @checked(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) === 'pickup')
+                            @checked($selectedFulfillment === 'pickup')
+                            @disabled(!$canUsePickup)
                         >
                         🛍 Самовывоз
                     </label>
                 @endif
 
                 @if($settings->dine_in_enabled)
-                    <label>
+                    <label @if(!$canUseDineIn) class="is-unavailable" @endif>
                         <input
                             type="radio"
                             name="fulfillment_type"
                             value="dine_in"
-                            @checked(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) === 'dine_in')
+                            @checked($selectedFulfillment === 'dine_in')
+                            @disabled(!$canUseDineIn)
                         >
                         🍽 В заведении
                     </label>
                 @endif
             </div>
+            @if(!$canUseDelivery && $settings->delivery_enabled)
+                <div class="customer-checkout-note">Доставка недоступна: одна или несколько позиций корзины не подходят для доставки.</div>
+            @endif
+            @if(!$canUsePickup && $settings->pickup_enabled)
+                <div class="customer-checkout-note">Самовывоз недоступен: одна или несколько позиций корзины не подходят для самовывоза.</div>
+            @endif
+            @if(!$canUseDineIn && $settings->dine_in_enabled)
+                <div class="customer-checkout-note">Заказ в заведении недоступен для текущего состава корзины.</div>
+            @endif
             @error('fulfillment_type')
                 <div class="customer-checkout-error">{{ $message }}</div>
             @enderror
 
             <div class="customer-checkout-grid">
-                <label class="customer-checkout-field" id="customer-pickup-time-field" @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'pickup') hidden @endif>
+                <label class="customer-checkout-field" id="customer-pickup-time-field" @if($selectedFulfillment !== 'pickup') hidden @endif>
                     Время самовывоза
                     <input
                         type="datetime-local"
@@ -504,7 +518,7 @@
                     @enderror
                 </label>
 
-                <label class="customer-checkout-field" id="customer-dine-in-field" @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'dine_in') hidden @endif>
+                <label class="customer-checkout-field" id="customer-dine-in-field" @if($selectedFulfillment !== 'dine_in') hidden @endif>
                     Номер браслета
                     <input
                         type="text"
@@ -552,7 +566,7 @@
         </div>
 
         <div class="customer-checkout-panel" id="customer-delivery-address-panel"
-            @if(old('fulfillment_type', $settings->pickup_enabled ? 'pickup' : ($settings->dine_in_enabled ? 'dine_in' : 'delivery')) !== 'delivery') hidden @endif
+            @if($selectedFulfillment !== 'delivery') hidden @endif
         >
             <h2 class="customer-checkout-title">Адрес доставки</h2>
             <div class="customer-checkout-note">Укажите адрес доставки. Номер дома вводится отдельно.</div>
