@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up() {
+        if (!Schema::hasTable('mail_logs')) {
         Schema::create('mail_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('template_id')->constrained('mail_templates')->onDelete('cascade');
@@ -15,6 +16,9 @@ return new class extends Migration {
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
         });
+        }
     }
-    public function down() { Schema::dropIfExists('mail_logs'); }
-};
+    public function down(): void
+    {
+        // Не удаляем таблицы и данные: они могли существовать до запуска миграции.
+    };
