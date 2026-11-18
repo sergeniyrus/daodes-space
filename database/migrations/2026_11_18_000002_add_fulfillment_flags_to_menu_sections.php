@@ -27,19 +27,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasTable('menu_sections')) {
-            return;
-        }
-
-        $columns = array_values(array_filter(
-            ['delivery_enabled', 'pickup_enabled'],
-            fn (string $column) => Schema::hasColumn('menu_sections', $column)
-        ));
-
-        if ($columns !== []) {
-            Schema::table('menu_sections', function (Blueprint $table) use ($columns) {
-                $table->dropColumn($columns);
-            });
-        }
+        // Не удаляем существующие таблицы, столбцы и данные при откате.
     }
 };
