@@ -207,6 +207,12 @@ class OrganizationMenuController extends Controller
             $organization
         );
 
+        $section->items()->get()->each(function (MenuItem $item) use ($organization) {
+            if ($item->image_path) {
+                $this->deleteMenuItemImage($item->image_path, $organization);
+            }
+        });
+
         $section->items()->delete();
 
         $section->delete();
