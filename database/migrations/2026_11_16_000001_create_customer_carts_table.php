@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -8,6 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('customer_carts')) {
+            return;
+        }
+
         Schema::create('customer_carts', function (Blueprint $table) {
             $table->id();
 
@@ -36,6 +41,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('customer_carts');
+        // Не удаляем существующую корзину с рабочими данными.
     }
 };
