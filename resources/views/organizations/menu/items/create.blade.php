@@ -322,7 +322,7 @@
 
         <div class="menu-form-group">
             <label class="menu-form-label">Фотография блюда</label>
-            <img id="menu-image-preview" class="menu-image-preview" src="{{ asset('images/org/' . $organization->id . '/not-img.png') }}" alt="Предпросмотр фотографии">
+            <img id="menu-image-preview" class="menu-image-preview" src="{{ asset('images/org/' . $organization->id . '/not-img.png') }}" alt="Предпросмотр фотографии" onerror="this.onerror=null;this.src='{{ asset('images/not-img.svg') }}';">
             <div class="menu-image-actions">
                 <label for="menu-image-input">Выбрать изображение</label>
                 <input id="menu-image-input" type="file" name="image" accept="image/jpeg,image/png,image/webp">
