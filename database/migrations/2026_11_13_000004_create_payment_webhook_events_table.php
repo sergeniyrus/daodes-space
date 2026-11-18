@@ -8,10 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('payments', function (Blueprint $table) {
-            $table->timestamp('cancelled_at')->nullable()->after('failed_at');
-        });
+        if (Schema::hasTable('payments') && !Schema::hasColumn('payments', 'cancelled_at')) {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->timestamp('cancelled_at')->nullable()->after('failed_at');
+            });
+        }
 
+        if (!Schema::hasTable('payment_webhook_events')) {
         Schema::create('payment_webhook_events', function (Blueprint $table) {
             $table->id();
             $table->string('provider', 64);
@@ -36,14 +39,11 @@ return new class extends Migration
                 'payment_webhook_payment_status_index'
             );
         });
+        }
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('payment_webhook_events');
-
-        Schema::table('payments', function (Blueprint $table) {
-            $table->dropColumn('cancelled_at');
-        });
+        // Не удаляем таблицы и данные: они могут существовать до запуска этой миграции.
     }
 };
