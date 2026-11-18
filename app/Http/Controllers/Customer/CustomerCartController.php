@@ -71,8 +71,8 @@ class CustomerCartController extends Controller
                 'item_id' => (int) $itemId,
                 'item' => $item,
                 'quantity' => (int) $quantity,
-                'available' => $item !== null && $item->is_active,
-                'line_total' => $item && $item->is_active
+                'available' => $item !== null && $item->is_active && ($item->delivery_enabled || $item->pickup_enabled),
+                'line_total' => $item && $item->is_active && ($item->delivery_enabled || $item->pickup_enabled)
                     ? (float) $item->price * (int) $quantity
                     : 0,
             ];
@@ -111,6 +111,10 @@ class CustomerCartController extends Controller
         $item = MenuItem::query()
             ->whereKey($validated['item_id'])
             ->where('is_active', true)
+            ->where(function ($query) {
+                $query->where('delivery_enabled', true)
+                    ->orWhere('pickup_enabled', true);
+            })
             ->whereHas('section', function ($query) use ($organization) {
                 $query->where('organization_id', $organization->id)
                     ->where('is_active', true);
@@ -194,6 +198,7 @@ class CustomerCartController extends Controller
             $organizationId > 0
             && isset($cart['items'][$menuItem->id])
             && $menuItem->is_active
+            && ($menuItem->delivery_enabled || $menuItem->pickup_enabled)
             && $menuItem->section()
                 ->where('organization_id', $organizationId)
                 ->where('is_active', true)
