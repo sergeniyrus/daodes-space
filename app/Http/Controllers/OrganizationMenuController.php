@@ -8,6 +8,7 @@ use App\Models\Organization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
 
 class OrganizationMenuController extends Controller
 {
@@ -247,44 +248,33 @@ class OrganizationMenuController extends Controller
         Organization $organization,
         MenuSection $section
     ): RedirectResponse {
-        $this->ensureSectionBelongsToOrganization(
-            $section,
-            $organization
-        );
+        $this->ensureSectionBelongsToOrganization($section, $organization);
 
         $validated = $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'weight' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-
-            'unit' => [
-                'nullable',
-                'string',
-                'max:50',
-            ],
-
-            'price' => [
-                'required',
-                'numeric',
-                'min:0',
-            ],
-
-            'description' => [
-                'nullable',
-                'string',
-            ],
+            'name' => ['required', 'string', 'max:255'],
+            'weight' => ['nullable', 'numeric', 'min:0'],
+            'unit' => ['nullable', 'string', 'max:50'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'description' => ['nullable', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'is_active' => ['nullable', 'boolean'],
+            'delivery_enabled' => ['nullable', 'boolean'],
+            'pickup_enabled' => ['nullable', 'boolean'],
         ]);
 
-        $maxSortOrder = $section->items()
-            ->max('sort_order');
+        $maxSortOrder = $section->items()->max('sort_order');
+        $imagePath = null;
+
+        if ($request->hasFile('image')) {
+            $directory = public_path('images/org/' . $organization->id . '/menu');
+            if (!is_dir($directory)) {
+                mkdir($directory, 0755, true);
+            }
+
+            $filename = Str::uuid()->toString() . '.' . $request->file('image')->extension();
+            $request->file('image')->move($directory, $filename);
+            $imagePath = 'images/org/' . $organization->id . '/menu/' . $filename;
+        }
 
         $section->items()->create([
             'name' => $validated['name'],
@@ -292,19 +282,16 @@ class OrganizationMenuController extends Controller
             'unit' => $validated['unit'] ?? null,
             'price' => $validated['price'],
             'description' => $validated['description'] ?? null,
+            'image_path' => $imagePath,
             'sort_order' => ($maxSortOrder ?? 0) + 1,
-            'is_active' => true,
+            'is_active' => $request->boolean('is_active', true),
+            'delivery_enabled' => $request->boolean('delivery_enabled', true),
+            'pickup_enabled' => $request->boolean('pickup_enabled', true),
         ]);
 
         return redirect()
-            ->route(
-                'organizations.menu.index',
-                $organization
-            )
-            ->with(
-                'success',
-                'Блюдо успешно добавлено.'
-            );
+            ->route('organizations.menu.index', $organization)
+            ->with('success', 'Блюдо успешно добавлено.');
     }
 
     /**
@@ -342,109 +329,81 @@ class OrganizationMenuController extends Controller
      * ОБНОВЛЕНИЕ БЛЮДА
      */
     public function updateItem(
-    Request $request,
-    Organization $organization,
-    MenuSection $section,
-    MenuItem $item
-): RedirectResponse {
-    $this->ensureSectionBelongsToOrganization(
-        $section,
-        $organization
-    );
+        Request $request,
+        Organization $organization,
+        MenuSection $section,
+        MenuItem $item
+    ): RedirectResponse {
+        $this->ensureSectionBelongsToOrganization($section, $organization);
+        $this->ensureItemBelongsToSection($item, $section);
 
-    $this->ensureItemBelongsToSection(
-        $item,
-        $section
-    );
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'menu_section_id' => ['required', 'integer', 'exists:menu_sections,id'],
+            'weight' => ['nullable', 'numeric', 'min:0'],
+            'unit' => ['nullable', 'string', 'max:50'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'description' => ['nullable', 'string'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+            'delivery_enabled' => ['nullable', 'boolean'],
+            'pickup_enabled' => ['nullable', 'boolean'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_image' => ['nullable', 'boolean'],
+        ]);
 
-    $validated = $request->validate([
-        'name' => [
-            'required',
-            'string',
-            'max:255',
-        ],
+        $targetSection = $organization->menuSections()
+            ->whereKey($validated['menu_section_id'])
+            ->firstOrFail();
 
-        'menu_section_id' => [
-            'required',
-            'integer',
-            'exists:menu_sections,id',
-        ],
+        $sectionChanged = (int) $targetSection->id !== (int) $section->id;
+        $sortOrder = $sectionChanged
+            ? ($targetSection->items()->max('sort_order') ?? 0) + 1
+            : ($validated['sort_order'] ?? $item->sort_order);
 
-        'weight' => [
-            'nullable',
-            'numeric',
-            'min:0',
-        ],
+        $imagePath = $item->image_path;
+        $oldImagePath = $item->image_path;
 
-        'unit' => [
-            'nullable',
-            'string',
-            'max:50',
-        ],
+        if ($request->hasFile('image')) {
+            $directory = public_path('images/org/' . $organization->id . '/menu');
+            if (!is_dir($directory)) {
+                mkdir($directory, 0755, true);
+            }
 
-        'price' => [
-            'required',
-            'numeric',
-            'min:0',
-        ],
+            $filename = Str::uuid()->toString() . '.' . $request->file('image')->extension();
+            $request->file('image')->move($directory, $filename);
+            $imagePath = 'images/org/' . $organization->id . '/menu/' . $filename;
+        } elseif ($request->boolean('remove_image')) {
+            $imagePath = null;
+        }
 
-        'description' => [
-            'nullable',
-            'string',
-        ],
+        $item->update([
+            'menu_section_id' => $targetSection->id,
+            'name' => $validated['name'],
+            'weight' => $validated['weight'] ?? null,
+            'unit' => $validated['unit'] ?? null,
+            'price' => $validated['price'],
+            'description' => $validated['description'] ?? null,
+            'image_path' => $imagePath,
+            'sort_order' => $sortOrder,
+            'is_active' => $request->boolean('is_active'),
+            'delivery_enabled' => $request->boolean('delivery_enabled'),
+            'pickup_enabled' => $request->boolean('pickup_enabled'),
+        ]);
 
-        'sort_order' => [
-            'nullable',
-            'integer',
-            'min:0',
-        ],
+        if ($oldImagePath && $oldImagePath !== $imagePath) {
+            $this->deleteMenuItemImage($oldImagePath, $organization);
+        }
 
-        'is_active' => [
-            'nullable',
-            'boolean',
-        ],
-    ]);
-
-    // Получаем целевую категорию только из текущей организации.
-    // Категорию другой организации выбрать нельзя.
-    $targetSection = $organization->menuSections()
-        ->whereKey($validated['menu_section_id'])
-        ->firstOrFail();
-
-    // Проверяем, меняется ли категория.
-    $sectionChanged = (int) $targetSection->id !== (int) $section->id;
-
-    // При переносе ставим блюдо в конец новой категории.
-    // Если категория прежняя — сохраняем ручную сортировку.
-    if ($sectionChanged) {
-        $sortOrder = ($targetSection->items()->max('sort_order') ?? 0) + 1;
-    } else {
-        $sortOrder = $validated['sort_order'] ?? $item->sort_order;
+        return redirect()
+            ->route('organizations.menu.index', $organization)
+            ->with(
+                'success',
+                $sectionChanged
+                    ? 'Блюдо успешно перенесено в категорию «' . $targetSection->name . '».'
+                    : 'Блюдо успешно изменено.'
+            );
     }
-
-    $item->update([
-        'menu_section_id' => $targetSection->id,
-        'name' => $validated['name'],
-        'weight' => $validated['weight'] ?? null,
-        'unit' => $validated['unit'] ?? null,
-        'price' => $validated['price'],
-        'description' => $validated['description'] ?? null,
-        'sort_order' => $sortOrder,
-        'is_active' => $request->boolean('is_active'),
-    ]);
-
-    return redirect()
-        ->route(
-            'organizations.menu.index',
-            $organization
-        )
-        ->with(
-            'success',
-            $sectionChanged
-                ? 'Блюдо успешно перенесено в категорию «' . $targetSection->name . '».'
-                : 'Блюдо успешно изменено.'
-        );
-}
 
     /**
      * Быстрое изменение порядка блюда без открытия редактора.
@@ -514,7 +473,13 @@ class OrganizationMenuController extends Controller
             $section
         );
 
+        $imagePath = $item->image_path;
+
         $item->delete();
+
+        if ($imagePath) {
+            $this->deleteMenuItemImage($imagePath, $organization);
+        }
 
         return redirect()
             ->route(
@@ -525,6 +490,19 @@ class OrganizationMenuController extends Controller
                 'success',
                 'Блюдо удалено.'
             );
+    }
+
+    private function deleteMenuItemImage(string $imagePath, Organization $organization): void
+    {
+        $expectedPrefix = 'images/org/' . $organization->id . '/menu/';
+        if (!str_starts_with($imagePath, $expectedPrefix)) {
+            return;
+        }
+
+        $fullPath = public_path($imagePath);
+        if (is_file($fullPath)) {
+            @unlink($fullPath);
+        }
     }
 
     /**
