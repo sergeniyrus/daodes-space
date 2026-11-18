@@ -171,7 +171,7 @@ class OrganizationTVController extends Controller
 
                 return true;
             });
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             // Компенсируем файловые операции, если БД не смогла зафиксировать изменения.
             if (File::isDirectory($backupDirectory)) {
                 // Удаляем возможные частично созданные файлы со сдвинутыми номерами.
