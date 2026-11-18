@@ -9,6 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         if (!Schema::hasTable('organization_order_settings')) {
+        if (!Schema::hasTable('organization_order_settings')) {
         Schema::create('organization_order_settings', function (Blueprint $table) {
             $table->id();
 
@@ -39,10 +40,11 @@ return new class extends Migration
             $table->timestamps();
         });
         }
+        }
     }
 
     public function down(): void
     {
-        // Не удаляем таблицы и данные: они могут существовать до запуска этой миграции.
+        // Не удаляем таблицы и данные: они могли существовать до запуска миграции.
     }
 };
