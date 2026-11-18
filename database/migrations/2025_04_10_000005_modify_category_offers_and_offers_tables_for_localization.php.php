@@ -54,45 +54,6 @@ class ModifyCategoryOffersAndOffersTablesForLocalization extends Migration
 
     public function down(): void
     {
-        if (Schema::hasTable('offers')) {
-            if (Schema::hasColumn('offers', 'title_ru') && !Schema::hasColumn('offers', 'title')) {
-                Schema::table('offers', function (Blueprint $table) {
-                    $table->renameColumn('title_ru', 'title');
-                });
-            }
-
-            if (Schema::hasColumn('offers', 'content_ru') && !Schema::hasColumn('offers', 'content')) {
-                Schema::table('offers', function (Blueprint $table) {
-                    $table->renameColumn('content_ru', 'content');
-                });
-            }
-
-            $columns = [];
-            if (Schema::hasColumn('offers', 'title_en')) {
-                $columns[] = 'title_en';
-            }
-            if (Schema::hasColumn('offers', 'content_en')) {
-                $columns[] = 'content_en';
-            }
-            if ($columns) {
-                Schema::table('offers', function (Blueprint $table) use ($columns) {
-                    $table->dropColumn($columns);
-                });
-            }
-        }
-
-        if (Schema::hasTable('category_offers')) {
-            if (Schema::hasColumn('category_offers', 'name_ru') && !Schema::hasColumn('category_offers', 'name')) {
-                Schema::table('category_offers', function (Blueprint $table) {
-                    $table->renameColumn('name_ru', 'name');
-                });
-            }
-
-            if (Schema::hasColumn('category_offers', 'name_en')) {
-                Schema::table('category_offers', function (Blueprint $table) {
-                    $table->dropColumn('name_en');
-                });
-            }
-        }
+        // Не удаляем локализованные поля: они могли существовать до запуска миграции.
     }
 }
