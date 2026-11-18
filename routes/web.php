@@ -53,6 +53,7 @@ use App\Http\Controllers\Admin\ReleaseAdminController;
 
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationMenuController;
+use App\Http\Controllers\OrganizationTVController;
 use App\Http\Controllers\OrganizationStaffController;
 use App\Http\Controllers\OrganizationOrderController;
 use App\Http\Controllers\Customer\CustomerPushController;
