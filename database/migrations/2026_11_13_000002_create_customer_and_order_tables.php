@@ -9,7 +9,6 @@ return new class extends Migration
     public function up(): void
     {
         if (!Schema::hasTable('customers')) {
-        if (!Schema::hasTable('customers')) {
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
             $table->string('name', 100)->nullable();
@@ -26,9 +25,7 @@ return new class extends Migration
             $table->timestamps();
         });
         }
-        }
 
-        if (!Schema::hasTable('customer_organizations')) {
         if (!Schema::hasTable('customer_organizations')) {
         Schema::create('customer_organizations', function (Blueprint $table) {
             $table->id();
@@ -56,9 +53,7 @@ return new class extends Migration
             );
         });
         }
-        }
 
-        if (!Schema::hasTable('customer_phone_challenges')) {
         if (!Schema::hasTable('customer_phone_challenges')) {
         Schema::create('customer_phone_challenges', function (Blueprint $table) {
             $table->id();
@@ -87,9 +82,7 @@ return new class extends Migration
             );
         });
         }
-        }
 
-        if (!Schema::hasTable('customer_addresses')) {
         if (!Schema::hasTable('customer_addresses')) {
         Schema::create('customer_addresses', function (Blueprint $table) {
             $table->id();
@@ -118,9 +111,7 @@ return new class extends Migration
             );
         });
         }
-        }
 
-        if (!Schema::hasTable('orders')) {
         if (!Schema::hasTable('orders')) {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
@@ -192,9 +183,7 @@ return new class extends Migration
             );
         });
         }
-        }
 
-        if (!Schema::hasTable('order_items')) {
         if (!Schema::hasTable('order_items')) {
         Schema::create('order_items', function (Blueprint $table) {
             $table->id();
@@ -223,9 +212,7 @@ return new class extends Migration
             $table->index(['order_id', 'id'], 'order_items_order_index');
         });
         }
-        }
 
-        if (!Schema::hasTable('order_status_history')) {
         if (!Schema::hasTable('order_status_history')) {
         Schema::create('order_status_history', function (Blueprint $table) {
             $table->id();
@@ -249,9 +236,7 @@ return new class extends Migration
             );
         });
         }
-        }
 
-        if (!Schema::hasTable('order_assignments')) {
         if (!Schema::hasTable('order_assignments')) {
         Schema::create('order_assignments', function (Blueprint $table) {
             $table->id();
@@ -288,9 +273,7 @@ return new class extends Migration
             );
         });
         }
-        }
 
-        if (!Schema::hasTable('payments')) {
         if (!Schema::hasTable('payments')) {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
@@ -330,7 +313,6 @@ return new class extends Migration
                 'payments_order_status_index'
             );
         });
-        }
         }
     }
 
