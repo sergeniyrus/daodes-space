@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\Organization;
+use App\Services\IPFSService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
-use Illuminate\Support\Str;
 
 class OrganizationMenuController extends Controller
 {
@@ -375,17 +375,14 @@ class OrganizationMenuController extends Controller
         ]);
 
         $maxSortOrder = $section->items()->max('sort_order');
-        $imagePath = null;
+        $imageCid = null;
 
         if ($request->hasFile('image')) {
-            $directory = public_path('images/org/' . $organization->id . '/menu');
-            if (!is_dir($directory)) {
-                mkdir($directory, 0755, true);
-            }
+            $uploadResult = app(IPFSService::class)->uploadFileAndVerify(
+                $request->file('image')
+            );
 
-            $filename = Str::uuid()->toString() . '.' . $request->file('image')->extension();
-            $request->file('image')->move($directory, $filename);
-            $imagePath = 'images/org/' . $organization->id . '/menu/' . $filename;
+            $imageCid = $uploadResult['cid'];
         }
 
         $item = $section->items()->create([
@@ -394,7 +391,8 @@ class OrganizationMenuController extends Controller
             'unit' => $validated['unit'] ?? null,
             'price' => $validated['price'],
             'description' => $validated['description'] ?? null,
-            'image_path' => $imagePath,
+            'image_path' => null,
+            'image_cid' => $imageCid,
             'sort_order' => ($maxSortOrder ?? 0) + 1,
             'is_active' => $request->boolean('is_active', true),
             'delivery_enabled' => $request->boolean('delivery_enabled', true),
@@ -484,19 +482,19 @@ class OrganizationMenuController extends Controller
             : ($validated['sort_order'] ?? $item->sort_order);
 
         $imagePath = $item->image_path;
+        $imageCid = $item->image_cid;
         $oldImagePath = $item->image_path;
 
         if ($request->hasFile('image')) {
-            $directory = public_path('images/org/' . $organization->id . '/menu');
-            if (!is_dir($directory)) {
-                mkdir($directory, 0755, true);
-            }
+            $uploadResult = app(IPFSService::class)->uploadFileAndVerify(
+                $request->file('image')
+            );
 
-            $filename = Str::uuid()->toString() . '.' . $request->file('image')->extension();
-            $request->file('image')->move($directory, $filename);
-            $imagePath = 'images/org/' . $organization->id . '/menu/' . $filename;
+            $imageCid = $uploadResult['cid'];
+            $imagePath = null;
         } elseif ($request->boolean('remove_image')) {
             $imagePath = null;
+            $imageCid = null;
         }
 
         $beforeValues = $item->only([
@@ -519,6 +517,7 @@ class OrganizationMenuController extends Controller
             'price' => $validated['price'],
             'description' => $validated['description'] ?? null,
             'image_path' => $imagePath,
+            'image_cid' => $imageCid,
             'sort_order' => $sortOrder,
             'is_active' => $request->boolean('is_active'),
             'delivery_enabled' => $request->boolean('delivery_enabled'),
