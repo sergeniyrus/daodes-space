@@ -1831,11 +1831,11 @@ body:has(.customer-order-page) {
 
 /* Dish photos: compact thumbnail, tap to open a full-screen viewer. */
 .customer-order-item-image-button {
-    float: right;
+    float: none;
     display: block;
     width: 112px;
     aspect-ratio: 1 / 1;
-    margin: 0 0 10px 12px;
+    margin: 0 auto 10px;
     padding: 0;
     overflow: hidden;
     cursor: zoom-in;
@@ -1891,13 +1891,13 @@ body:has(.customer-order-page) {
 }
 body.customer-menu-image-open { overflow: hidden !important; }
 @media (max-width: 700px) {
-    .customer-order-item-image-button { width: 104px; margin-left: 10px; }
+    .customer-order-item-image-button { width: 104px; margin: 0 auto 10px; }
     .customer-menu-image-viewer { padding: 0; }
     .customer-menu-image-viewer img { max-width: 100vw; max-height: 100dvh; border: 0; border-radius: 0; }
     .customer-menu-image-viewer-close { top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); }
 }
 @media (max-width: 420px) {
-    .customer-order-item-image-button { width: 88px; margin-left: 8px; }
+    .customer-order-item-image-button { width: 88px; margin: 0 auto 10px; }
 }
 
 </style>
