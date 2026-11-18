@@ -31,6 +31,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('organization_activity_logs');
+        // Не удаляем существующие таблицы, столбцы и данные при откате.
     }
 };
