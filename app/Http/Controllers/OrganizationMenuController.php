@@ -170,6 +170,7 @@ class OrganizationMenuController extends Controller
         $this->ensureSectionBelongsToOrganization($section, $organization);
 
         $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
             'sort_order' => ['required', 'integer', 'min:0'],
             'tv_screen' => ['required', 'integer', 'in:1,2,3'],
             'delivery_enabled' => ['nullable', 'boolean'],
@@ -177,6 +178,7 @@ class OrganizationMenuController extends Controller
         ]);
 
         $section->update([
+            'name' => $validated['name'],
             'sort_order' => $validated['sort_order'],
             'tv_screen' => $validated['tv_screen'],
             'delivery_enabled' => $request->boolean('delivery_enabled'),
