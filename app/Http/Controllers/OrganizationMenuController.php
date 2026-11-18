@@ -388,7 +388,7 @@ class OrganizationMenuController extends Controller
             $imagePath = 'images/org/' . $organization->id . '/menu/' . $filename;
         }
 
-        $section->items()->create([
+        $item = $section->items()->create([
             'name' => $validated['name'],
             'weight' => $validated['weight'] ?? null,
             'unit' => $validated['unit'] ?? null,
@@ -400,6 +400,16 @@ class OrganizationMenuController extends Controller
             'delivery_enabled' => $request->boolean('delivery_enabled', true),
             'pickup_enabled' => $request->boolean('pickup_enabled', true),
         ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_item.created',
+            'Добавлено блюдо «' . $item->name . '»',
+            [],
+            $item->only(['name', 'weight', 'unit', 'price', 'description', 'is_active', 'delivery_enabled', 'pickup_enabled']),
+            'menu_item',
+            $item->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
@@ -489,6 +499,18 @@ class OrganizationMenuController extends Controller
             $imagePath = null;
         }
 
+        $beforeValues = $item->only([
+            'menu_section_id',
+            'name',
+            'weight',
+            'unit',
+            'price',
+            'description',
+            'is_active',
+            'delivery_enabled',
+            'pickup_enabled',
+        ]);
+
         $item->update([
             'menu_section_id' => $targetSection->id,
             'name' => $validated['name'],
@@ -506,6 +528,26 @@ class OrganizationMenuController extends Controller
         if ($oldImagePath && $oldImagePath !== $imagePath) {
             $this->deleteMenuItemImage($oldImagePath, $organization);
         }
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_item.updated',
+            'Изменено блюдо «' . $item->name . '»',
+            $beforeValues,
+            $item->fresh()->only([
+                'menu_section_id',
+                'name',
+                'weight',
+                'unit',
+                'price',
+                'description',
+                'is_active',
+                'delivery_enabled',
+                'pickup_enabled',
+            ]),
+            'menu_item',
+            $item->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
@@ -586,8 +628,29 @@ class OrganizationMenuController extends Controller
         );
 
         $imagePath = $item->image_path;
+        $deletedValues = $item->only([
+            'menu_section_id',
+            'name',
+            'weight',
+            'unit',
+            'price',
+            'description',
+            'is_active',
+            'delivery_enabled',
+            'pickup_enabled',
+        ]);
 
         $item->delete();
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_item.deleted',
+            'Удалено блюдо «' . $deletedValues['name'] . '»',
+            $deletedValues,
+            [],
+            'menu_item',
+            $item->id
+        );
 
         if ($imagePath) {
             $this->deleteMenuItemImage($imagePath, $organization);
