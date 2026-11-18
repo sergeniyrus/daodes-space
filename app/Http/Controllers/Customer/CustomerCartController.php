@@ -65,29 +65,28 @@ class CustomerCartController extends Controller
             ->get()
             ->keyBy('id');
 
-        $lines = collect($quantities)->map(function ($quantity, $itemId) use ($items) {
+        $lines = collect($quantities)->map(function ($quantity, $itemId) use ($items, $organization) {
             $item = $items->get((int) $itemId);
+            $section = $item?->section;
+            $settings = $organization->orderSettings;
+
+            $deliveryAvailable = $item !== null && $item->is_active && $section !== null
+                && $settings?->delivery_enabled && $item->delivery_enabled && $section->delivery_enabled;
+            $pickupAvailable = $item !== null && $item->is_active && $section !== null
+                && $settings?->pickup_enabled && $item->pickup_enabled && $section->pickup_enabled;
+            $dineInAvailable = $item !== null && $item->is_active && $section !== null
+                && (bool) ($settings?->dine_in_enabled);
+            $available = $deliveryAvailable || $pickupAvailable || $dineInAvailable;
 
             return [
                 'item_id' => (int) $itemId,
                 'item' => $item,
                 'quantity' => (int) $quantity,
-                'available' => $item !== null
-                    && $item->is_active
-                    && $item->section !== null
-                    && (
-                        ($item->delivery_enabled && $item->section->delivery_enabled)
-                        || ($item->pickup_enabled && $item->section->pickup_enabled)
-                    ),
-                'line_total' => $item
-                    && $item->is_active
-                    && $item->section !== null
-                    && (
-                        ($item->delivery_enabled && $item->section->delivery_enabled)
-                        || ($item->pickup_enabled && $item->section->pickup_enabled)
-                    )
-                        ? (float) $item->price * (int) $quantity
-                        : 0,
+                'delivery_available' => (bool) $deliveryAvailable,
+                'pickup_available' => (bool) $pickupAvailable,
+                'dine_in_available' => $dineInAvailable,
+                'available' => $available,
+                'line_total' => $available ? (float) $item->price * (int) $quantity : 0,
             ];
         })->values();
 
@@ -124,22 +123,30 @@ class CustomerCartController extends Controller
         $item = MenuItem::query()
             ->whereKey($validated['item_id'])
             ->where('is_active', true)
-            ->where(function ($query) {
-                $query->where('delivery_enabled', true)
-                    ->orWhere('pickup_enabled', true);
-            })
             ->whereHas('section', function ($query) use ($organization) {
                 $query->where('organization_id', $organization->id)
-                    ->where('is_active', true)
-                    ->where(function ($availabilityQuery) {
-                        $availabilityQuery->where(function ($methodQuery) {
-                            $methodQuery->where('menu_sections.delivery_enabled', true)
-                                ->where('menu_items.delivery_enabled', true);
-                        })->orWhere(function ($methodQuery) {
-                            $methodQuery->where('menu_sections.pickup_enabled', true)
-                                ->where('menu_items.pickup_enabled', true);
-                        });
+                    ->where('is_active', true);
+            })
+            ->where(function ($availabilityQuery) use ($settings) {
+                $availabilityQuery->whereRaw('1 = 0');
+
+                if ($settings->delivery_enabled) {
+                    $availabilityQuery->orWhere(function ($methodQuery) {
+                        $methodQuery->where('delivery_enabled', true)
+                            ->whereHas('section', fn ($sectionQuery) => $sectionQuery->where('delivery_enabled', true));
                     });
+                }
+
+                if ($settings->pickup_enabled) {
+                    $availabilityQuery->orWhere(function ($methodQuery) {
+                        $methodQuery->where('pickup_enabled', true)
+                            ->whereHas('section', fn ($sectionQuery) => $sectionQuery->where('pickup_enabled', true));
+                    });
+                }
+
+                if ($settings->dine_in_enabled) {
+                    $availabilityQuery->orWhereRaw('1 = 1');
+                }
             })
             ->firstOrFail();
 
@@ -216,34 +223,28 @@ class CustomerCartController extends Controller
 
         $organizationId = (int) ($cart['organization_id'] ?? 0);
 
-        abort_unless(
-            $organizationId > 0
+        $organization = $organizationId > 0
+            ? Organization::query()->with('orderSettings')->find($organizationId)
+            : null;
+
+        $section = $menuItem->section()
+            ->where('organization_id', $organizationId)
+            ->where('is_active', true)
+            ->first();
+
+        $settings = $organization?->orderSettings;
+
+        $available = $organizationId > 0
             && isset($cart['items'][$menuItem->id])
             && $menuItem->is_active
-            && ($menuItem->delivery_enabled || $menuItem->pickup_enabled)
-            && $menuItem->section()
-                ->where('organization_id', $organizationId)
-                ->where('is_active', true)
-                ->where(function ($query) use ($menuItem) {
-                    if ($menuItem->delivery_enabled) {
-                        $query->where('delivery_enabled', true);
-                    }
+            && $section !== null
+            && (
+                ($settings?->delivery_enabled && $menuItem->delivery_enabled && $section->delivery_enabled)
+                || ($settings?->pickup_enabled && $menuItem->pickup_enabled && $section->pickup_enabled)
+                || $settings?->dine_in_enabled
+            );
 
-                    if ($menuItem->pickup_enabled) {
-                        if ($menuItem->delivery_enabled) {
-                            $query->orWhere('pickup_enabled', true);
-                        } else {
-                            $query->where('pickup_enabled', true);
-                        }
-                    }
-
-                    if (!$menuItem->delivery_enabled && !$menuItem->pickup_enabled) {
-                        $query->whereRaw('1 = 0');
-                    }
-                })
-                ->exists(),
-            404
-        );
+        abort_unless($available, 404);
 
         $cart['items'][$menuItem->id] = (int) $validated['quantity'];
         $cartService->save($customer, $cart);
