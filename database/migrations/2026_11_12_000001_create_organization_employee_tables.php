@@ -8,48 +8,56 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('organization_employees', function (Blueprint $table) {
-            $table->id();
-            $table->string('name', 100);
-            $table->string('phone', 20)->unique();
-            $table->string('password');
-            $table->timestamp('phone_verified_at')->nullable();
-            $table->rememberToken();
-            $table->timestamp('last_seen_at')->nullable();
-            $table->timestamps();
-        });
+        /*
+         * Таблицы могли быть созданы вручную до запуска миграции.
+         * В таком случае не пытаемся создавать их повторно.
+         */
+        if (!Schema::hasTable('organization_employees')) {
+            Schema::create('organization_employees', function (Blueprint $table) {
+                $table->id();
+                $table->string('name', 100);
+                $table->string('phone', 20)->unique();
+                $table->string('password');
+                $table->timestamp('phone_verified_at')->nullable();
+                $table->rememberToken();
+                $table->timestamp('last_seen_at')->nullable();
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('organization_employee_memberships', function (Blueprint $table) {
-            $table->id();
+        if (!Schema::hasTable('organization_employee_memberships')) {
+            Schema::create('organization_employee_memberships', function (Blueprint $table) {
+                $table->id();
 
-            $table->foreignId('employee_id')
-                ->constrained('organization_employees')
-                ->cascadeOnDelete();
+                $table->foreignId('employee_id')
+                    ->constrained('organization_employees')
+                    ->cascadeOnDelete();
 
-            $table->foreignId('organization_id')
-                ->constrained('organizations')
-                ->cascadeOnDelete();
+                $table->foreignId('organization_id')
+                    ->constrained('organizations')
+                    ->cascadeOnDelete();
 
-            $table->string('role', 50)->default('employee');
-            $table->string('status', 20)->default('pending');
+                $table->string('role', 50)->default('employee');
+                $table->string('status', 20)->default('pending');
 
-            $table->timestamps();
+                $table->timestamps();
 
-            $table->unique(
-                ['organization_id', 'employee_id'],
-                'org_employee_membership_unique'
-            );
+                $table->unique(
+                    ['organization_id', 'employee_id'],
+                    'org_employee_membership_unique'
+                );
 
-            $table->index(
-                ['employee_id', 'status'],
-                'org_employee_employee_status_index'
-            );
+                $table->index(
+                    ['employee_id', 'status'],
+                    'org_employee_employee_status_index'
+                );
 
-            $table->index(
-                ['organization_id', 'role', 'status'],
-                'org_employee_org_role_status_index'
-            );
-        });
+                $table->index(
+                    ['organization_id', 'role', 'status'],
+                    'org_employee_org_role_status_index'
+                );
+            });
+        }
     }
 
     public function down(): void
