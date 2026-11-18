@@ -1091,6 +1091,73 @@
 .organization-quick-link strong{color:#f5cf67;font-size:1rem}.organization-quick-link small{color:#9aabba;line-height:1.45}
 @media(max-width:700px){.organization-container{width:calc(100% - 12px);margin:10px auto 24px;padding:11px;border-radius:15px}.organization-tabs{top:4px;gap:5px;margin-bottom:14px;padding:6px;border-radius:12px}.organization-tab{min-height:40px;padding:0 12px;font-size:.8rem}}
 
+
+
+/* Фоны отдельных TV-экранов */
+.tv-background-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+.tv-background-card {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid rgba(0, 229, 255, .24);
+    border-radius: 14px;
+    background: rgba(5, 10, 20, .55);
+}
+.tv-background-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #f5d76e;
+}
+.tv-background-card-heading a { color: #00e5ff; font-size: .82rem; text-decoration: none; white-space: nowrap; }
+.tv-background-preview, .tv-background-empty {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border: 1px solid rgba(255, 215, 0, .25);
+    border-radius: 9px;
+    background: #101522;
+}
+.tv-background-empty {
+    display: grid;
+    place-items: center;
+    color: #9da5b5;
+    font-size: .9rem;
+}
+.tv-background-form { display: grid; gap: 8px; margin-top: 12px; }
+.tv-background-form label { color: #d7dce6; font-size: .88rem; }
+.tv-background-form input[type="file"] {
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    color: #ddd;
+    background: #17181f;
+    border: 1px solid rgba(0, 229, 255, .3);
+    border-radius: 8px;
+    font-size: .8rem;
+}
+.tv-background-form small { color: #9298aa; }
+.tv-background-form .organization-button { width: 100%; min-height: 40px; padding: 7px 12px; }
+.tv-background-delete {
+    width: 100%;
+    min-height: 36px;
+    margin-top: 8px;
+    color: #ff8585;
+    background: transparent;
+    border: 1px solid rgba(255, 107, 107, .55);
+    border-radius: 9px;
+    cursor: pointer;
+}
+.tv-background-delete:hover { background: rgba(255, 107, 107, .12); }
+@media (max-width: 850px) { .tv-background-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .tv-background-grid { grid-template-columns: 1fr; } }
+
 </style>
 
 
@@ -2051,14 +2118,71 @@
 <a class="organization-quick-link" href="{{ route('organizations.orders.notifications', $organization) }}"><strong>Уведомления</strong><small>События и уведомления по заказам организации</small></a>
 <a class="organization-quick-link" href="{{ route('customer.catalog', $organization) }}" target="_blank" rel="noopener"><strong>Клиентский каталог</strong><small>Открыть меню так, как его видят посетители</small></a>
 </div></div></section>
-<section class="organization-tab-panel" data-tab-panel="tv"><div class="organization-section">
-<h2 class="organization-section-title">📺 TV-экраны организации</h2><div class="organization-quick-links">
-@foreach([1, 2, 3] as $screen)
-<a class="organization-quick-link" href="{{ route('organization.tv', $organization) }}?screen={{ $screen }}" target="_blank" rel="noopener"><strong>TV-экран {{ $screen }}</strong><small>Открыть экран организации в новой вкладке</small></a>
-@endforeach
-</div><div class="organization-order-hint">Распределение разделов по экранам настраивается в редакторе меню — в параметре «TV экран» каждого раздела.</div>
-<a href="{{ route('organizations.menu.index', $organization) }}" class="organization-button" style="display:inline-flex;margin-top:14px;text-decoration:none;">Настроить распределение разделов</a>
-</div></section>
+<section class="organization-tab-panel" data-tab-panel="tv">
+<div class="organization-section" id="tv-screens">
+    <h2 class="organization-section-title">📺 TV-экраны организации</h2>
+
+    <div class="tv-background-grid">
+        @foreach([1, 2, 3] as $screen)
+            @php
+                $tvBackgroundUrl = null;
+                $tvBackgroundPath = null;
+            @endphp
+
+            @foreach(['png', 'jpg', 'jpeg', 'webp'] as $extension)
+                @php
+                    $candidatePath = 'images/org/' . $organization->id . '/tv-backgrounds/tv' . $screen . '.' . $extension;
+                @endphp
+                @if(is_file(public_path($candidatePath)))
+                    @php
+                        $tvBackgroundPath = $candidatePath;
+                        $tvBackgroundUrl = asset($candidatePath);
+                    @endphp
+                    @break
+                @endif
+            @endforeach
+
+            <div class="tv-background-card">
+                <div class="tv-background-card-heading">
+                    <strong>TV-экран {{ $screen }}</strong>
+                    <a href="{{ route('organization.tv', $organization) }}?screen={{ $screen }}" target="_blank" rel="noopener">Открыть экран ↗</a>
+                </div>
+
+                @if($tvBackgroundUrl)
+                    <img class="tv-background-preview" src="{{ $tvBackgroundUrl }}" alt="Фон TV-экрана {{ $screen }}">
+                @else
+                    <div class="tv-background-empty">Фон не загружен</div>
+                @endif
+
+                <form method="POST" action="{{ route('organizations.tv.background.store', $organization) }}" enctype="multipart/form-data" class="tv-background-form">
+                    @csrf
+                    <input type="hidden" name="screen" value="{{ $screen }}">
+                    <label for="tv-background-{{ $screen }}">Изображение фона</label>
+                    <input id="tv-background-{{ $screen }}" type="file" name="background" accept="image/png,image/jpeg,image/webp" required>
+                    <small>PNG, JPG или WEBP · до 10 МБ</small>
+                    <button type="submit" class="organization-button">Загрузить фон</button>
+                </form>
+
+                @if($tvBackgroundUrl)
+                    <form method="POST" action="{{ route('organizations.tv.background.delete', $organization) }}" onsubmit="return confirm('Удалить фон TV-экрана {{ $screen }}?')">
+                        @csrf
+                        @method('DELETE')
+                        <input type="hidden" name="screen" value="{{ $screen }}">
+                        <button type="submit" class="tv-background-delete">Удалить фон</button>
+                    </form>
+                @endif
+            </div>
+        @endforeach
+    </div>
+
+    <div class="organization-order-hint">
+        Фон настраивается отдельно для каждого экрана и применяется автоматически. Рекомендуемый формат — горизонтальное изображение 16:9.
+        Распределение разделов по экранам настраивается в редакторе меню в параметре «TV экран» каждого раздела.
+    </div>
+
+    <a href="{{ route('organizations.menu.index', $organization) }}" class="organization-button" style="display:inline-flex;margin-top:14px;text-decoration:none;">Настроить распределение разделов</a>
+</div>
+</section>
 {{-- =====================================================
          НАЗАД
          ===================================================== --}}
