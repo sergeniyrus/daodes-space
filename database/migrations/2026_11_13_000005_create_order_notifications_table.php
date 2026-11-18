@@ -9,7 +9,6 @@ return new class extends Migration
     public function up(): void
     {
         if (!Schema::hasTable('order_notifications')) {
-        if (!Schema::hasTable('order_notifications')) {
         Schema::create('order_notifications', function (Blueprint $table) {
             $table->id();
 
@@ -41,7 +40,6 @@ return new class extends Migration
                 'order_notifications_order_event_index'
             );
         });
-        }
         }
     }
 
