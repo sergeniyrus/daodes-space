@@ -1158,6 +1158,34 @@
 @media (max-width: 850px) { .tv-background-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .tv-background-grid { grid-template-columns: 1fr; } }
 
+
+
+.tv-management-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.tv-management-heading .organization-section-title { margin: 0; }
+.tv-management-heading form { flex: 0 0 auto; }
+.tv-management-heading .organization-button { white-space: nowrap; }
+.tv-screen-delete {
+    width: 100%;
+    min-height: 36px;
+    margin-top: 8px;
+    color: #ff8585;
+    background: rgba(100, 20, 25, .12);
+    border: 1px solid rgba(255, 107, 107, .55);
+    border-radius: 9px;
+    cursor: pointer;
+}
+.tv-screen-delete:hover { background: rgba(255, 107, 107, .18); }
+@media (max-width: 560px) {
+    .tv-management-heading { align-items: flex-start; flex-direction: column; }
+    .tv-management-heading form, .tv-management-heading .organization-button { width: 100%; }
+}
+
 </style>
 
 
@@ -2120,10 +2148,16 @@
 </div></div></section>
 <section class="organization-tab-panel" data-tab-panel="tv">
 <div class="organization-section" id="tv-screens">
-    <h2 class="organization-section-title">📺 TV-экраны организации</h2>
+    <div class="tv-management-heading">
+        <h2 class="organization-section-title">📺 TV-экраны организации</h2>
+        <form method="POST" action="{{ route('organizations.tv.screens.store', $organization) }}">
+            @csrf
+            <button type="submit" class="organization-button" {{ count($tvScreens) >= 20 ? 'disabled' : '' }}>＋ Добавить экран</button>
+        </form>
+    </div>
 
     <div class="tv-background-grid">
-        @foreach([1, 2, 3] as $screen)
+        @foreach($tvScreens as $screen)
             @php
                 $tvBackgroundUrl = null;
                 $tvBackgroundPath = null;
@@ -2169,6 +2203,14 @@
                         @method('DELETE')
                         <input type="hidden" name="screen" value="{{ $screen }}">
                         <button type="submit" class="tv-background-delete">Удалить фон</button>
+                    </form>
+                @endif
+
+                @if(count($tvScreens) > 1)
+                    <form method="POST" action="{{ route('organizations.tv.screens.delete', [$organization, $screen]) }}" onsubmit="return confirm('Удалить TV-экран {{ $screen }}? Разделы меню будут перенесены на первый экран, остальные экраны перенумеруются.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="tv-screen-delete">Удалить TV-экран</button>
                     </form>
                 @endif
             </div>
