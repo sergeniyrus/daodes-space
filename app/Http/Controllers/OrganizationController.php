@@ -6,6 +6,7 @@ use App\Models\Organization;
 use App\Models\Order;
 use App\Models\OrganizationOrderSetting;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -137,7 +138,7 @@ class OrganizationController extends Controller
          * Операционная статистика онлайн-заказов.
          * Все выборки ограничены текущей организацией.
          */
-        $todayStart = now()->startOfDay();
+        $todayStart = Carbon::now('Asia/Krasnoyarsk')->startOfDay()->utc();
         $tomorrowStart = $todayStart->copy()->addDay();
 
         $orderStats = $organization->orders()
