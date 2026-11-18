@@ -60,6 +60,8 @@ class OrganizationMenuController extends Controller
                 'string',
                 'max:255',
             ],
+            'delivery_enabled' => ['nullable', 'boolean'],
+            'pickup_enabled' => ['nullable', 'boolean'],
         ]);
 
         $maxSortOrder = $organization->menuSections()
@@ -69,6 +71,8 @@ class OrganizationMenuController extends Controller
             'name' => $validated['name'],
             'sort_order' => ($maxSortOrder ?? 0) + 1,
             'is_active' => true,
+            'delivery_enabled' => $request->boolean('delivery_enabled', true),
+            'pickup_enabled' => $request->boolean('pickup_enabled', true),
         ]);
 
         return redirect()
@@ -128,12 +132,16 @@ class OrganizationMenuController extends Controller
                 'nullable',
                 'boolean',
             ],
+            'delivery_enabled' => ['nullable', 'boolean'],
+            'pickup_enabled' => ['nullable', 'boolean'],
         ]);
 
         $section->update([
             'name' => $validated['name'],
             'sort_order' => $validated['sort_order'] ?? $section->sort_order,
             'is_active' => $request->boolean('is_active'),
+            'delivery_enabled' => $request->boolean('delivery_enabled'),
+            'pickup_enabled' => $request->boolean('pickup_enabled'),
         ]);
 
         return redirect()
