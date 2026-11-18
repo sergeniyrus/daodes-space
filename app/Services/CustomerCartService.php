@@ -86,7 +86,7 @@ class CustomerCartService
                     ->where('organization_id', $organizationId)
                     ->delete();
 
-                session()->put($this->syncKey($customer, $organizationId), true);
+                session()->forget($this->syncKey($customer, $organizationId));
             }
 
             session()->forget(self::SESSION_KEY);
@@ -113,7 +113,7 @@ class CustomerCartService
                 ->where('organization_id', $organizationId)
                 ->delete();
 
-            session()->put($this->syncKey($customer, $organizationId), true);
+            session()->forget($this->syncKey($customer, $organizationId));
         }
 
         $sessionCart = session(self::SESSION_KEY, []);
