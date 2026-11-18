@@ -2,6 +2,70 @@
 
 @section('title_page')
     {{ __('organizations.management') }} — {{ $organization->name }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const root = document.querySelector('.organization-container');
+    if (!root) return;
+
+    const tabs = Array.from(root.querySelectorAll('[data-organization-tabs] [data-tab]'));
+    const panels = Array.from(root.querySelectorAll('[data-tab-panel]'));
+    const storageKey = 'organization-management-tab-{{ $organization->id }}';
+
+    function activateTab(name, persist = true) {
+        if (!panels.some(panel => panel.dataset.tabPanel === name)) {
+            name = 'overview';
+        }
+
+        tabs.forEach(tab => {
+            const active = tab.dataset.tab === name;
+            tab.classList.toggle('is-active', active);
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            tab.setAttribute('tabindex', active ? '0' : '-1');
+        });
+
+        panels.forEach(panel => {
+            const active = panel.dataset.tabPanel === name;
+            panel.classList.toggle('is-active', active);
+            panel.hidden = !active;
+        });
+
+        if (persist) {
+            try { sessionStorage.setItem(storageKey, name); } catch (error) {}
+        }
+    }
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function () {
+            activateTab(this.dataset.tab);
+        });
+    });
+
+    let initialTab = 'overview';
+    try {
+        initialTab = sessionStorage.getItem(storageKey) || 'overview';
+    } catch (error) {}
+
+    // После ошибки валидации показываем вкладку, где находится проблемное поле.
+    @if($errors->has('currency') || $errors->has('delivery_fee') || $errors->has('minimum_order') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled'))
+        initialTab = 'settings';
+    @elseif($errors->has('name') || $errors->has('phone') || $errors->has('role') || $errors->has('user_id'))
+        initialTab = 'team';
+    @endif
+
+    activateTab(initialTab, false);
+
+    root.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', function () {
+            const active = root.querySelector('[data-tab-panel].is-active');
+            if (active) {
+                try { sessionStorage.setItem(storageKey, active.dataset.tabPanel); } catch (error) {}
+            }
+        });
+    });
+});
+</script>
+
 @endsection
 
 @section('main')
@@ -1076,6 +1140,151 @@
     }
 }
 
+
+/* Organization management workspace and persistent tab navigation */
+.organization-container {
+    width: calc(100% - 32px);
+    max-width: none;
+    box-sizing: border-box;
+    margin: 22px auto 42px;
+    padding: clamp(14px, 2vw, 28px);
+    overflow: visible;
+    background:
+        radial-gradient(ellipse at 92% 0%, rgba(255,215,0,.09), transparent 34%),
+        radial-gradient(ellipse at 0% 100%, rgba(0,229,212,.08), transparent 38%),
+        linear-gradient(145deg,#080d18 0%,#101827 48%,#080d18 100%);
+    border: 1px solid rgba(0,229,212,.48);
+    box-shadow: 0 16px 48px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,215,0,.14);
+}
+.organization-header {
+    border-bottom-color: rgba(0,229,212,.28);
+}
+.organization-name {
+    color: #f5cf67;
+}
+.organization-tabs {
+    position: sticky;
+    top: 8px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 0 20px;
+    padding: 8px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    background: rgba(7,13,24,.94);
+    border: 1px solid rgba(0,229,212,.32);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    backdrop-filter: blur(14px);
+}
+.organization-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    flex: 1 0 auto;
+    min-height: 42px;
+    padding: 0 15px;
+    color: #aebdca;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font: inherit;
+    font-size: .88rem;
+    font-weight: 650;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: .18s ease;
+}
+.organization-tab span {
+    color: #00e5d4;
+    font-size: 1.05rem;
+}
+.organization-tab:hover {
+    color: #fff;
+    background: rgba(0,229,212,.07);
+    border-color: rgba(0,229,212,.22);
+}
+.organization-tab.is-active {
+    color: #f5d76e;
+    background: linear-gradient(135deg,rgba(0,229,212,.12),rgba(245,207,103,.10));
+    border-color: rgba(245,207,103,.48);
+    box-shadow: inset 0 0 14px rgba(0,229,212,.06), 0 0 12px rgba(245,207,103,.06);
+}
+.organization-tab-panel {
+    display: none;
+    min-width: 0;
+    animation: organizationTabIn .18s ease-out;
+}
+.organization-tab-panel.is-active {
+    display: block;
+}
+@keyframes organizationTabIn {
+    from { opacity: .65; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.organization-tab-panel > .organization-section:last-child {
+    margin-bottom: 0;
+}
+.organization-quick-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(min(100%,220px),1fr));
+    gap: 14px;
+}
+.organization-quick-link {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-height: 112px;
+    padding: 18px;
+    color: #dce7ee;
+    text-decoration: none;
+    background: linear-gradient(145deg,rgba(20,34,49,.94),rgba(9,16,29,.96));
+    border: 1px solid rgba(0,229,212,.27);
+    border-radius: 14px;
+    transition: .18s ease;
+}
+.organization-quick-link:hover {
+    color: #fff;
+    border-color: rgba(245,207,103,.7);
+    box-shadow: 0 0 18px rgba(0,229,212,.08);
+    transform: translateY(-2px);
+}
+.organization-quick-link strong {
+    color: #f5cf67;
+    font-size: 1rem;
+}
+.organization-quick-link small {
+    color: #9aabba;
+    line-height: 1.45;
+}
+.organization-tab-panel .organization-order-dashboard {
+    margin-bottom: 0;
+}
+@media(max-width:700px) {
+    .organization-container {
+        width: calc(100% - 12px);
+        margin: 10px auto 24px;
+        padding: 11px;
+        border-radius: 15px;
+    }
+    .organization-tabs {
+        top: 4px;
+        gap: 5px;
+        margin-bottom: 14px;
+        padding: 6px;
+        border-radius: 12px;
+    }
+    .organization-tab {
+        min-height: 40px;
+        padding: 0 12px;
+        font-size: .8rem;
+    }
+}
+
 </style>
 
 
@@ -1117,28 +1326,7 @@
 
             <span>
                 {{ __('organizations.status') }}:
-                {{ __('organizations.statuses.' . $organization->status) }}
-            </span>
-
-        </div>
-
-    </div>
-
-</div>
-
-    {{-- =====================================================
-         АНАЛИТИКА ОНЛАЙН-ЗАКАЗОВ
-         ===================================================== --}}
-
-    <section class="organization-order-dashboard">
-        <h2 class="organization-order-dashboard-title">📊 Заказы и выручка</h2>
-        <div class="organization-order-dashboard-subtitle">
-            Операционная сводка за {{ now()->format('d.m.Y') }} и текущая загрузка
-        </div>
-
-        <div class="organization-order-stats">
-            <div class="organization-order-stat" data-stat="orders-today">
-                <span class="organization-order-stat-label">Заказов сегодня</span>
+                {{ __('organizations.statuses.' . $organization->status)at-label">Заказов сегодня</span>
                 <strong class="organization-order-stat-value">{{ (int) ($orderStats->orders_today ?? 0) }}</strong>
             </div>
 
@@ -1197,6 +1385,933 @@
             📋 Открыть все заказы
         </a>
     </section>
+
+
+    {{-- =====================================================
+         УВЕДОМЛЕНИЯ
+         ===================================================== --}}
+
+    @if(session('success'))
+
+        <div class="organization-alert success">
+            {{ session('success') }}
+        </div>
+
+    @endif
+
+
+    @if(session('error'))
+
+        <div class="organization-alert error">
+            {{ session('error') }}
+        </div>
+
+    @endif
+
+
+    @if($errors->any())
+
+        <div class="organization-alert error">
+
+            @foreach($errors->all() as $error)
+
+                <div>
+                    {{ $error }}
+                </div>
+
+            @endforeach
+
+        </div>
+
+    @endif
+
+
+    <section class="organization-tab-panel" data-tab-panel="team">
+{{-- =====================================================
+         УЧАСТНИКИ
+         ===================================================== --}}
+
+    <div class="organization-section">
+
+        <h2 class="organization-section-title">
+            {{ __('organizations.members') }}
+        </h2>
+
+
+        @forelse($members as $member)
+
+            <div class="organization-member">
+
+                <div class="organization-member-main">
+
+                    <div class="organization-member-avatar">
+
+                        <img
+                            src="{{ $member->profile?->avatar_url ?? '/img/main/default-avatar.png' }}"
+                            alt="{{ $member->name }}"
+                        >
+
+                    </div>
+
+                    <div class="organization-member-content">
+
+                        <div class="organization-member-name">
+                            {{ $member->name }}
+                        </div>
+
+                        <div class="organization-member-info">
+
+                            <span class="organization-badge role">
+                                {{ __('organizations.roles.' . $member->pivot->role) }}
+                            </span>
+
+                            <span class="organization-badge {{ $member->pivot->status }}">
+                                {{ __('organizations.statuses.' . $member->pivot->status) }}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                {{-- =================================================
+                     УПРАВЛЕНИЕ СОТРУДНИКОМ
+                     ================================================= --}}
+
+                <div class="organization-member-actions">
+
+
+                    {{-- =================================================
+                         ИЗМЕНЕНИЕ РОЛИ
+                         ================================================= --}}
+
+                    <form
+                        method="POST"
+                        action="{{ route('organizations.employees.role', [
+                            'organization' => $organization,
+                            'user' => $member
+                        ]) }}"
+                    >
+
+                        @csrf
+
+                        <select
+                            name="role"
+                            class="organization-action-select"
+                            onchange="this.form.submit()"
+                            @disabled(auth()->id() === $member->id)
+                            aria-label="{{ __('organizations.actions.change_role') }}"
+                        >
+
+                            <option
+                                value="employee"
+                                @selected($member->pivot->role === 'employee')
+                            >
+                                {{ __('organizations.roles.employee') }}
+                            </option>
+
+                            <option
+                                value="manager"
+                                @selected($member->pivot->role === 'manager')
+                            >
+                                {{ __('organizations.roles.manager') }}
+                            </option>
+
+                        </select>
+
+                    </form>
+
+
+                    {{-- =================================================
+                         ИЗМЕНЕНИЕ СТАТУСА
+                         ================================================= --}}
+
+                    <form
+                        method="POST"
+                        action="{{ route('organizations.employees.status', [
+                            'organization' => $organization,
+                            'user' => $member
+                        ]) }}"
+                    >
+
+                        @csrf
+
+                        <select
+                            name="status"
+                            class="organization-action-select"
+                            onchange="this.form.submit()"
+                            @disabled(auth()->id() === $member->id)
+                            aria-label="{{ __('organizations.actions.change_status') }}"
+                        >
+
+                            <option
+                                value="active"
+                                @selected($member->pivot->status === 'active')
+                            >
+                                {{ __('organizations.statuses.active') }}
+                            </option>
+
+                            <option
+                                value="inactive"
+                                @selected($member->pivot->status === 'inactive')
+                            >
+                                {{ __('organizations.statuses.inactive') }}
+                            </option>
+
+                            <option
+                                value="blocked"
+                                @selected($member->pivot->status === 'blocked')
+                            >
+                                {{ __('organizations.statuses.blocked') }}
+                            </option>
+
+                        </select>
+
+                    </form>
+
+
+                    {{-- =================================================
+                         УДАЛЕНИЕ
+                         ================================================= --}}
+
+                    <form
+                        method="POST"
+                        action="{{ route('organizations.employees.destroy', [
+                            'organization' => $organization,
+                            'user' => $member
+                        ]) }}"
+                        onsubmit="return confirm('{{ __('organizations.messages.remove_confirm') }}');"
+                    >
+
+                        @csrf
+
+                        @method('DELETE')
+
+                        <button
+                            type="submit"
+                            class="organization-delete-button"
+                            @disabled(auth()->id() === $member->id)
+                        >
+                            {{ __('organizations.actions.remove') }}
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        @empty
+
+            <div class="organization-empty">
+                {{ __('organizations.no_members') }}
+            </div>
+
+        @endforelse
+
+    </div>
+
+
+    {{-- =====================================================
+         ДОБАВЛЕНИЕ СОТРУДНИКА
+         ===================================================== --}}
+
+    <div class="organization-section">
+
+        <h2 class="organization-section-title">
+            {{ __('organizations.add_employee') }}
+        </h2>
+
+
+        @if($availableUsers->isNotEmpty())
+
+            <form
+                method="POST"
+                action="{{ route('organizations.employees.store', $organization) }}"
+                class="organization-add-form"
+            >
+
+                @csrf
+
+                <select
+                    name="user_id"
+                    class="organization-select"
+                    required
+                >
+
+                    <option value="">
+                        {{ __('organizations.select_user') }}
+                    </option>
+
+                    @foreach($availableUsers as $availableUser)
+
+                        <option value="{{ $availableUser->id }}">
+                            {{ $availableUser->name }}
+                        </option>
+
+                    @endforeach
+
+                </select>
+
+                <button
+                    type="submit"
+                    class="organization-button"
+                >
+                    {{ __('organizations.add_employee') }}
+                </button>
+
+            </form>
+
+        @else
+
+            <div class="organization-empty">
+                {{ __('organizations.no_available_users') }}
+            </div>
+
+        @endif
+
+    </div>
+
+    {{-- =====================================================
+         ОТДЕЛЬНЫЙ ПЕРСОНАЛ ОРГАНИЗАЦИИ
+         ===================================================== --}}
+
+    <div class="organization-section">
+
+        <h2 class="organization-section-title">
+            👥 Персонал организации
+        </h2>
+
+        <form
+            method="POST"
+            action="{{ route('organizations.staff.store', $organization) }}"
+            class="organization-staff-form"
+        >
+            @csrf
+
+            <input
+                type="text"
+                name="name"
+                class="organization-staff-input"
+                value="{{ old('name') }}"
+                placeholder="Имя сотрудника"
+                maxlength="100"
+                required
+            >
+
+            <input
+                type="tel"
+                name="phone"
+                class="organization-staff-input"
+                value="{{ old('phone') }}"
+                placeholder="+79991234567"
+                maxlength="32"
+                autocomplete="tel"
+                required
+            >
+
+            <select
+                name="role"
+                class="organization-staff-select"
+                required
+            >
+                <option value="employee" @selected(old('role', 'employee') === 'employee')>
+                    👤 Сотрудник
+                </option>
+                <option value="cook" @selected(old('role') === 'cook')>
+                    👨‍🍳 Повар
+                </option>
+                <option value="courier" @selected(old('role') === 'courier')>
+                    🚚 Курьер
+                </option>
+            </select>
+
+            <button type="submit" class="organization-button">
+                Добавить
+            </button>
+        </form>
+
+        <div class="organization-staff-note">
+            Указывайте телефон в международном формате E.164, например +79991234567.
+            Если сотрудник уже работает в DAODES или другой организации, будет использована его существующая учётная запись.
+            Новый сотрудник получит доступ только после подтверждения телефона.
+        </div>
+
+        <div style="margin-top: 20px;">
+            @forelse($staffMemberships as $staffMembership)
+                @php
+                    $staffEmployee = $staffMembership->employee;
+                @endphp
+
+                @if($staffEmployee)
+                    <div class="organization-staff-card">
+                        <div class="organization-staff-main">
+                            <div class="organization-staff-name">
+                                {{ $staffEmployee->name }}
+                            </div>
+
+                            <div class="organization-staff-phone">
+                                {{ $staffEmployee->phone }}
+                            </div>
+
+                            <div class="organization-staff-meta">
+                                <span class="organization-badge role">
+                                    @switch($staffMembership->role)
+                                        @case('cook')
+                                            👨‍🍳 Повар
+                                            @break
+                                        @case('courier')
+                                            🚚 Курьер
+                                            @break
+                                        @default
+                                            👤 Сотрудник
+                                    @endswitch
+                                </span>
+
+                                <span class="organization-badge {{ $staffMembership->status }}">
+                                    @switch($staffMembership->status)
+                                        @case('active')
+                                            Активен
+                                            @break
+                                        @case('blocked')
+                                            Заблокирован
+                                            @break
+                                        @default
+                                            Ожидает активации
+                                    @endswitch
+                                </span>
+
+                                <span class="organization-badge {{ $staffEmployee->phone_verified_at ? 'verified' : 'unverified' }}">
+                                    {{ $staffEmployee->phone_verified_at ? 'Телефон подтверждён' : 'Телефон не подтверждён' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="organization-staff-actions">
+                            @if(!$staffEmployee->phone_verified_at && $staffMembership->status === 'pending')
+                                <form
+                                    method="POST"
+                                    action="{{ route('organizations.staff.invite', [$organization, $staffEmployee]) }}"
+                                >
+                                    @csrf
+                                    <button type="submit" class="organization-button">
+                                        Отправить приглашение повторно
+                                    </button>
+                                </form>
+                            @endif
+
+                            <form
+                                method="POST"
+                                action="{{ route('organizations.staff.role', [$organization, $staffEmployee]) }}"
+                            >
+                                @csrf
+                                @method('PATCH')
+
+                                <select
+                                    name="role"
+                                    class="organization-staff-action-select"
+                                    onchange="this.form.submit()"
+                                    aria-label="Изменить роль"
+                                >
+                                    <option value="employee" @selected($staffMembership->role === 'employee')>
+                                        Сотрудник
+                                    </option>
+                                    <option value="cook" @selected($staffMembership->role === 'cook')>
+                                        Повар
+                                    </option>
+                                    <option value="courier" @selected($staffMembership->role === 'courier')>
+                                        Курьер
+                                    </option>
+                                </select>
+                            </form>
+
+                            <form
+                                method="POST"
+                                action="{{ route('organizations.staff.status', [$organization, $staffEmployee]) }}"
+                            >
+                                @csrf
+                                @method('PATCH')
+
+                                <select
+                                    name="status"
+                                    class="organization-staff-action-select"
+                                    onchange="this.form.submit()"
+                                    aria-label="Изменить статус доступа"
+                                >
+                                    <option value="pending" @selected($staffMembership->status === 'pending')>
+                                        Ожидает
+                                    </option>
+                                    <option value="active" @selected($staffMembership->status === 'active')>
+                                        Активировать
+                                    </option>
+                                    <option value="blocked" @selected($staffMembership->status === 'blocked')>
+                                        Заблокировать
+                                    </option>
+                                </select>
+                            </form>
+
+                            <form
+                                method="POST"
+                                action="{{ route('organizations.staff.destroy', [$organization, $staffEmployee]) }}"
+                                onsubmit="return confirm('Удалить сотрудника из этой организации? Его аккаунт и доступ к другим организациям сохранятся.');"
+                            >
+                                @csrf
+                                @method('DELETE')
+
+                                <button type="submit" class="organization-staff-delete">
+                                    Удалить
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
+            @empty
+                <div class="organization-empty">
+                    В этой организации пока нет сотрудников.
+                </div>
+            @endforelse
+        </div>
+
+    </div>
+
+</section>
+
+{{-- =====================================================
+     НАСТРОЙКИ ОНЛАЙН-ЗАКАЗОВ
+     ===================================================== --}}
+<style>
+.organization-order-settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 14px;
+    margin-top: 16px;
+}
+.organization-order-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    color: #d8dce8;
+}
+.organization-order-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 12px;
+    color: #fff;
+    background: #090c16;
+    border: 1px solid rgba(0, 229, 212, .45);
+    border-radius: 9px;
+}
+.organization-order-input:focus {
+    border-color: gold;
+    outline: none;
+    box-shadow: 0 0 8px rgba(255, 215, 0, .18);
+}
+.organization-order-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 10px 16px;
+    margin-top: 18px;
+}
+.organization-order-options label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #d8dce8;
+}
+.organization-order-options input {
+    accent-color: #00e5d4;
+}
+.organization-order-hint {
+    margin-top: 14px;
+    color: #9da7b8;
+    font-size: .88rem;
+    line-height: 1.5;
+}
+.organization-order-error {
+    color: #ff8585;
+    font-size: .85rem;
+}
+</style>
+
+<section class="organization-tab-panel" data-tab-panel="settings">
+<div class="organization-section">
+    <h2 class="organization-section-title">
+        🛒 Настройки онлайн-заказов
+    </h2>
+
+    <form
+        method="POST"
+        action="{{ route('organizations.order-settings.update', $organization) }}"
+    >
+        @csrf
+        @method('PUT')
+
+        <div class="organization-order-settings">
+            <label class="organization-order-field">
+                Валюта (ISO 4217)
+                <input
+                    type="text"
+                    name="currency"
+                    class="organization-order-input"
+                    value="{{ old('currency', $orderSettings?->currency) }}"
+                    maxlength="3"
+                    minlength="3"
+                    pattern="[A-Za-z]{3}"
+                    placeholder="EUR"
+                    autocomplete="off"
+                >
+                @error('currency')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+
+            <label class="organization-order-field">
+                Стоимость доставки
+                <input
+                    type="number"
+                    name="delivery_fee"
+                    class="organization-order-input"
+                    value="{{ old('delivery_fee', $orderSettings?->delivery_fee ?? '0.00') }}"
+                    min="0"
+                    max="9999999999.99"
+                    step="0.01"
+                    required
+                >
+                @error('delivery_fee')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+
+            <label class="organization-order-field">
+                Минимальная сумма заказа
+                <input
+                    type="number"
+                    name="minimum_order"
+                    class="organization-order-input"
+                    value="{{ old('minimum_order', $orderSettings?->minimum_order) }}"
+                    min="0"
+                    max="9999999999.99"
+                    step="0.01"
+                    placeholder="Не ограничено"
+                >
+                @error('minimum_order')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+
+            <label class="organization-order-field">
+                Минимальное время самовывоза (мин.)
+                <input
+                    type="number"
+                    name="pickup_min_minutes"
+                    class="organization-order-input"
+                    value="{{ old('pickup_min_minutes', $orderSettings?->pickup_min_minutes) }}"
+                    min="0"
+                    max="1440"
+                    step="1"
+                    placeholder="Не задано"
+                >
+                @error('pickup_min_minutes')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+        </div>
+
+        <div class="organization-order-options">
+            <label>
+                <input
+                    type="checkbox"
+                    name="delivery_enabled"
+                    value="1"
+                    @checked(old('delivery_enabled', $orderSettings?->delivery_enabled ?? false))
+                >
+                🚚 Доставка
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="pickup_enabled"
+                    value="1"
+                    @checked(old('pickup_enabled', $orderSettings?->pickup_enabled ?? false))
+                >
+                🛍 Самовывоз
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="dine_in_enabled"
+                    value="1"
+                    @checked(old('dine_in_enabled', $orderSettings?->dine_in_enabled ?? false))
+                >
+                🍽 Заказ в заведении
+            </label>
+        </div>
+
+        <div class="organization-order-options">
+            <label>
+                <input
+                    type="checkbox"
+                    name="online_payment_enabled"
+                    value="1"
+                    @checked(old('online_payment_enabled', $orderSettings?->online_payment_enabled ?? false))
+                >
+                💳 Онлайн-оплата
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="cash_payment_enabled"
+                    value="1"
+                    @checked(old('cash_payment_enabled', $orderSettings?->cash_payment_enabled ?? false))
+                >
+                💵 Наличные при получении
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="card_payment_enabled"
+                    value="1"
+                    @checked(old('card_payment_enabled', $orderSettings?->card_payment_enabled ?? false))
+                >
+                💳 Терминал при получении
+            </label>
+        </div>
+
+        <div class="organization-order-options">
+            <label>
+                <input
+                    type="checkbox"
+                    name="orders_enabled"
+                    value="1"
+                    @checked(old('orders_enabled', $orderSettings?->orders_enabled ?? false))
+                >
+                <strong style="color: gold;">Принимать онлайн-заказы</strong>
+            </label>
+        </div>
+
+        @error('delivery_enabled')
+            <div class="organization-order-error">{{ $message }}</div>
+        @enderror
+        @error('cash_payment_enabled')
+            <div class="organization-order-error">{{ $message }}</div>
+        @enderror
+
+        <div class="organization-order-hint">
+            Для включения заказов укажите валюту, выберите хотя бы один способ получения
+            и включите наличные или оплату терминалом при получении. Флажок онлайн-оплаты
+            сохраняет настройку на будущее, но сама онлайн-оплата станет доступна только
+            после подключения провайдера и серверного подтверждения webhook.
+        </div>
+
+        <div class="organization-order-hint">
+            <strong style="color: #f5d76e;">Проверка готовности корзины:</strong>
+            <ul style="margin: 8px 0 0; padding-left: 20px;">
+                <li>
+                    @if(filled($orderSettings?->currency))
+                        <span style="color: #00e5a8;">✓ Валюта указана ({{ $orderSettings->currency }})</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Укажите валюту (например, EUR или RUB)</span>
+                    @endif
+                </li>
+                <li>
+                    @if($orderSettings?->orders_enabled)
+                        <span style="color: #00e5a8;">✓ Приём онлайн-заказов включён</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Включите «Принимать онлайн-заказы»</span>
+                    @endif
+                </li>
+                <li>
+                    @if($orderSettings?->delivery_enabled || $orderSettings?->pickup_enabled || $orderSettings?->dine_in_enabled)
+                        <span style="color: #00e5a8;">✓ Способ получения выбран</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Выберите доставку, самовывоз или заказ в заведении</span>
+                    @endif
+                </li>
+                <li>
+                    @if($orderSettings?->cash_payment_enabled || $orderSettings?->card_payment_enabled)
+                        <span style="color: #00e5a8;">✓ Оплата при получении включена</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Включите наличные или терминал при получении</span>
+                    @endif
+                </li>
+            </ul>
+            @if(!$orderSettings?->canAcceptOrders())
+                <div style="margin-top: 8px; color: #ffb74d;">
+                    Пока все четыре условия не выполнены, клиент не сможет добавлять блюда в корзину.
+                </div>
+            @endif
+        </div>
+
+        <button type="submit" class="organization-button" style="margin-top: 16px;">
+            Сохранить настройки заказов
+        </button>
+    </form>
+
+    <div class="organization-order-hint">
+        @if($orderSettings?->canAcceptOrders())
+            <span style="color: #00e5a8;">● Онлайн-заказы включены</span>
+        @else
+            <span style="color: #d8b45b;">● Онлайн-заказы пока выключены или настройки не завершены</span>
+        @endif
+    </div>
+
+    <a
+        href="{{ route('organizations.orders.index', $organization) }}"
+        class="organization-button"
+        style="display: inline-flex; margin-top: 14px; text-decoration: none;"
+    >
+        📋 Управление заказами
+    </a>
+
+    <a
+        href="{{ route('customer.catalog', $organization) }}"
+        class="organization-button"
+        style="display: inline-flex; margin-top: 14px; text-decoration: none;"
+        target="_blank"
+        rel="noopener"
+    >
+        Открыть клиентский каталог
+    </a>
+</div>
+
+</section>
+
+{{-- =====================================================
+     УПРАВЛЕНИЕ МЕНЮ
+     ===================================================== --}}
+
+<section class="organization-tab-panel" data-tab-panel="menu">
+<div class="organization-section">
+
+    <h2 class="organization-section-title">
+        Управление меню
+    </h2>
+
+    <a
+        href="{{ route('organizations.menu.index', $organization) }}"
+        class="organization-button"
+        style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none;"
+    >
+        🍽 Управление меню
+    </a>
+
+</div>
+
+    </section>
+
+
+<section class="organization-tab-panel" data-tab-panel="orders">
+    <div class="organization-section">
+        <h2 class="organization-section-title">📋 Управление заказами</h2>
+        <div class="organization-quick-links">
+            <a class="organization-quick-link" href="{{ route('organizations.orders.index', $organization) }}">
+                <strong>Все заказы</strong>
+                <small>Просмотр заказов, статусов и деталей выполнения</small>
+            </a>
+            <a class="organization-quick-link" href="{{ route('organizations.orders.notifications', $organization) }}">
+                <strong>Уведомления</strong>
+                <small>События и уведомления по заказам организации</small>
+            </a>
+            <a class="organization-quick-link" href="{{ route('customer.catalog', $organization) }}" target="_blank" rel="noopener">
+                <strong>Клиентский каталог</strong>
+                <small>Открыть меню так, как его видят посетители</small>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="organization-tab-panel" data-tab-panel="tv">
+    <div class="organization-section">
+        <h2 class="organization-section-title">📺 TV-экраны организации</h2>
+        <div class="organization-quick-links">
+            @foreach([1, 2, 3] as $screen)
+                <a class="organization-quick-link" href="{{ route('organization.tv', $organization) }}?screen={{ $screen }}" target="_blank" rel="noopener">
+                    <strong>TV-экран {{ $screen }}</strong>
+                    <small>Открыть экран организации в новой вкладке</small>
+                </a>
+            @endforeach
+        </div>
+        <div class="organization-order-hint">
+            Распределение разделов по экранам настраивается в редакторе меню — в параметре «TV экран» каждого раздела.
+        </div>
+        <a href="{{ route('organizations.menu.index', $organization) }}" class="organization-button" style="display:inline-flex;margin-top:14px;text-decoration:none;">
+            Настроить распределение разделов
+        </a>
+    </div>
+</section>
+
+{{-- =====================================================
+         НАЗАД
+         ===================================================== --}}
+
+    <a
+        href="{{ route('organizations.index', $organization) }}"
+        class="organization-back"
+    >
+        ← {{ __('organizations.back_to_organization') }}
+    </a>
+
+</div>
+
+@endsectio{{-- =====================================================
+         УВЕДОМЛЕНИЯ
+         ===================================================== --}}
+
+    @if(session('success'))
+
+        <div class="organization-alert success">
+            {{ session('success') }}
+        </div>
+
+    @endif
+
+
+    @if(session('error'))
+
+        <div class="organization-alert error">
+            {{ session('error') }}
+        </div>
+
+    @endif
+
+
+    @if($errors->any())
+
+        <div class="organization-alert error">
+
+            @foreach($errors->all() as $error)
+
+                <div>
+                    {{ $error }}
+                </div>
+
+            @endforeach
+
+        </div>
+
+    @endif
+
+
+    
+
+    <nav class="organization-tabs" aria-label="Разделы управления организацией" data-organization-tabs>
+        <button type="button" class="organization-tab is-active" data-tab="overview"><span>⌂</span> Обзор</button>
+        <button type="button" class="organization-tab" data-tab="team"><span>♙</span> Команда</button>
+        <button type="button" class="organization-tab" data-tab="orders"><span>▤</span> Заказы</button>
+        <button type="button" class="organization-tab" data-tab="menu"><span>☷</span> Меню</button>
+        <button type="button" class="organization-tab" data-tab="tv"><span>▣</span> TV-экраны</button>
+        <button type="button" class="organization-tab" data-tab="settings"><span>⚙</span> Настройки</button>
+    </nav>
+<section class="organization-tab-panel is-active" data-tab-panel="overview">
+
+</section>
 
 
     {{-- =====================================================
@@ -2022,4 +3137,53 @@
 
 </div>
 
-@endsection
+@endsectio{{-- =====================================================
+         УВЕДОМЛЕНИЯ
+         ===================================================== --}}
+
+    @if(session('success'))
+
+        <div class="organization-alert success">
+            {{ session('success') }}
+        </div>
+
+    @endif
+
+
+    @if(session('error'))
+
+        <div class="organization-alert error">
+            {{ session('error') }}
+        </div>
+
+    @endif
+
+
+    @if($errors->any())
+
+        <div class="organization-alert error">
+
+            @foreach($errors->all() as $error)
+
+                <div>
+                    {{ $error }}
+                </div>
+
+            @endforeach
+
+        </div>
+
+    @endif
+
+
+    
+
+    <nav class="organization-tabs" aria-label="Разделы управления организацией" data-organization-tabs>
+        <button type="button" class="organization-tab is-active" data-tab="overview"><span>⌂</span> Обзор</button>
+        <button type="button" class="organization-tab" data-tab="team"><span>♙</span> Команда</button>
+        <button type="button" class="organization-tab" data-tab="orders"><span>▤</span> Заказы</button>
+        <button type="button" class="organization-tab" data-tab="menu"><span>☷</span> Меню</button>
+        <button type="button" class="organization-tab" data-tab="tv"><span>▣</span> TV-экраны</button>
+        <button type="button" class="organization-tab" data-tab="settings"><span>⚙</span> Настройки</button>
+    </nav>
+n
