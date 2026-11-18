@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Models\\MenuItem;
-use App\\Models\\Organization;
-use App\\Services\\IPFSService;
-use Illuminate\\Console\\Command;
-use Illuminate\\Http\\UploadedFile;
+use App\Models\MenuItem;
+use App\Models\Organization;
+use App\Services\IPFSService;
+use Illuminate\Console\Command;
+use Illuminate\Http\UploadedFile;
 
 class MigrateOrganizationMediaToIpfs extends Command
 {
@@ -97,7 +97,7 @@ class MigrateOrganizationMediaToIpfs extends Command
 
                     $this->info('Блюдо #' . $item->id . ' перенесено: ' . $cid);
                     $uploaded++;
-                } catch (\\Throwable $exception) {
+                } catch (\Throwable $exception) {
                     $this->error('Блюдо #' . $item->id . ': ' . $exception->getMessage());
                     $failed++;
                 }
@@ -173,7 +173,7 @@ class MigrateOrganizationMediaToIpfs extends Command
                             $this->info('Организация #' . $organization->id
                                 . ', TV ' . $screen . ' перенесён: ' . $cid);
                             $uploaded++;
-                        } catch (\\Throwable $exception) {
+                        } catch (\Throwable $exception) {
                             $this->error('Организация #' . $organization->id
                                 . ', TV ' . $screen . ': ' . $exception->getMessage());
                             $failed++;
