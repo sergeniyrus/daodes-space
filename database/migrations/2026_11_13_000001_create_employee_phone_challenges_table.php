@@ -8,6 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (!Schema::hasTable('employee_phone_challenges')) {
         Schema::create('employee_phone_challenges', function (Blueprint $table) {
             $table->id();
 
@@ -38,10 +39,11 @@ return new class extends Migration
                 'employee_phone_challenge_scope_index'
             );
         });
+        }
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('employee_phone_challenges');
+        // Не удаляем таблицы и данные: они могут существовать до запуска этой миграции.
     }
 };
