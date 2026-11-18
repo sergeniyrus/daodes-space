@@ -16,12 +16,16 @@ class MenuSection extends Model
         'name',
         'sort_order',
         'is_active',
+        'delivery_enabled',
+        'pickup_enabled',
     ];
 
     protected $casts = [
         'organization_id' => 'integer',
         'sort_order' => 'integer',
         'is_active' => 'boolean',
+        'delivery_enabled' => 'boolean',
+        'pickup_enabled' => 'boolean',
     ];
 
     /**
@@ -55,10 +59,6 @@ class MenuSection extends Model
             MenuItem::class
         )
             ->where('is_active', true)
-            ->where(function ($query) {
-                $query->where('delivery_enabled', true)
-                    ->orWhere('pickup_enabled', true);
-            })
             ->orderBy(
                 'sort_order'
             );
