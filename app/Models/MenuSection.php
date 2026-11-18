@@ -54,10 +54,11 @@ class MenuSection extends Model
         return $this->hasMany(
             MenuItem::class
         )
-            ->where(
-                'is_active',
-                true
-            )
+            ->where('is_active', true)
+            ->where(function ($query) {
+                $query->where('delivery_enabled', true)
+                    ->orWhere('pickup_enabled', true);
+            })
             ->orderBy(
                 'sort_order'
             );
