@@ -82,6 +82,7 @@ class CustomerCheckoutController extends Controller
         }
 
         $items = MenuItem::query()
+            ->with('section')
             ->whereIn('id', array_map('intval', array_keys($quantities)))
             ->where('is_active', true)
             ->whereHas('section', function ($query) use ($organizationId) {
@@ -122,12 +123,47 @@ class CustomerCheckoutController extends Controller
                     ->with('error', 'Сумма заказа превышает допустимый предел.');
             }
 
+            $section = $item->section;
+
             $lines[] = [
                 'item' => $item,
                 'quantity' => (int) $quantity,
                 'line_total' => $this->fromCents($lineTotalCents),
+                'available_delivery' => (bool) (
+                    $settings->delivery_enabled
+                    && $item->delivery_enabled
+                    && $section?->is_active
+                    && $section?->delivery_enabled
+                ),
+                'available_pickup' => (bool) (
+                    $settings->pickup_enabled
+                    && $item->pickup_enabled
+                    && $section?->is_active
+                    && $section?->pickup_enabled
+                ),
+                'available_dine_in' => (bool) (
+                    $settings->dine_in_enabled
+                    && $section?->is_active
+                ),
             ];
         }
+
+        $canUseDelivery = $settings->delivery_enabled
+            && collect($lines)->every(fn ($line) => $line['available_delivery']);
+        $canUsePickup = $settings->pickup_enabled
+            && collect($lines)->every(fn ($line) => $line['available_pickup']);
+        $canUseDineIn = $settings->dine_in_enabled
+            && collect($lines)->every(fn ($line) => $line['available_dine_in']);
+
+        // Сохраняем прежний приоритет способов, но не выбираем вариант,
+        // который недоступен хотя бы для одной позиции корзины.
+        $defaultFulfillment = $canUsePickup
+            ? Order::FULFILLMENT_PICKUP
+            : ($canUseDineIn
+                ? Order::FULFILLMENT_DINE_IN
+                : ($canUseDelivery ? Order::FULFILLMENT_DELIVERY : null));
+
+        $selectedFulfillment = $request->old('fulfillment_type', $defaultFulfillment);
 
         $savedAddresses = $customer->addresses()
             ->orderByDesc('is_default')
@@ -211,6 +247,10 @@ class CustomerCheckoutController extends Controller
                 : null,
             'currencySymbol' => $settings->currency === 'RUB' ? '₽' : $settings->currency,
             'idempotencyKey' => $idempotencyKey,
+            'canUseDelivery' => $canUseDelivery,
+            'canUsePickup' => $canUsePickup,
+            'canUseDineIn' => $canUseDineIn,
+            'selectedFulfillment' => $selectedFulfillment,
         ]);
     }
 
