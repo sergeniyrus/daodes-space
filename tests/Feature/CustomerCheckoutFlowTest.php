@@ -1832,6 +1832,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 $table->string('name', 255);
                 $table->unsignedBigInteger('type_id')->nullable();
                 $table->string('status', 20)->default('active');
+                $table->unsignedTinyInteger('tv_screens_count')->default(3);
                 $table->timestamps();
 
                 $table->index('status', 'idx_organizations_status');
@@ -1881,7 +1882,10 @@ class CustomerCheckoutFlowTest extends TestCase
                 $table->unsignedBigInteger('organization_id');
                 $table->string('name', 255);
                 $table->integer('sort_order')->default(0);
+                $table->unsignedTinyInteger('tv_screen')->default(1);
                 $table->boolean('is_active')->default(true);
+                $table->boolean('delivery_enabled')->default(true);
+                $table->boolean('pickup_enabled')->default(true);
                 $table->timestamps();
 
                 $table->unique(
@@ -1911,8 +1915,11 @@ class CustomerCheckoutFlowTest extends TestCase
                 $table->string('unit', 20)->nullable();
                 $table->decimal('price', 10, 2)->default(0);
                 $table->text('description')->nullable();
+                $table->string('image_path', 500)->nullable();
                 $table->integer('sort_order')->default(0);
                 $table->boolean('is_active')->default(true);
+                $table->boolean('delivery_enabled')->default(true);
+                $table->boolean('pickup_enabled')->default(true);
                 $table->timestamps();
 
                 $table->unique(
