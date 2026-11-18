@@ -108,15 +108,21 @@ class OrganizationTVController extends Controller
      */
     public function deleteScreen(Request $request, Organization $organization, int $screen)
     {
+        $validated = $request->validate([
+            'expected_screens_count' => ['required', 'integer', 'min:1', 'max:20'],
+        ]);
+
+        $expectedCount = (int) $validated['expected_screens_count'];
         $directory = public_path('images/org/' . $organization->id . '/tv-backgrounds');
         $backupDirectory = $directory . '/.tv-delete-' . (string) Str::uuid();
-        $deletedScreen = false;
+        $deleteResult = 'stale';
         $originalsCleared = false;
 
         try {
-            $deletedScreen = DB::transaction(function () use (
+            $deleteResult = DB::transaction(function () use (
                 $organization,
                 $screen,
+                $expectedCount,
                 $directory,
                 $backupDirectory,
                 &$originalsCleared
@@ -131,8 +137,13 @@ class OrganizationTVController extends Controller
 
                 abort_unless($screen >= 1 && $screen <= $lockedCount, 404);
 
+                // Повторный запрос со старой формой не должен удалить уже перенумерованный экран.
+                if ($lockedCount !== $expectedCount) {
+                    return 'stale';
+                }
+
                 if ($lockedCount <= 1) {
-                    return false;
+                    return 'last';
                 }
 
                 File::ensureDirectoryExists($directory);
@@ -184,7 +195,7 @@ class OrganizationTVController extends Controller
                 $lockedOrganization->tv_screens_count = $lockedCount - 1;
                 $lockedOrganization->save();
 
-                return true;
+                return 'deleted';
             });
         } catch (\Throwable $exception) {
             // Компенсируем файловые операции, если БД не смогла зафиксировать изменения.
@@ -218,7 +229,13 @@ class OrganizationTVController extends Controller
             throw $exception;
         }
 
-        if (!$deletedScreen) {
+        if ($deleteResult === 'stale') {
+            return redirect()
+                ->route('organizations.manage', $organization)
+                ->with('error', 'Список TV-экранов уже изменился. Обновите страницу и повторите действие.');
+        }
+
+        if ($deleteResult === 'last') {
             return redirect()
                 ->route('organizations.manage', $organization)
                 ->with('error', 'Нельзя удалить последний TV-экран.');
