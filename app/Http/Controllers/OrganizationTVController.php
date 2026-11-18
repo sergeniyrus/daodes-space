@@ -67,9 +67,20 @@ class OrganizationTVController extends Controller
             }
         }
 
+        $screenCount = max(1, (int) ($organization->tv_screens_count ?? 3));
+        $screenConfigs = $organization->tv_screens_config ?? [];
+        $screenConfig = $screenConfigs[$screen] ?? [];
+        $backgroundFit = in_array($screenConfig['background_fit'] ?? 'cover', ['cover', 'contain', 'stretch'], true)
+            ? $screenConfig['background_fit']
+            : 'cover';
+
         return view('tv.organization', [
             'organization' => $organization,
             'screen' => $screen,
+            'screenCount' => $screenCount,
+            'screenName' => trim((string) ($screenConfig['name'] ?? '')) ?: 'TV-экран ' . $screen,
+            'backgroundFit' => $backgroundFit,
+            'rotationSeconds' => max(0, min(3600, (int) ($screenConfig['rotation_seconds'] ?? 0))),
             'sections' => $sections,
             'backgroundUrl' => $backgroundUrl,
         ]);
@@ -93,11 +104,61 @@ class OrganizationTVController extends Controller
                 abort(422, 'Можно создать не более 20 TV-экранов.');
             }
 
-            $lockedOrganization->tv_screens_count = $currentCount + 1;
+            $newScreen = $currentCount + 1;
+            $screenConfigs = $lockedOrganization->tv_screens_config ?? [];
+            $screenConfigs[$newScreen] = [
+                'name' => 'TV-экран ' . $newScreen,
+                'background_fit' => 'cover',
+                'rotation_seconds' => 0,
+            ];
+
+            $lockedOrganization->tv_screens_count = $newScreen;
+            $lockedOrganization->tv_screens_config = $screenConfigs;
             $lockedOrganization->save();
 
             return $currentCount + 1;
         });
+
+        return redirect()
+            ->route('organizations.manage', $organization)
+            ->with('success', 'TV-экран ' . $newCount . ' создан.');
+    }
+
+    /**
+     * Сохранение имени, режима фона и интервала переключения TV-экрана.
+     */
+    public function updateScreenSettings(Request $request, Organization $organization, int $screen)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:60'],
+            'background_fit' => ['required', 'in:cover,contain,stretch'],
+            'rotation_seconds' => ['required', 'integer', 'min:0', 'max:3600'],
+        ]);
+
+        DB::transaction(function () use ($organization, $screen, $validated) {
+            $lockedOrganization = Organization::query()
+                ->whereKey($organization->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $screenCount = max(1, (int) ($lockedOrganization->tv_screens_count ?? 3));
+            abort_unless($screen >= 1 && $screen <= $screenCount, 404);
+
+            $screenConfigs = $lockedOrganization->tv_screens_config ?? [];
+            $screenConfigs[$screen] = [
+                'name' => trim($validated['name']),
+                'background_fit' => $validated['background_fit'],
+                'rotation_seconds' => (int) $validated['rotation_seconds'],
+            ];
+
+            $lockedOrganization->tv_screens_config = $screenConfigs;
+            $lockedOrganization->save();
+        });
+
+        return redirect()
+            ->route('organizations.manage', $organization)
+            ->with('success', 'Настройки TV-экрана ' . $screen . ' сохранены.');
+    }
 
         return redirect()
             ->route('organizations.manage', $organization)
@@ -197,7 +258,26 @@ class OrganizationTVController extends Controller
                     ->where('tv_screen', '>', $screen)
                     ->decrement('tv_screen');
 
+                $screenConfigs = $lockedOrganization->tv_screens_config ?? [];
+                unset($screenConfigs[$screen]);
+
+                $renumberedConfigs = [];
+
+                for ($oldScreen = 1; $oldScreen <= $lockedCount; $oldScreen++) {
+                    if ($oldScreen === $screen) {
+                        continue;
+                    }
+
+                    $newScreen = $oldScreen > $screen ? $oldScreen - 1 : $oldScreen;
+                    $renumberedConfigs[$newScreen] = $screenConfigs[$oldScreen] ?? [
+                        'name' => 'TV-экран ' . $newScreen,
+                        'background_fit' => 'cover',
+                        'rotation_seconds' => 0,
+                    ];
+                }
+
                 $lockedOrganization->tv_screens_count = $lockedCount - 1;
+                $lockedOrganization->tv_screens_config = $renumberedConfigs;
                 $lockedOrganization->save();
 
                 return 'deleted';
