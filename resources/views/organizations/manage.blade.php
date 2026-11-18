@@ -1558,6 +1558,26 @@
         </h2>
 
 
+        <form
+            method="GET"
+            action="{{ route('organizations.manage', $organization) }}"
+            class="organization-add-form"
+            style="margin-bottom: 12px;"
+        >
+            <input
+                type="search"
+                name="user_search"
+                class="organization-select"
+                value="{{ request('user_search') }}"
+                placeholder="Поиск пользователя DAODES..."
+                aria-label="Поиск пользователя DAODES"
+            >
+            <button type="submit" class="organization-button">Найти</button>
+            @if(request()->filled('user_search'))
+                <a href="{{ route('organizations.manage', $organization) }}" class="organization-button" style="text-decoration:none;">Сбросить</a>
+            @endif
+        </form>
+
         @if($availableUsers->isNotEmpty())
 
             <form
@@ -1597,10 +1617,14 @@
 
             </form>
 
+            <div class="organization-pagination">
+                {{ $availableUsers->links() }}
+            </div>
+
         @else
 
             <div class="organization-empty">
-                {{ __('organizations.no_available_users') }}
+                {{ request()->filled('user_search') ? 'По вашему запросу пользователи не найдены.' : __('organizations.no_available_users') }}
             </div>
 
         @endif
