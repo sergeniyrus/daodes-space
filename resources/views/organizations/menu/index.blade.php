@@ -946,6 +946,129 @@
     }
 }
 
+
+/* Desktop: one compact horizontal row per menu section. */
+@media (min-width: 1100px) {
+    .menu-section-header {
+        display: grid;
+        grid-template-columns: minmax(135px, .72fr) minmax(0, 4fr);
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 0;
+    }
+
+    .menu-section-title-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 5px;
+        min-width: 0;
+    }
+
+    .menu-section-title {
+        width: 100%;
+        font-size: 1.08rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .menu-section-meta {
+        margin-left: 0;
+        font-size: .72rem;
+    }
+
+    .menu-section-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+        gap: 6px;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .menu-section-quick-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 6px;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .menu-section-settings-form {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 6px;
+        min-width: 0;
+        flex: 1 1 auto;
+        padding: 6px;
+    }
+
+    .menu-section-setting {
+        flex: 0 0 auto;
+        gap: 3px;
+        font-size: .66rem;
+    }
+
+    .menu-section-name-setting {
+        flex: 1 1 130px;
+        min-width: 95px;
+    }
+
+    .menu-section-text-input {
+        width: 100%;
+        min-width: 0;
+        min-height: 34px;
+        padding: 3px 7px;
+        font-size: .78rem;
+    }
+
+    .menu-sort-input,
+    .menu-section-select {
+        min-height: 34px;
+        height: 34px;
+        padding: 3px 6px;
+        font-size: .76rem;
+    }
+
+    .menu-sort-input {
+        width: 48px;
+    }
+
+    .menu-section-select {
+        width: 66px;
+    }
+
+    .menu-section-check {
+        min-height: 34px;
+        gap: 3px;
+        font-size: .7rem;
+    }
+
+    .menu-section-check input {
+        width: 14px;
+        height: 14px;
+        margin: 0;
+    }
+
+    .menu-quick-button,
+    .menu-section-actions > .menu-admin-button,
+    .menu-section-actions > form > .menu-admin-button {
+        min-height: 34px;
+        padding: 0 8px;
+        font-size: .72rem;
+        white-space: nowrap;
+    }
+
+    .menu-section-actions > .menu-admin-button,
+    .menu-section-actions > form {
+        flex: 0 0 auto;
+    }
+}
+
 </style>
 
 
