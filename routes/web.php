@@ -75,6 +75,11 @@ Route::get('/tv2', [TV2Controller::class, 'index'])->name('tv2');
 
 Route::get('/tv3', [TV3Controller::class, 'index'])->name('tv3');
 
+// Новые TV-экраны организаций. Старые /tv1, /tv2, /tv3 остаются без изменений.
+Route::get('/organization/{organization}/tv', [OrganizationTVController::class, 'show'])
+    ->whereNumber('organization')
+    ->name('organization.tv');
+
 
 /*
 |--------------------------------------------------------------------------
