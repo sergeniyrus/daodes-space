@@ -19,6 +19,9 @@ class MenuItem extends Model
         'description',
         'sort_order',
         'is_active',
+        'image_path',
+        'delivery_enabled',
+        'pickup_enabled',
     ];
 
     protected $casts = [
@@ -27,6 +30,8 @@ class MenuItem extends Model
         'price' => 'decimal:2',
         'sort_order' => 'integer',
         'is_active' => 'boolean',
+        'delivery_enabled' => 'boolean',
+        'pickup_enabled' => 'boolean',
     ];
 
     /**
