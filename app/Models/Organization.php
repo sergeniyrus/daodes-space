@@ -19,6 +19,10 @@ class Organization extends Model
         'status',
     ];
 
+    protected $casts = [
+        'tv_screens_config' => 'array',
+    ];
+
     /**
      * Пользователи DAODES, связанные с организацией.
      */
