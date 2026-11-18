@@ -15,6 +15,7 @@ return new class extends Migration
         }
 
         if (!Schema::hasTable('payment_webhook_events')) {
+        if (!Schema::hasTable('payment_webhook_events')) {
         Schema::create('payment_webhook_events', function (Blueprint $table) {
             $table->id();
             $table->string('provider', 64);
@@ -40,10 +41,11 @@ return new class extends Migration
             );
         });
         }
+        }
     }
 
     public function down(): void
     {
-        // Не удаляем таблицы и данные: они могут существовать до запуска этой миграции.
+        // Не удаляем таблицы и данные: они могли существовать до запуска миграции.
     }
 };
