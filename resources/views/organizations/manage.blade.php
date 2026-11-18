@@ -1130,6 +1130,29 @@
     color: #9da5b5;
     font-size: .9rem;
 }
+.tv-screen-settings {
+    display: grid;
+    gap: 7px;
+    margin: 12px 0;
+    padding: 11px;
+    border: 1px solid rgba(0, 229, 212, .2);
+    border-radius: 10px;
+    background: rgba(0, 229, 212, .035);
+}
+.tv-screen-settings label { color: #d7dce6; font-size: .82rem; }
+.tv-screen-settings input,
+.tv-screen-settings select {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    padding: 7px 9px;
+    color: #f4f5f7;
+    background: #171b24;
+    border: 1px solid rgba(0, 229, 212, .3);
+    border-radius: 8px;
+}
+.tv-screen-settings small { color: #9298aa; line-height: 1.4; }
+.tv-screen-settings .organization-button { width: 100%; min-height: 38px; }
 .tv-background-form { display: grid; gap: 8px; margin-top: 12px; }
 .tv-background-form label { color: #d7dce6; font-size: .88rem; }
 .tv-background-form input[type="file"] {
@@ -2201,10 +2224,36 @@
             @endforeach
 
             <div class="tv-background-card">
+                @php
+                    $tvScreenConfig = $tvScreensConfig[$screen] ?? [];
+                    $tvScreenName = $tvScreenConfig['name'] ?? ('TV-экран ' . $screen);
+                @endphp
+
                 <div class="tv-background-card-heading">
-                    <strong>TV-экран {{ $screen }}</strong>
-                    <a href="{{ route('organization.tv', $organization) }}?screen={{ $screen }}" target="_blank" rel="noopener">Открыть экран ↗</a>
+                    <strong>{{ $tvScreenName }}</strong>
+                    <a href="{{ route('organization.tv', $organization) }}?screen={{ $screen }}" target="_blank" rel="noopener">Предпросмотр ↗</a>
                 </div>
+
+                <form method="POST" action="{{ route('organizations.tv.screens.settings', [$organization, $screen]) }}" class="tv-screen-settings">
+                    @csrf
+                    @method('PATCH')
+
+                    <label for="tv-screen-name-{{ $screen }}">Название экрана</label>
+                    <input id="tv-screen-name-{{ $screen }}" type="text" name="name" maxlength="60" value="{{ $tvScreenName }}" required>
+
+                    <label for="tv-background-fit-{{ $screen }}">Отображение фона</label>
+                    <select id="tv-background-fit-{{ $screen }}" name="background_fit">
+                        <option value="cover" @selected(($tvScreenConfig['background_fit'] ?? 'cover') === 'cover')>Заполнить экран (cover)</option>
+                        <option value="contain" @selected(($tvScreenConfig['background_fit'] ?? 'cover') === 'contain')>Вписать целиком (contain)</option>
+                        <option value="stretch" @selected(($tvScreenConfig['background_fit'] ?? 'cover') === 'stretch')>Растянуть (stretch)</option>
+                    </select>
+
+                    <label for="tv-rotation-{{ $screen }}">Автопереключение экранов, секунд</label>
+                    <input id="tv-rotation-{{ $screen }}" type="number" name="rotation_seconds" min="0" max="3600" value="{{ (int) ($tvScreenConfig['rotation_seconds'] ?? 0) }}">
+                    <small>0 — выключено. Если включено, экран будет переключаться по кругу между экранами организации.</small>
+
+                    <button type="submit" class="organization-button">Сохранить настройки экрана</button>
+                </form>
 
                 @if($tvBackgroundUrl)
                     <img class="tv-background-preview" src="{{ $tvBackgroundUrl }}" alt="Фон TV-экрана {{ $screen }}">
