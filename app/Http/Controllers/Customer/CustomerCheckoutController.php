@@ -84,13 +84,6 @@ class CustomerCheckoutController extends Controller
         $items = MenuItem::query()
             ->whereIn('id', array_map('intval', array_keys($quantities)))
             ->where('is_active', true)
-            ->where(function ($query) use ($validated) {
-                if ($validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY) {
-                    $query->where('delivery_enabled', true);
-                } elseif ($validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP) {
-                    $query->where('pickup_enabled', true);
-                }
-            })
             ->whereHas('section', function ($query) use ($organizationId) {
                 $query->where('organization_id', $organizationId)
                     ->where('is_active', true);
