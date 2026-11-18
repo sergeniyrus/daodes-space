@@ -8,15 +8,15 @@ return new class extends Migration
 {
     public function up()
 {
-    Schema::table('user_profiles', function (Blueprint $table) {
-        $table->string('public_key')->nullable();
-    });
+    if (Schema::hasTable('user_profiles') && !Schema::hasColumn('user_profiles', 'public_key')) {
+        Schema::table('user_profiles', function (Blueprint $table) {
+            $table->string('public_key')->nullable();
+        });
+    }
 }
 
 public function down()
 {
-    Schema::table('user_profiles', function (Blueprint $table) {
-        $table->dropColumn('public_key');
-    });
+    // Не удаляем public_key: столбец мог существовать до этой миграции.
 }
 };
