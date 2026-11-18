@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Organization;
 use App\Models\Order;
 use App\Models\OrganizationOrderSetting;
+use App\Models\OrganizationActivityLog;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -200,6 +201,13 @@ class OrganizationController extends Controller
             ->groupBy('order_assignments.employee_id')
             ->pluck('active_delivery_orders_count', 'order_assignments.employee_id');
 
+        $activityLogs = OrganizationActivityLog::query()
+            ->with('actor:id,name')
+            ->where('organization_id', $organization->id)
+            ->latest('id')
+            ->limit(30)
+            ->get();
+
         $courierMemberships = $staffMemberships
             ->where('role', 'courier')
             ->where('status', 'active')
@@ -223,6 +231,7 @@ class OrganizationController extends Controller
             'courierMemberships' => $courierMemberships,
             'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
             'tvScreensConfig' => $organization->tv_screens_config ?? [],
+            'activityLogs' => $activityLogs,
         ]);
     }
 
@@ -611,10 +620,28 @@ class OrganizationController extends Controller
             }
         }
 
-        OrganizationOrderSetting::updateOrCreate(
+        $settings = $organization->orderSettings;
+        $trackedFields = array_keys($validated);
+        $beforeValues = $settings?->only($trackedFields) ?? [];
+
+        $settings = OrganizationOrderSetting::updateOrCreate(
             ['organization_id' => $organization->id],
             $validated
         );
+
+        $afterValues = $settings->only($trackedFields);
+
+        if ($beforeValues !== $afterValues) {
+            app(\App\Services\OrganizationActivityLogger::class)->record(
+                $organization,
+                'order_settings.updated',
+                'Изменены настройки онлайн-заказов',
+                $beforeValues,
+                $afterValues,
+                'order_settings',
+                $settings->id
+            );
+        }
 
         return redirect()
             ->route('organizations.manage', $organization)
