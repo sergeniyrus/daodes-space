@@ -2242,28 +2242,28 @@
     <div class="tv-background-grid">
         @foreach($tvScreens as $screen)
             @php
-                $tvBackgroundUrl = null;
-                $tvBackgroundPath = null;
+                $tvScreenConfig = $tvScreensConfig[$screen] ?? [];
+                $tvScreenName = $tvScreenConfig['name'] ?? ('TV-экран ' . $screen);
+                $tvBackgroundUrl = !empty($tvScreenConfig['background_cid'])
+                    ? app(\App\Services\IPFSService::class)->gatewayUrl($tvScreenConfig['background_cid'])
+                    : null;
             @endphp
 
-            @foreach(['png', 'jpg', 'jpeg', 'webp'] as $extension)
-                @php
-                    $candidatePath = 'images/org/' . $organization->id . '/tv-backgrounds/tv' . $screen . '.' . $extension;
-                @endphp
-                @if(is_file(public_path($candidatePath)))
+            @if(!$tvBackgroundUrl)
+                @foreach(['png', 'jpg', 'jpeg', 'webp'] as $extension)
                     @php
-                        $tvBackgroundPath = $candidatePath;
-                        $tvBackgroundUrl = asset($candidatePath);
+                        $candidatePath = 'images/org/' . $organization->id . '/tv-backgrounds/tv' . $screen . '.' . $extension;
                     @endphp
-                    @break
-                @endif
-            @endforeach
+                    @if(is_file(public_path($candidatePath)))
+                        @php
+                            $tvBackgroundUrl = asset($candidatePath);
+                        @endphp
+                        @break
+                    @endif
+                @endforeach
+            @endif
 
             <div class="tv-background-card">
-                @php
-                    $tvScreenConfig = $tvScreensConfig[$screen] ?? [];
-                    $tvScreenName = $tvScreenConfig['name'] ?? ('TV-экран ' . $screen);
-                @endphp
 
                 <div class="tv-background-card-heading">
                     <strong>{{ $tvScreenName }}</strong>
