@@ -321,7 +321,7 @@
                 <label for="menu-image-input">Выбрать изображение</label>
                 <input id="menu-image-input" type="file" name="image" accept="image/jpeg,image/png,image/webp">
             </div>
-            <small class="menu-form-label">JPG, PNG или WEBP, до 5 МБ.</small>
+            <small class="menu-form-label">JPG, PNG или WEBP, до 10 МБ.</small>
         </div>
 
         <div class="menu-form-group">
