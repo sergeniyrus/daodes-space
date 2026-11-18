@@ -214,6 +214,7 @@ class OrganizationController extends Controller
             'orderStats' => $orderStats,
             'paidToday' => $paidToday,
             'courierMemberships' => $courierMemberships,
+            'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
         ]);
     }
 
