@@ -6,6 +6,7 @@ use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class OrganizationTVController extends Controller
@@ -107,62 +108,102 @@ class OrganizationTVController extends Controller
      */
     public function deleteScreen(Request $request, Organization $organization, int $screen)
     {
-        $currentCount = max(1, (int) ($organization->tv_screens_count ?? 3));
+        $directory = public_path('images/org/' . $organization->id . '/tv-backgrounds');
+        $backupDirectory = $directory . '/.tv-delete-' . (string) Str::uuid();
+        $deletedScreen = false;
 
-        abort_unless($screen >= 1 && $screen <= $currentCount, 404);
+        try {
+            $deletedScreen = DB::transaction(function () use (
+                $organization,
+                $screen,
+                $directory,
+                $backupDirectory
+            ) {
+                // Количество экранов читаем только после блокировки строки организации.
+                $lockedOrganization = Organization::query()
+                    ->whereKey($organization->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-        if ($currentCount <= 1) {
+                $lockedCount = max(1, (int) ($lockedOrganization->tv_screens_count ?? 3));
+
+                abort_unless($screen >= 1 && $screen <= $lockedCount, 404);
+
+                if ($lockedCount <= 1) {
+                    return false;
+                }
+
+                File::ensureDirectoryExists($directory);
+                File::ensureDirectoryExists($backupDirectory);
+
+                // Сохраняем все затрагиваемые фоны, чтобы восстановить их при ошибке транзакции.
+                foreach (range($screen, $lockedCount) as $oldScreen) {
+                    foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
+                        $source = $directory . '/tv' . $oldScreen . '.' . $extension;
+
+                        if (is_file($source)) {
+                            File::move($source, $backupDirectory . '/tv' . $oldScreen . '.' . $extension);
+                        }
+                    }
+                }
+
+                // Удаляемый экран пропускаем, последующие фоны сдвигаем на одну позицию.
+                for ($oldScreen = $screen + 1; $oldScreen <= $lockedCount; $oldScreen++) {
+                    foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
+                        $source = $backupDirectory . '/tv' . $oldScreen . '.' . $extension;
+
+                        if (is_file($source)) {
+                            File::copy($source, $directory . '/tv' . ($oldScreen - 1) . '.' . $extension);
+                        }
+                    }
+                }
+
+                $lockedOrganization->menuSections()
+                    ->where('tv_screen', $screen)
+                    ->update(['tv_screen' => 1]);
+
+                $lockedOrganization->menuSections()
+                    ->where('tv_screen', '>', $screen)
+                    ->decrement('tv_screen');
+
+                $lockedOrganization->tv_screens_count = $lockedCount - 1;
+                $lockedOrganization->save();
+
+                return true;
+            });
+        } catch (\\Throwable $exception) {
+            // Компенсируем файловые операции, если БД не смогла зафиксировать изменения.
+            if (File::isDirectory($backupDirectory)) {
+                foreach (range($screen, 20) as $oldScreen) {
+                    foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
+                        $backup = $backupDirectory . '/tv' . $oldScreen . '.' . $extension;
+
+                        if (is_file($backup)) {
+                            $original = $directory . '/tv' . $oldScreen . '.' . $extension;
+
+                            if (is_file($original)) {
+                                File::delete($original);
+                            }
+
+                            File::move($backup, $original);
+                        }
+                    }
+                }
+
+                File::deleteDirectory($backupDirectory);
+            }
+
+            throw $exception;
+        }
+
+        if (!$deletedScreen) {
             return redirect()
                 ->route('organizations.manage', $organization)
                 ->with('error', 'Нельзя удалить последний TV-экран.');
         }
 
-        DB::transaction(function () use ($organization, $screen, $currentCount) {
-            $lockedOrganization = Organization::query()
-                ->whereKey($organization->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $lockedCount = max(1, (int) ($lockedOrganization->tv_screens_count ?? 3));
-
-            abort_unless($screen <= $lockedCount, 404);
-
-            $organization->menuSections()
-                ->where('tv_screen', $screen)
-                ->update(['tv_screen' => 1]);
-
-            $organization->menuSections()
-                ->where('tv_screen', '>', $screen)
-                ->decrement('tv_screen');
-
-            $lockedOrganization->tv_screens_count = max(1, $lockedCount - 1);
-            $lockedOrganization->save();
-        });
-
-        $directory = public_path('images/org/' . $organization->id . '/tv-backgrounds');
-
-        // Удаляем фон удаляемого экрана.
-        foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
-            $path = $directory . '/tv' . $screen . '.' . $extension;
-            if (is_file($path)) {
-                File::delete($path);
-            }
-        }
-
-        // Сдвигаем фоны экранов с большими номерами на одну позицию.
-        for ($oldScreen = $screen + 1; $oldScreen <= $currentCount; $oldScreen++) {
-            foreach (['png', 'jpg', 'jpeg', 'webp'] as $extension) {
-                $source = $directory . '/tv' . $oldScreen . '.' . $extension;
-                $destination = $directory . '/tv' . ($oldScreen - 1) . '.' . $extension;
-
-                if (is_file($source)) {
-                    if (is_file($destination)) {
-                        File::delete($destination);
-                    }
-
-                    File::move($source, $destination);
-                }
-            }
+        if (File::isDirectory($backupDirectory)) {
+            File::deleteDirectory($backupDirectory);
         }
 
         return redirect()
