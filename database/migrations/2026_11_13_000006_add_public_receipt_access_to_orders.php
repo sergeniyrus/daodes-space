@@ -8,21 +8,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            // В БД хранится только SHA-256-хеш bearer-токена.
-            $table->char('receipt_token_hash', 64)->nullable()->unique();
-            $table->timestamp('receipt_token_expires_at')->nullable();
-        });
+        if (Schema::hasTable('orders')) {
+            if (!Schema::hasColumn('orders', 'receipt_token_hash')) {
+                Schema::table('orders', function (Blueprint $table) {
+                    // В БД хранится только SHA-256-хеш bearer-токена.
+                    $table->char('receipt_token_hash', 64)->nullable()->unique();
+                });
+            }
+
+            if (!Schema::hasColumn('orders', 'receipt_token_expires_at')) {
+                Schema::table('orders', function (Blueprint $table) {
+                    $table->timestamp('receipt_token_expires_at')->nullable();
+                });
+            }
+        }
     }
 
     public function down(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->dropUnique(['receipt_token_hash']);
-            $table->dropColumn([
-                'receipt_token_hash',
-                'receipt_token_expires_at',
-            ]);
-        });
+        // Не удаляем таблицы и данные: они могут существовать до запуска этой миграции.
     }
 };
