@@ -2048,6 +2048,48 @@ body.customer-menu-image-open { overflow: hidden !important; }
     display: block;
 }
 
+
+
+/* Mobile image viewer: reserve a dedicated top strip for the close control. */
+@media (max-width: 700px) {
+    .customer-menu-image-viewer {
+        padding:
+            calc(env(safe-area-inset-top, 0px) + 64px)
+            12px
+            calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+        overflow: auto;
+    }
+    .customer-menu-image-viewer img {
+        display: block;
+        max-width: calc(100vw - 24px) !important;
+        max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 100px) !important;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border: 1px solid rgba(255, 215, 0, .55) !important;
+        border-radius: 10px !important;
+    }
+    .customer-menu-image-viewer-close {
+        position: absolute !important;
+        top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
+        right: 12px !important;
+        z-index: 20 !important;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 48px !important;
+        height: 48px !important;
+        padding: 0;
+        color: #ffd700 !important;
+        background: #101827 !important;
+        border: 2px solid rgba(255, 215, 0, .9) !important;
+        box-shadow: 0 3px 18px rgba(0, 0, 0, .8), 0 0 14px rgba(0, 229, 212, .28);
+        font-size: 32px;
+        line-height: 1;
+        pointer-events: auto;
+    }
+}
+
 </style>
 
 {{-- Каталог уже получает эти данные от контроллера. Используем их как fallback,
