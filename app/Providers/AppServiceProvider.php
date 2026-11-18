@@ -116,7 +116,17 @@ class AppServiceProvider extends ServiceProvider
                                 ->orWhere('pickup_enabled', true);
                         })
                         ->whereHas('section', function ($query) use ($organization) {
-                            $query->where('organization_id', $organization->id)->where('is_active', true);
+                            $query->where('organization_id', $organization->id)
+                                ->where('is_active', true)
+                                ->where(function ($availabilityQuery) {
+                                    $availabilityQuery->where(function ($methodQuery) {
+                                        $methodQuery->where('menu_sections.delivery_enabled', true)
+                                            ->where('menu_items.delivery_enabled', true);
+                                    })->orWhere(function ($methodQuery) {
+                                        $methodQuery->where('menu_sections.pickup_enabled', true)
+                                            ->where('menu_items.pickup_enabled', true);
+                                    });
+                                });
                         })
                         ->get()->keyBy('id');
 
