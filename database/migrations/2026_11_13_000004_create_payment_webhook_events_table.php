@@ -15,7 +15,6 @@ return new class extends Migration
         }
 
         if (!Schema::hasTable('payment_webhook_events')) {
-        if (!Schema::hasTable('payment_webhook_events')) {
         Schema::create('payment_webhook_events', function (Blueprint $table) {
             $table->id();
             $table->string('provider', 64);
@@ -40,7 +39,6 @@ return new class extends Migration
                 'payment_webhook_payment_status_index'
             );
         });
-        }
         }
     }
 
