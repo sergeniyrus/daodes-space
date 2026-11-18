@@ -130,7 +130,7 @@ class OrganizationTVController extends Controller
     public function updateScreenSettings(Request $request, Organization $organization, int $screen)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:60'],
+            'screen_name' => ['required', 'string', 'max:60'],
             'background_fit' => ['required', 'in:cover,contain,stretch'],
             'rotation_seconds' => ['required', 'integer', 'min:0', 'max:3600'],
         ]);
@@ -146,7 +146,7 @@ class OrganizationTVController extends Controller
 
             $screenConfigs = $lockedOrganization->tv_screens_config ?? [];
             $screenConfigs[$screen] = [
-                'name' => trim($validated['name']),
+                'name' => trim($validated['screen_name']),
                 'background_fit' => $validated['background_fit'],
                 'rotation_seconds' => (int) $validated['rotation_seconds'],
             ];
@@ -269,11 +269,17 @@ class OrganizationTVController extends Controller
                     }
 
                     $newScreen = $oldScreen > $screen ? $oldScreen - 1 : $oldScreen;
-                    $renumberedConfigs[$newScreen] = $screenConfigs[$oldScreen] ?? [
-                        'name' => 'TV-экран ' . $newScreen,
+                    $screenConfig = $screenConfigs[$oldScreen] ?? [
+                        'name' => 'TV-экран ' . $oldScreen,
                         'background_fit' => 'cover',
                         'rotation_seconds' => 0,
                     ];
+
+                    if (($screenConfig['name'] ?? null) === 'TV-экран ' . $oldScreen) {
+                        $screenConfig['name'] = 'TV-экран ' . $newScreen;
+                    }
+
+                    $renumberedConfigs[$newScreen] = $screenConfig;
                 }
 
                 $lockedOrganization->tv_screens_count = $lockedCount - 1;
