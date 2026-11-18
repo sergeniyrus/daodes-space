@@ -1100,6 +1100,22 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('order-settings.update');
 
+        // Управление количеством TV-экранов организации
+        Route::post(
+            '/{organization}/tv-screens',
+            [OrganizationTVController::class, 'createScreen']
+        )
+            ->middleware('organization.manager')
+            ->name('tv.screens.store');
+
+        Route::delete(
+            '/{organization}/tv-screens/{screen}',
+            [OrganizationTVController::class, 'deleteScreen']
+        )
+            ->whereNumber('screen')
+            ->middleware('organization.manager')
+            ->name('tv.screens.delete');
+
         // Фоновые изображения TV-экранов организации
         Route::post(
             '/{organization}/tv-background',
