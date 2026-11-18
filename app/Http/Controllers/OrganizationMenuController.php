@@ -180,6 +180,14 @@ class OrganizationMenuController extends Controller
             'pickup_enabled' => ['nullable', 'boolean'],
         ]);
 
+        $beforeValues = $section->only([
+            'name',
+            'sort_order',
+            'tv_screen',
+            'delivery_enabled',
+            'pickup_enabled',
+        ]);
+
         $section->update([
             'name' => $validated['name'],
             'sort_order' => $validated['sort_order'],
@@ -187,6 +195,16 @@ class OrganizationMenuController extends Controller
             'delivery_enabled' => $request->boolean('delivery_enabled'),
             'pickup_enabled' => $request->boolean('pickup_enabled'),
         ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_section.settings_updated',
+            'Изменены настройки раздела «' . $section->name . '»',
+            $beforeValues,
+            $section->fresh()->only(['name', 'sort_order', 'tv_screen', 'delivery_enabled', 'pickup_enabled']),
+            'menu_section',
+            $section->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
@@ -208,9 +226,21 @@ class OrganizationMenuController extends Controller
             'sort_order' => ['required', 'integer', 'min:0'],
         ]);
 
+        $beforeValues = ['sort_order' => $section->sort_order];
+
         $section->update([
             'sort_order' => $validated['sort_order'],
         ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_section.sorted',
+            'Изменён порядок раздела «' . $section->name . '»',
+            $beforeValues,
+            ['sort_order' => $section->sort_order],
+            'menu_section',
+            $section->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
@@ -226,9 +256,21 @@ class OrganizationMenuController extends Controller
     ): RedirectResponse {
         $this->ensureSectionBelongsToOrganization($section, $organization);
 
+        $beforeActive = (bool) $section->is_active;
+
         $section->update([
             'is_active' => !$section->is_active,
         ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_section.toggled',
+            ($section->is_active ? 'Включён' : 'Выключен') . ' раздел «' . $section->name . '»',
+            ['is_active' => $beforeActive],
+            ['is_active' => (bool) $section->is_active],
+            'menu_section',
+            $section->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
@@ -260,9 +302,26 @@ class OrganizationMenuController extends Controller
             }
         });
 
+        $deletedSection = [
+            'name' => $section->name,
+            'items_count' => $section->items()->count(),
+            'is_active' => (bool) $section->is_active,
+            'tv_screen' => (int) $section->tv_screen,
+        ];
+
         $section->items()->delete();
 
         $section->delete();
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_section.deleted',
+            'Удалён раздел меню «' . $deletedSection['name'] . '»',
+            $deletedSection,
+            [],
+            'menu_section',
+            $section->id
+        );
 
         return redirect()
             ->route(
