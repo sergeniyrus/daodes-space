@@ -448,6 +448,13 @@
         <div class="customer-checkout-panel customer-checkout-section-panel">
             <h2 class="customer-checkout-title">Способ получения</h2>
 
+            @if(!$canUseDelivery && !$canUsePickup && !$canUseDineIn)
+                <div class="customer-checkout-error">
+                    Ни один способ получения не подходит для текущего состава корзины.
+                    Вернитесь в корзину и измените товары.
+                </div>
+            @endif
+
             <div class="customer-checkout-options">
                 @if($settings->delivery_enabled)
                     <label @if(!$canUseDelivery) class="is-unavailable" @endif>
@@ -687,7 +694,7 @@
             @enderror
 
         <div class="customer-checkout-actions">
-            <button type="submit" class="customer-checkout-button">
+            <button type="submit" class="customer-checkout-button" @disabled(!$canUseDelivery && !$canUsePickup && !$canUseDineIn)>
                 Подтвердить заказ
             </button>
             <a
