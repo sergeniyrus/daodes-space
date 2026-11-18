@@ -1152,6 +1152,7 @@
     @forelse($sections as $section)
 
         <div
+            id="menu-section-{{ $section->id }}"
             class="menu-section collapsed {{ !$section->is_active ? 'inactive-section' : '' }}"
             data-section
         >
