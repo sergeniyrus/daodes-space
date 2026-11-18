@@ -1456,6 +1456,13 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('menu.sections.toggle');
 
+        Route::patch(
+            '/{organization}/menu/sections/{section}/quick-settings',
+            [OrganizationMenuController::class, 'updateSectionQuickSettings']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.quick_settings');
+
 
         // =========================================================
         // БЫСТРАЯ СОРТИРОВКА И АКТИВНОСТЬ БЛЮД
