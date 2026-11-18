@@ -1108,6 +1108,14 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('tv.screens.store');
 
+        Route::patch(
+            '/{organization}/tv-screens/{screen}/settings',
+            [OrganizationTVController::class, 'updateScreenSettings']
+        )
+            ->whereNumber('screen')
+            ->middleware('organization.manager')
+            ->name('tv.screens.settings');
+
         Route::delete(
             '/{organization}/tv-screens/{screen}',
             [OrganizationTVController::class, 'deleteScreen']
