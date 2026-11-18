@@ -61,7 +61,19 @@
 
                                             <div class="customer-order-item-content">
                                                 @if($item->description)
-                                                    <p>{{ $item->description }}</p>
+                                                    <button type="button"
+                                                        class="customer-order-item-description-toggle"
+                                                        data-description-toggle
+                                                        aria-expanded="false">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                                            <path d="M8 6h13M8 12h13M8 18h13"></path>
+                                                            <path d="M3 6h.01M3 12h.01M3 18h.01"></path>
+                                                        </svg>
+                                                        Состав
+                                                    </button>
+                                                    <div class="customer-order-item-description">
+                                                        <p>{{ $item->description }}</p>
+                                                    </div>
                                                 @endif
                                             </div>
                                         </div>
@@ -531,6 +543,17 @@
         document.body.classList.remove('customer-menu-image-open');
     };
     document.addEventListener('click', (event) => {
+        const descriptionButton = event.target.closest('[data-description-toggle]');
+        if (descriptionButton) {
+            const description = descriptionButton.nextElementSibling;
+            if (description?.classList.contains('customer-order-item-description')) {
+                const isOpen = descriptionButton.getAttribute('aria-expanded') === 'true';
+                descriptionButton.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+                description.classList.toggle('is-description-open', !isOpen);
+            }
+            return;
+        }
+
         const imageButton = event.target.closest('[data-menu-image-open]');
         if (imageButton && imageViewer && imageViewerImage) {
             event.preventDefault();
