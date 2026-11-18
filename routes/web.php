@@ -1100,6 +1100,21 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('order-settings.update');
 
+        // Фоновые изображения TV-экранов организации
+        Route::post(
+            '/{organization}/tv-background',
+            [OrganizationTVController::class, 'uploadBackground']
+        )
+            ->middleware('organization.manager')
+            ->name('tv.background.store');
+
+        Route::delete(
+            '/{organization}/tv-background',
+            [OrganizationTVController::class, 'deleteBackground']
+        )
+            ->middleware('organization.manager')
+            ->name('tv.background.delete');
+
         Route::get(
             '/{organization}/orders',
             [OrganizationOrderController::class, 'index']
