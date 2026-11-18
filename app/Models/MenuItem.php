@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Services\IPFSService;
 
 class MenuItem extends Model
 {
@@ -20,6 +21,7 @@ class MenuItem extends Model
         'sort_order',
         'is_active',
         'image_path',
+        'image_cid',
         'delivery_enabled',
         'pickup_enabled',
     ];
@@ -33,6 +35,18 @@ class MenuItem extends Model
         'delivery_enabled' => 'boolean',
         'pickup_enabled' => 'boolean',
     ];
+
+    /**
+     * URL фотографии: сначала IPFS CID, затем legacy-путь для старых записей.
+     */
+    public function getImageUrlAttribute(): ?string
+    {
+        if (filled($this->image_cid)) {
+            return app(IPFSService::class)->gatewayUrl($this->image_cid);
+        }
+
+        return $this->image_path ? asset($this->image_path) : null;
+    }
 
     /**
      * Раздел меню.
