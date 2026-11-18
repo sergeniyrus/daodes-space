@@ -9,7 +9,6 @@ return new class extends Migration
     public function up(): void
     {
         if (!Schema::hasTable('employee_phone_challenges')) {
-        if (!Schema::hasTable('employee_phone_challenges')) {
         Schema::create('employee_phone_challenges', function (Blueprint $table) {
             $table->id();
 
@@ -40,7 +39,6 @@ return new class extends Migration
                 'employee_phone_challenge_scope_index'
             );
         });
-        }
         }
     }
 
