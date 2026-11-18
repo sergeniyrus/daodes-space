@@ -8,6 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (!Schema::hasTable('order_notifications')) {
         Schema::create('order_notifications', function (Blueprint $table) {
             $table->id();
 
@@ -39,10 +40,11 @@ return new class extends Migration
                 'order_notifications_order_event_index'
             );
         });
+        }
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('order_notifications');
+        // Не удаляем таблицы и данные: они могут существовать до запуска этой миграции.
     }
 };
