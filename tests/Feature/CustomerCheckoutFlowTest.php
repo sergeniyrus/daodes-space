@@ -111,6 +111,33 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertViewHas('selectedFulfillment', Order::FULFILLMENT_DINE_IN);
     }
 
+    public function test_manager_can_save_tv_screen_settings_and_public_tv_uses_them(): void
+    {
+        [$organization] = $this->createOrderableMenu('TV settings cafe');
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.tv.screens.settings', [$organization, 1]), [
+                'screen_name' => 'Основной зал',
+                'background_fit' => 'contain',
+                'rotation_seconds' => 25,
+            ])
+            ->assertRedirect(route('organizations.manage', $organization));
+
+        $this->assertSame('Основной зал', $organization->fresh()->tv_screens_config[1]['name']);
+        $this->assertSame('contain', $organization->fresh()->tv_screens_config[1]['background_fit']);
+        $this->assertSame(25, $organization->fresh()->tv_screens_config[1]['rotation_seconds']);
+
+        $this->get(route('organization.tv', [
+            'organization' => $organization->id,
+            'screen' => 1,
+        ]))
+            ->assertOk()
+            ->assertViewHas('screenName', 'Основной зал')
+            ->assertViewHas('backgroundFit', 'contain')
+            ->assertViewHas('rotationSeconds', 25);
+    }
+
     public function test_verified_customer_can_create_delivery_order_with_server_calculated_totals_and_snapshots(): void
     {
         $customer = $this->createVerifiedCustomer();
@@ -1833,6 +1860,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 $table->unsignedBigInteger('type_id')->nullable();
                 $table->string('status', 20)->default('active');
                 $table->unsignedTinyInteger('tv_screens_count')->default(3);
+                $table->json('tv_screens_config')->nullable();
                 $table->timestamps();
 
                 $table->index('status', 'idx_organizations_status');
