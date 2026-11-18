@@ -224,6 +224,23 @@ class CustomerCartController extends Controller
             && $menuItem->section()
                 ->where('organization_id', $organizationId)
                 ->where('is_active', true)
+                ->where(function ($query) use ($menuItem) {
+                    if ($menuItem->delivery_enabled) {
+                        $query->where('delivery_enabled', true);
+                    }
+
+                    if ($menuItem->pickup_enabled) {
+                        if ($menuItem->delivery_enabled) {
+                            $query->orWhere('pickup_enabled', true);
+                        } else {
+                            $query->where('pickup_enabled', true);
+                        }
+                    }
+
+                    if (!$menuItem->delivery_enabled && !$menuItem->pickup_enabled) {
+                        $query->whereRaw('1 = 0');
+                    }
+                })
                 ->exists(),
             404
         );
