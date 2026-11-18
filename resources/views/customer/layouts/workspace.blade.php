@@ -2019,6 +2019,35 @@ body.customer-menu-image-open { overflow: hidden !important; }
     }
 }
 
+
+/* Composition tooltip is mounted in body to escape card/carousel clipping. */
+.customer-composition-tooltip {
+    position: fixed;
+    z-index: 2147483647;
+    display: none;
+    width: max-content;
+    max-width: min(340px, calc(100vw - 24px));
+    max-height: min(42vh, 260px);
+    overflow-y: auto;
+    padding: 11px 14px;
+    color: #eef8f8;
+    background:
+        radial-gradient(ellipse at 0 0, rgba(0, 229, 212, .16), transparent 55%),
+        linear-gradient(145deg, #111827, #080d19);
+    border: 1px solid rgba(0, 229, 212, .72);
+    border-left: 3px solid #ffd700;
+    border-radius: 10px;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, .72), 0 0 18px rgba(0, 229, 212, .16);
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    pointer-events: none;
+}
+.customer-composition-tooltip.is-visible {
+    display: block;
+}
+
 </style>
 
 {{-- Каталог уже получает эти данные от контроллера. Используем их как fallback,
