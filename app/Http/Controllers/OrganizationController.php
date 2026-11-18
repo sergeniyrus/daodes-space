@@ -87,7 +87,7 @@ class OrganizationController extends Controller
      * Доступ проверяется middleware:
      * organization.manager
      */
-    public function manage(Organization $organization): View
+    public function manage(Request $request, Organization $organization): View
     {
         /*
          * Получаем участников организации
@@ -114,14 +114,20 @@ class OrganizationController extends Controller
          * Профиль загружаем сразу,
          * чтобы впоследствии можно было использовать avatar_url.
          */
+        $userSearch = trim((string) $request->query('user_search', ''));
+
         $availableUsers = User::query()
             ->with('profile')
             ->whereNotIn('id', $memberIds)
+            ->when($userSearch !== '', function ($query) use ($userSearch) {
+                $query->where('name', 'like', '%' . addcslashes($userSearch, '%_\\\\') . '%');
+            })
             ->orderBy('name')
-            ->get([
+            ->paginate(30, [
                 'id',
                 'name',
-            ]);
+            ])
+            ->withQueryString();
 
         /*
          * Отдельный персонал организации:
