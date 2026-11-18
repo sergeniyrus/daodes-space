@@ -24,6 +24,7 @@ class MenuSection extends Model
     protected $casts = [
         'organization_id' => 'integer',
         'sort_order' => 'integer',
+        'tv_screen' => 'integer',
         'is_active' => 'boolean',
         'delivery_enabled' => 'boolean',
         'pickup_enabled' => 'boolean',
