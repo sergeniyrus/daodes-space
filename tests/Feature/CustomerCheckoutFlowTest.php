@@ -70,6 +70,47 @@ class CustomerCheckoutFlowTest extends TestCase
             });
     }
 
+    public function test_dine_in_only_items_remain_available_in_cart_and_checkout_disables_other_methods(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $item->update([
+            'delivery_enabled' => false,
+            'pickup_enabled' => false,
+        ]);
+
+        $session = [
+            'customer_order_cart' => [
+                'organization_id' => $organization->id,
+                'items' => [$item->id => 2],
+            ],
+        ];
+
+        $this->actingAs($customer, 'customer')
+            ->withSession($session)
+            ->get(route('customer.cart'))
+            ->assertOk()
+            ->assertViewHas('lines', function ($lines) {
+                $line = $lines->first();
+
+                return $line['available'] === true
+                    && $line['delivery_available'] === false
+                    && $line['pickup_available'] === false
+                    && $line['dine_in_available'] === true
+                    && $line['line_total'] === 20.0;
+            });
+
+        $this->actingAs($customer, 'customer')
+            ->withSession($session)
+            ->get(route('customer.checkout'))
+            ->assertOk()
+            ->assertViewHas('canUseDelivery', false)
+            ->assertViewHas('canUsePickup', false)
+            ->assertViewHas('canUseDineIn', true)
+            ->assertViewHas('selectedFulfillment', Order::FULFILLMENT_DINE_IN);
+    }
+
     public function test_verified_customer_can_create_delivery_order_with_server_calculated_totals_and_snapshots(): void
     {
         $customer = $this->createVerifiedCustomer();
