@@ -213,7 +213,7 @@ class OrganizationTVController extends Controller
     public function deleteBackground(Request $request, Organization $organization)
     {
         $validated = $request->validate([
-            'screen' => ['required', 'integer', 'in:1,2,3'],
+            'screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
         ]);
 
         $screen = (int) $validated['screen'];
