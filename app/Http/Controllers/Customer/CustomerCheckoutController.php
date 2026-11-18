@@ -462,9 +462,15 @@ class CustomerCheckoutController extends Controller
                         $query->where('pickup_enabled', true);
                     }
                 })
-                ->whereHas('section', function ($query) use ($organizationId) {
+                ->whereHas('section', function ($query) use ($organizationId, $validated) {
                     $query->where('organization_id', $organizationId)
                         ->where('is_active', true);
+
+                    if ($validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY) {
+                        $query->where('delivery_enabled', true);
+                    } elseif ($validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP) {
+                        $query->where('pickup_enabled', true);
+                    }
                 })
                 ->orderBy('id')
                 ->lockForUpdate()
