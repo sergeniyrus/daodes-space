@@ -74,6 +74,7 @@ class OrganizationMenuController extends Controller
             'is_active' => true,
             'delivery_enabled' => $request->boolean('delivery_enabled', true),
             'pickup_enabled' => $request->boolean('pickup_enabled', true),
+            'tv_screen' => $validated['tv_screen'],
         ]);
 
         return redirect()
