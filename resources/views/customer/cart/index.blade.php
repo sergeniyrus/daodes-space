@@ -83,6 +83,9 @@
 .customer-cart-checkout { order: 1; }
 .customer-cart-back { order: 3; }
 .customer-cart-unavailable { color: #ff9292; font-size: .88rem; margin-top: 5px; }
+.customer-cart-availability { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.customer-cart-availability span { padding: 2px 7px; color: #aeb5c4; border: 1px solid rgba(174,181,196,.25); border-radius: 20px; font-size: .72rem; }
+.customer-cart-availability span.is-available { color: #75e7c0; border-color: rgba(117,231,192,.35); background: rgba(117,231,192,.06); }
 @media(max-width:650px) {
     .customer-cart-page { width: calc(100% - 16px); margin: 8px auto 20px; }
     .customer-cart-panel { padding: 12px; border-radius: 13px; }
@@ -141,6 +144,12 @@
                         @endif
                         @if(!$line['available'])
                             <div class="customer-cart-unavailable">Позиция временно недоступна.</div>
+                        @else
+                            <div class="customer-cart-availability" aria-label="Доступные способы получения">
+                                @if($line['delivery_available']) <span class="is-available">Доставка</span> @endif
+                                @if($line['pickup_available']) <span class="is-available">Самовывоз</span> @endif
+                                @if($line['dine_in_available']) <span class="is-available">В заведении</span> @endif
+                            </div>
                         @endif
                     </div>
 
