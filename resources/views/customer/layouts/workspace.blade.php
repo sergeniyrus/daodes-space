@@ -1923,48 +1923,82 @@ body.customer-menu-image-open { overflow: hidden !important; }
 }
 
 
-/* Desktop: описание блюда раскрывается по кнопке «Состав». */
+/* Desktop cards: compact composition tooltip beside the title and larger photo.
+   The description stays out of the card flow so both carousel rows remain visible. */
 @media (min-width: 701px) {
-    .customer-order-item-description-toggle {
+    .customer-order-grid .customer-order-item {
+        box-sizing: border-box;
+        gap: 8px;
+        padding: 12px;
+        overflow: hidden;
+    }
+    .customer-order-item-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 7px;
+        width: 100%;
+        min-width: 0;
+    }
+    .customer-order-grid .customer-order-item-title {
+        flex: 0 1 auto;
+        width: auto;
+        min-width: 0;
+        margin: 0 !important;
+        text-align: center;
+    }
+    .customer-order-item-composition {
+        position: relative;
+        flex: 0 0 25px;
+        width: 25px;
+        height: 25px;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        margin: 0 0 8px;
-        padding: 5px 10px;
+        justify-content: center;
+        margin-top: 1px;
+        padding: 0;
         color: #00e5d4;
-        background: rgba(0, 229, 212, .07);
-        border: 1px solid rgba(0, 229, 212, .42);
-        border-radius: 16px;
-        font-size: .78rem;
-        font-weight: 750;
-        cursor: pointer;
+        background: rgba(0, 229, 212, .08);
+        border: 1px solid rgba(0, 229, 212, .48);
+        border-radius: 50%;
+        cursor: help;
         transition: .18s ease;
     }
-    .customer-order-item-description-toggle:hover,
-    .customer-order-item-description-toggle[aria-expanded="true"] {
+    .customer-order-item-composition:hover,
+    .customer-order-item-composition:focus-visible {
         color: #ffd700;
-        border-color: rgba(255, 215, 0, .65);
-        background: rgba(255, 215, 0, .07);
+        border-color: rgba(255, 215, 0, .8);
+        background: rgba(255, 215, 0, .09);
+        outline: none;
+        box-shadow: 0 0 12px rgba(0, 229, 212, .18);
     }
-    .customer-order-item-description-toggle svg {
+    .customer-order-item-composition svg {
+        display: block;
         width: 14px;
         height: 14px;
-        flex: 0 0 14px;
     }
-    .customer-order-item-description {
-        display: none;
-        padding: 8px 10px;
-        background: rgba(0, 229, 212, .045);
-        border-left: 2px solid rgba(0, 229, 212, .55);
-        border-radius: 0 8px 8px 0;
+    .customer-order-grid .customer-order-item-image-button {
+        flex: 0 0 auto;
+        width: min(100%, 142px);
+        max-width: 142px;
+        aspect-ratio: 3 / 2;
+        height: auto;
+        margin: 0 auto 2px;
     }
-    .customer-order-item-description.is-description-open {
-        display: block;
+    .customer-order-item-content {
+        display: none !important;
     }
 }
 @media (max-width: 700px) {
-    .customer-order-item-description-toggle {
+    .customer-order-item-heading {
+        display: block;
+        width: 100%;
+    }
+    .customer-order-item-composition {
         display: none !important;
+    }
+    .customer-order-item-content {
+        display: block !important;
     }
     .customer-order-item-description {
         display: block !important;
