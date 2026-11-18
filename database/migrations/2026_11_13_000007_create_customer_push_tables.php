@@ -6,6 +6,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (!Schema::hasTable('customer_devices')) {
         Schema::create('customer_devices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->constrained('customers')->cascadeOnDelete();
@@ -18,6 +19,8 @@ return new class extends Migration
             $table->timestamps();
             $table->index(['customer_id', 'is_active'], 'customer_devices_active_index');
         });
+        }
+        if (!Schema::hasTable('push_notifications')) {
         Schema::create('push_notifications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->constrained('customers')->cascadeOnDelete();
@@ -33,6 +36,8 @@ return new class extends Migration
             $table->index(['customer_id', 'created_at'], 'push_notifications_customer_created_index');
             $table->index(['status', 'created_at'], 'push_notifications_status_created_index');
         });
+        }
+        if (!Schema::hasTable('push_notification_deliveries')) {
         Schema::create('push_notification_deliveries', function (Blueprint $table) {
             $table->id();
             $table->foreignId('push_notification_id')->constrained('push_notifications')->cascadeOnDelete();
@@ -45,11 +50,10 @@ return new class extends Migration
             $table->unique(['push_notification_id', 'customer_device_id'], 'push_notification_device_unique');
             $table->index(['status', 'updated_at'], 'push_deliveries_status_updated_index');
         });
+        }
     }
     public function down(): void
     {
-        Schema::dropIfExists('push_notification_deliveries');
-        Schema::dropIfExists('push_notifications');
-        Schema::dropIfExists('customer_devices');
+        // Не удаляем таблицы и данные: они могли существовать до запуска миграции.
     }
 };
