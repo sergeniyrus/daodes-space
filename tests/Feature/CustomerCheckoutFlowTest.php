@@ -128,6 +128,20 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertSame('contain', $organization->fresh()->tv_screens_config[1]['background_fit']);
         $this->assertSame(25, $organization->fresh()->tv_screens_config[1]['rotation_seconds']);
 
+        $this->assertDatabaseHas('organization_activity_logs', [
+            'organization_id' => $organization->id,
+            'actor_id' => $manager->id,
+            'action' => 'tv_screen.settings_updated',
+            'subject_type' => 'tv_screen',
+            'subject_id' => 1,
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('organizations.manage', $organization))
+            ->assertOk()
+            ->assertSee('История действий')
+            ->assertSee('Обновлены настройки TV-экрана 1');
+
         $this->get(route('organization.tv', [
             'organization' => $organization->id,
             'screen' => 1,
