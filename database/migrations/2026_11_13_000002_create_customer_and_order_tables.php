@@ -8,6 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (!Schema::hasTable('customers')) {
         Schema::create('customers', function (Blueprint $table) {
             $table->id();
             $table->string('name', 100)->nullable();
@@ -23,7 +24,9 @@ return new class extends Migration
 
             $table->timestamps();
         });
+        }
 
+        if (!Schema::hasTable('customer_organizations')) {
         Schema::create('customer_organizations', function (Blueprint $table) {
             $table->id();
 
@@ -49,7 +52,9 @@ return new class extends Migration
                 'customer_org_created_index'
             );
         });
+        }
 
+        if (!Schema::hasTable('customer_phone_challenges')) {
         Schema::create('customer_phone_challenges', function (Blueprint $table) {
             $table->id();
 
@@ -76,7 +81,9 @@ return new class extends Migration
                 'customer_phone_latest_index'
             );
         });
+        }
 
+        if (!Schema::hasTable('customer_addresses')) {
         Schema::create('customer_addresses', function (Blueprint $table) {
             $table->id();
 
@@ -103,7 +110,9 @@ return new class extends Migration
                 'customer_address_default_index'
             );
         });
+        }
 
+        if (!Schema::hasTable('orders')) {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
 
@@ -173,7 +182,9 @@ return new class extends Migration
                 'customer_orders_created_index'
             );
         });
+        }
 
+        if (!Schema::hasTable('order_items')) {
         Schema::create('order_items', function (Blueprint $table) {
             $table->id();
 
@@ -200,7 +211,9 @@ return new class extends Migration
 
             $table->index(['order_id', 'id'], 'order_items_order_index');
         });
+        }
 
+        if (!Schema::hasTable('order_status_history')) {
         Schema::create('order_status_history', function (Blueprint $table) {
             $table->id();
 
@@ -222,7 +235,9 @@ return new class extends Migration
                 'order_status_history_order_created_index'
             );
         });
+        }
 
+        if (!Schema::hasTable('order_assignments')) {
         Schema::create('order_assignments', function (Blueprint $table) {
             $table->id();
 
@@ -257,7 +272,9 @@ return new class extends Migration
                 'order_assignments_employee_role_index'
             );
         });
+        }
 
+        if (!Schema::hasTable('payments')) {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
 
@@ -296,18 +313,11 @@ return new class extends Migration
                 'payments_order_status_index'
             );
         });
+        }
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('payments');
-        Schema::dropIfExists('order_assignments');
-        Schema::dropIfExists('order_status_history');
-        Schema::dropIfExists('order_items');
-        Schema::dropIfExists('orders');
-        Schema::dropIfExists('customer_addresses');
-        Schema::dropIfExists('customer_phone_challenges');
-        Schema::dropIfExists('customer_organizations');
-        Schema::dropIfExists('customers');
+        // Не удаляем таблицы и данные: они могут существовать до запуска этой миграции.
     }
 };
