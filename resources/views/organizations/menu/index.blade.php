@@ -336,6 +336,25 @@
     border-radius: 9px;
 }
 
+.menu-section-text-input {
+    width: 190px;
+    min-height: 38px;
+    box-sizing: border-box;
+    padding: 4px 10px;
+    color: #fff;
+    background: #171927;
+    border: 1px solid rgba(0, 229, 255, .55);
+    border-radius: 9px;
+}
+
+.menu-section-text-input:focus,
+.menu-section-select:focus,
+.menu-sort-input:focus {
+    outline: none;
+    border-color: gold;
+    box-shadow: 0 0 8px rgba(255, 215, 0, .2);
+}
+
 .menu-section-check {
     display: inline-flex;
     align-items: center;
@@ -631,6 +650,10 @@
         flex: 1 1 90px;
     }
 
+    .menu-section-text-input {
+        width: 100%;
+    }
+
     .menu-section-settings-form .menu-admin-button {
         flex: 1 1 100%;
     }
@@ -809,6 +832,19 @@
                         >
                             @csrf
                             @method('PATCH')
+
+                            <label class="menu-section-setting menu-section-name-setting">
+                                <span>Название раздела</span>
+                                <input
+                                    class="menu-section-text-input"
+                                    type="text"
+                                    name="name"
+                                    maxlength="255"
+                                    value="{{ $section->name }}"
+                                    required
+                                    aria-label="Название раздела"
+                                >
+                            </label>
 
                             <label class="menu-section-setting">
                                 <span>Порядок</span>
