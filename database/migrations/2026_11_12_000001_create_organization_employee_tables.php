@@ -62,7 +62,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('organization_employee_memberships');
-        Schema::dropIfExists('organization_employees');
+        /*
+         * Не удаляем таблицы автоматически:
+         * они могли быть созданы вручную и содержать рабочие данные.
+         */
     }
 };
