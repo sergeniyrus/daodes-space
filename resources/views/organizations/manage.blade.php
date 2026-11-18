@@ -2234,6 +2234,7 @@
                     <form method="POST" action="{{ route('organizations.tv.screens.delete', [$organization, $screen]) }}" onsubmit="return confirm('Удалить TV-экран {{ $screen }}? Разделы меню будут перенесены на первый экран, остальные экраны перенумеруются.')">
                         @csrf
                         @method('DELETE')
+                        <input type="hidden" name="expected_screens_count" value="{{ count($tvScreens) }}">
                         <button type="submit" class="tv-screen-delete">Удалить TV-экран</button>
                     </form>
                 @endif
