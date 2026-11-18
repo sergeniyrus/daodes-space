@@ -56,6 +56,7 @@ class CustomerCartController extends Controller
         }
 
         $items = MenuItem::query()
+            ->with('section')
             ->whereIn('id', array_map('intval', array_keys($quantities)))
             ->whereHas('section', function ($query) use ($organizationId) {
                 $query->where('organization_id', $organizationId)
@@ -71,10 +72,22 @@ class CustomerCartController extends Controller
                 'item_id' => (int) $itemId,
                 'item' => $item,
                 'quantity' => (int) $quantity,
-                'available' => $item !== null && $item->is_active && ($item->delivery_enabled || $item->pickup_enabled),
-                'line_total' => $item && $item->is_active && ($item->delivery_enabled || $item->pickup_enabled)
-                    ? (float) $item->price * (int) $quantity
-                    : 0,
+                'available' => $item !== null
+                    && $item->is_active
+                    && $item->section !== null
+                    && (
+                        ($item->delivery_enabled && $item->section->delivery_enabled)
+                        || ($item->pickup_enabled && $item->section->pickup_enabled)
+                    ),
+                'line_total' => $item
+                    && $item->is_active
+                    && $item->section !== null
+                    && (
+                        ($item->delivery_enabled && $item->section->delivery_enabled)
+                        || ($item->pickup_enabled && $item->section->pickup_enabled)
+                    )
+                        ? (float) $item->price * (int) $quantity
+                        : 0,
             ];
         })->values();
 
