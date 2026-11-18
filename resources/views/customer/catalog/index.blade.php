@@ -57,8 +57,9 @@
                                             @if($item->description)
                                                 <button type="button"
                                                     class="customer-order-item-composition"
-                                                    title="{{ strip_tags($item->description) }}"
-                                                    aria-label="Состав блюда: {{ $item->name }}">
+                                                    data-composition-tooltip="{{ strip_tags($item->description) }}"
+                                                    aria-label="Показать состав блюда: {{ $item->name }}"
+                                                    aria-describedby="customer-composition-tooltip">
                                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                                         <circle cx="12" cy="12" r="9"></circle>
                                                         <path d="M12 11v5"></path>
@@ -536,6 +537,64 @@
 
     // Resize мобильной адресной строки не снимает закрепление.
     window.addEventListener('resize', handleLayoutChange);
+
+    // Подсказка состава вынесена в body, чтобы её не обрезали overflow карточек и карусели.
+    const compositionTooltip = document.createElement('div');
+    compositionTooltip.id = 'customer-composition-tooltip';
+    compositionTooltip.className = 'customer-composition-tooltip';
+    compositionTooltip.setAttribute('role', 'tooltip');
+    document.body.appendChild(compositionTooltip);
+
+    let compositionTooltipTarget = null;
+    const hideCompositionTooltip = () => {
+        compositionTooltip.classList.remove('is-visible');
+        compositionTooltipTarget = null;
+    };
+    const showCompositionTooltip = (button) => {
+        const description = button.dataset.compositionTooltip;
+        if (!description) return;
+
+        compositionTooltip.textContent = description;
+        compositionTooltipTarget = button;
+        compositionTooltip.classList.add('is-visible');
+
+        const rect = button.getBoundingClientRect();
+        const tooltipRect = compositionTooltip.getBoundingClientRect();
+        const margin = 12;
+        const left = Math.max(margin, Math.min(
+            rect.left + rect.width / 2 - tooltipRect.width / 2,
+            window.innerWidth - tooltipRect.width - margin
+        ));
+        const spaceAbove = rect.top - margin;
+        const placeAbove = spaceAbove >= tooltipRect.height + 10;
+        const top = placeAbove
+            ? rect.top - tooltipRect.height - 9
+            : Math.min(window.innerHeight - tooltipRect.height - margin, rect.bottom + 9);
+
+        compositionTooltip.style.left = left + 'px';
+        compositionTooltip.style.top = Math.max(margin, top) + 'px';
+    };
+
+    document.addEventListener('pointerover', (event) => {
+        const button = event.target.closest('[data-composition-tooltip]');
+        if (button && !button.contains(event.relatedTarget)) showCompositionTooltip(button);
+    });
+    document.addEventListener('pointerout', (event) => {
+        const button = event.target.closest('[data-composition-tooltip]');
+        if (button && !button.contains(event.relatedTarget) && compositionTooltipTarget === button) {
+            hideCompositionTooltip();
+        }
+    });
+    document.addEventListener('focusin', (event) => {
+        const button = event.target.closest('[data-composition-tooltip]');
+        if (button) showCompositionTooltip(button);
+    });
+    document.addEventListener('focusout', (event) => {
+        const button = event.target.closest('[data-composition-tooltip]');
+        if (button && compositionTooltipTarget === button) hideCompositionTooltip();
+    });
+    window.addEventListener('scroll', hideCompositionTooltip, { passive: true });
+    window.addEventListener('resize', hideCompositionTooltip);
 
     const imageViewer = document.getElementById('customer-menu-image-viewer');
     const imageViewerImage = document.getElementById('customer-menu-image-viewer-img');
