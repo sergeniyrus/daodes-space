@@ -104,7 +104,6 @@
                     <div>{{ $address->address_line }}</div>
                     <div class="customer-settings-muted">
                         @if($address->entrance) Подъезд: {{ $address->entrance }} · @endif
-                        @if($address->floor) Этаж: {{ $address->floor }} · @endif
                         @if($address->apartment) Кв.: {{ $address->apartment }} · @endif
                         @if($address->floor) Этаж: {{ $address->floor }} · @endif
                         @if($address->intercom) Домофон: {{ $address->intercom }} · @endif
