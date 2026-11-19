@@ -1,9 +1,14 @@
 @php
     $managementLinks = [
         [
-            'label' => 'Обзор и настройки',
-            'url' => route('organizations.manage', $organization),
+            'label' => 'Обзор',
+            'url' => route('organizations.manage', $organization) . '#overview',
             'active' => request()->routeIs('organizations.manage'),
+        ],
+        [
+            'label' => 'Команда',
+            'url' => route('organizations.manage', $organization) . '#team',
+            'active' => false,
         ],
         [
             'label' => 'Заказы',
@@ -11,17 +16,26 @@
             'active' => request()->routeIs('organizations.orders.*'),
         ],
         [
+            'label' => 'Отзывы',
+            'url' => route('organizations.feedback.index', $organization),
+            'active' => request()->routeIs('organizations.feedback.*'),
+        ],
+        [
             'label' => 'Меню',
             'url' => route('organizations.menu.index', $organization),
             'active' => request()->routeIs('organizations.menu.*'),
         ],
         [
-            'label' => 'Отзывы и предложения',
-            'url' => route('organizations.feedback.index', $organization),
-            'active' => request()->routeIs('organizations.feedback.*'),
+            'label' => 'TV-Экраны',
+            'url' => route('organizations.manage', $organization) . '#tv',
+            'active' => false,
         ],
-    ];
-@endphp
+        [
+            'label' => 'Настройки',
+            'url' => route('organizations.manage', $organization) . '#settings',
+            'active' => false,
+        ],
+    ];@endphp
 
 <style>
 .organization-management-navigation {
