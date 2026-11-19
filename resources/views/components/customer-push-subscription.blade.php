@@ -80,23 +80,8 @@
     updateSoundButton();
     function setStatus(message){status.textContent=message;}
 
-    // Общий звуковой обработчик предотвращает двойной сигнал,
-    // если один статус одновременно пришёл через Firebase и опрос заказа.
-    window.playDaodesCustomerNotificationSound = window.playDaodesCustomerNotificationSound || function(){
-        const now = Date.now();
-        if (window.__daodesCustomerNotificationSoundAt && now - window.__daodesCustomerNotificationSoundAt < 2000) return;
-        window.__daodesCustomerNotificationSoundAt = now;
-
-        try {
-            const audio = new Audio('/sounds/notification.mp3');
-            audio.preload = 'auto';
-            audio.play().catch(function(error){
-                console.debug('Customer notification sound was blocked:', error);
-            });
-        } catch(error) {
-            console.warn('Customer notification sound:', error);
-        }
-    };
+    // Единый обработчик для Firebase, списка уведомлений и обновления статуса заказа.
+    window.playDaodesCustomerNotificationSound = playCustomerOrderSound;
 
     async function initializeMessaging(){
         if(!('serviceWorker'in navigator)||!('Notification'in window))throw new Error('Этот браузер не поддерживает push-уведомления.');
@@ -123,7 +108,6 @@
         setStatus('Уведомления включены на этом устройстве.');
         if(!foregroundHandlerRegistered){
             messaging.onMessage(function(payload){
-                playCustomerOrderSound();
                 const notification=payload.notification||{};
 
                 // Звук для push, полученного при открытой странице клиента.
