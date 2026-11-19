@@ -506,16 +506,29 @@ class OrganizationOrderController extends Controller
                 ]);
             }
 
-            $updatedPayments = $lockedOrder->payments()
+            $payments = $lockedOrder->payments()
                 ->where('status', Order::PAYMENT_PENDING)
-                ->update([
-                    'status' => Order::PAYMENT_SUCCEEDED,
-                    'paid_at' => now(),
-                ]);
+                ->lockForUpdate()
+                ->get();
 
-            if ($updatedPayments < 1) {
+            if ($payments->isEmpty()) {
                 throw ValidationException::withMessages([
                     'payment' => 'Не найдена ожидающая оплаты попытка платежа.',
+                ]);
+            }
+
+            $paidAt = now();
+
+            foreach ($payments as $payment) {
+                $metadata = $payment->metadata ?? [];
+                $metadata['received_by_user_id'] = auth()->id();
+                $metadata['received_by_role'] = 'manager';
+                $metadata['received_at'] = $paidAt->toIso8601String();
+
+                $payment->update([
+                    'status' => Order::PAYMENT_SUCCEEDED,
+                    'paid_at' => $paidAt,
+                    'metadata' => $metadata,
                 ]);
             }
 
