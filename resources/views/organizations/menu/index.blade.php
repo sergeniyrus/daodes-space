@@ -1250,6 +1250,11 @@
                                 <input type="checkbox" name="pickup_enabled" value="1" {{ $section->pickup_enabled ? 'checked' : '' }}>
                                 <span>Самовывоз</span>
                             </label>
+                            <label class="menu-section-check">
+                                <input type="hidden" name="dine_in_enabled" value="0">
+                                <input type="checkbox" name="dine_in_enabled" value="1" {{ $section->dine_in_enabled ? 'checked' : '' }}>
+                                <span>В заведении</span>
+                            </label>
 
                             <button type="submit" class="menu-admin-button menu-quick-button">Сохранить настройки</button>
                         </form>
