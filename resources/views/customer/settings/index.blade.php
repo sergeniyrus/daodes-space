@@ -105,8 +105,11 @@
                     <div class="customer-settings-muted">
                         @if($address->entrance) Подъезд: {{ $address->entrance }} · @endif
                         @if($address->floor) Этаж: {{ $address->floor }} · @endif
-                        @if($address->apartment) Кв.: {{ $address->apartment }} @endif
-                        @if($address->latitude && $address->longitude) · Точка на карте сохранена @else · Точка на карте не указана @endif
+                        @if($address->apartment) Кв.: {{ $address->apartment }} · @endif
+                        @if($address->floor) Этаж: {{ $address->floor }} · @endif
+                        @if($address->intercom) Домофон: {{ $address->intercom }} · @endif
+                        @if($address->gate_code) Шлагбаум: {{ $address->gate_code }} · @endif
+                        @if($address->latitude && $address->longitude) Точка на карте сохранена @else Точка на карте не указана @endif
                     </div>
                 </div>
                 <div class="customer-settings-actions">
