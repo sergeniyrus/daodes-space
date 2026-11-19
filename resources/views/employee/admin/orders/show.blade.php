@@ -40,7 +40,7 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
   <h2>Оплата</h2>
   <p>{{ $methodLabels[$order->payment_method] ?? $order->payment_method }} · {{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</p>
   @if($order->payment_status === 'pending' && $order->payment_method !== 'online' && $collectable)
-   <form method="POST" action="{{ route('employee.organization.admin.orders.payment',$order) }}" onsubmit="return confirm('Подтвердить фактическое получение оплаты?')">@csrf @method('PATCH')<button class="admin-order-btn">✓ Подтвердить получение оплаты</button></form>
+   <form method="POST" action="{{ route('employee.organization.admin.orders.payment',[$organization,$order]) }}" onsubmit="return confirm('Подтвердить фактическое получение оплаты?')">@csrf @method('PATCH')<button class="admin-order-btn">✓ Подтвердить получение оплаты</button></form>
   @elseif($order->payment_status === 'pending' && $order->payment_method !== 'online')
    <p class="muted">Подтверждение станет доступно после фактической передачи заказа клиенту.</p>
   @endif
