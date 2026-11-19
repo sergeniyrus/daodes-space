@@ -1,20 +1,16 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page')
     Редактирование раздела — {{ $section->name }}
 @endsection
 
-@section('main')
+@section('management-content')
 @php
     $menuRoutePrefix = auth('employee')->check()
         ? 'employee.organization.menu.'
         : 'organizations.menu.';
 @endphp
 
-@include('employee.admin.partials.navigation', ['organization' => $organization])
-@if(!auth('employee')->check())
-    @include('organizations.partials.management-navigation', ['organization' => $organization])
-@endif
 
 <style>
 
@@ -149,6 +145,9 @@
     text-decoration: none;
 }
 
+</style>
+<style>
+.menu-form-container{width:100%;max-width:760px;box-sizing:border-box;margin:0 auto;padding:0;background:transparent;border:0;border-radius:0;color:#fff}
 </style>
 
 
