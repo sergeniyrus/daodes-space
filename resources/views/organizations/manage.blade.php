@@ -2519,6 +2519,6 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => map.invalidateSize(), 250);
 })();
 
-
+</script>
 
 @endsection
