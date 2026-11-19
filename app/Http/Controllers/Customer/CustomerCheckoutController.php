@@ -175,22 +175,11 @@ class CustomerCheckoutController extends Controller
         $defaultAddress = $savedAddresses->firstWhere('is_favorite', true)
             ?? $savedAddresses->firstWhere('is_default', true);
 
-        $deliveryBaseFeeCents = $this->toCents($settings->delivery_fee);
-
-        $minimumOrderCents = $settings->minimum_order !== null
-            ? $this->toCents($settings->minimum_order)
-            : null;
-
-        $deliveryFeeCents = $minimumOrderCents !== null
-            && $subtotalCents >= $minimumOrderCents
-                ? 0
-                : $deliveryBaseFeeCents;
-
-        if ($subtotalCents + $deliveryFeeCents > self::MAX_MONEY_CENTS) {
-            return redirect()
-                ->route('customer.cart')
-                ->with('error', 'Итоговая сумма заказа превышает допустимый предел.');
-        }
+        $deliveryZones = $settings->deliveryZones()->get();
+        $deliveryOrigin = [
+            'latitude' => $settings->delivery_origin_latitude,
+            'longitude' => $settings->delivery_origin_longitude,
+        ];
 
         $priceSnapshot = [];
         foreach ($items as $item) {
@@ -216,10 +205,11 @@ class CustomerCheckoutController extends Controller
             'organization_id' => $organization->id,
             'prices' => $priceSnapshot,
             'currency' => $settings->currency,
-            'delivery_fee' => (string) $settings->delivery_fee,
-            'minimum_order' => $settings->minimum_order !== null
-                ? (string) $settings->minimum_order
-                : null,
+            'delivery_origin' => $deliveryOrigin,
+            'delivery_zones' => $deliveryZones->map(fn ($zone) => [
+                'max_distance_km' => (string) $zone->max_distance_km,
+                'minimum_order_amount' => (string) $zone->minimum_order_amount,
+            ])->values()->all(),
         ];
 
         if (count($checkoutSnapshots) > 10) {
@@ -241,12 +231,8 @@ class CustomerCheckoutController extends Controller
             'settings' => $settings,
             'lines' => $lines,
             'subtotal' => $this->fromCents($subtotalCents),
-            'deliveryFee' => $this->fromCents($deliveryFeeCents),
-            'deliveryBaseFee' => $this->fromCents($deliveryBaseFeeCents),
-            'deliveryTotal' => $this->fromCents($subtotalCents + $deliveryFeeCents),
-            'minimumOrder' => $minimumOrderCents !== null
-                ? $this->fromCents($minimumOrderCents)
-                : null,
+            'deliveryZones' => $deliveryZones,
+            'deliveryOrigin' => $deliveryOrigin,
             'currencySymbol' => $settings->currency === 'RUB' ? '₽' : $settings->currency,
             'idempotencyKey' => $idempotencyKey,
             'canUseDelivery' => $canUseDelivery,
@@ -333,6 +319,8 @@ class CustomerCheckoutController extends Controller
             'save_address' => ['nullable', 'boolean'],
             'address_label' => ['required_if:save_address,1', 'nullable', 'string', 'max:50'],
             'address_line' => ['required_if:fulfillment_type,delivery', 'nullable', 'string', 'max:500'],
+            'delivery_latitude' => ['required_if:fulfillment_type,delivery', 'nullable', 'numeric', 'between:-90,90'],
+            'delivery_longitude' => ['required_if:fulfillment_type,delivery', 'nullable', 'numeric', 'between:-180,180'],
             'house_number' => ['nullable', 'string', 'max:30'],
             'entrance' => ['nullable', 'string', 'max:30'],
             'floor' => ['nullable', 'string', 'max:30'],
@@ -540,16 +528,16 @@ class CustomerCheckoutController extends Controller
                 (int) ($checkoutSnapshot['organization_id'] ?? 0) !== $organizationId
                 || count($checkoutSnapshot['prices'] ?? []) !== count($quantities)
                 || strtoupper((string) ($checkoutSnapshot['currency'] ?? '')) !== strtoupper((string) $settings->currency)
-                || $this->toCents($checkoutSnapshot['delivery_fee'] ?? '0') !== $this->toCents($settings->delivery_fee)
-                || (
-                    (($checkoutSnapshot['minimum_order'] ?? null) === null)
-                    !== ($settings->minimum_order === null)
-                )
-                || (
-                    ($checkoutSnapshot['minimum_order'] ?? null) !== null
-                    && $settings->minimum_order !== null
-                    && $this->toCents($checkoutSnapshot['minimum_order']) !== $this->toCents($settings->minimum_order)
-                )
+                || ($checkoutSnapshot['delivery_origin'] ?? null) !== [
+                    'latitude' => $settings->delivery_origin_latitude,
+                    'longitude' => $settings->delivery_origin_longitude,
+                ]
+                || ($checkoutSnapshot['delivery_zones'] ?? []) !== $settings->deliveryZones()
+                    ->get()
+                    ->map(fn ($zone) => [
+                        'max_distance_km' => (string) $zone->max_distance_km,
+                        'minimum_order_amount' => (string) $zone->minimum_order_amount,
+                    ])->values()->all()
             ) {
                 throw ValidationException::withMessages([
                     'cart' => 'Настройки заказа изменились. Обновите страницу оформления и проверьте итоговую сумму.',
@@ -643,22 +631,48 @@ class CustomerCheckoutController extends Controller
                 ];
             }
 
-            $minimumOrderCents = $settings->minimum_order !== null
-                ? $this->toCents($settings->minimum_order)
-                : null;
-
-            // minimum_order — порог бесплатной доставки, а не ограничение
-            // на оформление заказа. Ниже порога применяется обычная стоимость доставки.
             $deliveryFeeCents = 0;
 
             if ($validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY) {
-                $deliveryFeeCents = $minimumOrderCents !== null
-                    && $subtotalCents >= $minimumOrderCents
-                        ? 0
-                        : $this->toCents($settings->delivery_fee);
+                if (
+                    $settings->delivery_origin_latitude === null
+                    || $settings->delivery_origin_longitude === null
+                ) {
+                    throw ValidationException::withMessages([
+                        'fulfillment_type' => 'Организация ещё не настроила точку отправления доставки.',
+                    ]);
+                }
+
+                $distanceKm = $this->calculateDistanceKm(
+                    (float) $settings->delivery_origin_latitude,
+                    (float) $settings->delivery_origin_longitude,
+                    (float) $validated['delivery_latitude'],
+                    (float) $validated['delivery_longitude']
+                );
+
+                $deliveryZone = $settings->deliveryZones()
+                    ->where('max_distance_km', '>=', $distanceKm)
+                    ->orderBy('max_distance_km')
+                    ->first();
+
+                if (!$deliveryZone || $distanceKm > 10) {
+                    throw ValidationException::withMessages([
+                        'address_line' => 'Адрес находится за пределами зоны доставки (максимум 10 км от заведения).',
+                    ]);
+                }
+
+                $zoneMinimumCents = $this->toCents($deliveryZone->minimum_order_amount);
+                if ($subtotalCents < $zoneMinimumCents) {
+                    throw ValidationException::withMessages([
+                        'cart' => 'Для доставки на расстояние ' . number_format($distanceKm, 2, ',', ' ')
+                            . ' км минимальная сумма корзины составляет '
+                            . number_format((float) $deliveryZone->minimum_order_amount, 2, ',', ' ')
+                            . ' ' . $settings->currency . '.',
+                    ]);
+                }
             }
 
-            $totalCents = $subtotalCents + $deliveryFeeCents;
+            $totalCents = $subtotalCents;
 
             if ($totalCents > self::MAX_MONEY_CENTS) {
                 throw ValidationException::withMessages([
@@ -672,6 +686,8 @@ class CustomerCheckoutController extends Controller
                 $deliveryAddress = [
                     'address_line' => $fullAddressLine,
                     'house_number' => $validated['house_number'] ?? null,
+                    'latitude' => (float) $validated['delivery_latitude'],
+                    'longitude' => (float) $validated['delivery_longitude'],
                     'entrance' => $validated['entrance'] ?? null,
                     'floor' => $validated['floor'] ?? null,
                     'apartment' => $validated['apartment'] ?? null,
@@ -758,6 +774,8 @@ class CustomerCheckoutController extends Controller
                     'apartment' => $validated['apartment'] ?? null,
                     'intercom' => $validated['intercom'] ?? null,
                     'delivery_comment' => $validated['delivery_comment'] ?? null,
+                    'latitude' => (float) $validated['delivery_latitude'],
+                    'longitude' => (float) $validated['delivery_longitude'],
                 ];
 
                 $savedAddress = $customer->addresses()
@@ -794,6 +812,20 @@ class CustomerCheckoutController extends Controller
         return redirect()
             ->route('customer.orders.show', $order)
             ->with('success', 'Заказ успешно оформлен.');
+    }
+
+    private function calculateDistanceKm(float $latitudeFrom, float $longitudeFrom, float $latitudeTo, float $longitudeTo): float
+    {
+        $earthRadiusKm = 6371.0088;
+        $latitudeDelta = deg2rad($latitudeTo - $latitudeFrom);
+        $longitudeDelta = deg2rad($longitudeTo - $longitudeFrom);
+
+        $a = sin($latitudeDelta / 2) ** 2
+            + cos(deg2rad($latitudeFrom))
+            * cos(deg2rad($latitudeTo))
+            * sin($longitudeDelta / 2) ** 2;
+
+        return $earthRadiusKm * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
     private function toCents(string|int|float|null $amount): int
