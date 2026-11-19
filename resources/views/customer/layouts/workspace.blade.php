@@ -644,7 +644,7 @@
 }
 .customer-order-header {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: minmax(220px, 1.35fr) repeat(3, minmax(0, 1fr)) !important;
     gap: 14px;
     flex: 0 0 auto;
     margin-bottom: 16px;
@@ -934,8 +934,8 @@
 }
 @media (max-width: 1000px) {
     .customer-order-header {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        gap: 10px;
+        grid-template-columns: minmax(180px, 1.2fr) repeat(3, minmax(0, 1fr)) !important;
+        gap: 8px;
     }
     .customer-order-header-card {
         padding: 10px 8px;
@@ -2117,7 +2117,7 @@ body.customer-menu-image-open { overflow: hidden !important; }
     $customerUnreadNotificationsCount = 0;
     $workspaceCustomer = auth('customer')->user();
     if ($workspaceCustomer) {
-        $customerUnreadNotificationsCount = \\App\\Models\\OrderNotification::query()
+        $customerUnreadNotificationsCount = \App\Models\OrderNotification::query()
             ->where('recipient_type', 'customer')
             ->where('recipient_id', $workspaceCustomer->id)
             ->whereNull('read_at')
