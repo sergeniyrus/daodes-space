@@ -57,6 +57,7 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
 @media(max-width:760px){.admin-order-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-order-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.admin-order-page{width:calc(100% - 16px);margin:14px auto 30px}.admin-order-shell{padding:15px;border-radius:16px}.admin-order-facts{gap:8px}.admin-order-fact{padding:11px}.admin-order-total{font-size:1.05rem}}
 </style>
+<style>@media(max-width:520px){.admin-order-page{width:100%;margin:0}}</style>
 
 <div class="admin-order-page">
     <section class="admin-order-shell">
