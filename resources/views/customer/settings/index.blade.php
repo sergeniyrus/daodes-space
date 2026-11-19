@@ -370,6 +370,14 @@
     });
 
     document.getElementById('customer-address-reset').addEventListener('click', resetEditor);
+
+    form.addEventListener('submit', () => {
+        const address = fields.address.value.trim();
+        if (address && !/зеленогорск|красноярск/i.test(address)) {
+            fields.address.value = address + ', ' + defaultDeliveryCity;
+        }
+    });
+
     setTimeout(() => map.invalidateSize(), 200);
 })();
 </script>
