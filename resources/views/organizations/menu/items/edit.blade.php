@@ -12,6 +12,8 @@
         : 'organizations.menu.';
 @endphp
 
+@include('employee.admin.partials.navigation', ['organization' => $organization])
+
 <style>
 
 .menu-form-container {
