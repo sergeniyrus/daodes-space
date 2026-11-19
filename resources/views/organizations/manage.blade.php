@@ -1315,6 +1315,7 @@
 <button type="button" class="organization-tab is-active" data-tab="overview"><span>⌂</span> Обзор</button>
 <button type="button" class="organization-tab" data-tab="team"><span>♙</span> Команда</button>
 <button type="button" class="organization-tab" data-tab="orders"><span>▤</span> Заказы</button>
+<a class="organization-tab" href="{{ route('organizations.feedback.index', $organization) }}" style="text-decoration:none"><span>☆</span> Отзывы</a>
 <button type="button" class="organization-tab" data-tab="menu"><span>☷</span> Меню</button>
 <button type="button" class="organization-tab" data-tab="tv"><span>▣</span> TV-экраны</button>
 <button type="button" class="organization-tab" data-tab="settings"><span>⚙</span> Настройки</button>
