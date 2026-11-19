@@ -1991,7 +1991,7 @@
 .organization-delivery-zones-heading h3{margin:0;color:#ffd700;font-size:1.12rem}
 .organization-delivery-zones-heading p{margin:5px 0 0;color:#aeb5c4;font-size:.88rem}
 .organization-delivery-limit{flex:0 0 auto;padding:6px 10px;color:#00e5d4;border:1px solid rgba(0,229,212,.35);border-radius:20px;font-size:.8rem;font-weight:700}
-.organization-delivery-origin-map{height:250px;margin:10px 0 14px;border:1px solid rgba(0,229,212,.4);border-radius:12px;overflow:hidden;background:#101522}
+.organization-delivery-origin-map{height:430px;min-height:360px;margin:10px 0 14px;border:1px solid rgba(0,229,212,.4);border-radius:12px;overflow:hidden;background:#101522}
 .organization-delivery-map-tools{display:flex;align-items:center;flex-wrap:wrap;gap:10px;color:#aeb5c4;font-size:.86rem}
 .organization-delivery-map-button,.organization-delivery-zone-add{min-height:36px;padding:7px 13px;color:#00e5d4;background:rgba(0,229,212,.07);border:1px solid rgba(0,229,212,.45);border-radius:20px;font-weight:700;cursor:pointer}
 .organization-delivery-zones-list{display:grid;gap:8px;margin-top:14px}
@@ -2001,7 +2001,7 @@
 .organization-delivery-zone-row input{width:100%;min-height:38px;box-sizing:border-box;padding:7px 9px;color:#fff;background:#090c16;border:1px solid rgba(0,229,212,.4);border-radius:8px}
 .organization-delivery-zone-remove{width:34px;height:36px;color:#ff8d8d;background:rgba(255,90,90,.08);border:1px solid rgba(255,90,90,.3);border-radius:9px;font-size:1.35rem;cursor:pointer}
 .organization-delivery-zones-note{margin-top:12px;color:#9da7b8;font-size:.84rem;line-height:1.45}
-@media(max-width:600px){.organization-delivery-zones{padding:12px}.organization-delivery-zones-heading{flex-direction:column}.organization-delivery-zone-row{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 32px;gap:6px;padding:7px}.organization-delivery-zone-row label{font-size:.7rem}.organization-delivery-zone-row input{min-height:36px;padding:5px}.organization-delivery-zone-remove{width:30px}}
+@media(max-width:600px){.organization-delivery-origin-map{height:360px;min-height:320px}.organization-delivery-zones{padding:12px}.organization-delivery-zones-heading{flex-direction:column}.organization-delivery-zone-row{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 32px;gap:6px;padding:7px}.organization-delivery-zone-row label{font-size:.7rem}.organization-delivery-zone-row input{min-height:36px;padding:5px}.organization-delivery-zone-remove{width:30px}}
 </style>
 
 <section class="organization-tab-panel" data-tab-panel="settings">
@@ -2495,25 +2495,44 @@ document.addEventListener('DOMContentLoaded', function () {
     const addressInput = document.getElementById('organization-pickup-address');
     const status = document.getElementById('organization-delivery-origin-status');
     const findButton = document.getElementById('organization-delivery-find-address');
-    const hasPoint = latInput.value !== '' && lngInput.value !== '';
-    const map = L.map(mapElement).setView(hasPoint ? [Number(latInput.value), Number(lngInput.value)] : [0, 0], hasPoint ? 16 : 2);
+    const normalizeLongitude = value => {
+        const longitude = Number(value);
+        if (!Number.isFinite(longitude)) return NaN;
+        return ((longitude + 180) % 360 + 360) % 360 - 180;
+    };
+    const hasPoint = latInput.value !== '' && lngInput.value !== ''
+        && Number.isFinite(Number(latInput.value))
+        && Number(latInput.value) >= -90 && Number(latInput.value) <= 90;
+    const initialLat = hasPoint ? Number(latInput.value) : 0;
+    const initialLng = hasPoint ? normalizeLongitude(lngInput.value) : 0;
+    if (hasPoint) lngInput.value = initialLng.toFixed(7);
+    const map = L.map(mapElement).setView([initialLat, initialLng], hasPoint ? 16 : 2);
     window.deliveryOriginMap = map;
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19, attribution: '&copy; OpenStreetMap'
     }).addTo(map);
     let marker = null;
     const setPoint = (lat, lng) => {
-        latInput.value = Number(lat).toFixed(7);
-        lngInput.value = Number(lng).toFixed(7);
+        lat = Number(lat);
+        lng = normalizeLongitude(lng);
+        if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng)) {
+            status.textContent = 'Не удалось определить корректные координаты. Выберите точку на карте.';
+            return;
+        }
+        latInput.value = lat.toFixed(7);
+        lngInput.value = lng.toFixed(7);
         if (marker) marker.setLatLng([lat, lng]);
         else marker = L.marker([lat, lng], {draggable: true}).addTo(map);
         marker.off('dragend');
         marker.on('dragend', () => {
             const point = marker.getLatLng();
+            const normalizedLng = normalizeLongitude(point.lng);
             latInput.value = point.lat.toFixed(7);
-            lngInput.value = point.lng.toFixed(7);
+            lngInput.value = normalizedLng.toFixed(7);
+            marker.setLatLng([point.lat, normalizedLng]);
+            status.textContent = 'Центр доставки выбран: ' + point.lat.toFixed(5) + ', ' + normalizedLng.toFixed(5);
         });
-        status.textContent = 'Центр доставки выбран: ' + Number(lat).toFixed(5) + ', ' + Number(lng).toFixed(5);
+        status.textContent = 'Центр доставки выбран: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
     };
     if (hasPoint) setPoint(Number(latInput.value), Number(lngInput.value));
     map.on('click', event => setPoint(event.latlng.lat, event.latlng.lng));
