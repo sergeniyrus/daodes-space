@@ -45,6 +45,15 @@ class CustomerFeedbackController extends Controller
             ? collect()
             : Organization::query()->where('status', 'active')->orderBy('name')->get();
 
+        $publicRating = $selectedOrganization
+            ? OrderReview::query()
+                ->where('organization_id', $selectedOrganization->id)
+                ->where('is_public', true)
+                ->whereNotNull('published_at')
+                ->selectRaw('COUNT(*) as total, AVG(rating) as average')
+                ->first()
+            : null;
+
         $customerOrdersQuery = $customer->orders()->with('organization');
         if ($selectedOrganization) {
             $customerOrdersQuery->where('organization_id', $selectedOrganization->id);
@@ -56,7 +65,8 @@ class CustomerFeedbackController extends Controller
             'reviews',
             'organizations',
             'customerOrders',
-            'selectedOrganization'
+            'selectedOrganization',
+            'publicRating'
         ));
     }
 
