@@ -1,14 +1,14 @@
 <?php
 
-namespace App\\Http\\Controllers\\Customer;
+namespace App\Http\Controllers\Customer;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Models\\CustomerAddress;
-use App\\Models\\Organization;
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Auth;
-use Illuminate\\View\\View;
+use App\Http\Controllers\Controller;
+use App\Models\CustomerAddress;
+use App\Models\Organization;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class CustomerSettingsController extends Controller
 {
