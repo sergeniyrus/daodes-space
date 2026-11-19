@@ -46,6 +46,17 @@ Route::prefix('staff')->name('employee.')->group(function () {
                     ->name('orders.payment');
             });
 
+        // Полный операционный доступ администратора к заказам организации.
+        Route::middleware(['employee.organization', 'employee.role:admin'])
+            ->prefix('organizations/{organization}/admin/orders')
+            ->name('organization.admin.orders.')
+            ->group(function () {
+                Route::get('/', [\\App\\Http\\Controllers\\Employee\\EmployeeAdminOrderController::class, 'index'])->name('index');
+                Route::get('/{order}', [\\App\\Http\\Controllers\\Employee\\EmployeeAdminOrderController::class, 'show'])->whereNumber('order')->name('show');
+                Route::patch('/{order}/status', [\\App\\Http\\Controllers\\Employee\\EmployeeAdminOrderController::class, 'updateStatus'])->whereNumber('order')->name('status');
+                Route::patch('/{order}/payment', [\\App\\Http\\Controllers\\Employee\\EmployeeAdminOrderController::class, 'markPaid'])->whereNumber('order')->name('payment');
+            });
+
         // Администратор организации управляет меню, но не персоналом,
         // настройками онлайн-заказов или TV-экранами.
         Route::middleware(['employee.organization', 'employee.role:admin'])
