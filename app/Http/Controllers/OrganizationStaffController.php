@@ -34,7 +34,7 @@ class OrganizationStaffController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'phone' => ['required', 'string', 'max:32'],
-            'role' => ['required', 'in:employee,cook,courier'],
+            'role' => ['required', 'in:employee,admin,cook,courier'],
         ]);
 
         try {
