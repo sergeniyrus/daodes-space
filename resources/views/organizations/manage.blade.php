@@ -2517,6 +2517,15 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     if (hasPoint) setPoint(Number(latInput.value), Number(lngInput.value));
     map.on('click', event => setPoint(event.latlng.lat, event.latlng.lng));
+    addressInput?.addEventListener('input', () => {
+        latInput.value = '';
+        lngInput.value = '';
+        if (marker) {
+            map.removeLayer(marker);
+            marker = null;
+        }
+        status.textContent = 'Адрес изменён. Найдите его на карте и подтвердите точку.';
+    });
     findButton?.addEventListener('click', async () => {
         const query = addressInput?.value.trim();
         if (!query) { status.textContent = 'Сначала укажите адрес самовывоза.'; return; }
