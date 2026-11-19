@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use App\Models\Order;
+use App\Models\OrderReview;
 use App\Models\Organization;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -35,6 +36,10 @@ class CustomerCatalogController extends Controller
         abort_unless($organization->isActive(), 404);
 
         $settings = $organization->orderSettings;
+
+        $publicRating = OrderReview::query()->where('organization_id', $organization->id)
+            ->where('is_public', true)->whereNotNull('published_at')
+            ->selectRaw('COUNT(*) as total, AVG(rating) as average')->first();
 
         $sections = $organization->menuSections()
             ->where('is_active', true)
@@ -173,6 +178,7 @@ class CustomerCatalogController extends Controller
 
         return view('customer.catalog.index', [
             'organization' => $organization,
+            'publicRating' => $publicRating,
             'settings' => $settings,
             'sections' => $sections,
             'canOrder' => $settings?->canAcceptOrders() ?? false,
