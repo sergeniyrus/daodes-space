@@ -19,6 +19,12 @@
         </div>
     @endif
 
+    @if(($cartUnavailableCount ?? 0) > 0)
+        <div style="width:min(1200px,calc(100% - 24px));margin:12px auto;padding:12px 15px;color:#ffe9a0;background:rgba(255,183,77,.08);border:1px solid rgba(255,183,77,.35);border-radius:11px">
+            В корзине есть {{ $cartUnavailableCount }} позиция(й), недоступная(ых) для выбранного способа получения. Корзина сохранена — переключите способ или удалите неподходящие блюда перед оформлением.
+        </div>
+    @endif
+
     @if($sections->isNotEmpty())
         <div class="customer-order-layout">
             <aside class="customer-order-sidebar" aria-label="Разделы меню">
