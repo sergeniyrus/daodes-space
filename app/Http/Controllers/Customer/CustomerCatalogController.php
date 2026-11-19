@@ -7,7 +7,8 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderReview;
 use App\Models\Organization;
-use Illuminate\Support\Facades\Auth;\nuse Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CustomerCatalogController extends Controller
