@@ -52,22 +52,22 @@ Route::prefix('staff')->name('employee.')->group(function () {
             ->prefix('organizations/{organization}/menu')
             ->name('organization.menu.')
             ->group(function () {
-                Route::get('/', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'index'])->name('index');
-                Route::get('/sections/create', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'createSection'])->name('sections.create');
-                Route::post('/sections', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'storeSection'])->name('sections.store');
-                Route::get('/sections/{section}/edit', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'editSection'])->name('sections.edit');
-                Route::put('/sections/{section}', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'updateSection'])->name('sections.update');
-                Route::delete('/sections/{section}', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'destroySection'])->name('sections.destroy');
-                Route::patch('/sections/{section}/sort', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'updateSectionSort'])->name('sections.sort');
-                Route::patch('/sections/{section}/toggle', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'toggleSection'])->name('sections.toggle');
-                Route::patch('/sections/{section}/quick-settings', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'updateSectionQuickSettings'])->name('sections.quick_settings');
-                Route::get('/sections/{section}/items/create', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'createItem'])->name('items.create');
-                Route::post('/sections/{section}/items', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'storeItem'])->name('items.store');
-                Route::get('/sections/{section}/items/{item}/edit', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'editItem'])->name('items.edit');
-                Route::put('/sections/{section}/items/{item}', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'updateItem'])->name('items.update');
-                Route::delete('/sections/{section}/items/{item}', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'destroyItem'])->name('items.destroy');
-                Route::patch('/sections/{section}/items/{item}/sort', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'updateItemSort'])->name('items.sort');
-                Route::patch('/sections/{section}/items/{item}/toggle', [\\App\\Http\\Controllers\\OrganizationMenuController::class, 'toggleItem'])->name('items.toggle');
+                Route::get('/', [\App\Http\\Controllers\\OrganizationMenuController::class, 'index'])->name('index');
+                Route::get('/sections/create', [\App\Http\\Controllers\\OrganizationMenuController::class, 'createSection'])->name('sections.create');
+                Route::post('/sections', [\App\Http\\Controllers\\OrganizationMenuController::class, 'storeSection'])->name('sections.store');
+                Route::get('/sections/{section}/edit', [\App\Http\\Controllers\\OrganizationMenuController::class, 'editSection'])->name('sections.edit');
+                Route::put('/sections/{section}', [\App\Http\\Controllers\\OrganizationMenuController::class, 'updateSection'])->name('sections.update');
+                Route::delete('/sections/{section}', [\App\Http\\Controllers\\OrganizationMenuController::class, 'destroySection'])->name('sections.destroy');
+                Route::patch('/sections/{section}/sort', [\App\Http\\Controllers\\OrganizationMenuController::class, 'updateSectionSort'])->name('sections.sort');
+                Route::patch('/sections/{section}/toggle', [\App\Http\\Controllers\\OrganizationMenuController::class, 'toggleSection'])->name('sections.toggle');
+                Route::patch('/sections/{section}/quick-settings', [\App\Http\\Controllers\\OrganizationMenuController::class, 'updateSectionQuickSettings'])->name('sections.quick_settings');
+                Route::get('/sections/{section}/items/create', [\App\Http\\Controllers\\OrganizationMenuController::class, 'createItem'])->name('items.create');
+                Route::post('/sections/{section}/items', [\App\Http\\Controllers\\OrganizationMenuController::class, 'storeItem'])->name('items.store');
+                Route::get('/sections/{section}/items/{item}/edit', [\App\Http\\Controllers\\OrganizationMenuController::class, 'editItem'])->name('items.edit');
+                Route::put('/sections/{section}/items/{item}', [\App\Http\\Controllers\\OrganizationMenuController::class, 'updateItem'])->name('items.update');
+                Route::delete('/sections/{section}/items/{item}', [\App\Http\\Controllers\\OrganizationMenuController::class, 'destroyItem'])->name('items.destroy');
+                Route::patch('/sections/{section}/items/{item}/sort', [\App\Http\\Controllers\\OrganizationMenuController::class, 'updateItemSort'])->name('items.sort');
+                Route::patch('/sections/{section}/items/{item}/toggle', [\App\Http\\Controllers\\OrganizationMenuController::class, 'toggleItem'])->name('items.toggle');
             });
     });
 });
