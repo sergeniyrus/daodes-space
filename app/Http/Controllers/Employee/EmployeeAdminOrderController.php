@@ -65,8 +65,8 @@ class EmployeeAdminOrderController extends Controller
                 $dateTo = null;
                 break;
             case 'custom':
-                $dateFrom = !empty($filters['date_from']) ? \\Illuminate\\Support\\Carbon::parse($filters['date_from'])->startOfDay() : $now->copy()->startOfMonth();
-                $dateTo = !empty($filters['date_to']) ? \\Illuminate\\Support\\Carbon::parse($filters['date_to'])->endOfDay() : $now->copy()->endOfDay();
+                $dateFrom = !empty($filters['date_from']) ? \Illuminate\Support\Carbon::parse($filters['date_from'])->startOfDay() : $now->copy()->startOfMonth();
+                $dateTo = !empty($filters['date_to']) ? \Illuminate\Support\Carbon::parse($filters['date_to'])->endOfDay() : $now->copy()->endOfDay();
                 break;
             case 'month':
             default:
