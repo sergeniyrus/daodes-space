@@ -19,7 +19,7 @@ class OrganizationActivityLogger
     ): void {
         OrganizationActivityLog::query()->create([
             'organization_id' => $organization->id,
-            'actor_id' => Auth::id() ?? Auth::guard('employee')->id(),
+            'actor_id' => Auth::id(),
             'action' => $action,
             'subject_type' => $subjectType,
             'subject_id' => $subjectId,
