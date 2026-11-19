@@ -34,7 +34,25 @@ class CustomerFeedbackController extends Controller
 
         $reviews = OrderReview::query()->with(['organization', 'order'])->where('customer_id', $customer->id)->latest()->paginate(15, ['*'], 'reviews_page');
 
-        return view('customer.feedback.index', compact('feedback', 'reviews'));
+        $organizations = $customer->organizations()->orderBy('name')->get();
+        return view('customer.feedback.index', compact('feedback', 'reviews', 'organizations'));
+    }
+
+    public function publicReviews(Organization $organization): View
+    {
+        $reviews = OrderReview::query()->with('customer')
+            ->where('organization_id', $organization->id)
+            ->where('is_public', true)
+            ->whereNotNull('published_at')
+            ->latest('published_at')
+            ->paginate(20);
+
+        $ratingStats = OrderReview::query()->where('organization_id', $organization->id)
+            ->where('is_public', true)
+            ->whereNotNull('published_at')
+            ->selectRaw('COUNT(*) as total, AVG(rating) as average')->first();
+
+        return view('customer.feedback.public', compact('organization', 'reviews', 'ratingStats'));
     }
 
     public function storeReview(\Illuminate\Http\Request $request, Order $order): RedirectResponse
