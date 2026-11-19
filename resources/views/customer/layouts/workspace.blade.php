@@ -2220,7 +2220,7 @@ body.customer-menu-image-open { overflow: hidden !important; }
                 <a class="customer-order-header-action" href="{{ route('customer.feedback.index', ['organization' => $customerWorkspace['organization']->id]) }}">
                     <span class="customer-order-header-action-title">Отзывы</span>
                     <span class="customer-order-header-action-stats">
-                        <span class="customer-order-header-action-stat">Книга отзывов и предложений</span>
+                        <span class="customer-order-header-action-stat">и предложения</span>
                     </span>
                     <span class="customer-order-header-notification-badge" data-header-notifications-count {{ ($customerUnreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}>{{ ($customerUnreadNotificationsCount ?? 0) > 0 ? $customerUnreadNotificationsCount : '' }}</span>
                 </a>
