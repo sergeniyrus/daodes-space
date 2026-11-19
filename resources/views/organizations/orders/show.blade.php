@@ -5,6 +5,7 @@
 @endsection
 
 @section('main')
+@include('organizations.partials.management-navigation', ['organization' => $organization])
 @php
     $statusLabels = [
         'new' => 'Новый',
