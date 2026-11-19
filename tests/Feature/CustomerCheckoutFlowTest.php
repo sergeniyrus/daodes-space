@@ -164,6 +164,8 @@ class CustomerCheckoutFlowTest extends TestCase
             'idempotency_key' => $idempotencyKey,
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'delivery_latitude' => '55.0000000',
+            'delivery_longitude' => '90.0000000',
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
             'address_line' => 'Test street 10',
             'entrance' => '2',
@@ -218,31 +220,31 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertSame('99.00', $item->fresh()->price);
     }
 
-    public function test_delivery_below_free_delivery_threshold_is_allowed_with_delivery_fee(): void
+    public function test_delivery_below_zone_minimum_is_rejected_without_a_delivery_fee(): void
     {
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu();
 
-        $organization->orderSettings->update([
-            'minimum_order' => '25.00',
+        $organization->orderSettings->deliveryZones()->update([
+            'minimum_order_amount' => '25.00',
         ]);
 
         $checkout = $this->openCheckout($customer, $organization, $item);
 
-        $response = $this->post(route('customer.checkout.store'), [
-            'idempotency_key' => $checkout->viewData('idempotencyKey'),
-            'customer_name' => 'Test customer',
-            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
-            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-            'address_line' => 'Test street 10',
-        ]);
+        $response = $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'delivery_latitude' => '55.0000000',
+                'delivery_longitude' => '90.0000000',
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'address_line' => 'Test street 10',
+            ]);
 
-        $order = Order::query()->firstOrFail();
-
-        $response->assertRedirect(route('customer.orders.show', $order));
-        $this->assertSame('20.00', $order->subtotal);
-        $this->assertSame('5.00', $order->delivery_fee);
-        $this->assertSame('25.00', $order->total);
+        $response->assertRedirect(route('customer.checkout'));
+        $response->assertSessionHasErrors('cart');
+        $this->assertDatabaseCount('orders', 0);
     }
 
     public function test_minimum_delivery_order_does_not_restrict_pickup(): void
@@ -250,8 +252,8 @@ class CustomerCheckoutFlowTest extends TestCase
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu();
 
-        $organization->orderSettings->update([
-            'minimum_order' => '25.00',
+        $organization->orderSettings->deliveryZones()->update([
+            'minimum_order_amount' => '25.00',
         ]);
 
         $checkout = $this->openCheckout($customer, $organization, $item);
@@ -1780,11 +1782,9 @@ class CustomerCheckoutFlowTest extends TestCase
             'status' => 'active',
         ]);
 
-        OrganizationOrderSetting::query()->create([
+        $settings = OrganizationOrderSetting::query()->create([
             'organization_id' => $organization->id,
             'currency' => 'EUR',
-            'delivery_fee' => '5.00',
-            'minimum_order' => '10.00',
             'orders_enabled' => true,
             'delivery_enabled' => true,
             'pickup_enabled' => true,
@@ -1793,7 +1793,18 @@ class CustomerCheckoutFlowTest extends TestCase
             'card_payment_enabled' => true,
             'online_payment_enabled' => false,
             'pickup_min_minutes' => null,
+            'pickup_address' => 'Test street 1',
+            'delivery_origin_latitude' => '55.0000000',
+            'delivery_origin_longitude' => '90.0000000',
         ]);
+
+        foreach ([2, 5, 7, 10] as $index => $distance) {
+            $settings->deliveryZones()->create([
+                'max_distance_km' => $distance,
+                'minimum_order_amount' => '0.00',
+                'sort_order' => $index,
+            ]);
+        }
 
         $section = MenuSection::query()->create([
             'organization_id' => $organization->id,
