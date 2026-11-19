@@ -1,437 +1,339 @@
 @extends('organizations.layouts.management')
 
-@section('title_page')
-    Заказы — {{ $organization->name }}
-@endsection
+@section('title_page') Заказы — {{ $organization->name }} @endsection
 
 @section('management-content')
-@php
-    $statusLabels = [
-        'new' => 'Новый',
-        'awaiting_payment' => 'Ожидает оплаты',
-        'confirmed' => 'Подтверждён',
-        'preparing' => 'Готовится',
-        'ready' => 'Готов',
-        'handed_to_courier' => 'Передан курьеру',
-        'in_transit' => 'В пути',
-        'issued' => 'Выдан',
-        'served' => 'Подан',
-        'delivered' => 'Доставлен',
-        'completed' => 'Завершён',
-        'cancelled' => 'Отменён',
-    ];
+,
+])
 
-    $paymentLabels = [
-        'pending' => 'Ожидает оплаты',
-        'succeeded' => 'Оплачен',
-        'failed' => 'Ошибка оплаты',
-        'cancelled' => 'Отменён',
-        'refunded' => 'Возвращён',
-    ];
+
+@php
+$statusLabels = ['new'=>'Новый','awaiting_payment'=>'Ожидает оплаты','confirmed'=>'Подтверждён','preparing'=>'Готовится','ready'=>'Готов','handed_to_courier'=>'У курьера','in_transit'=>'В пути','issued'=>'Выдан','served'=>'Подан','delivered'=>'Доставлен','completed'=>'Завершён','cancelled'=>'Отменён'];
+$paymentLabels = ['pending'=>'Ожидает оплаты','succeeded'=>'Оплачен','failed'=>'Ошибка','cancelled'=>'Отменён','refunded'=>'Возвращён'];
+$fulfillmentLabels = ['delivery'=>'Доставка','pickup'=>'Самовывоз','dine_in'=>'В заведении'];
+$paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Наличные при получении','card_on_receipt'=>'Картой при получении'];
 @endphp
 
-
 <style>
-.organization-orders-page {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    color: #f4f4f4;
-}
-.organization-orders-panel {
-    padding: 20px;
-    margin-bottom: 16px;
-    background: linear-gradient(145deg, #0b0c18, #14182a 58%, #0b0c18);
-    border: 1px solid rgba(255, 215, 0, .45);
-    border-radius: 17px;
-    box-shadow: 0 12px 35px rgba(0, 0, 0, .32);
-}
-.organization-orders-title { margin: 0 0 8px; color: #ffd700; }
-.organization-orders-muted { color: #aeb5c4; font-size: .9rem; }
-.organization-orders-card {
-    padding: 17px 0;
-    border-top: 1px solid rgba(0, 229, 212, .2);
-}
-.organization-orders-head {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-.organization-orders-number { color: #ffd700; font-size: 1.1rem; font-weight: 700; }
-.organization-orders-status { color: #00e5a8; font-weight: 700; }
-.organization-orders-lines { margin: 12px 0; color: #e4e7ee; }
-.organization-orders-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 9px;
-    margin-top: 13px;
-}
-.organization-orders-actions form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px;
-}
-.organization-orders-select {
-    min-height: 39px;
-    padding: 7px 10px;
-    color: #fff;
-    background: #090c16;
-    border: 1px solid rgba(0, 229, 212, .4);
-    border-radius: 8px;
-}
-.organization-orders-button {
-    min-height: 39px;
-    padding: 7px 14px;
-    color: #00e5d4;
-    background: rgba(0, 229, 212, .06);
-    border: 1px solid rgba(0, 229, 212, .65);
-    border-radius: 20px;
-    cursor: pointer;
-    font-weight: 700;
-}
-.organization-orders-button:hover { color: #081016; background: #00e5d4; }
-.organization-orders-danger {
-    color: #ff9292;
-    border-color: rgba(255, 100, 100, .65);
-}
-.organization-orders-warning {
-    padding: 10px 12px;
-    color: #ffd78b;
-    background: rgba(255, 180, 60, .06);
-    border: 1px solid rgba(255, 180, 60, .3);
-    border-radius: 9px;
-}
-.organization-orders-assignment {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 8px;
-    color: #aeb5c4;
-    font-size: .88rem;
-}
-.organization-orders-error { color: #ff9292; }
-.organization-orders-total { color: #ffd700; font-weight: 700; }
-@media(max-width:600px) {
-    .organization-orders-panel { padding: 15px; }
-    .organization-orders-actions,
-    .organization-orders-actions form { flex-direction: column; align-items: stretch; }
-}
+.admin-orders-page{--gold:#ffd700;--cyan:#00e5d4;--muted:#aeb5c4;--line:rgba(0,229,212,.2);width:100%;max-width:none;margin:0;color:#f4f5fa}
+.admin-orders-page *{box-sizing:border-box}
+.admin-orders-shell{padding:clamp(16px,2.5vw,28px);background:radial-gradient(circle at 100% 0,rgba(255,215,0,.075),transparent 30%),radial-gradient(circle at 0 100%,rgba(0,229,212,.045),transparent 32%),linear-gradient(145deg,#0b0c18,#111626 55%,#0b0c18);border:1px solid rgba(255,215,0,.42);border-radius:22px;box-shadow:0 16px 48px rgba(0,0,0,.38);margin-bottom:16px}
+.admin-orders-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid rgba(255,215,0,.2)}
+.admin-orders-eyebrow{color:var(--cyan);font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;margin:0 0 7px}
+.admin-orders-page h1,.admin-orders-page h2,.admin-orders-page h3{margin-top:0;color:var(--gold)}
+.admin-orders-page h1{font-size:clamp(1.45rem,3vw,2rem);margin-bottom:7px}
+.admin-orders-page h2{font-size:1.25rem;margin-bottom:8px}
+.admin-orders-page h3{font-size:1rem;margin:20px 0 10px}
+.admin-orders-subtitle,.admin-orders-muted{color:var(--muted)}
+.admin-orders-subtitle{margin:0}
+.admin-orders-actions{display:flex;gap:9px;flex-wrap:wrap}
+.admin-orders-link,.admin-orders-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:8px 14px;border:1px solid var(--cyan);border-radius:12px;background:rgba(0,229,212,.045);color:var(--cyan)!important;text-decoration:none;font-weight:600;cursor:pointer;transition:.2s}
+.admin-orders-link:hover,.admin-orders-button:hover{background:var(--cyan);color:#071316!important;box-shadow:0 0 16px rgba(0,229,212,.18)}
+.admin-orders-link.gold{border-color:var(--gold);color:var(--gold)!important;background:rgba(255,215,0,.045)}
+.admin-orders-link.gold:hover{background:var(--gold);color:#171506!important}
+.admin-orders-filters{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:11px;align-items:end}
+.admin-orders-field{grid-column:span 3;min-width:0}
+.admin-orders-field.search{grid-column:span 4}
+.admin-orders-field.period{grid-column:span 3}
+.admin-orders-field label{display:block;margin-bottom:6px;color:var(--muted);font-size:.82rem}
+.admin-orders-page input,.admin-orders-page select{width:100%;min-width:0;min-height:42px;padding:8px 11px;background:#0b1220;color:#f5f6fa;border:1px solid #39495a;border-radius:10px;outline:none}
+.admin-orders-page input:focus,.admin-orders-page select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,212,.1)}
+.admin-orders-page select option{background:#101522;color:#fff}
+.admin-orders-filter-actions{display:flex;gap:8px;flex-wrap:wrap;grid-column:span 12;margin-top:2px}
+.admin-orders-period-dates{grid-column:span 12;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.admin-orders-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
+.admin-orders-stat{position:relative;overflow:hidden;padding:17px;border:1px solid rgba(0,229,212,.24);border-radius:15px;background:linear-gradient(145deg,rgba(20,31,47,.96),rgba(12,18,31,.96))}
+.admin-orders-stat:after{content:"";position:absolute;width:90px;height:90px;right:-42px;top:-42px;border-radius:50%;background:rgba(0,229,212,.055)}
+.admin-orders-stat.gold{border-color:rgba(255,215,0,.28)}
+.admin-orders-stat small{display:block;color:var(--muted);font-size:.84rem;margin-bottom:9px}
+.admin-orders-stat strong{display:block;color:var(--gold);font-size:clamp(1.45rem,3vw,2rem);line-height:1.15;font-variant-numeric:tabular-nums}
+.admin-orders-stat.cyan strong{color:var(--cyan)}
+.admin-orders-period{display:inline-flex;padding:6px 10px;border-radius:8px;background:rgba(0,229,212,.07);color:var(--cyan);font-size:.84rem}
+.admin-orders-money-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+.admin-orders-money-card{padding:16px;border:1px solid rgba(255,215,0,.22);border-radius:14px;background:rgba(8,13,24,.56)}
+.admin-orders-money-card h3{margin:0 0 13px;color:var(--gold);font-size:1.1rem}
+.admin-orders-money-line{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,.065);font-size:.9rem}
+.admin-orders-money-line span{color:var(--muted)}
+.admin-orders-money-line strong{text-align:right;color:#f4f5fa;font-variant-numeric:tabular-nums}
+.admin-orders-breakdowns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+.admin-orders-breakdown{padding:15px;border:1px solid var(--line);border-radius:14px;background:rgba(8,13,24,.48);min-width:0}
+.admin-orders-breakdown h3{margin:0 0 12px}
+.admin-orders-chip-list{display:flex;flex-wrap:wrap;gap:8px}
+.admin-orders-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid rgba(255,215,0,.2);border-radius:9px;background:rgba(255,255,255,.025);font-size:.83rem}
+.admin-orders-chip strong{color:var(--gold)}
+.admin-orders-list-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.admin-orders-list-head h2{margin:0}
+.admin-orders-count{color:var(--muted);font-size:.88rem}
+.admin-order-card{padding:17px 0;border-top:1px solid var(--line)}
+.admin-order-card:first-of-type{border-top:0}
+.admin-order-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.admin-order-number{color:var(--gold);font-size:1.08rem;font-weight:700}
+.admin-order-badges{display:flex;gap:7px;flex-wrap:wrap}
+.admin-order-badge{display:inline-flex;padding:5px 9px;border:1px solid rgba(0,229,212,.25);border-radius:20px;color:var(--cyan);font-size:.78rem}
+.admin-order-badge.payment{border-color:rgba(255,215,0,.28);color:var(--gold)}
+.admin-order-customer{margin:9px 0 5px;font-weight:600}
+.admin-order-meta{display:flex;gap:8px 15px;flex-wrap:wrap;color:var(--muted);font-size:.85rem}
+.admin-order-items{margin:10px 0;color:#d5d9e3;font-size:.9rem;line-height:1.55}
+.admin-order-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.admin-order-total{color:var(--gold);font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums}
+.admin-orders-empty{padding:30px 15px;text-align:center;color:var(--muted);border:1px dashed rgba(0,229,212,.25);border-radius:13px}
+.product-analytics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+.product-analytics-card{min-width:0;padding:17px;border:1px solid rgba(0,229,212,.24);border-radius:15px;background:linear-gradient(145deg,rgba(17,29,44,.92),rgba(9,15,27,.92))}
+.product-analytics-card.least{border-color:rgba(255,215,0,.25)}
+.product-analytics-card h3{margin:0 0 5px;color:var(--gold)}
+.product-analytics-hint{margin:0 0 13px;color:var(--muted);font-size:.82rem;line-height:1.45}
+.product-analytics-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid rgba(255,255,255,.07)}
+.product-analytics-name{min-width:0;color:#f2f4f8;font-weight:650;overflow-wrap:anywhere}
+.product-analytics-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:5px;color:var(--muted);font-size:.78rem}
+.product-analytics-quantity{flex:0 0 auto;text-align:right;color:var(--cyan);font-weight:750;font-variant-numeric:tabular-nums}
+.product-analytics-card.least .product-analytics-quantity{color:var(--gold)}
+.product-analytics-quantity small{display:block;color:var(--muted);font-size:.72rem;font-weight:500}
+.product-analytics-zero{color:#ffb86b}
+.product-analytics-state{padding:3px 7px;border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:.7rem}
+@media(max-width:700px){.product-analytics-grid{grid-template-columns:1fr}.product-analytics-card{padding:14px}}
+
+.admin-orders-pagination{margin-top:18px}
+.admin-orders-pagination nav{display:flex;justify-content:center}
+.admin-orders-page .pagination{flex-wrap:wrap;gap:5px}
+.admin-orders-page .page-link{background:#101827;color:var(--cyan);border-color:#344456}
+.admin-orders-page .page-item.active .page-link{background:var(--cyan);border-color:var(--cyan);color:#081416}
+@media(max-width:900px){.admin-orders-field,.admin-orders-field.search,.admin-orders-field.period{grid-column:span 6}.admin-orders-breakdowns{grid-template-columns:1fr 1fr}.admin-orders-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.admin-orders-page{width:calc(100% - 16px);margin:14px auto 30px}.admin-orders-shell{padding:15px;border-radius:16px}.admin-orders-heading{flex-direction:column}.admin-orders-actions{width:100%}.admin-orders-actions>*{flex:1}.admin-orders-field,.admin-orders-field.search,.admin-orders-field.period{grid-column:span 12}.admin-orders-period-dates{grid-template-columns:1fr}.admin-orders-summary-grid{gap:8px}.admin-orders-stat{padding:13px}.admin-orders-stat small{font-size:.76rem}.admin-orders-breakdowns{grid-template-columns:1fr}.admin-order-bottom>*{width:100%}.admin-order-bottom .admin-orders-link{width:100%}}
 </style>
+<style>@media(max-width:560px){.admin-orders-page{width:100%;margin:0}}</style>
 
-<div
-    class="organization-orders-page"
-    data-orders-updates-url="{{ route('organizations.orders.updates', $organization) }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}"
->
+<div class="admin-orders-page">
+    <section class="admin-orders-shell">
+        <header class="admin-orders-heading">
+            <div>
+                <p class="admin-orders-eyebrow">АНАЛИТИКА ЗАКАЗОВ</p>
+                <h1>Заказы организации</h1>
+                <p class="admin-orders-subtitle">Контроль заказов, оплат и показателей работы</p>
+            </div>
+            <div class="admin-orders-actions">
+                <a class="admin-orders-link" href="{{ route('organizations.menu.index', $organization) }}">← Управление меню</a>
+                <a class="admin-orders-link gold" href="{{ route('organizations.orders.export', array_merge(
+                    ['organization' => $organization->id],
+                    request()->query(),
+                    ['date_from' => $dateFrom?->format('Y-m-d'), 'date_to' => $dateTo?->format('Y-m-d')]
+                )) }}">⇩ Экспорт CSV</a>
+            </div>
+        </header>
 
-
-
-
-    <div class="organization-orders-panel">
-        <h1 class="organization-orders-title">Заказы организации</h1>
-        <div class="organization-orders-muted">{{ $organization->name }}</div>
-        <div style="margin-top: 14px;">
-            <a href="{{ route('organizations.manage', $organization) }}" style="color: #00e5d4; text-decoration: none;">
-                ← Панель организации
-            </a>
-        </div>
-    </div>
-
-    @include('components.order-notifications', [
-        'notificationsUrl' => route('organizations.orders.notifications', $organization),
-        'notificationReadUrlTemplate' => route('organizations.orders.notifications.read', [$organization, '__ID__']),
-    ])
-
-    <div class="organization-orders-panel">
-        <h2 class="organization-orders-title" style="font-size: 1.1rem;">Поиск и фильтры</h2>
-        <form method="GET" action="{{ route('organizations.orders.index', $organization) }}" class="organization-orders-actions" style="align-items: end;">
-            <label class="organization-orders-muted" style="display: grid; gap: 5px; min-width: 190px;">
-                Поиск: номер, клиент или телефон
-                <input class="organization-orders-select" type="search" name="q" value="{{ request('q') }}" maxlength="100" placeholder="Например, 1042 или Иван">
-            </label>
-            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
-                Статус
-                <select class="organization-orders-select" name="status">
-                    <option value="">Все статусы</option>
-                    @foreach($statusLabels as $value => $label)
-                        <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
-                    @endforeach
+        <form class="admin-orders-filters" method="GET">
+            <div class="admin-orders-field period">
+                <label for="admin-period">Период аналитики</label>
+                <select id="admin-period" name="period" onchange="this.form.submit()">
+                    <option value="day" @selected($period === 'day')>Сегодня</option>
+                    <option value="yesterday" @selected($period === 'yesterday')>Вчера</option>
+                    <option value="last7" @selected($period === 'last7')>Последние 7 дней</option>
+                    <option value="last30" @selected($period === 'last30')>Последние 30 дней</option>
+                    <option value="week" @selected($period === 'week')>Текущая неделя</option>
+                    <option value="month" @selected($period === 'month')>Текущий месяц</option>
+                    <option value="year" @selected($period === 'year')>Текущий год</option>
+                    <option value="all" @selected($period === 'all')>За всё время</option>
+                    <option value="custom" @selected($period === 'custom')>Произвольный период</option>
                 </select>
-            </label>
-            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
-                Получение
-                <select class="organization-orders-select" name="fulfillment_type">
-                    <option value="">Все способы</option>
-                    <option value="delivery" @selected(request('fulfillment_type') === 'delivery')>Доставка</option>
-                    <option value="pickup" @selected(request('fulfillment_type') === 'pickup')>Самовывоз</option>
-                    <option value="dine_in" @selected(request('fulfillment_type') === 'dine_in')>В заведении</option>
+            </div>
+
+            @if($period === 'custom')
+                <div class="admin-orders-period-dates">
+                    <div><label for="admin-date-from">Начало периода</label><input id="admin-date-from" type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}"></div>
+                    <div><label for="admin-date-to">Конец периода</label><input id="admin-date-to" type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}"></div>
+                </div>
+            @endif
+
+            <div class="admin-orders-field search">
+                <label for="admin-search">Поиск заказа</label>
+                <input id="admin-search" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Номер, имя или телефон">
+            </div>
+            <div class="admin-orders-field">
+                <label for="admin-status">Статус заказа</label>
+                <select id="admin-status" name="status"><option value="">Все статусы</option>@foreach($statusLabels as $key=>$label)<option value="{{ $key }}" @selected(($filters['status'] ?? '') === $key)>{{ $label }}</option>@endforeach</select>
+            </div>
+            <div class="admin-orders-field">
+                <label for="admin-payment-status">Состояние оплаты</label>
+                <select id="admin-payment-status" name="payment_status"><option value="">Любое</option>@foreach($paymentLabels as $key=>$label)<option value="{{ $key }}" @selected(($filters['payment_status'] ?? '') === $key)>{{ $label }}</option>@endforeach</select>
+            </div>
+            <div class="admin-orders-field">
+                <label for="admin-fulfillment">Способ получения</label>
+                <select id="admin-fulfillment" name="fulfillment_type">
+                    <option value="">Любой способ</option>
+                    <option value="delivery" @selected(($filters['fulfillment_type'] ?? '') === 'delivery')>Доставка</option>
+                    <option value="pickup" @selected(($filters['fulfillment_type'] ?? '') === 'pickup')>Самовывоз</option>
+                    <option value="dine_in" @selected(($filters['fulfillment_type'] ?? '') === 'dine_in')>В заведении</option>
                 </select>
-            </label>
-            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
-                Способ оплаты
-                <select class="organization-orders-select" name="payment_method">
-                    <option value="">Все способы оплаты</option>
-                    <option value="online" @selected(request('payment_method') === 'online')>Онлайн</option>
-                    <option value="cash_on_receipt" @selected(request('payment_method') === 'cash_on_receipt')>Наличные</option>
-                    <option value="card_on_receipt" @selected(request('payment_method') === 'card_on_receipt')>Терминал</option>
+            </div>
+            <div class="admin-orders-field">
+                <label for="admin-payment-method">Способ оплаты</label>
+                <select id="admin-payment-method" name="payment_method">
+                    <option value="">Любой способ</option>
+                    <option value="online" @selected(($filters['payment_method'] ?? '') === 'online')>Онлайн</option>
+                    <option value="cash_on_receipt" @selected(($filters['payment_method'] ?? '') === 'cash_on_receipt')>Наличные</option>
+                    <option value="card_on_receipt" @selected(($filters['payment_method'] ?? '') === 'card_on_receipt')>Картой при получении</option>
                 </select>
-            </label>
-            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
-                Оплата
-                <select class="organization-orders-select" name="payment_status">
-                    <option value="">Любое состояние</option>
-                    @foreach($paymentLabels as $value => $label)
-                        <option value="{{ $value }}" @selected(request('payment_status') === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </label>
-            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
-                С даты
-                <input class="organization-orders-select" type="date" name="date_from" value="{{ request('date_from') }}">
-            </label>
-            <label class="organization-orders-muted" style="display: grid; gap: 5px;">
-                По дату
-                <input class="organization-orders-select" type="date" name="date_to" value="{{ request('date_to') }}">
-            </label>
-            <button type="submit" class="organization-orders-button">Применить</button>
-            <button type="submit" formaction="{{ route('organizations.orders.export', $organization) }}" class="organization-orders-button">Скачать CSV</button>
-            <a href="{{ route('organizations.orders.index', $organization) }}" class="organization-orders-button" style="text-decoration: none; display: inline-flex; align-items: center;">Сбросить</a>
+            </div>
+            <div class="admin-orders-filter-actions">
+                <button class="admin-orders-button" type="submit">Применить фильтры</button>
+                <a class="admin-orders-link" href="{{ route('organizations.orders.index', $organization) }}">Сбросить</a>
+            </div>
         </form>
-        <div class="organization-orders-muted" style="margin-top: 10px;">
-            Найдено заказов: {{ $orders->total() }}
+    </section>
+
+    <section class="admin-orders-shell">
+        <div class="admin-orders-list-head">
+            <div>
+                <h2>Аналитика заказов</h2>
+                <div class="admin-orders-period">
+                    @if($dateFrom){{ $dateFrom->format('d.m.Y') }}@elseС начала работы@endif
+                    — @if($dateTo){{ $dateTo->format('d.m.Y') }}@elseпо настоящее время@endif
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="organization-orders-panel" id="organization-orders-list">
+        <div class="admin-orders-summary-grid">
+            <div class="admin-orders-stat"><small>Всего заказов</small><strong>{{ $summary['count'] }}</strong></div>
+            <div class="admin-orders-stat cyan"><small>Оплачено заказов</small><strong>{{ $summary['paid_count'] }}</strong></div>
+            <div class="admin-orders-stat gold"><small>Ожидают оплаты</small><strong>{{ $summary['pending_count'] }}</strong></div>
+            <div class="admin-orders-stat"><small>Отменено</small><strong>{{ $summary['cancelled_count'] }}</strong></div>
+        </div>
+
+        <h3>Финансовые показатели</h3>
+        <div class="admin-orders-money-grid">
+            @forelse($summary['amounts'] as $amount)
+                <div class="admin-orders-money-card">
+                    <h3>{{ $amount->currency }}</h3>
+                    <div class="admin-orders-money-line"><span>Заказов</span><strong>{{ $amount->orders_count }}</strong></div>
+                    <div class="admin-orders-money-line"><span>Общая сумма</span><strong>{{ number_format((float)$amount->total_amount,2,',',' ') }}</strong></div>
+                    <div class="admin-orders-money-line"><span>Средний чек</span><strong>{{ number_format((float)$amount->average_amount,2,',',' ') }}</strong></div>
+                    <div class="admin-orders-money-line"><span>Фактически оплачено</span><strong>{{ number_format((float)$amount->paid_amount,2,',',' ') }}</strong></div>
+                    <div class="admin-orders-money-line"><span>Ожидает оплаты</span><strong>{{ number_format((float)$amount->pending_amount,2,',',' ') }}</strong></div>
+                </div>
+            @empty
+                <p class="admin-orders-muted">За выбранный период финансовых данных нет.</p>
+            @endforelse
+        </div>
+
+        <div class="admin-orders-breakdowns">
+            <div class="admin-orders-breakdown">
+                <h3>Способы получения</h3>
+                <div class="admin-orders-chip-list">
+                    @forelse($summary['fulfillment'] as $row)
+                        <span class="admin-orders-chip">{{ $fulfillmentLabels[$row->fulfillment_type] ?? $row->fulfillment_type }} <strong>{{ $row->orders_count }}</strong></span>
+                    @empty <span class="admin-orders-muted">Нет данных</span> @endforelse
+                </div>
+            </div>
+            <div class="admin-orders-breakdown">
+                <h3>Способы оплаты</h3>
+                <div class="admin-orders-chip-list">
+                    @forelse($summary['payment_methods'] as $row)
+                        <span class="admin-orders-chip">{{ $paymentMethodLabels[$row->payment_method] ?? $row->payment_method }} <strong>{{ $row->orders_count }}</strong></span>
+                    @empty <span class="admin-orders-muted">Нет данных</span> @endforelse
+                </div>
+            </div>
+            <div class="admin-orders-breakdown">
+                <h3>Статусы заказов</h3>
+                <div class="admin-orders-chip-list">
+                    @forelse($summary['statuses'] as $statusRow)
+                        <span class="admin-orders-chip">{{ $statusLabels[$statusRow->status] ?? $statusRow->status }} <strong>{{ $statusRow->orders_count }}</strong></span>
+                    @empty <span class="admin-orders-muted">Нет данных</span> @endforelse
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="admin-orders-shell">
+        <div class="admin-orders-list-head">
+            <div>
+                <h2>Продажи товаров</h2>
+                <p class="admin-orders-muted" style="margin:5px 0 0;">Рейтинг рассчитывается по оплаченным, неотменённым заказам за выбранный период. Учитываются также отключённые позиции меню.</p>
+            </div>
+            <span class="admin-orders-period">Топ-10 / Антирейтинг</span>
+        </div>
+
+        <div class="product-analytics-grid">
+            <div class="product-analytics-card">
+                <h3>🔥 Самые ходовые</h3>
+                <p class="product-analytics-hint">Позиции с наибольшим количеством проданных единиц.</p>
+                @forelse($bestSellingProducts as $product)
+                    <div class="product-analytics-row">
+                        <div style="min-width:0;">
+                            <div class="product-analytics-name">{{ $product->name }}</div>
+                            <div class="product-analytics-meta">
+                                <span>{{ $product->orders_count }} заказ(ов)</span>
+                                @if(!$product->is_active)
+                                    <span class="product-analytics-state">Отключено в меню</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="product-analytics-quantity">
+                            {{ number_format((int) $product->sold_quantity, 0, ',', ' ') }}
+                            <small>продано шт.</small>
+                        </div>
+                    </div>
+                @empty
+                    <div class="admin-orders-empty">В меню пока нет товаров.</div>
+                @endforelse
+            </div>
+
+            <div class="product-analytics-card least">
+                <h3>◷ Самые невостребованные</h3>
+                <p class="product-analytics-hint">Позиции с минимальным количеством продаж. Товары без продаж также попадают в рейтинг.</p>
+                @forelse($leastSellingProducts as $product)
+                    <div class="product-analytics-row">
+                        <div style="min-width:0;">
+                            <div class="product-analytics-name">{{ $product->name }}</div>
+                            <div class="product-analytics-meta">
+                                <span>{{ $product->orders_count }} заказ(ов)</span>
+                                @if(!$product->is_active)
+                                    <span class="product-analytics-state">Отключено в меню</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="product-analytics-quantity {{ (int) $product->sold_quantity === 0 ? 'product-analytics-zero' : '' }}">
+                            {{ number_format((int) $product->sold_quantity, 0, ',', ' ') }}
+                            <small>продано шт.</small>
+                        </div>
+                    </div>
+                @empty
+                    <div class="admin-orders-empty">В меню пока нет товаров.</div>
+                @endforelse
+            </div>
+        </div>
+    </section>
+
+    <section class="admin-orders-shell">
+        <div class="admin-orders-list-head">
+            <h2>Список заказов</h2>
+            <span class="admin-orders-count">Найдено: {{ $orders->total() }}</span>
+        </div>
+
         @forelse($orders as $order)
-            <article class="organization-orders-card">
-                <div class="organization-orders-head">
-                    <div>
-                        <div class="organization-orders-number">
-                            Заказ №{{ $order->order_number }}
-                        </div>
-                        <div class="organization-orders-muted">
-                            {{ $order->created_at?->format('d.m.Y H:i') }}
-                        </div>
-                        <a
-                            href="{{ route('organizations.orders.show', [$organization, $order]) }}"
-                            class="organization-orders-button"
-                            style="display: inline-flex; align-items: center; margin-top: 8px; text-decoration: none;"
-                        >
-                            Открыть заказ
-                        </a>
-                    </div>
-
-                    <div style="text-align: right;">
-                        <div class="organization-orders-status">{{ $statusLabels[$order->status] ?? $order->status }}</div>
-                        <div class="organization-orders-total">
-                            {{ number_format((float) $order->total, 2, ',', ' ') }}
-                            {{ $order->currency }}
-                        </div>
+            <article class="admin-order-card">
+                <div class="admin-order-card-head">
+                    <span class="admin-order-number">Заказ №{{ $order->order_number }}</span>
+                    <div class="admin-order-badges">
+                        <span class="admin-order-badge">{{ $statusLabels[$order->status] ?? $order->status }}</span>
+                        <span class="admin-order-badge payment">{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</span>
                     </div>
                 </div>
-
-                <div class="organization-orders-lines">
-                    @foreach($order->items as $item)
-                        <div>
-                            {{ $item->item_name }} × {{ $item->quantity }}
-                            — {{ number_format((float) $item->line_total, 2, ',', ' ') }} {{ $order->currency }}
-                        </div>
-                    @endforeach
+                <div class="admin-order-customer">{{ $order->customer_name }} · {{ $order->customer_phone }}</div>
+                <div class="admin-order-meta">
+                    <span>◷ {{ $order->created_at?->format('d.m.Y H:i') }}</span>
+                    <span>{{ $fulfillmentLabels[$order->fulfillment_type] ?? $order->fulfillment_type }}</span>
+                    <span>{{ $paymentMethodLabels[$order->payment_method] ?? $order->payment_method }}</span>
                 </div>
-
-                <div class="organization-orders-muted">
-                    Клиент: {{ $order->customer_name }} · {{ $order->customer_phone }}
-                </div>
-                <div class="organization-orders-muted">
-                    Получение:
-                    @switch($order->fulfillment_type)
-                        @case('delivery') Доставка @break
-                        @case('pickup') Самовывоз @break
-                        @case('dine_in') В заведении @break
-                        @default {{ $order->fulfillment_type }}
-                    @endswitch
-                    · Оплата:
-                    @switch($order->payment_method)
-                        @case('cash_on_receipt') Наличные @break
-                        @case('card_on_receipt') Терминал @break
-                        @default Онлайн
-                    @endswitch
-                </div>
-                <div class="organization-orders-muted">
-                    Состояние оплаты: {{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}
-                </div>
-
-                @if($order->delivery_address)
-                    <div class="organization-orders-muted" style="margin-top: 7px;">
-                        Адрес: {{ $order->delivery_address['address_line'] ?? '' }}
-                        @if(!empty($order->delivery_address['entrance']))
-                            · подъезд {{ $order->delivery_address['entrance'] }}
-                        @endif
-                        @if(!empty($order->delivery_address['floor']))
-                            · этаж {{ $order->delivery_address['floor'] }}
-                        @endif
-                        @if(!empty($order->delivery_address['apartment']))
-                            · кв./офис {{ $order->delivery_address['apartment'] }}
-                        @endif
-                    </div>
-                    @if(!empty($order->delivery_address['delivery_comment']))
-                        <div class="organization-orders-muted">
-                            Курьеру: {{ $order->delivery_address['delivery_comment'] }}
-                        </div>
-                    @endif
-                @endif
-
-                @if($order->customer_comment)
-                    <div class="organization-orders-muted">
-                        Комментарий: {{ $order->customer_comment }}
-                    </div>
-                @endif
-
-                @foreach($order->assignments->whereNull('unassigned_at') as $assignment)
-                    <div class="organization-orders-assignment">
-                        {{ $assignment->role === 'cook' ? 'Повар' : 'Курьер' }}:
-                        {{ $assignment->employee?->name ?? 'Сотрудник удалён' }}
-                    </div>
-                @endforeach
-
-                @if($order->statusHistory->isNotEmpty())
-                    <details style="margin-top: 12px;">
-                        <summary style="color: #00e5d4; cursor: pointer;">
-                            История заказа ({{ $order->statusHistory->count() }})
-                        </summary>
-                        <div style="margin-top: 8px; padding-left: 12px; border-left: 2px solid rgba(0, 229, 212, .35);">
-                            @foreach($order->statusHistory as $history)
-                                <div style="padding: 7px 0;">
-                                    <div class="organization-orders-muted">
-                                        {{ $history->created_at?->format('d.m.Y H:i:s') }}
-                                        · {{ $statusLabels[$history->to_status] ?? $history->to_status }}
-                                        · {{ $history->actor_type === 'employee' ? 'Сотрудник' : ($history->actor_type === 'customer' ? 'Клиент' : ($history->actor_type === 'user' ? 'Менеджер' : 'Система')) }}
-                                    </div>
-                                    @if($history->comment)
-                                        <div class="organization-orders-muted">{{ $history->comment }}</div>
-                                    @endif
-                                </div>
-                            @endforeach
-                        </div>
-                    </details>
-                @endif
-
-                @php
-                    $canCollectOfflinePayment = match ($order->fulfillment_type) {
-                        'delivery' => $order->status === 'delivered',
-                        'pickup' => $order->status === 'issued',
-                        'dine_in' => $order->status === 'served',
-                        default => false,
-                    };
-                @endphp
-
-                <div class="organization-orders-actions">
-                    @if(in_array($order->status, ['new', 'confirmed', 'preparing', 'ready'], true) && $order->payment_status !== 'succeeded')
-                        <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}" onsubmit="return confirm('Отменить заказ №{{ $order->order_number }}?');">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="cancelled">
-                            <button type="submit" class="organization-orders-button organization-orders-danger">Отменить заказ</button>
-                        </form>
-                    @endif
-
-                    @if($order->status === 'ready' && $order->fulfillment_type === 'dine_in')
-                        <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="served">
-                            <button type="submit" class="organization-orders-button">Отметить поданным</button>
-                        </form>
-                    @endif
-
-                    @if(in_array($order->status, ['delivered', 'issued', 'served'], true) && $order->payment_status === 'succeeded')
-                        <form method="POST" action="{{ route('organizations.orders.status', [$organization, $order]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <input type="hidden" name="status" value="completed">
-                            <button type="submit" class="organization-orders-button">Завершить заказ</button>
-                        </form>
-                    @endif
-
-                    @if($order->payment_status === 'pending' && in_array($order->payment_method, ['cash_on_receipt', 'card_on_receipt'], true) && $canCollectOfflinePayment)
-                        <form method="POST" action="{{ route('organizations.orders.payment', [$organization, $order]) }}" onsubmit="return confirm('Подтвердить получение оплаты по заказу №{{ $order->order_number }}?');">
-                            @csrf
-                            @method('PATCH')
-                            <button type="submit" class="organization-orders-button">Отметить оплату полученной</button>
-                        </form>
-                    @endif
+                <div class="admin-order-items">{{ $order->items->map(fn($item) => $item->item_name.' × '.$item->quantity)->implode(', ') }}</div>
+                <div class="admin-order-bottom">
+                    <strong class="admin-order-total">{{ number_format((float)$order->total,2,',',' ') }} {{ $order->currency }}</strong>
+                    <a class="admin-orders-link" href="{{ route('organizations.orders.show', [$organization,$order]) }}">Открыть заказ →</a>
                 </div>
             </article>
         @empty
-            <div class="organization-orders-muted">
-                Заказов пока нет.
-            </div>
+            <div class="admin-orders-empty">По выбранным условиям заказы не найдены.</div>
         @endforelse
 
-        {{ $orders->links() }}
-    </div>
+        <div class="admin-orders-pagination">{{ $orders->links() }}</div>
+    </section>
 </div>
-
-<script>
-(() => {
-    const page = document.querySelector('.organization-orders-page[data-orders-updates-url]');
-    let list = document.getElementById('organization-orders-list');
-
-    if (!page || !list) {
-        return;
-    }
-
-    let requestInProgress = false;
-
-    const refreshOrders = async () => {
-        if (requestInProgress || document.hidden) {
-            return;
-        }
-
-        requestInProgress = true;
-
-        try {
-            const response = await fetch(page.dataset.ordersUpdatesUrl, {
-                method: 'GET',
-                credentials: 'same-origin',
-                headers: {
-                    'Accept': 'text/html',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                cache: 'no-store'
-            });
-
-            if (!response.ok) {
-                throw new Error('Не удалось обновить список заказов.');
-            }
-
-            const html = await response.text();
-            const documentFromServer = new DOMParser().parseFromString(html, 'text/html');
-            const updatedList = documentFromServer.getElementById('organization-orders-list');
-
-            if (!updatedList) {
-                throw new Error('Сервер вернул некорректный ответ.');
-            }
-
-            if (list.innerHTML !== updatedList.innerHTML) {
-                const replacement = document.importNode(updatedList, true);
-                list.replaceWith(replacement);
-                list = replacement;
-            }
-        } catch (error) {
-            console.warn('Organization orders polling:', error);
-        } finally {
-            requestInProgress = false;
-        }
-    };
-
-    window.setInterval(refreshOrders, 15000);
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            refreshOrders();
-        }
-    });
-})();
-</script>
 @endsection
