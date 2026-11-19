@@ -136,6 +136,8 @@ class AppServiceProvider extends ServiceProvider
                         $cartItemsQuery->where('delivery_enabled', true);
                     } elseif ($selectedFulfillment === 'pickup') {
                         $cartItemsQuery->where('pickup_enabled', true);
+                    } elseif ($selectedFulfillment === 'dine_in') {
+                        $cartItemsQuery->where('dine_in_enabled', true);
                     }
 
                     $cartItems = $cartItemsQuery
@@ -147,6 +149,8 @@ class AppServiceProvider extends ServiceProvider
                                 $query->where('delivery_enabled', true);
                             } elseif ($selectedFulfillment === 'pickup') {
                                 $query->where('pickup_enabled', true);
+                            } elseif ($selectedFulfillment === 'dine_in') {
+                                $query->where('dine_in_enabled', true);
                             }
                         })
                         ->get()->keyBy('id');
