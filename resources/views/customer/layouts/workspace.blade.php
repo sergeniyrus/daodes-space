@@ -863,6 +863,24 @@
     line-height: 1;
     box-shadow: inset 0 0 10px rgba(0, 229, 212, .06);
 }
+.customer-order-header-notification-badge {
+    position: absolute;
+    top: 8px;
+    right: 9px;
+    min-width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    color: #081016;
+    background: #ffcf4a;
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 20px;
+    font: 900 .75rem/1 Arial, sans-serif;
+    box-shadow: 0 0 12px rgba(255,207,74,.35);
+}
+.customer-order-header-notification-badge[hidden] { display:none !important; }
 .customer-order-header-cart-total {
     color: #00e5d4;
     font-size: .95rem;
@@ -966,8 +984,8 @@
 @media (max-width: 700px) {
     /* Mobile header: organization/menu full width, actions side by side. */
     .customer-order-header {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 9px;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 7px;
     }
     .customer-order-header-info {
         grid-column: 1 / -1;
@@ -2096,6 +2114,20 @@ body.customer-menu-image-open { overflow: hidden !important; }
 {{-- Каталог уже получает эти данные от контроллера. Используем их как fallback,
      если общий composer не смог определить организацию для шапки. --}}
 @php
+    $customerUnreadNotificationsCount = 0;
+    $workspaceCustomer = auth('customer')->user();
+    if ($workspaceCustomer) {
+        $customerUnreadNotificationsCount = \\App\\Models\\OrderNotification::query()
+            ->where('recipient_type', 'customer')
+            ->where('recipient_id', $workspaceCustomer->id)
+            ->whereNull('read_at')
+            ->where(function ($owned) use ($workspaceCustomer) {
+                $owned->whereHas('order', fn ($orderQuery) => $orderQuery->where('customer_id', $workspaceCustomer->id))
+                    ->orWhereHas('feedback', fn ($feedbackQuery) => $feedbackQuery->where('customer_id', $workspaceCustomer->id));
+            })
+            ->count();
+    }
+
     if (!isset($customerWorkspace) && isset($organization)) {
         $customerWorkspace = [
             'organization' => $organization,
@@ -2181,10 +2213,26 @@ body.customer-menu-image-open { overflow: hidden !important; }
                     <span class="customer-order-header-action-stat">В работе <span class="customer-order-header-action-count">{{ $customerWorkspace['ordersInProgressCount'] }}</span></span>
                 </span>
             </a>
-            @if(auth('customer')->check())
-                <a href="{{ route('customer.feedback.index') }}" style="display:block;margin:0 14px 10px;color:#00e5d4;text-align:center;text-decoration:none">Отзывы и предложения →</a>
-            @endif
         </section>
+
+        @if(auth('customer')->check())
+            <section class="customer-order-header-card {{ request()->routeIs('customer.feedback.*') ? 'is-active' : '' }}">
+                <a class="customer-order-header-action" href="{{ route('customer.feedback.index', ['organization' => $customerWorkspace['organization']->id]) }}">
+                    <span class="customer-order-header-action-title">Отзывы</span>
+                    <span class="customer-order-header-action-stats">
+                        <span class="customer-order-header-action-stat">Книга отзывов и предложений</span>
+                    </span>
+                    <span class="customer-order-header-notification-badge" data-header-notifications-count {{ ($customerUnreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}>{{ ($customerUnreadNotificationsCount ?? 0) > 0 ? $customerUnreadNotificationsCount : '' }}</span>
+                </a>
+            </section>
+        @else
+            <section class="customer-order-header-card">
+                <a class="customer-order-header-action" href="{{ route('customer.login') }}">
+                    <span class="customer-order-header-action-title">Отзывы</span>
+                    <span class="customer-order-header-action-stats"><span class="customer-order-header-action-stat">Войти для обращения</span></span>
+                </a>
+            </section>
+        @endif
 
         <section class="customer-order-header-card {{ request()->routeIs('customer.cart') || request()->routeIs('customer.checkout') ? 'is-active' : '' }}">
             <a class="customer-order-header-action" href="{{ route('customer.cart') }}">
