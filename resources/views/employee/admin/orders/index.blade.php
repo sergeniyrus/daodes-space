@@ -28,6 +28,8 @@ $paymentLabels = ['pending'=>'Ожидает оплаты','succeeded'=>'Опл�
    <select name="period" onchange="this.form.submit()">
     <option value="day" @selected($period === 'day')>Сегодня</option>
     <option value="yesterday" @selected($period === 'yesterday')>Вчера</option>
+    <option value="last7" @selected($period === 'last7')>Последние 7 дней</option>
+    <option value="last30" @selected($period === 'last30')>Последние 30 дней</option>
     <option value="week" @selected($period === 'week')>Текущая неделя</option>
     <option value="month" @selected($period === 'month')>Текущий месяц</option>
     <option value="year" @selected($period === 'year')>Текущий год</option>
