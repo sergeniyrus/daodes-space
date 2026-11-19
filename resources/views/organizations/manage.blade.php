@@ -1965,6 +1965,24 @@
     color: #ff8585;
     font-size: .85rem;
 }
+
+.organization-delivery-zones{margin:18px 0 8px;padding:18px;background:linear-gradient(145deg,rgba(0,229,212,.075),rgba(255,215,0,.035));border:1px solid rgba(0,229,212,.34);border-radius:16px}
+.organization-delivery-zones[hidden]{display:none!important}
+.organization-delivery-zones-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.organization-delivery-zones-heading h3{margin:0;color:#ffd700;font-size:1.12rem}
+.organization-delivery-zones-heading p{margin:5px 0 0;color:#aeb5c4;font-size:.88rem}
+.organization-delivery-limit{flex:0 0 auto;padding:6px 10px;color:#00e5d4;border:1px solid rgba(0,229,212,.35);border-radius:20px;font-size:.8rem;font-weight:700}
+.organization-delivery-origin-map{height:250px;margin:10px 0 14px;border:1px solid rgba(0,229,212,.4);border-radius:12px;overflow:hidden;background:#101522}
+.organization-delivery-map-tools{display:flex;align-items:center;flex-wrap:wrap;gap:10px;color:#aeb5c4;font-size:.86rem}
+.organization-delivery-map-button,.organization-delivery-zone-add{min-height:36px;padding:7px 13px;color:#00e5d4;background:rgba(0,229,212,.07);border:1px solid rgba(0,229,212,.45);border-radius:20px;font-weight:700;cursor:pointer}
+.organization-delivery-zones-list{display:grid;gap:8px;margin-top:14px}
+.organization-delivery-zone-row{display:grid;grid-template-columns:34px minmax(100px,.8fr) minmax(150px,1.2fr) 36px;align-items:end;gap:10px;padding:10px;background:rgba(5,10,20,.58);border:1px solid rgba(255,215,0,.18);border-radius:11px}
+.organization-delivery-zone-number{align-self:center;color:#ffd700;font-weight:800;text-align:center}
+.organization-delivery-zone-row label{display:grid;gap:5px;color:#aeb5c4;font-size:.78rem}
+.organization-delivery-zone-row input{width:100%;min-height:38px;box-sizing:border-box;padding:7px 9px;color:#fff;background:#090c16;border:1px solid rgba(0,229,212,.4);border-radius:8px}
+.organization-delivery-zone-remove{width:34px;height:36px;color:#ff8d8d;background:rgba(255,90,90,.08);border:1px solid rgba(255,90,90,.3);border-radius:9px;font-size:1.35rem;cursor:pointer}
+.organization-delivery-zones-note{margin-top:12px;color:#9da7b8;font-size:.84rem;line-height:1.45}
+@media(max-width:600px){.organization-delivery-zones{padding:12px}.organization-delivery-zones-heading{flex-direction:column}.organization-delivery-zone-row{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 32px;gap:6px;padding:7px}.organization-delivery-zone-row label{font-size:.7rem}.organization-delivery-zone-row input{min-height:36px;padding:5px}.organization-delivery-zone-remove{width:30px}}
 </style>
 
 <section class="organization-tab-panel" data-tab-panel="settings">
@@ -1999,40 +2017,6 @@
                 @enderror
             </label>
 
-            <label class="organization-order-field organization-order-field--compact">
-                Стоимость доставки
-                <input
-                    type="number"
-                    name="delivery_fee"
-                    class="organization-order-input"
-                    value="{{ old('delivery_fee', $orderSettings?->delivery_fee ?? '0.00') }}"
-                    min="0"
-                    max="9999999999.99"
-                    step="0.01"
-                    required
-                >
-                @error('delivery_fee')
-                    <span class="organization-order-error">{{ $message }}</span>
-                @enderror
-            </label>
-
-            <label class="organization-order-field">
-                Бесплатная доставка от суммы товаров
-                <input
-                    type="number"
-                    name="minimum_order"
-                    class="organization-order-input"
-                    value="{{ old('minimum_order', $orderSettings?->minimum_order) }}"
-                    min="0"
-                    max="9999999999.99"
-                    step="0.01"
-                    placeholder="Без порога"
-                >
-                @error('minimum_order')
-                    <span class="organization-order-error">{{ $message }}</span>
-                @enderror
-            </label>
-
             <label class="organization-order-field">
                 Минимальное время самовывоза (мин.)
                 <input
@@ -2060,12 +2044,72 @@
 
             <label class="organization-order-field">
                 Адрес точки самовывоза
-                <input type="text" name="pickup_address" class="organization-order-input"
+                <input type="text" name="pickup_address" id="organization-pickup-address" class="organization-order-input"
                     value="{{ old('pickup_address', $orderSettings?->pickup_address) }}"
                     maxlength="500" placeholder="Парковая улица, 23, Термбург">
                 @error('pickup_address')<span class="organization-order-error">{{ $message }}</span>@enderror
             </label>
         </div>
+
+        <section class="organization-delivery-zones" id="organization-delivery-zones" @if(!old('delivery_enabled', $orderSettings?->delivery_enabled ?? false)) hidden @endif>
+            <div class="organization-delivery-zones-heading">
+                <div>
+                    <h3>🚚 Зоны доставки</h3>
+                    <p>Расстояние считается от адреса самовывоза. До 10 км включительно; дальше доставка недоступна.</p>
+                </div>
+                <span class="organization-delivery-limit">Максимум 10 км</span>
+            </div>
+            <input type="hidden" name="delivery_origin_latitude" id="organization-delivery-origin-latitude" value="{{ old('delivery_origin_latitude', $orderSettings?->delivery_origin_latitude) }}">
+            <input type="hidden" name="delivery_origin_longitude" id="organization-delivery-origin-longitude" value="{{ old('delivery_origin_longitude', $orderSettings?->delivery_origin_longitude) }}">
+            <div class="organization-delivery-map-tools">
+                <button type="button" class="organization-delivery-map-button" id="organization-delivery-find-address">Найти адрес на карте</button>
+                <span id="organization-delivery-origin-status">
+                    @if($orderSettings?->delivery_origin_latitude !== null && $orderSettings?->delivery_origin_longitude !== null)
+                        Точка центра доставки сохранена
+                    @else
+                        Укажите точку заведения на карте
+                    @endif
+                </span>
+            </div>
+            <div id="organization-delivery-origin-map" class="organization-delivery-origin-map"></div>
+            @error('delivery_origin_latitude')<div class="organization-order-error">{{ $message }}</div>@enderror
+            @error('delivery_origin_longitude')<div class="organization-order-error">{{ $message }}</div>@enderror
+
+            <div class="organization-delivery-zones-list" id="organization-delivery-zones-list">
+                @php
+                    $deliveryZoneRows = old('delivery_zones');
+                    if (!is_array($deliveryZoneRows)) {
+                        $deliveryZoneRows = $orderSettings?->deliveryZones?->map(fn ($zone) => [
+                            'max_distance_km' => $zone->max_distance_km,
+                            'minimum_order_amount' => $zone->minimum_order_amount,
+                        ])->all() ?? [];
+                    }
+                    if ($deliveryZoneRows === []) {
+                        $deliveryZoneRows = [
+                            ['max_distance_km' => '2.00', 'minimum_order_amount' => '0.00'],
+                            ['max_distance_km' => '5.00', 'minimum_order_amount' => '0.00'],
+                            ['max_distance_km' => '7.00', 'minimum_order_amount' => '0.00'],
+                            ['max_distance_km' => '10.00', 'minimum_order_amount' => '0.00'],
+                        ];
+                    }
+                @endphp
+                @foreach($deliveryZoneRows as $zoneIndex => $zone)
+                    <div class="organization-delivery-zone-row" data-zone-row>
+                        <span class="organization-delivery-zone-number">{{ $loop->iteration }}</span>
+                        <label><span>До, км</span>
+                            <input type="number" name="delivery_zones[{{ $zoneIndex }}][max_distance_km]" value="{{ $zone['max_distance_km'] ?? '' }}" min="0.01" max="10" step="0.01" required>
+                        </label>
+                        <label><span>Минимум корзины</span>
+                            <input type="number" name="delivery_zones[{{ $zoneIndex }}][minimum_order_amount]" value="{{ $zone['minimum_order_amount'] ?? '0.00' }}" min="0" max="9999999999.99" step="0.01" required>
+                        </label>
+                        <button type="button" class="organization-delivery-zone-remove" aria-label="Удалить зону" title="Удалить зону">×</button>
+                    </div>
+                @endforeach
+            </div>
+            <button type="button" class="organization-delivery-zone-add" id="organization-delivery-zone-add">＋ Добавить зону</button>
+            @error('delivery_zones')<div class="organization-order-error">{{ $message }}</div>@enderror
+            <div class="organization-delivery-zones-note">Сумма в каждой зоне — минимальная стоимость блюд в корзине. Отдельной платы за доставку нет. Последняя зона должна заканчиваться на 10 км.</div>
+        </section>
 
         <div class="organization-order-options">
             <label>
@@ -2403,6 +2447,101 @@ document.addEventListener('DOMContentLoaded', function () {
  activateTab(initialTab,false);
  root.querySelectorAll('form').forEach(form=>form.addEventListener('submit',function(){const active=root.querySelector('[data-tab-panel].is-active');if(active){try{sessionStorage.setItem(storageKey,active.dataset.tabPanel);}catch(error){}}}));
 });
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(() => {
+    const deliveryToggle = document.querySelector('input[name="delivery_enabled"]');
+    const zonePanel = document.getElementById('organization-delivery-zones');
+    const zoneList = document.getElementById('organization-delivery-zones-list');
+    const addZoneButton = document.getElementById('organization-delivery-zone-add');
+    const mapElement = document.getElementById('organization-delivery-origin-map');
+    if (!deliveryToggle || !zonePanel || !zoneList || !addZoneButton || !mapElement) return;
+
+    const updatePanel = () => {
+        zonePanel.hidden = !deliveryToggle.checked;
+        if (!zonePanel.hidden && window.deliveryOriginMap) {
+            setTimeout(() => window.deliveryOriginMap.invalidateSize(), 150);
+        }
+    };
+    deliveryToggle.addEventListener('change', updatePanel);
+    updatePanel();
+
+    const renumberZones = () => {
+        [...zoneList.querySelectorAll('[data-zone-row]')].forEach((row, index) => {
+            row.querySelector('.organization-delivery-zone-number').textContent = String(index + 1);
+            row.querySelectorAll('input').forEach((input) => {
+                const field = input.name.match(/\[(max_distance_km|minimum_order_amount)\]$/)?.[1];
+                if (field) input.name = 'delivery_zones[' + index + '][' + field + ']';
+            });
+        });
+    };
+    addZoneButton.addEventListener('click', () => {
+        const index = zoneList.querySelectorAll('[data-zone-row]').length;
+        if (index >= 100) return;
+        const row = document.createElement('div');
+        row.className = 'organization-delivery-zone-row';
+        row.setAttribute('data-zone-row', '');
+        row.innerHTML = '<span class="organization-delivery-zone-number"></span>' +
+            '<label><span>До, км</span><input type="number" name="delivery_zones[' + index + '][max_distance_km]" min="0.01" max="10" step="0.01" required></label>' +
+            '<label><span>Минимум корзины</span><input type="number" name="delivery_zones[' + index + '][minimum_order_amount]" value="0.00" min="0" max="9999999999.99" step="0.01" required></label>' +
+            '<button type="button" class="organization-delivery-zone-remove" aria-label="Удалить зону" title="Удалить зону">×</button>';
+        zoneList.appendChild(row);
+        renumberZones();
+    });
+    zoneList.addEventListener('click', (event) => {
+        const button = event.target.closest('.organization-delivery-zone-remove');
+        if (!button) return;
+        button.closest('[data-zone-row]')?.remove();
+        renumberZones();
+    });
+
+    if (!window.L) return;
+    const latInput = document.getElementById('organization-delivery-origin-latitude');
+    const lngInput = document.getElementById('organization-delivery-origin-longitude');
+    const addressInput = document.getElementById('organization-pickup-address');
+    const status = document.getElementById('organization-delivery-origin-status');
+    const findButton = document.getElementById('organization-delivery-find-address');
+    const hasPoint = latInput.value !== '' && lngInput.value !== '';
+    const map = L.map(mapElement).setView(hasPoint ? [Number(latInput.value), Number(lngInput.value)] : [0, 0], hasPoint ? 16 : 2);
+    window.deliveryOriginMap = map;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    let marker = null;
+    const setPoint = (lat, lng) => {
+        latInput.value = Number(lat).toFixed(7);
+        lngInput.value = Number(lng).toFixed(7);
+        if (marker) marker.setLatLng([lat, lng]);
+        else marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+        marker.off('dragend');
+        marker.on('dragend', () => {
+            const point = marker.getLatLng();
+            latInput.value = point.lat.toFixed(7);
+            lngInput.value = point.lng.toFixed(7);
+        });
+        status.textContent = 'Центр доставки выбран: ' + Number(lat).toFixed(5) + ', ' + Number(lng).toFixed(5);
+    };
+    if (hasPoint) setPoint(Number(latInput.value), Number(lngInput.value));
+    map.on('click', event => setPoint(event.latlng.lat, event.latlng.lng));
+    findButton?.addEventListener('click', async () => {
+        const query = addressInput?.value.trim();
+        if (!query) { status.textContent = 'Сначала укажите адрес самовывоза.'; return; }
+        status.textContent = 'Ищем адрес…';
+        try {
+            const response = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(query), {headers: {'Accept-Language': 'ru'}});
+            const results = await response.json();
+            if (!results.length) { status.textContent = 'Адрес не найден. Выберите точку вручную на карте.'; return; }
+            const lat = Number(results[0].lat), lng = Number(results[0].lon);
+            map.setView([lat, lng], 17);
+            setPoint(lat, lng);
+        } catch (error) {
+            status.textContent = 'Не удалось найти адрес. Выберите точку вручную на карте.';
+        }
+    });
+    setTimeout(() => map.invalidateSize(), 250);
+})();
 </script>
+
 
 @endsection
