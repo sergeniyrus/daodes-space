@@ -1920,6 +1920,11 @@
     gap: 7px;
     color: #d8dce8;
 }
+.organization-order-field--compact {
+    width: min(100%, 220px);
+    min-width: 0;
+    white-space: nowrap;
+}
 .organization-order-input {
     box-sizing: border-box;
     width: 100%;
@@ -1976,7 +1981,7 @@
         @method('PUT')
 
         <div class="organization-order-settings">
-            <label class="organization-order-field">
+            <label class="organization-order-field organization-order-field--compact">
                 Валюта (ISO 4217)
                 <input
                     type="text"
@@ -1994,7 +1999,7 @@
                 @enderror
             </label>
 
-            <label class="organization-order-field">
+            <label class="organization-order-field organization-order-field--compact">
                 Стоимость доставки
                 <input
                     type="number"
