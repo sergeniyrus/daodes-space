@@ -644,7 +644,7 @@
 }
 .customer-order-header {
     display: grid;
-    grid-template-columns: minmax(220px, 1.35fr) repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: minmax(220px, 1.35fr) repeat(4, minmax(0, 1fr)) !important;
     gap: 14px;
     flex: 0 0 auto;
     margin-bottom: 16px;
@@ -2257,6 +2257,15 @@ body.customer-menu-image-open { overflow: hidden !important; }
                 <span class="customer-order-header-action-stats">
                     <span class="customer-order-header-action-stat">Выбрано <span class="customer-order-header-action-count">{{ $customerWorkspace['cartCount'] }}</span></span>
                     <span class="customer-order-header-action-stat customer-order-header-cart-total">Начислено <strong>{{ number_format((float) $customerWorkspace['cartSubtotal'], 2, ',', ' ') }} {{ $customerWorkspace['currencySymbol'] }}</strong></span>
+                </span>
+            </a>
+        </section>
+
+        <section class="customer-order-header-card {{ request()->routeIs('customer.settings.*') ? 'is-active' : '' }}">
+            <a class="customer-order-header-action" href="{{ route('customer.settings.index', ['organization' => $customerWorkspace['organization']->id]) }}">
+                <span class="customer-order-header-action-title">⚙ Настройки</span>
+                <span class="customer-order-header-action-stats">
+                    <span class="customer-order-header-action-stat">Профиль и уведомления</span>
                 </span>
             </a>
         </section>
