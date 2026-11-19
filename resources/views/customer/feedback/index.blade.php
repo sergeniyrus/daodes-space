@@ -42,7 +42,7 @@
             <label>Тема<input name="subject" maxlength="180" required value="{{ old('subject') }}" placeholder="Кратко опишите тему"></label>
             <label>Сообщение<textarea name="message" rows="5" maxlength="5000" required>{{ old('message') }}</textarea></label>
             <label>Номер заказа (необязательно)
-                <select name="order_id"><option value="">Без привязки к заказу</option></select>
+                <select name="order_id" id="feedback-order"><option value="">Без привязки к заказу</option>@foreach($customerOrders as $customerOrder)<option value="{{ $customerOrder->id }}" data-organization="{{ $customerOrder->organization_id }}">№{{ $customerOrder->order_number }} · {{ $customerOrder->organization?->name }} · {{ $customerOrder->created_at?->format('d.m.Y') }}</option>@endforeach</select>
             </label>
             <button type="submit">Отправить обращение</button>
         </form>
@@ -80,6 +80,15 @@
     const select = document.getElementById('feedback-organization');
     if (!form || !select) return;
     const template = @json(route('customer.feedback.store', ['organization' => '__ORG__']));
+    const orderSelect = document.getElementById('feedback-order');
+    const allOrderOptions = orderSelect ? Array.from(orderSelect.querySelectorAll('option[data-organization]')) : [];
+    function filterOrders() {
+        if (!orderSelect) return;
+        allOrderOptions.forEach(option => { option.hidden = option.dataset.organization !== select.value; });
+        if (orderSelect.selectedOptions[0]?.hidden) orderSelect.value = '';
+    }
+    filterOrders();
+    select.addEventListener('change', filterOrders);
     select.addEventListener('change', () => {
         form.action = template.replace('__ORG__', encodeURIComponent(select.value));
     });
