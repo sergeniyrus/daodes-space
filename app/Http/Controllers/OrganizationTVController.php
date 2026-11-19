@@ -13,6 +13,13 @@ use Illuminate\View\View;
 
 class OrganizationTVController extends Controller
 {
+    private function managementRoute(): string
+    {
+        return Auth::guard('employee')->check()
+            ? 'employee.organization.admin.manage'
+            : 'organizations.manage';
+    }
+
     /**
      * Публичный экран меню конкретной организации.
      *
@@ -137,7 +144,7 @@ class OrganizationTVController extends Controller
         );
 
         return redirect()
-            ->route('organizations.manage', $organization)
+            ->route($this->managementRoute(), $organization)
             ->with('success', 'TV-экран ' . $newCount . ' создан.');
     }
 
@@ -191,7 +198,7 @@ class OrganizationTVController extends Controller
         );
 
         return redirect()
-            ->route('organizations.manage', $organization)
+            ->route($this->managementRoute(), $organization)
             ->with('success', 'Настройки TV-экрана ' . $screen . ' сохранены.');
     }
 
@@ -355,13 +362,13 @@ class OrganizationTVController extends Controller
 
         if ($deleteResult === 'stale') {
             return redirect()
-                ->route('organizations.manage', $organization)
+                ->route($this->managementRoute(), $organization)
                 ->with('error', 'Список TV-экранов уже изменился. Обновите страницу и повторите действие.');
         }
 
         if ($deleteResult === 'last') {
             return redirect()
-                ->route('organizations.manage', $organization)
+                ->route($this->managementRoute(), $organization)
                 ->with('error', 'Нельзя удалить последний TV-экран.');
         }
 
@@ -380,7 +387,7 @@ class OrganizationTVController extends Controller
         }
 
         return redirect()
-            ->route('organizations.manage', $organization)
+            ->route($this->managementRoute(), $organization)
             ->with('success', 'TV-экран ' . $screen . ' удалён. Последующие экраны перенумерованы.');
     }
 
@@ -443,7 +450,7 @@ class OrganizationTVController extends Controller
         );
 
         return redirect()
-            ->route('organizations.manage', $organization)
+            ->route($this->managementRoute(), $organization)
             ->with('success', 'Фон TV-экрана ' . $screen . ' успешно обновлён.');
     }
 
@@ -497,7 +504,7 @@ class OrganizationTVController extends Controller
         );
 
         return redirect()
-            ->route('organizations.manage', $organization)
+            ->route($this->managementRoute(), $organization)
             ->with('success', 'Фон TV-экрана ' . $screen . ' удалён.');
     }
 
