@@ -45,6 +45,8 @@
                 <option value="{{ $key }}" @selected(($filters['type'] ?? '') === $key)>{{ $label }}</option>
             @endforeach
         </select>
+        <label class="org-feedback-muted">С даты <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" style="padding:8px;color:#fff;background:#0b1422;border:1px solid rgba(0,229,212,.35);border-radius:8px"></label>
+        <label class="org-feedback-muted">По дату <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" style="padding:8px;color:#fff;background:#0b1422;border:1px solid rgba(0,229,212,.35);border-radius:8px"></label>
         <button type="submit">Фильтровать обращения</button>
         <a href="{{ route('organizations.feedback.index', $organization) }}" style="align-self:center">Сбросить</a>
     </form>
