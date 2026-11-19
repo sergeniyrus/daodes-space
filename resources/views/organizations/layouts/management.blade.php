@@ -4,7 +4,7 @@
 <style>
 .organization-container{
     width:calc(100% - 32px);
-    max-width:1180px;
+    max-width:none;
     box-sizing:border-box;
     margin:22px auto 42px;
     padding:clamp(14px,2vw,28px);
