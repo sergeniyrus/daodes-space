@@ -75,7 +75,9 @@ class CustomerCartController extends Controller
             $pickupAvailable = $item !== null && $item->is_active && $section !== null
                 && $settings?->pickup_enabled && $item->pickup_enabled && $section->pickup_enabled;
             $dineInAvailable = $item !== null && $item->is_active && $section !== null
-                && (bool) ($settings?->dine_in_enabled);
+                && (bool) ($settings?->dine_in_enabled)
+                && $item->dine_in_enabled
+                && $section->dine_in_enabled;
             $available = $deliveryAvailable || $pickupAvailable || $dineInAvailable;
 
             return [
@@ -145,7 +147,10 @@ class CustomerCartController extends Controller
                 }
 
                 if ($settings->dine_in_enabled) {
-                    $availabilityQuery->orWhereRaw('1 = 1');
+                    $availabilityQuery->orWhere(function ($methodQuery) {
+                        $methodQuery->where('dine_in_enabled', true)
+                            ->whereHas('section', fn ($sectionQuery) => $sectionQuery->where('dine_in_enabled', true));
+                    });
                 }
             })
             ->firstOrFail();
