@@ -1223,10 +1223,6 @@
 </style>
 
 
-@endsection
-
-@section('management-content')
-
     <section class="organization-tab-panel is-active" data-tab-panel="overview">
 <section class="organization-order-dashboard">
         <h2 class="organization-order-dashboard-title">📊 Заказы и выручка</h2>
