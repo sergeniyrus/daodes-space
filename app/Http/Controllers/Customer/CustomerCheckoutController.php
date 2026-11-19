@@ -179,6 +179,16 @@ class CustomerCheckoutController extends Controller
             $selectedFulfillment = $defaultFulfillment;
         }
 
+        $selectedCanBeUsed = match ($selectedFulfillment) {
+            Order::FULFILLMENT_DELIVERY => $canUseDelivery,
+            Order::FULFILLMENT_PICKUP => $canUsePickup,
+            Order::FULFILLMENT_DINE_IN => $canUseDineIn,
+            default => false,
+        };
+        if (!$selectedCanBeUsed) {
+            $selectedFulfillment = $defaultFulfillment;
+        }
+
         $savedAddresses = $customer->addresses()
             ->orderByDesc('is_favorite')
             ->orderByDesc('is_default')
