@@ -15,6 +15,7 @@ class CustomerAddress extends Model
         'recipient_name',
         'recipient_phone',
         'address_line',
+        'house_number',
         'entrance',
         'floor',
         'apartment',
