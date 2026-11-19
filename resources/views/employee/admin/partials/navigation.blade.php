@@ -6,16 +6,17 @@
     @endphp
 
     <style>
-        .admin-section-navigation {
+        .organization-tabs {
             position: sticky;
             top: 8px;
             z-index: 100;
             display: flex;
             align-items: center;
             gap: 7px;
-            width: min(1180px, calc(100% - 28px));
-            margin: 18px auto 18px;
+            width: 100%;
+            margin: 0 0 20px;
             padding: 8px;
+            box-sizing: border-box;
             overflow-x: auto;
             scrollbar-width: thin;
             background: rgba(7, 13, 24, .94);
@@ -24,64 +25,51 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
             backdrop-filter: blur(14px);
         }
-        .admin-section-navigation a {
+        .organization-tab {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 7px;
             flex: 1 0 auto;
-            min-height: 43px;
-            padding: 0 18px;
+            min-height: 42px;
+            padding: 0 15px;
             color: #aebdca;
             background: transparent;
             border: 1px solid transparent;
             border-radius: 10px;
-            font-size: .9rem;
+            font: inherit;
+            font-size: .88rem;
             font-weight: 650;
             text-decoration: none;
             white-space: nowrap;
             transition: .18s ease;
         }
-        .admin-section-navigation a span {
-            color: #00e5d4;
-            font-size: 1.08rem;
-        }
-        .admin-section-navigation a:hover {
+        .organization-tab span { color: #00e5d4; font-size: 1.05rem; }
+        .organization-tab:hover {
             color: #fff;
             background: rgba(0, 229, 212, .07);
             border-color: rgba(0, 229, 212, .22);
         }
-        .admin-section-navigation a.is-active {
+        .organization-tab.is-active {
             color: #f5d76e;
             background: linear-gradient(135deg, rgba(0, 229, 212, .12), rgba(245, 207, 103, .10));
             border-color: rgba(245, 207, 103, .48);
             box-shadow: inset 0 0 14px rgba(0, 229, 212, .06), 0 0 12px rgba(245, 207, 103, .06);
         }
         @media(max-width:700px) {
-            .admin-section-navigation {
-                top: 4px;
-                width: calc(100% - 16px);
-                gap: 5px;
-                margin: 12px auto 14px;
-                padding: 6px;
-                border-radius: 12px;
-            }
-            .admin-section-navigation a {
-                min-height: 40px;
-                padding: 0 13px;
-                font-size: .82rem;
-            }
+            .organization-tabs { top: 4px; gap: 5px; margin-bottom: 14px; padding: 6px; border-radius: 12px; }
+            .organization-tab { min-height: 40px; padding: 0 12px; font-size: .8rem; }
         }
     </style>
 
-    <nav class="admin-section-navigation" aria-label="Разделы администратора">
-        <a href="{{ route('employee.organization.admin.orders.index', $organization) }}" class="{{ $adminNavigationOrdersActive ? 'is-active' : '' }}" @if($adminNavigationOrdersActive) aria-current="page" @endif>
+    <nav class="organization-tabs" aria-label="Разделы администратора" data-organization-tabs>
+        <a href="{{ route('employee.organization.admin.orders.index', $organization) }}" class="organization-tab {{ $adminNavigationOrdersActive ? 'is-active' : '' }}" @if($adminNavigationOrdersActive) aria-current="page" @endif>
             <span>▤</span> Заказы
         </a>
-        <a href="{{ route('employee.organization.admin.feedback.index', $organization) }}" class="{{ $adminNavigationFeedbackActive ? 'is-active' : '' }}" @if($adminNavigationFeedbackActive) aria-current="page" @endif>
+        <a href="{{ route('employee.organization.admin.feedback.index', $organization) }}" class="organization-tab {{ $adminNavigationFeedbackActive ? 'is-active' : '' }}" @if($adminNavigationFeedbackActive) aria-current="page" @endif>
             <span>☆</span> Отзывы
         </a>
-        <a href="{{ route('employee.organization.menu.index', $organization) }}" class="{{ $adminNavigationMenuActive ? 'is-active' : '' }}" @if($adminNavigationMenuActive) aria-current="page" @endif>
+        <a href="{{ route('employee.organization.menu.index', $organization) }}" class="organization-tab {{ $adminNavigationMenuActive ? 'is-active' : '' }}" @if($adminNavigationMenuActive) aria-current="page" @endif>
             <span>☷</span> Меню
         </a>
     </nav>
