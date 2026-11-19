@@ -341,14 +341,10 @@ class CustomerCheckoutController extends Controller
             'delivery_comment' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        if (
-            $validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY
-            && !empty($validated['house_number'])
-        ) {
-            $validated['address_line'] = trim(
-                $validated['address_line'] . ', ' . $validated['house_number']
-            );
-        }
+        $fullAddressLine = trim(
+            ($validated['address_line'] ?? '')
+            . (!empty($validated['house_number']) ? ', ' . $validated['house_number'] : '')
+        );
 
         $organization = Organization::query()
             ->with('orderSettings')
@@ -673,7 +669,8 @@ class CustomerCheckoutController extends Controller
 
             if ($validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY) {
                 $deliveryAddress = [
-                    'address_line' => $validated['address_line'],
+                    'address_line' => $fullAddressLine,
+                    'house_number' => $validated['house_number'] ?? null,
                     'entrance' => $validated['entrance'] ?? null,
                     'floor' => $validated['floor'] ?? null,
                     'apartment' => $validated['apartment'] ?? null,
@@ -754,6 +751,7 @@ class CustomerCheckoutController extends Controller
                     'recipient_name' => $validated['customer_name'],
                     'recipient_phone' => $customer->phone,
                     'address_line' => $validated['address_line'],
+                    'house_number' => $validated['house_number'] ?? null,
                     'entrance' => $validated['entrance'] ?? null,
                     'floor' => $validated['floor'] ?? null,
                     'apartment' => $validated['apartment'] ?? null,
@@ -763,6 +761,7 @@ class CustomerCheckoutController extends Controller
 
                 $savedAddress = $customer->addresses()
                     ->where('address_line', $addressValues['address_line'])
+                    ->where('house_number', $addressValues['house_number'])
                     ->where('entrance', $addressValues['entrance'])
                     ->where('floor', $addressValues['floor'])
                     ->where('apartment', $addressValues['apartment'])
