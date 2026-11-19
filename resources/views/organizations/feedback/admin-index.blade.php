@@ -48,30 +48,51 @@
 </style>
 <div class="feedback-page">
     <h1>Отзывы и обращения</h1>
-    <p class="feedback-page-intro">Просмотр отзывов клиентов и работа с обращениями организации.</p>
+    <p class="feedback-page-intro">Отзывы клиентов, предложения, благодарности и обращения — всё в одном разделе.</p>
 
     <div class="feedback-page-stats">
-        <div class="feedback-page-stat"><span>Средняя оценка</span><strong>{{ $ratingStats->total ? number_format((float)$ratingStats->average,1,',',' ') : '—' }} / 5</strong><small class="feedback-page-muted">рейтинг организации</small></div>
-        <div class="feedback-page-stat"><span>Всего оценок</span><strong>{{ $ratingStats->total }}</strong><small class="feedback-page-muted">отзывы о заказах</small></div>
-        <div class="feedback-page-stat"><span>Обращений</span><strong>{{ $feedback->total() }}</strong><small class="feedback-page-muted">всего записей</small></div>
+        <div class="feedback-page-stat"><span>Средняя оценка</span><strong>{{ $ratingStats->total ? number_format((float)$ratingStats->average,1,',',' ') : '—' }} / 5</strong><small class="feedback-page-muted">{{ $ratingStats->total }} оценок</small></div>
+        <div class="feedback-page-stat"><span>Новые обращения</span><strong>{{ $newFeedbackCount }}</strong><small class="feedback-page-muted">ожидают внимания</small></div>
+        <div class="feedback-page-stat"><span>Отзывы о заказах</span><strong>{{ $reviews->total() }}</strong><small class="feedback-page-muted">всего оценок</small></div>
     </div>
 
-    <h2>Отзывы заказов</h2>
-    @forelse($reviews as $review)
-        <article class="feedback-page-card">
-            <div class="feedback-page-card-head">
-                <strong class="feedback-page-card-title">Заказ №{{ $review->order?->order_number }} · {{ $review->customer?->name ?? 'Клиент' }}</strong>
-                <span class="feedback-page-status">{{ $review->is_public ? 'Опубликован' : 'Не опубликован' }}</span>
+    <section class="feedback-page-panel">
+        <h2 style="margin:0 0 13px">Распределение оценок</h2>
+        @for($star=5;$star>=1;$star--)
+            <div class="feedback-page-rating-row">
+                <span class="feedback-page-stars">{{ str_repeat('★',$star) }}</span>
+                <div class="feedback-page-rating-track"><div class="feedback-page-rating-fill" style="width:{{ $ratingStats->total ? ((int)($ratingDistribution[$star] ?? 0) / $ratingStats->total * 100) : 0 }}%"></div></div>
+                <span class="feedback-page-muted">{{ (int)($ratingDistribution[$star] ?? 0) }}</span>
             </div>
-            <div class="feedback-page-stars" style="margin-top:9px">{{ str_repeat('★',$review->rating) }}{{ str_repeat('☆',5-$review->rating) }}</div>
-            <p class="feedback-page-message">{{ $review->comment ?: 'Без комментария' }}</p>
-        </article>
-    @empty
-        <div class="feedback-page-empty">Оценок пока нет.</div>
-    @endforelse
-    <div class="feedback-page-pagination">{{ $reviews->links() }}</div>
+        @endfor
+    </section>
 
     <h2>Книга предложений и обращений</h2>
+    <form method="GET" class="feedback-page-toolbar">
+        <label class="feedback-page-field">Статус
+            <select name="status">
+                <option value="">Все статусы</option>
+                @foreach(['new'=>'Новое','in_progress'=>'Рассматривается','answered'=>'Отвечено','closed'=>'Закрыто'] as $key=>$label)
+                    <option value="{{ $key }}" @selected(($filters['status'] ?? '') === $key)>{{ $label }}</option>
+                @endforeach
+            </select>
+        </label>
+        <label class="feedback-page-field">Тип обращения
+            <select name="type">
+                <option value="">Все типы</option>
+                @foreach(['review'=>'Отзыв','suggestion'=>'Предложение','complaint'=>'Жалоба','thanks'=>'Благодарность'] as $key=>$label)
+                    <option value="{{ $key }}" @selected(($filters['type'] ?? '') === $key)>{{ $label }}</option>
+                @endforeach
+            </select>
+        </label>
+        <label class="feedback-page-field">С даты<input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}"></label>
+        <label class="feedback-page-field">По дату<input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}"></label>
+        <div class="feedback-page-actions">
+            <button type="submit">Применить</button>
+            <a class="feedback-page-button feedback-page-button-secondary" href="{{ route('employee.organization.admin.feedback.index', $organization) }}">Сбросить</a>
+        </div>
+    </form>
+
     @forelse($feedback as $item)
         <article class="feedback-page-card">
             <div class="feedback-page-card-head">
@@ -84,14 +105,10 @@
             <p class="feedback-page-message">{{ $item->message }}</p>
             <div class="feedback-page-meta">Клиент: {{ $item->customer?->name ?? 'Клиент' }} · {{ $item->customer?->phone ?? '' }} @if($item->order) · Заказ №{{ $item->order->order_number }} @endif</div>
             @if($item->reply)
-                <div class="feedback-page-reply">
-                    <strong>Ответ организации</strong>
-                    <p class="feedback-page-message" style="margin:7px 0">{{ $item->reply }}</p>
-                    <small class="feedback-page-muted">{{ $item->replied_at?->format('d.m.Y H:i') }}</small>
-                </div>
+                <div class="feedback-page-reply"><strong>Ответ организации</strong><p class="feedback-page-message" style="margin:7px 0">{{ $item->reply }}</p></div>
             @endif
             @if($item->status !== 'closed')
-                <form class="feedback-page-form" method="POST" action="{{ route('employee.organization.admin.feedback.reply', [$organization, $item]) }}">
+                <form class="feedback-page-form" method="POST" action="{{ route('employee.organization.admin.feedback.reply', [$organization,$item]) }}">
                     @csrf
                     <textarea name="reply" rows="3" required maxlength="5000" placeholder="Напишите ответ клиенту">{{ old('reply') }}</textarea>
                     <div class="feedback-page-actions">
@@ -109,5 +126,36 @@
         <div class="feedback-page-empty">Обращений пока нет.</div>
     @endforelse
     <div class="feedback-page-pagination">{{ $feedback->links() }}</div>
+
+    <h2>Оценки заказов</h2>
+    <form method="GET" class="feedback-page-toolbar">
+        <label class="feedback-page-field">Оценка
+            <select name="rating">
+                <option value="">Любая оценка</option>
+                @for($star=5;$star>=1;$star--)
+                    <option value="{{ $star }}" @selected((string)($filters['rating'] ?? '') === (string)$star)>{{ $star }} ★</option>
+                @endfor
+            </select>
+        </label>
+        <div class="feedback-page-actions"><button type="submit">Применить</button></div>
+    </form>
+    @forelse($reviews as $review)
+        <article class="feedback-page-card">
+            <div class="feedback-page-card-head">
+                <strong class="feedback-page-card-title">Заказ №{{ $review->order?->order_number }} · {{ $review->customer?->name ?? 'Клиент' }}</strong>
+                <span class="feedback-page-status">{{ $review->is_public ? 'Опубликован' : 'Скрыт' }}</span>
+            </div>
+            <div class="feedback-page-stars" style="margin-top:9px">{{ str_repeat('★',$review->rating) }}{{ str_repeat('☆',5-$review->rating) }}</div>
+            <p class="feedback-page-message">{{ $review->comment ?: 'Без комментария' }}</p>
+            <form method="POST" action="{{ route('employee.organization.admin.feedback.visibility',[$organization,$review]) }}">
+                @csrf @method('PATCH')
+                <input type="hidden" name="is_public" value="{{ $review->is_public ? 0 : 1 }}">
+                <button class="feedback-page-button {{ $review->is_public ? 'feedback-page-button-secondary' : 'feedback-page-button-gold' }}" type="submit">{{ $review->is_public ? 'Скрыть отзыв' : 'Опубликовать отзыв' }}</button>
+            </form>
+        </article>
+    @empty
+        <div class="feedback-page-empty">Оценок пока нет.</div>
+    @endforelse
+    <div class="feedback-page-pagination">{{ $reviews->links() }}</div>
 </div>
 @endsection
