@@ -65,6 +65,7 @@ class OrganizationMenuController extends Controller
             ],
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
+            'dine_in_enabled' => ['nullable', 'boolean'],
             'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
         ]);
 
@@ -77,6 +78,7 @@ class OrganizationMenuController extends Controller
             'is_active' => true,
             'delivery_enabled' => $request->boolean('delivery_enabled', true),
             'pickup_enabled' => $request->boolean('pickup_enabled', true),
+            'dine_in_enabled' => $request->boolean('dine_in_enabled', true),
             'tv_screen' => $validated['tv_screen'],
         ]);
 
@@ -140,6 +142,7 @@ class OrganizationMenuController extends Controller
             ],
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
+            'dine_in_enabled' => ['nullable', 'boolean'],
             'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
         ]);
 
@@ -149,6 +152,7 @@ class OrganizationMenuController extends Controller
             'is_active' => $request->boolean('is_active'),
             'delivery_enabled' => $request->boolean('delivery_enabled'),
             'pickup_enabled' => $request->boolean('pickup_enabled'),
+            'dine_in_enabled' => $request->boolean('dine_in_enabled'),
             'tv_screen' => $validated['tv_screen'],
         ]);
 
@@ -179,6 +183,7 @@ class OrganizationMenuController extends Controller
             'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
+            'dine_in_enabled' => ['nullable', 'boolean'],
         ]);
 
         $beforeValues = $section->only([
@@ -187,6 +192,7 @@ class OrganizationMenuController extends Controller
             'tv_screen',
             'delivery_enabled',
             'pickup_enabled',
+            'dine_in_enabled',
         ]);
 
         $section->update([
@@ -195,6 +201,7 @@ class OrganizationMenuController extends Controller
             'tv_screen' => $validated['tv_screen'],
             'delivery_enabled' => $request->boolean('delivery_enabled'),
             'pickup_enabled' => $request->boolean('pickup_enabled'),
+            'dine_in_enabled' => $request->boolean('dine_in_enabled'),
         ]);
 
         app(\App\Services\OrganizationActivityLogger::class)->record(
@@ -376,6 +383,7 @@ class OrganizationMenuController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
+            'dine_in_enabled' => ['nullable', 'boolean'],
         ]);
 
         $maxSortOrder = $section->items()->max('sort_order');
@@ -401,6 +409,7 @@ class OrganizationMenuController extends Controller
             'is_active' => $request->boolean('is_active', true),
             'delivery_enabled' => $request->boolean('delivery_enabled', true),
             'pickup_enabled' => $request->boolean('pickup_enabled', true),
+            'dine_in_enabled' => $request->boolean('dine_in_enabled', true),
         ]);
 
         app(\App\Services\OrganizationActivityLogger::class)->record(
@@ -473,6 +482,7 @@ class OrganizationMenuController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
+            'dine_in_enabled' => ['nullable', 'boolean'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'remove_image' => ['nullable', 'boolean'],
         ]);
@@ -512,6 +522,7 @@ class OrganizationMenuController extends Controller
             'is_active',
             'delivery_enabled',
             'pickup_enabled',
+            'dine_in_enabled',
         ]);
 
         $item->update([
@@ -527,6 +538,7 @@ class OrganizationMenuController extends Controller
             'is_active' => $request->boolean('is_active'),
             'delivery_enabled' => $request->boolean('delivery_enabled'),
             'pickup_enabled' => $request->boolean('pickup_enabled'),
+            'dine_in_enabled' => $request->boolean('dine_in_enabled'),
         ]);
 
         if ($oldImagePath && $oldImagePath !== $imagePath) {
@@ -548,6 +560,7 @@ class OrganizationMenuController extends Controller
                 'is_active',
                 'delivery_enabled',
                 'pickup_enabled',
+            'dine_in_enabled',
             ]),
             'menu_item',
             $item->id
@@ -669,6 +682,7 @@ class OrganizationMenuController extends Controller
             'is_active',
             'delivery_enabled',
             'pickup_enabled',
+            'dine_in_enabled',
         ]);
 
         $item->delete();
