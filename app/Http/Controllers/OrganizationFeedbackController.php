@@ -18,6 +18,8 @@ class OrganizationFeedbackController extends Controller
         $reviews = OrderReview::query()->with(['customer', 'order'])
             ->where('organization_id', $organization->id)->latest()->paginate(20, ['*'], 'reviews_page');
 
+        $newFeedbackCount = OrganizationFeedback::query()->where('organization_id', $organization->id)->where('status', 'new')->count();
+
         $feedback = OrganizationFeedback::query()->with(['customer', 'order'])
             ->where('organization_id', $organization->id)->latest()->paginate(20, ['*'], 'feedback_page');
 
@@ -28,7 +30,7 @@ class OrganizationFeedbackController extends Controller
         $ratingDistribution = OrderReview::query()->where('organization_id', $organization->id)
             ->selectRaw('rating, COUNT(*) as total')->groupBy('rating')->pluck('total', 'rating');
 
-        return view('organizations.feedback.index', compact('organization', 'reviews', 'feedback', 'ratingStats', 'ratingDistribution'));
+        return view('organizations.feedback.index', compact('organization', 'reviews', 'feedback', 'ratingStats', 'ratingDistribution', 'newFeedbackCount'));
     }
 
     public function reply(Request $request, Organization $organization, OrganizationFeedback $feedback): RedirectResponse
