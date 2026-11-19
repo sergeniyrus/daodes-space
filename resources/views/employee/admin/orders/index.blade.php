@@ -46,6 +46,18 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
    <input name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Номер, имя или телефон">
    <select name="status"><option value="">Все статусы</option>@foreach($statusLabels as $key=>$label)<option value="{{ $key }}" @selected(($filters['status'] ?? '') === $key)>{{ $label }}</option>@endforeach</select>
    <select name="payment_status"><option value="">Любая оплата</option>@foreach($paymentLabels as $key=>$label)<option value="{{ $key }}" @selected(($filters['payment_status'] ?? '') === $key)>{{ $label }}</option>@endforeach</select>
+   <select name="fulfillment_type">
+    <option value="">Любой способ получения</option>
+    <option value="delivery" @selected(($filters['fulfillment_type'] ?? '') === 'delivery')>Доставка</option>
+    <option value="pickup" @selected(($filters['fulfillment_type'] ?? '') === 'pickup')>Самовывоз</option>
+    <option value="dine_in" @selected(($filters['fulfillment_type'] ?? '') === 'dine_in')>В заведении</option>
+   </select>
+   <select name="payment_method">
+    <option value="">Любой способ оплаты</option>
+    <option value="online" @selected(($filters['payment_method'] ?? '') === 'online')>Онлайн</option>
+    <option value="cash_on_receipt" @selected(($filters['payment_method'] ?? '') === 'cash_on_receipt')>Наличные</option>
+    <option value="card_on_receipt" @selected(($filters['payment_method'] ?? '') === 'card_on_receipt')>Картой при получении</option>
+   </select>
    <button class="admin-btn" type="submit">Фильтровать</button>
    <a class="admin-btn" href="{{ route('employee.organization.admin.orders.index', $organization) }}">Сбросить</a>
   </form>
