@@ -11,6 +11,8 @@
 @php
 $statusLabels = ['new'=>'Новый','awaiting_payment'=>'Ожидает оплаты','confirmed'=>'Подтверждён','preparing'=>'Готовится','ready'=>'Готов','handed_to_courier'=>'У курьера','in_transit'=>'В пути','issued'=>'Выдан','served'=>'Подан','delivered'=>'Доставлен','completed'=>'Завершён','cancelled'=>'Отменён'];
 $paymentLabels = ['pending'=>'Ожидает оплаты','succeeded'=>'Оплачен','failed'=>'Ошибка','cancelled'=>'Отменён','refunded'=>'Возвращён'];
+$fulfillmentLabels = ['delivery'=>'Доставка','pickup'=>'Самовывоз','dine_in'=>'В заведении'];
+$paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Наличные при получении','card_on_receipt'=>'Картой при получении'];
 @endphp
 <style>
 .admin-orders{width:min(1100px,calc(100% - 24px));margin:25px auto;color:#f4f4f4}.admin-orders-panel{padding:18px;margin-bottom:14px;background:linear-gradient(145deg,#0b0c18,#14182a);border:1px solid rgba(255,215,0,.4);border-radius:15px}.admin-orders h1,.admin-orders h2{color:#ffd700}.admin-orders a{color:#00e5d4}.admin-orders form.filters{display:flex;gap:8px;flex-wrap:wrap}.admin-orders input,.admin-orders select{min-height:38px;padding:6px 10px;color:#fff;background:#101522;border:1px solid #52606f;border-radius:8px}.admin-order{padding:14px 0;border-top:1px solid rgba(0,229,212,.2)}.admin-order:first-child{border:0}.admin-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:15px 0}.admin-summary-card{padding:13px;border:1px solid rgba(0,229,212,.3);border-radius:10px;background:#101522;display:flex;flex-direction:column;gap:7px}.admin-summary-card span{color:#aeb5c4;font-size:.88rem}.admin-summary-card strong{font-size:1.45rem;color:#ffd700}.admin-status-list{display:flex;gap:10px;flex-wrap:wrap}.admin-status-list span{padding:7px 10px;border:1px solid rgba(255,215,0,.25);border-radius:8px}.admin-order-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.muted{color:#aeb5c4}.admin-btn{display:inline-block;padding:8px 13px;border:1px solid #00e5d4;border-radius:18px;text-decoration:none;background:transparent;color:#00e5d4!important}
@@ -64,13 +66,27 @@ $paymentLabels = ['pending'=>'Ожидает оплаты','succeeded'=>'Опл�
   @forelse($summary['amounts'] as $amount)
    <div class="admin-order">
     <strong>{{ $amount->currency }}</strong>
-    <div>Сумма заказов: <strong>{{ number_format((float)$amount->total_amount,2,',',' ') }}</strong></div>
+    <div>Количество: <strong>{{ $amount->orders_count }}</strong></div>
+    <div>Общая сумма: <strong>{{ number_format((float)$amount->total_amount,2,',',' ') }}</strong></div>
+    <div>Средний чек: <strong>{{ number_format((float)$amount->average_amount,2,',',' ') }}</strong></div>
     <div>Фактически оплачено: <strong>{{ number_format((float)$amount->paid_amount,2,',',' ') }}</strong></div>
     <div>Ожидает оплаты: <strong>{{ number_format((float)$amount->pending_amount,2,',',' ') }}</strong></div>
    </div>
   @empty
    <p class="muted">За выбранный период заказов нет.</p>
   @endforelse
+  <h3>Способы получения</h3>
+  <div class="admin-status-list">
+   @foreach($summary['fulfillment'] as $row)
+    <span>{{ $fulfillmentLabels[$row->fulfillment_type] ?? $row->fulfillment_type }}: <strong>{{ $row->orders_count }}</strong></span>
+   @endforeach
+  </div>
+  <h3>Способы оплаты</h3>
+  <div class="admin-status-list">
+   @foreach($summary['payment_methods'] as $row)
+    <span>{{ $paymentMethodLabels[$row->payment_method] ?? $row->payment_method }}: <strong>{{ $row->orders_count }}</strong></span>
+   @endforeach
+  </div>
   <h3>Распределение по статусам</h3>
   <div class="admin-status-list">
    @foreach($summary['statuses'] as $statusRow)
