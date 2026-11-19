@@ -49,9 +49,9 @@ class OrganizationOrderSetting extends Model
         return $this->orders_enabled
             && filled($this->currency)
             && (
-                $this->hasConfiguredDelivery()
-                || $this->pickup_enabled
+                $this->pickup_enabled
                 || $this->dine_in_enabled
+                || ($this->delivery_enabled && $this->hasConfiguredDelivery())
             )
             && (
                 $this->cash_payment_enabled
