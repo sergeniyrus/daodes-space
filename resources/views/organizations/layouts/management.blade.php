@@ -65,7 +65,7 @@
                 @if(request()->routeIs('employee.organization.*'))
                     <span class="organization-layout-label">ПАНЕЛЬ АДМИНИСТРАТОРА</span>
                 @else
-                    {{ __('organizations.management') }}
+                    <span class="organization-layout-label">ПАНЕЛЬ УПРАВЛЕНИЯ</span>
                 @endif
             </div>
             <div class="organization-name">{{ $organization->name }}</div>
@@ -78,7 +78,7 @@
         @else
             <div class="organization-header-status">
                 <span class="organization-status-indicator"></span>
-                <span>{{ __('organizations.status') }}: {{ __('organizations.statuses.' . $organization->status) }}</span>
+                <span>Доступ менеджера</span>
             </div>
         @endif
     </header>
