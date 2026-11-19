@@ -13,15 +13,26 @@ use Illuminate\View\View;
 
 class OrganizationFeedbackController extends Controller
 {
-    public function index(Organization $organization): View
+    public function index(Request $request, Organization $organization): View
     {
+        $filters = $request->validate([
+            'status' => ['nullable', 'in:new,in_progress,answered,closed'],
+            'type' => ['nullable', 'in:review,suggestion,complaint,thanks'],
+            'rating' => ['nullable', 'integer', 'between:1,5'],
+        ]);
+
         $reviews = OrderReview::query()->with(['customer', 'order'])
-            ->where('organization_id', $organization->id)->latest()->paginate(20, ['*'], 'reviews_page');
+            ->where('organization_id', $organization->id)
+            ->when($filters['rating'] ?? null, fn ($query, $rating) => $query->where('rating', $rating))
+            ->latest()->paginate(20, ['*'], 'reviews_page')->withQueryString();
 
         $newFeedbackCount = OrganizationFeedback::query()->where('organization_id', $organization->id)->where('status', 'new')->count();
 
         $feedback = OrganizationFeedback::query()->with(['customer', 'order'])
-            ->where('organization_id', $organization->id)->latest()->paginate(20, ['*'], 'feedback_page');
+            ->where('organization_id', $organization->id)
+            ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($filters['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
+            ->latest()->paginate(20, ['*'], 'feedback_page')->withQueryString();
 
         $ratingStats = OrderReview::query()->where('organization_id', $organization->id)
             ->selectRaw('COUNT(*) as total, AVG(rating) as average')
@@ -30,7 +41,7 @@ class OrganizationFeedbackController extends Controller
         $ratingDistribution = OrderReview::query()->where('organization_id', $organization->id)
             ->selectRaw('rating, COUNT(*) as total')->groupBy('rating')->pluck('total', 'rating');
 
-        return view('organizations.feedback.index', compact('organization', 'reviews', 'feedback', 'ratingStats', 'ratingDistribution', 'newFeedbackCount'));
+        return view('organizations.feedback.index', compact('organization', 'reviews', 'feedback', 'ratingStats', 'ratingDistribution', 'newFeedbackCount', 'filters'));
     }
 
     public function reply(Request $request, Organization $organization, OrganizationFeedback $feedback): RedirectResponse
