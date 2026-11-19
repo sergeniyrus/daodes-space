@@ -166,12 +166,14 @@ class CustomerCheckoutController extends Controller
         $selectedFulfillment = $request->old('fulfillment_type', $defaultFulfillment);
 
         $savedAddresses = $customer->addresses()
+            ->orderByDesc('is_favorite')
             ->orderByDesc('is_default')
             ->orderBy('label')
             ->orderByDesc('updated_at')
             ->get();
 
-        $defaultAddress = $savedAddresses->firstWhere('is_default', true);
+        $defaultAddress = $savedAddresses->firstWhere('is_favorite', true)
+            ?? $savedAddresses->firstWhere('is_default', true);
 
         $deliveryBaseFeeCents = $this->toCents($settings->delivery_fee);
 
