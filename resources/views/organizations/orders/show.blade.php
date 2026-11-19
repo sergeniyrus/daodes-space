@@ -239,10 +239,18 @@
                 <span class="organization-order-detail__label">Товары</span>
                 <div class="organization-order-detail__value">{{ number_format((float) $order->subtotal, 2, ',', ' ') }} {{ $order->currency }}</div>
             </div>
-            <div class="organization-order-detail__field">
-                <span class="organization-order-detail__label">Доставка</span>
-                <div class="organization-order-detail__value">{{ number_format((float) $order->delivery_fee, 2, ',', ' ') }} {{ $order->currency }}</div>
-            </div>
+            @if($order->fulfillment_type === 'delivery' || (float) $order->delivery_fee > 0)
+                <div class="organization-order-detail__field">
+                    <span class="organization-order-detail__label">Доставка</span>
+                    <div class="organization-order-detail__value">
+                        @if((float) $order->delivery_fee > 0)
+                            {{ number_format((float) $order->delivery_fee, 2, ',', ' ') }} {{ $order->currency }}
+                        @else
+                            Без отдельной платы
+                        @endif
+                    </div>
+                </div>
+            @endif
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Скидка</span>
                 <div class="organization-order-detail__value">{{ number_format((float) $order->discount_total, 2, ',', ' ') }} {{ $order->currency }}</div>
