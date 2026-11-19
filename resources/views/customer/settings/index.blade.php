@@ -7,23 +7,37 @@
 @section('customer-content')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
-.customer-settings-page{width:min(960px,calc(100% - 24px));margin:24px auto 50px;color:#f4f4f4}
-.customer-settings-panel{margin-bottom:16px;padding:22px;background:linear-gradient(145deg,#0b0c18,#14182a 58%,#0b0c18);border:1px solid rgba(0,229,212,.38);border-radius:16px;box-shadow:0 10px 28px rgba(0,0,0,.3)}
-.customer-settings-title{margin:0 0 16px;color:#ffd700;font-size:1.25rem}
-.customer-settings-field{display:flex;flex-direction:column;gap:7px;margin:12px 0;color:#d8dce8}
-.customer-settings-field input,.customer-settings-field textarea{box-sizing:border-box;width:100%;min-height:43px;padding:10px 12px;color:#fff;background:#090c16;border:1px solid rgba(0,229,212,.45);border-radius:9px}
-.customer-settings-field textarea{min-height:78px;resize:vertical}
+.customer-settings-page{width:min(1040px,calc(100% - 20px));margin:14px auto 32px;color:#f4f4f4}
+.customer-settings-panel{margin-bottom:12px;padding:15px;background:linear-gradient(145deg,#0b0c18,#14182a 58%,#0b0c18);border:1px solid rgba(0,229,212,.38);border-radius:16px;box-shadow:0 10px 28px rgba(0,0,0,.3)}
+.customer-settings-title{margin:0 0 10px;color:#ffd700;font-size:1.25rem}
+.customer-settings-field{display:flex;flex-direction:column;gap:4px;margin:5px 0;color:#d8dce8}
+.customer-settings-field input,.customer-settings-field textarea{box-sizing:border-box;width:100%;min-height:37px;padding:7px 10px;color:#fff;background:#090c16;border:1px solid rgba(0,229,212,.45);border-radius:9px}
+.customer-settings-field textarea{min-height:54px;resize:vertical}
 .customer-settings-button{min-height:40px;padding:9px 16px;color:#00e5d4;background:transparent;border:1px solid rgba(0,229,212,.65);border-radius:22px;font-weight:700;cursor:pointer}
 .customer-settings-button:hover{color:#081016;background:#00e5d4}
 .customer-settings-address{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-top:1px solid rgba(0,229,212,.16)}
 .customer-settings-address:first-of-type{border-top:0}
 .customer-settings-muted{color:#aeb5c4;font-size:.9rem}
 .customer-settings-actions{display:flex;flex-wrap:wrap;gap:8px}
-.customer-settings-map{height:340px;min-height:260px;border:1px solid rgba(0,229,212,.45);border-radius:12px;overflow:hidden;background:#101522}
+.customer-settings-map{height:260px;min-height:220px;border:1px solid rgba(0,229,212,.45);border-radius:12px;overflow:hidden;background:#101522}
 .customer-settings-check{display:flex;align-items:center;gap:9px;color:#d8dce8;margin:12px 0}
 .customer-settings-check input{accent-color:#00e5d4}
 .customer-settings-error{color:#ff9999;font-size:.88rem}
-@media(max-width:600px){.customer-settings-panel{padding:16px}.customer-settings-address{align-items:flex-start;flex-direction:column}.customer-settings-map{height:290px}}
+ .customer-address-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px 12px}
+.customer-address-fields .customer-settings-field-wide{grid-column:1/-1}
+.customer-settings-check{grid-column:1/-1;margin:7px 0}
+.customer-settings-actions{gap:6px}
+.customer-settings-button{min-height:36px;padding:7px 12px;font-size:.88rem}
+@media(max-width:700px){
+ .customer-settings-page{width:calc(100% - 14px);margin:8px auto 20px}
+ .customer-settings-panel{padding:12px}
+ .customer-settings-address{align-items:flex-start;flex-direction:column}
+ .customer-address-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 9px}
+ .customer-settings-map{height:220px;min-height:190px}
+ .customer-settings-title{font-size:1.1rem}
+ .customer-settings-button{min-height:34px;padding:6px 10px}
+}
+@media(max-width:360px){.customer-address-fields{grid-template-columns:1fr}.customer-address-fields .customer-settings-field-wide,.customer-settings-check{grid-column:auto}}
 </style>
 
 <div class="customer-settings-page">
@@ -116,16 +130,18 @@
                 <button type="button" class="customer-settings-button" id="customer-address-locate">Моё местоположение</button>
             </div>
 
+            <div class="customer-address-fields">
             <div class="customer-settings-field"><label for="customer-address-label">Название адреса</label><input id="customer-address-label" name="label" maxlength="50" required placeholder="Дом, Работа, Родители"></div>
-            <div class="customer-settings-field"><label for="customer-address-line">Адрес</label><input id="customer-address-line" name="address_line" maxlength="500" required placeholder="Улица, дом, город"></div>
+            <div class="customer-settings-field customer-settings-field-wide"><label for="customer-address-line">Адрес</label><input id="customer-address-line" name="address_line" maxlength="500" required placeholder="Улица, дом, город"></div>
             <div class="customer-settings-field"><label for="customer-address-recipient">Получатель</label><input id="customer-address-recipient" name="recipient_name" maxlength="100" value="{{ $customer->name }}"></div>
             <div class="customer-settings-field"><label for="customer-address-phone">Телефон получателя</label><input id="customer-address-phone" name="recipient_phone" maxlength="20" value="{{ $customer->phone }}"></div>
             <div class="customer-settings-field"><label for="customer-address-entrance">Подъезд</label><input id="customer-address-entrance" name="entrance" maxlength="30"></div>
             <div class="customer-settings-field"><label for="customer-address-floor">Этаж</label><input id="customer-address-floor" name="floor" maxlength="30"></div>
             <div class="customer-settings-field"><label for="customer-address-apartment">Квартира / офис</label><input id="customer-address-apartment" name="apartment" maxlength="30"></div>
             <div class="customer-settings-field"><label for="customer-address-intercom">Домофон</label><input id="customer-address-intercom" name="intercom" maxlength="50"></div>
-            <div class="customer-settings-field"><label for="customer-address-comment">Комментарий курьеру</label><textarea id="customer-address-comment" name="delivery_comment" maxlength="1000"></textarea></div>
+            <div class="customer-settings-field customer-settings-field-wide"><label for="customer-address-comment">Комментарий курьеру</label><textarea id="customer-address-comment" name="delivery_comment" maxlength="1000"></textarea></div>
             <label class="customer-settings-check"><input type="checkbox" name="is_favorite" id="customer-address-favorite" value="1"> Добавить в избранное</label>
+            </div>
 
             @foreach(['label','address_line','latitude','longitude'] as $field)
                 @error($field)<p class="customer-settings-error">{{ $message }}</p>@enderror
@@ -179,7 +195,7 @@
         favorite: document.getElementById('customer-address-favorite')
     };
 
-    const defaultCenter = [42.6977, 23.3219];
+    const defaultCenter = [56.1124, 94.5886]; // Зеленогорск, Красноярский край
     const map = L.map(mapElement).setView(defaultCenter, 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
