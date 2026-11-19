@@ -35,7 +35,8 @@ class CustomerFeedbackController extends Controller
         $reviews = OrderReview::query()->with(['organization', 'order'])->where('customer_id', $customer->id)->latest()->paginate(15, ['*'], 'reviews_page');
 
         $organizations = $customer->organizations()->orderBy('name')->get();
-        return view('customer.feedback.index', compact('feedback', 'reviews', 'organizations'));
+        $customerOrders = $customer->orders()->with('organization')->latest()->limit(100)->get();
+        return view('customer.feedback.index', compact('feedback', 'reviews', 'organizations', 'customerOrders'));
     }
 
     public function publicReviews(Organization $organization): View
