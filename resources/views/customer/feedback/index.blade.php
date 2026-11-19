@@ -25,6 +25,15 @@
     <section class="feedback-panel">
         <h1>Книга отзывов и предложений</h1>
         <p class="feedback-muted">Расскажите организации о впечатлениях, предложениях или проблеме. Обращение увидят менеджер и администраторы.</p>
+        @if($selectedOrganization && $publicRating && (int) $publicRating->total > 0)
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:14px 0;padding:12px 14px;background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.28);border-radius:11px">
+                <div>
+                    <strong style="color:#ffd700">★ {{ number_format((float) $publicRating->average, 1, ',', ' ') }} / 5</strong>
+                    <span class="feedback-muted"> · {{ $publicRating->total }} отзыв(ов)</span>
+                </div>
+                <a class="feedback-link" href="{{ route('customer.organizations.reviews', $selectedOrganization) }}">Читать отзывы →</a>
+            </div>
+        @endif
         <form class="feedback-form" method="POST" action="{{ $selectedOrganization ? route('customer.feedback.store', $selectedOrganization) : route('customer.feedback.store', ['organization' => '__ORG__']) }}" id="customer-feedback-form">
             @csrf
             @if($selectedOrganization)
