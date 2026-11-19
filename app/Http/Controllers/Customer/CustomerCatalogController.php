@@ -39,6 +39,14 @@ class CustomerCatalogController extends Controller
         $sections = $organization->menuSections()
             ->where('is_active', true)
             ->where(function ($sectionQuery) use ($settings) {
+                if (
+                    !$settings ||
+                    (!$settings->delivery_enabled && !$settings->pickup_enabled && !$settings->dine_in_enabled)
+                ) {
+                    $sectionQuery->whereRaw('1 = 0');
+                    return;
+                }
+
                 // Раздел показывается, только если в нём доступен хотя бы
                 // один способ получения, включённый самой организацией.
                 if ($settings?->delivery_enabled) {
@@ -56,6 +64,14 @@ class CustomerCatalogController extends Controller
             })
             ->with(['activeItems' => function ($itemQuery) use ($settings) {
                 $itemQuery->where(function ($availabilityQuery) use ($settings) {
+                    if (
+                        !$settings ||
+                        (!$settings->delivery_enabled && !$settings->pickup_enabled && !$settings->dine_in_enabled)
+                    ) {
+                        $availabilityQuery->whereRaw('1 = 0');
+                        return;
+                    }
+
                     if ($settings?->delivery_enabled) {
                         $availabilityQuery->where('delivery_enabled', true);
                     }
