@@ -148,10 +148,8 @@ class CustomerCheckoutFlowTest extends TestCase
             'max_distance_km' => '5.00',
             'minimum_order_amount' => '25.00',
         ]);
-        $this->assertDatabaseMissing('organization_order_settings', [
-            'organization_id' => $organization->id,
-            'delivery_fee' => '5.00',
-        ]);
+        $this->assertFalse(Schema::hasColumn('organization_order_settings', 'delivery_fee'));
+        $this->assertFalse(Schema::hasColumn('organization_order_settings', 'minimum_order'));
     }
 
     public function test_delivery_outside_ten_kilometres_is_rejected(): void
