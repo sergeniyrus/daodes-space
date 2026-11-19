@@ -8,7 +8,7 @@
         @forelse($reviews as $review)
             <article style="padding:15px 0;border-top:1px solid rgba(0,229,212,.2)">
                 <div style="color:#ffd700">{{ str_repeat('★',$review->rating) }}{{ str_repeat('☆',5-$review->rating) }}</div>
-                <strong>{{ $review->customer?->name ?? 'Клиент' }}</strong>
+                <strong>Покупатель</strong>
                 @if($review->comment)<p>{{ $review->comment }}</p>@endif
                 <small style="color:#aeb5c4">{{ $review->published_at?->format('d.m.Y') }}</small>
             </article>
