@@ -19,6 +19,7 @@ class CustomerAddress extends Model
         'floor',
         'apartment',
         'intercom',
+        'gate_code',
         'delivery_comment',
         'latitude',
         'longitude',
