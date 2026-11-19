@@ -311,11 +311,21 @@
     let lastKnownPaymentStatus = root.dataset.paymentStatus || '';
 
     function playCustomerOrderSound() {
+        // Используем общий обработчик Firebase, если он уже зарегистрирован.
+        if (typeof window.playDaodesCustomerNotificationSound === 'function') {
+            window.playDaodesCustomerNotificationSound();
+            return;
+        }
+
+        // Резервный вариант, если Firebase push-компонент недоступен.
+        const now = Date.now();
+        if (window.__daodesCustomerNotificationSoundAt && now - window.__daodesCustomerNotificationSoundAt < 2000) return;
+        window.__daodesCustomerNotificationSoundAt = now;
+
         try {
             const audio = new Audio('/sounds/notification.mp3');
             audio.preload = 'auto';
             audio.play().catch(function(error) {
-                // Автовоспроизведение может быть запрещено настройками браузера.
                 console.debug('Customer order sound was blocked:', error);
             });
         } catch (error) {
