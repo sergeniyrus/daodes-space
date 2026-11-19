@@ -12,6 +12,7 @@ class OrderNotification extends Model
     protected $fillable = [
         'organization_id',
         'order_id',
+        'feedback_id',
         'recipient_type',
         'recipient_id',
         'event_type',
@@ -25,6 +26,7 @@ class OrderNotification extends Model
         return [
             'organization_id' => 'integer',
             'order_id' => 'integer',
+            'feedback_id' => 'integer',
             'recipient_id' => 'integer',
             'read_at' => 'datetime',
         ];
