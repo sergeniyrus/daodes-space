@@ -237,6 +237,12 @@
                 Самовывоз разрешён для всех блюд раздела
             </label>
         </div>
+        <div class="menu-form-group">
+            <label class="menu-form-checkbox">
+                <input type="checkbox" name="dine_in_enabled" value="1" @checked(old('dine_in_enabled', true))>
+                Заказ в заведении разрешён для всех блюд раздела
+            </label>
+        </div>
 
         <div class="menu-form-actions">
 
