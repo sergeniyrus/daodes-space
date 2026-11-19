@@ -39,6 +39,8 @@ class EmployeeAdminOrderController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'in:new,awaiting_payment,confirmed,preparing,ready,handed_to_courier,in_transit,issued,served,delivered,completed,cancelled'],
             'payment_status' => ['nullable', 'in:pending,succeeded,failed,cancelled,refunded'],
+            'fulfillment_type' => ['nullable', 'in:delivery,pickup,dine_in'],
+            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt'],
         ]);
 
         $period = $filters['period'] ?? 'month';
@@ -114,6 +116,8 @@ class EmployeeAdminOrderController extends Controller
             })
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($filters['payment_status'] ?? null, fn ($q, $v) => $q->where('payment_status', $v))
+            ->when($filters['fulfillment_type'] ?? null, fn ($q, $v) => $q->where('fulfillment_type', $v))
+            ->when($filters['payment_method'] ?? null, fn ($q, $v) => $q->where('payment_method', $v))
             ->latest()->paginate(25)->withQueryString();
 
         return view('employee.admin.orders.index', compact(
