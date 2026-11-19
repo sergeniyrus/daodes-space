@@ -324,8 +324,12 @@ class OrganizationOrderController extends Controller
                 $dateTo = null;
                 break;
             case 'custom':
-                $dateFrom = !empty($filters['date_from']) ? \\Illuminate\\Support\\Carbon::parse($filters['date_from'])->startOfDay() : $now->copy()->startOfMonth();
-                $dateTo = !empty($filters['date_to']) ? \\Illuminate\\Support\\Carbon::parse($filters['date_to'])->endOfDay() : $now->copy()->endOfDay();
+                $dateFrom = !empty($filters['date_from'])
+                    ? \\Illuminate\\Support\\Carbon::parse($filters['date_from'])->startOfDay()
+                    : $now->copy()->startOfMonth();
+                $dateTo = !empty($filters['date_to'])
+                    ? \\Illuminate\\Support\\Carbon::parse($filters['date_to'])->endOfDay()
+                    : $now->copy()->endOfDay();
                 break;
             case 'month':
             default:
@@ -334,14 +338,9 @@ class OrganizationOrderController extends Controller
         }
 
         $query = $organization->orders()
-            ->when($dateFrom, fn ($q) => $q->where('created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->where('created_at', '<=', $dateTo))
-            ->with([
-                'customer',
-                'items',
-                'assignments.employee',
-                'statusHistory',
-            ]);
+            ->with(['items'])
+            ->when($dateFrom, fn ($builder) => $builder->where('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($builder) => $builder->where('created_at', '<=', $dateTo));
 
         if (!empty($filters['q'])) {
             $search = trim($filters['q']);
@@ -354,18 +353,10 @@ class OrganizationOrderController extends Controller
             });
         }
 
-        foreach (['status', 'fulfillment_type', 'payment_method', 'payment_status'] as $field) {
+        foreach ((['status', 'fulfillment_type', 'payment_method', 'payment_status']) as $field) {
             if (!empty($filters[$field])) {
                 $query->where($field, $filters[$field]);
             }
-        }
-
-        if (!empty($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
-        }
-
-        if (!empty($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
         }
 
         return $query
