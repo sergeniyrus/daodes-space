@@ -33,7 +33,7 @@ class EmployeeAdminOrderController extends Controller
     {
         $this->assertAdmin($organization);
         $filters = $request->validate([
-            'period' => ['nullable', 'in:day,yesterday,week,month,year,all,custom'],
+            'period' => ['nullable', 'in:day,yesterday,last7,last30,week,month,year,all,custom'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'q' => ['nullable', 'string', 'max:100'],
@@ -53,6 +53,12 @@ class EmployeeAdminOrderController extends Controller
             case 'yesterday':
                 $dateFrom = $now->copy()->subDay()->startOfDay();
                 $dateTo = $now->copy()->subDay()->endOfDay();
+                break;
+            case 'last7':
+                $dateFrom = $now->copy()->subDays(6)->startOfDay();
+                break;
+            case 'last30':
+                $dateFrom = $now->copy()->subDays(29)->startOfDay();
                 break;
             case 'week':
                 $dateFrom = $now->copy()->startOfWeek();
