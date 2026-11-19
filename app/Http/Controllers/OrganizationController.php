@@ -644,7 +644,7 @@ class OrganizationController extends Controller
         }
 
         return redirect()
-            ->route(Auth::guard('employee')->check() ? 'employee.organization.admin.manage' : 'organizations.manage', $organization)
+            ->route('organizations.manage', $organization)
             ->with('success', 'Настройки онлайн-заказов сохранены.');
     }
 
