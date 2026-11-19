@@ -1100,9 +1100,6 @@
         <div class="menu-admin-header-actions">
 
             @if(auth('employee')->check())
-                <a href="{{ route('employee.organization.admin.manage', $organization) }}" class="menu-admin-button cyan">
-                    Настройки организации
-                </a>
                 <a href="{{ route('employee.organization.admin.orders.index', $organization) }}" class="menu-admin-button cyan">
                     Заказы организации
                 </a>
