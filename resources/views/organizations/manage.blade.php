@@ -1316,7 +1316,7 @@
 <button type="button" class="organization-tab" data-tab="team"><span>♙</span> Команда</button>
 <button type="button" class="organization-tab" data-tab="orders"><span>▤</span> Заказы</button>
 <a class="organization-tab" href="{{ route('organizations.feedback.index', $organization) }}" style="text-decoration:none"><span>☆</span> Отзывы</a>
-<button type="button" class="organization-tab" data-tab="menu"><span>☷</span> Меню</button>
+<a class="organization-tab" href="{{ route('organizations.menu.index', $organization) }}" style="text-decoration:none"><span>☷</span> Меню</a>
 <button type="button" class="organization-tab" data-tab="tv"><span>▣</span> TV-экраны</button>
 <button type="button" class="organization-tab" data-tab="settings"><span>⚙</span> Настройки</button>
 </nav>{{-- =====================================================
@@ -2274,30 +2274,6 @@
 
 
 
-{{-- =====================================================
-     УПРАВЛЕНИЕ МЕНЮ
-     ===================================================== --}}
-
-<section class="organization-tab-panel" data-tab-panel="menu">
-<div class="organization-section">
-
-    <h2 class="organization-section-title">
-        Управление меню
-    </h2>
-
-    <a
-        href="{{ route('organizations.menu.index', $organization) }}"
-        class="organization-button"
-        style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none;"
-    >
-        🍽 Управление меню
-    </a>
-
-</div></section>
-
-
-
-    
 <section class="organization-tab-panel" data-tab-panel="orders"><div class="organization-section">
 <h2 class="organization-section-title">📋 Управление заказами</h2><div class="organization-quick-links">
 <a class="organization-quick-link" href="{{ route('organizations.orders.index', $organization) }}"><strong>Все заказы</strong><small>Просмотр заказов, статусов и деталей выполнения</small></a>
