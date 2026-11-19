@@ -69,7 +69,7 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
             </div>
             <span class="admin-order-state">Панель администратора</span>
         </div>
-        <p class="admin-order-eyebrow">{{ $organization->name }}</p>
+        <p class="admin-order-eyebrow">ДЕТАЛИ ЗАКАЗА</p>
         <h1>Заказ №{{ $order->order_number }}</h1>
         <div class="admin-order-facts">
             <div class="admin-order-fact"><span>Дата создания</span><strong>{{ $order->created_at?->format('d.m.Y H:i:s') }}</strong></div>
