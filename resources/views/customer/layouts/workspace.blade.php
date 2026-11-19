@@ -2241,16 +2241,13 @@ body.customer-menu-image-open { overflow: hidden !important; }
         @if(auth('customer')->check())
             <section class="customer-order-header-card {{ request()->routeIs('customer.feedback.*') ? 'is-active' : '' }}">
                 <a class="customer-order-header-action" href="{{ route('customer.feedback.index', ['organization' => $customerWorkspace['organization']->id]) }}">
+                    <span class="customer-order-header-action-title">Отзывы и предложения</span>
                     @if($customerHeaderPublicRating && (int) $customerHeaderPublicRating->total > 0)
                         <span class="customer-order-header-feedback-rating">
                             <span>★ {{ number_format((float) $customerHeaderPublicRating->average, 1, ',', ' ') }} / 5</span>
                             <span>· {{ $customerHeaderPublicRating->total }} отзыв(ов)</span>
                         </span>
                     @endif
-                    <span class="customer-order-header-action-title">Отзывы</span>
-                    <span class="customer-order-header-action-stats">
-                        <span class="customer-order-header-action-stat">и предложения</span>
-                    </span>
                     <span class="customer-order-header-notification-badge" data-header-notifications-count {{ ($customerUnreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}>{{ ($customerUnreadNotificationsCount ?? 0) > 0 ? $customerUnreadNotificationsCount : '' }}</span>
                 </a>
             </section>
