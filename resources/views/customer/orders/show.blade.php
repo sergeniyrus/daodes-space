@@ -117,7 +117,12 @@
 }
 </style>
 
-<div class="customer-order-detail" data-order-updates-url="{{ route('customer.orders.updates', $order) }}">
+<div
+    class="customer-order-detail"
+    data-order-updates-url="{{ route('customer.orders.updates', $order) }}"
+    data-order-status="{{ $order->status }}"
+    data-payment-status="{{ $order->payment_status }}"
+>
     @include('components.customer-push-subscription')
     @include('components.order-notifications', [
         'notificationsUrl' => route('customer.orders.notifications'),
@@ -302,6 +307,31 @@
     const liveText = document.getElementById('customer-order-live-text');
     const liveIcon = document.getElementById('customer-order-live-icon');
     const pickupAction = document.getElementById('customer-pickup-action');
+    let lastKnownStatus = root.dataset.orderStatus || '';
+    let lastKnownPaymentStatus = root.dataset.paymentStatus || '';
+
+    function playCustomerOrderSound() {
+        // Используем общий обработчик Firebase, если он уже зарегистрирован.
+        if (typeof window.playDaodesCustomerNotificationSound === 'function') {
+            window.playDaodesCustomerNotificationSound();
+            return;
+        }
+
+        // Резервный вариант, если Firebase push-компонент недоступен.
+        const now = Date.now();
+        if (window.__daodesCustomerNotificationSoundAt && now - window.__daodesCustomerNotificationSoundAt < 2000) return;
+        window.__daodesCustomerNotificationSoundAt = now;
+
+        try {
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.preload = 'auto';
+            audio.play().catch(function(error) {
+                console.debug('Customer order sound was blocked:', error);
+            });
+        } catch (error) {
+            console.warn('Customer order sound:', error);
+        }
+    }
 
     function renderDeliveryStatus(status) {
         if (!liveBanner || !liveTitle || !liveText || !liveIcon) {
@@ -412,6 +442,21 @@
             }
 
             const data = await response.json();
+
+            const nextStatus = String(data.status ?? '');
+            const nextPaymentStatus = String(data.payment_status ?? '');
+
+            // Первый ответ сверяем с серверным состоянием при открытии страницы,
+            // звук проигрываем только при последующем реальном изменении.
+            if (
+                (lastKnownStatus && nextStatus && nextStatus !== lastKnownStatus) ||
+                (lastKnownPaymentStatus && nextPaymentStatus && nextPaymentStatus !== lastKnownPaymentStatus)
+            ) {
+                playCustomerOrderSound();
+            }
+
+            if (nextStatus) lastKnownStatus = nextStatus;
+            if (nextPaymentStatus) lastKnownPaymentStatus = nextPaymentStatus;
 
             statusElement.textContent = 'Статус: ' + (statusLabels[data.status] || data.status);
             renderDeliveryStatus(data.status);

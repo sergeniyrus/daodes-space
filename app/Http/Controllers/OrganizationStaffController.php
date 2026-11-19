@@ -34,7 +34,7 @@ class OrganizationStaffController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'phone' => ['required', 'string', 'max:32'],
-            'role' => ['required', 'in:employee,cook,courier'],
+            'role' => ['required', 'in:employee,admin,cook,courier'],
         ]);
 
         try {
@@ -122,7 +122,7 @@ class OrganizationStaffController extends Controller
         OrganizationEmployee $employee
     ): RedirectResponse {
         $validated = $request->validate([
-            'role' => ['required', 'in:employee,cook,courier'],
+            'role' => ['required', 'in:employee,admin,cook,courier'],
         ]);
 
         $membership = $this->membership($organization, $employee);

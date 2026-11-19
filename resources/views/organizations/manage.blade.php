@@ -1736,6 +1736,9 @@
                 <option value="employee" @selected(old('role', 'employee') === 'employee')>
                     👤 Сотрудник
                 </option>
+                <option value="admin" @selected(old('role') === 'admin')>
+                    🛡 Администратор
+                </option>
                 <option value="cook" @selected(old('role') === 'cook')>
                     👨‍🍳 Повар
                 </option>
@@ -1780,6 +1783,9 @@
                                             @break
                                         @case('courier')
                                             🚚 Курьер
+                                            @break
+                                        @case('admin')
+                                            🛡 Администратор
                                             @break
                                         @default
                                             👤 Сотрудник
@@ -1833,6 +1839,9 @@
                                 >
                                     <option value="employee" @selected($staffMembership->role === 'employee')>
                                         Сотрудник
+                                    </option>
+                                    <option value="admin" @selected($staffMembership->role === 'admin')>
+                                        Администратор
                                     </option>
                                     <option value="cook" @selected($staffMembership->role === 'cook')>
                                         Повар

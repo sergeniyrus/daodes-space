@@ -53,6 +53,25 @@ class OrderNotificationController extends Controller
         );
     }
 
+    public function employeeAdminIndex(Organization $organization): JsonResponse
+    {
+        $employee = Auth::guard('employee')->user();
+        abort_unless($employee, 401);
+        return $this->notificationsResponse(
+            'employee',
+            (int) $employee->id,
+            $organization,
+            route('employee.organization.admin.orders.index', $organization)
+        );
+    }
+
+    public function markEmployeeAdminRead(Organization $organization, OrderNotification $notification): JsonResponse
+    {
+        $employee = Auth::guard('employee')->user();
+        abort_unless($employee, 401);
+        return $this->markRead('employee', (int) $employee->id, $organization, $notification);
+    }
+
     public function markEmployeeRead(
         Organization $organization,
         OrderNotification $notification

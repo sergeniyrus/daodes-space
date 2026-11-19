@@ -6,6 +6,13 @@
 @endsection
 
 @section('main')
+@php
+    $menuRoutePrefix = auth('employee')->check()
+        ? 'employee.organization.menu.'
+        : 'organizations.menu.';
+@endphp
+
+@include('employee.admin.partials.navigation', ['organization' => $organization])
 
 <style>
 
@@ -228,7 +235,7 @@
     <form
         method="POST"
         enctype="multipart/form-data"
-        action="{{ route('organizations.menu.items.update', [
+        action="{{ route($menuRoutePrefix . 'items.update', [
             'organization' => $organization,
             'section' => $section,
             'item' => $item,
@@ -404,7 +411,7 @@
         <div class="menu-form-actions">
 
             <a
-                href="{{ route('organizations.menu.index', $organization) }}"
+                href="{{ route($menuRoutePrefix . 'index', $organization) }}"
                 class="menu-form-back"
             >
                 Назад

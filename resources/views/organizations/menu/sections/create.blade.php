@@ -5,6 +5,13 @@
 @endsection
 
 @section('main')
+@php
+    $menuRoutePrefix = auth('employee')->check()
+        ? 'employee.organization.menu.'
+        : 'organizations.menu.';
+@endphp
+
+@include('employee.admin.partials.navigation', ['organization' => $organization])
 
 <style>
 
@@ -150,7 +157,7 @@
 
     <form
         method="POST"
-        action="{{ route('organizations.menu.sections.store', $organization) }}"
+        action="{{ route($menuRoutePrefix . 'sections.store', $organization) }}"
     >
 
         @csrf
@@ -234,7 +241,7 @@
         <div class="menu-form-actions">
 
             <a
-                href="{{ route('organizations.menu.index', $organization) }}"
+                href="{{ route($menuRoutePrefix . 'index', $organization) }}"
                 class="menu-form-back"
             >
                 Назад

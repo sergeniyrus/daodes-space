@@ -5,6 +5,13 @@
 @endsection
 
 @section('main')
+@php
+    $menuRoutePrefix = auth('employee')->check()
+        ? 'employee.organization.menu.'
+        : 'organizations.menu.';
+@endphp
+
+@include('employee.admin.partials.navigation', ['organization' => $organization])
 
 <style>
 
@@ -1094,8 +1101,14 @@
 
         <div class="menu-admin-header-actions">
 
+            @if(auth('employee')->check())
+                <a href="{{ route('employee.organization.admin.orders.index', $organization) }}" class="menu-admin-button cyan">
+                    Заказы организации
+                </a>
+            @endif
+
             <a
-                href="{{ route('organizations.menu.sections.create', $organization) }}"
+                href="{{ route($menuRoutePrefix . 'sections.create', $organization) }}"
                 class="menu-admin-button"
             >
                 + Добавить раздел
@@ -1180,7 +1193,7 @@
                     <div class="menu-section-quick-actions" data-stop-propagation>
                         <form
                             method="POST"
-                            action="{{ route('organizations.menu.sections.quick_settings', [
+                            action="{{ route($menuRoutePrefix . 'sections.quick_settings', [
                                 'organization' => $organization,
                                 'section' => $section,
                             ]) }}"
@@ -1240,7 +1253,7 @@
 
                         <form
                             method="POST"
-                            action="{{ route('organizations.menu.sections.toggle', [
+                            action="{{ route($menuRoutePrefix . 'sections.toggle', [
                                 'organization' => $organization,
                                 'section' => $section,
                             ]) }}"
@@ -1259,7 +1272,7 @@
                     </div>
 
                     <a
-                        href="{{ route('organizations.menu.items.create', [
+                        href="{{ route($menuRoutePrefix . 'items.create', [
                             'organization' => $organization,
                             'section' => $section,
                         ]) }}"
@@ -1270,7 +1283,7 @@
                     </a>
 
                     <a
-                        href="{{ route('organizations.menu.sections.edit', [
+                        href="{{ route($menuRoutePrefix . 'sections.edit', [
                             'organization' => $organization,
                             'section' => $section,
                         ]) }}"
@@ -1282,7 +1295,7 @@
 
                     <form
                         method="POST"
-                        action="{{ route('organizations.menu.sections.destroy', [
+                        action="{{ route($menuRoutePrefix . 'sections.destroy', [
                             'organization' => $organization,
                             'section' => $section,
                         ]) }}"
@@ -1381,7 +1394,7 @@
                                 <div class="menu-item-quick-actions">
                                     <form
                                         method="POST"
-                                        action="{{ route('organizations.menu.items.sort', [
+                                        action="{{ route($menuRoutePrefix . 'items.sort', [
                                             'organization' => $organization,
                                             'section' => $section,
                                             'item' => $item,
@@ -1403,7 +1416,7 @@
 
                                     <form
                                         method="POST"
-                                        action="{{ route('organizations.menu.items.toggle', [
+                                        action="{{ route($menuRoutePrefix . 'items.toggle', [
                                             'organization' => $organization,
                                             'section' => $section,
                                             'item' => $item,
@@ -1423,7 +1436,7 @@
                                 </div>
 
                                 <a
-                                    href="{{ route('organizations.menu.items.edit', [
+                                    href="{{ route($menuRoutePrefix . 'items.edit', [
                                         'organization' => $organization,
                                         'section' => $section,
                                         'item' => $item,
@@ -1435,7 +1448,7 @@
 
                                 <form
                                     method="POST"
-                                    action="{{ route('organizations.menu.items.destroy', [
+                                    action="{{ route($menuRoutePrefix . 'items.destroy', [
                                         'organization' => $organization,
                                         'section' => $section,
                                         'item' => $item,
@@ -1491,7 +1504,7 @@
     <div class="menu-admin-footer">
 
         <a
-            href="{{ route('organizations.manage', $organization) }}"
+            href="{{ route('employee.dashboard') }}"
             class="menu-admin-back"
         >
             ← Вернуться к управлению организацией
