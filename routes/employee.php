@@ -65,7 +65,7 @@ Route::prefix('staff')->name('employee.')->group(function () {
             ->prefix('organizations/{organization}/admin/feedback')
             ->name('organization.admin.feedback.')
             ->group(function () {
-                Route::get('/', [\App\Http\\Controllers\\Employee\\EmployeeOrganizationFeedbackController::class, 'index'])->name('index');
+                Route::get('/', [\App\Http\Controllers\Employee\EmployeeOrganizationFeedbackController::class, 'index'])->name('index');
             });
 
         // Администратор управляет меню и заказами.
