@@ -2,28 +2,6 @@
 
 @section('title_page')
     Настройки клиента
-<script>
-(() => {
-    const button = document.getElementById('customer-settings-sound');
-    if (!button) return;
-    const key = 'daodes_order_notification_sound';
-    let enabled = false;
-    try { enabled = localStorage.getItem(key) === '1'; } catch (error) {}
-    const render = () => {
-        button.textContent = enabled ? '🔊 Звук включён' : '🔇 Звук выключен';
-        button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-    };
-    button.addEventListener('click', () => {
-        enabled = !enabled;
-        try { localStorage.setItem(key, enabled ? '1' : '0'); } catch (error) {}
-        render();
-        if (enabled && typeof window.playCustomerOrderNotificationSound === 'function') {
-            window.playCustomerOrderNotificationSound();
-        }
-    });
-    render();
-})();
-</script>
 @endsection
 
 @section('customer-content')
@@ -95,4 +73,27 @@
         @endforelse
     </section>
 </div>
+<script>
+(() => {
+    const button = document.getElementById('customer-settings-sound');
+    if (!button) return;
+    const key = 'daodes_order_notification_sound';
+    let enabled = false;
+    try { enabled = localStorage.getItem(key) === '1'; } catch (error) {}
+    const render = () => {
+        button.textContent = enabled ? '🔊 Звук включён' : '🔇 Звук выключен';
+        button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    };
+    button.addEventListener('click', () => {
+        enabled = !enabled;
+        try { localStorage.setItem(key, enabled ? '1' : '0'); } catch (error) {}
+        render();
+        if (enabled && typeof window.playCustomerOrderNotificationSound === 'function') {
+            window.playCustomerOrderNotificationSound();
+        }
+    });
+    render();
+})();
+</script>
+
 @endsection
