@@ -59,6 +59,8 @@ Route::prefix('customer')->name('customer.')->group(function () {
         Route::post('/orders/{order}/pickup/confirm', [CustomerOrderController::class, 'confirmPickup'])
             ->whereNumber('order')
             ->name('orders.pickup.confirm');
+        Route::post('/orders/notifications/read-all', [OrderNotificationController::class, 'markAllCustomerRead'])
+            ->name('orders.notifications.read-all');
         Route::post('/orders/notifications/{notification}/read', [OrderNotificationController::class, 'markCustomerRead'])
             ->name('orders.notifications.read');
     });
