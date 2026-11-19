@@ -827,7 +827,14 @@
                 return;
             }
             const minimum = Number(zone.minimum_order_amount);
-            zoneFeedback.textContent = 'Расстояние ' + distance.toFixed(2).replace('.',',') + ' км · минимальная сумма корзины для этой зоны: ' + minimum.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' {{ $currencySymbol }}.';
+            const basket = Number(@json((float) $subtotal));
+            const shortage = Math.max(0, minimum - basket);
+            const minimumText = minimum.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+            if (shortage > 0) {
+                zoneFeedback.textContent = 'Расстояние ' + distance.toFixed(2).replace('.',',') + ' км · минимум зоны: ' + minimumText + ' {{ $currencySymbol }}. Добавьте ещё ' + shortage.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' {{ $currencySymbol }}.';
+            } else {
+                zoneFeedback.textContent = 'Расстояние ' + distance.toFixed(2).replace('.',',') + ' км · минимальная сумма зоны ' + minimumText + ' {{ $currencySymbol }} соблюдена.';
+            }
         }
         if (hasCurrent) updateZonePreview();
         setTimeout(() => deliveryMap.invalidateSize(),250);
