@@ -54,6 +54,17 @@ return new class extends Migration
         Schema::dropIfExists('organization_delivery_zones');
 
         if (Schema::hasTable('organization_order_settings')) {
+            if (!Schema::hasColumn('organization_order_settings', 'delivery_fee')) {
+                Schema::table('organization_order_settings', function (Blueprint $table) {
+                    $table->decimal('delivery_fee', 12, 2)->default(0);
+                });
+            }
+            if (!Schema::hasColumn('organization_order_settings', 'minimum_order')) {
+                Schema::table('organization_order_settings', function (Blueprint $table) {
+                    $table->decimal('minimum_order', 12, 2)->nullable();
+                });
+            }
+
             $columns = [];
             if (Schema::hasColumn('organization_order_settings', 'delivery_origin_latitude')) {
                 $columns[] = 'delivery_origin_latitude';
