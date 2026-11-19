@@ -72,7 +72,7 @@
                 <span class="feedback-muted"> · {{ $item->organization?->name }} · {{ $item->created_at?->format('d.m.Y H:i') }}</span>
                 <p>{{ $item->message }}</p>
                 <small class="feedback-muted">Статус: {{ ['new'=>'Новое','in_progress'=>'Рассматривается','answered'=>'Отвечено','closed'=>'Закрыто'][$item->status] ?? $item->status }}</small>
-                @if($item->reply)<div style="margin-top:10px;padding:12px;border-left:3px solid #00e5d4;background:rgba(0,229,212,.06)"><strong style="color:#00e5d4">Ответ организации</strong><p>{{ $item->reply }}</p><small class="feedback-muted">{{ $item->replied_at?->format('d.m.Y H:i') }}</small></div>@endif
+                @if($item->reply)<div style="margin-top:10px;padding:12px;border-left:3px solid #00e5d4;background:rgba(0,229,212,.06)"><strong style="color:#00e5d4">Администрация заведения</strong><p>{{ $item->reply }}</p><small class="feedback-muted">{{ $item->replied_at?->format('d.m.Y H:i') }}</small></div>@endif
             </article>
         @empty <p class="feedback-muted">Вы ещё не отправляли обращений.</p> @endforelse
         {{ $feedback->links() }}
