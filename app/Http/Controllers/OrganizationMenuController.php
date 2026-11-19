@@ -8,6 +8,7 @@ use App\Models\Organization;
 use App\Services\IPFSService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class OrganizationMenuController extends Controller
@@ -81,7 +82,7 @@ class OrganizationMenuController extends Controller
 
         return redirect()
             ->route(
-                'organizations.menu.index',
+                $this->menuIndexRoute(),
                 $organization
             )
             ->with(
@@ -153,7 +154,7 @@ class OrganizationMenuController extends Controller
 
         return redirect()
             ->route(
-                'organizations.menu.index',
+                $this->menuIndexRoute(),
                 $organization
             )
             ->with(
@@ -207,7 +208,8 @@ class OrganizationMenuController extends Controller
         );
 
         return redirect()
-            ->route('organizations.menu.index', $organization)
+            ->route(
+                $this->menuIndexRoute(), $organization)
             ->withFragment('menu-section-' . $section->id)
             ->with('success', 'Настройки раздела «' . $section->name . '» сохранены.');
     }
@@ -243,7 +245,8 @@ class OrganizationMenuController extends Controller
         );
 
         return redirect()
-            ->route('organizations.menu.index', $organization)
+            ->route(
+                $this->menuIndexRoute(), $organization)
             ->with('success', 'Порядок раздела «' . $section->name . '» изменён.');
     }
 
@@ -273,7 +276,8 @@ class OrganizationMenuController extends Controller
         );
 
         return redirect()
-            ->route('organizations.menu.index', $organization)
+            ->route(
+                $this->menuIndexRoute(), $organization)
             ->with(
                 'success',
                 $section->is_active
@@ -325,7 +329,7 @@ class OrganizationMenuController extends Controller
 
         return redirect()
             ->route(
-                'organizations.menu.index',
+                $this->menuIndexRoute(),
                 $organization
             )
             ->with(
@@ -410,7 +414,8 @@ class OrganizationMenuController extends Controller
         );
 
         return redirect()
-            ->route('organizations.menu.index', $organization)
+            ->route(
+                $this->menuIndexRoute(), $organization)
             ->with('success', 'Блюдо успешно добавлено.');
     }
 
@@ -549,7 +554,8 @@ class OrganizationMenuController extends Controller
         );
 
         return redirect()
-            ->route('organizations.menu.index', $organization)
+            ->route(
+                $this->menuIndexRoute(), $organization)
             ->with(
                 'success',
                 $sectionChanged
@@ -591,7 +597,8 @@ class OrganizationMenuController extends Controller
         );
 
         return redirect()
-            ->route('organizations.menu.index', $organization)
+            ->route(
+                $this->menuIndexRoute(), $organization)
             ->with('success', 'Порядок блюда «' . $item->name . '» изменён.');
     }
 
@@ -623,7 +630,8 @@ class OrganizationMenuController extends Controller
         );
 
         return redirect()
-            ->route('organizations.menu.index', $organization)
+            ->route(
+                $this->menuIndexRoute(), $organization)
             ->with(
                 'success',
                 $item->is_active
@@ -681,13 +689,20 @@ class OrganizationMenuController extends Controller
 
         return redirect()
             ->route(
-                'organizations.menu.index',
+                $this->menuIndexRoute(),
                 $organization
             )
             ->with(
                 'success',
                 'Блюдо удалено.'
             );
+    }
+
+    private function menuIndexRoute(): string
+    {
+        return Auth::guard('employee')->check()
+            ? 'employee.organization.menu.index'
+            : 'organizations.menu.index';
     }
 
     private function deleteMenuItemImage(string $imagePath, Organization $organization): void
