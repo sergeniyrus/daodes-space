@@ -20,7 +20,7 @@
 @media(max-width:650px){.org-feedback-grid{grid-template-columns:1fr}.org-feedback{margin:12px;padding:14px}}
 </style>
 <div class="org-feedback">
-    <p class="org-feedback-muted">{{ $organization->name }} · Панель менеджера</p>
+    <p class="org-feedback-muted">ПАНЕЛЬ МЕНЕДЖЕРА</p>
     <h1>Отзывы и книга предложений</h1>
     <div class="org-feedback-grid">
         <div class="org-feedback-stat"><span class="org-feedback-muted">Средняя оценка</span><strong>{{ $ratingStats->total ? number_format((float)$ratingStats->average,1,',',' ') : '—' }} / 5</strong><small>{{ $ratingStats->total }} оценок</small></div>
