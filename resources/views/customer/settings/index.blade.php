@@ -117,7 +117,8 @@
                         data-entrance="{{ $address->entrance }}"
                         data-floor="{{ $address->floor }}"
                         data-apartment="{{ $address->apartment }}"
-                        data-intercom="{{ $address->intercom }}"\n                        data-gate-code="{{ $address->gate_code }}"
+                        data-intercom="{{ $address->intercom }}"
+                        data-gate-code="{{ $address->gate_code }}"
                         data-comment="{{ $address->delivery_comment }}"
                         data-latitude="{{ $address->latitude }}"
                         data-longitude="{{ $address->longitude }}"
@@ -214,7 +215,8 @@
         entrance: document.getElementById('customer-address-entrance'),
         floor: document.getElementById('customer-address-floor'),
         apartment: document.getElementById('customer-address-apartment'),
-        intercom: document.getElementById('customer-address-intercom'),\n        gateCode: document.getElementById('customer-address-gate-code'),
+        intercom: document.getElementById('customer-address-intercom'),
+        gateCode: document.getElementById('customer-address-gate-code'),
         comment: document.getElementById('customer-address-comment'),
         latitude: document.getElementById('customer-address-latitude'),
         longitude: document.getElementById('customer-address-longitude'),
@@ -276,7 +278,8 @@
         button.disabled = true;
         try {
             const url = new URL('https://nominatim.openstreetmap.org/search');
-            const searchQuery = /зеленогорск|красноярск/i.test(query) ? query : query + ', Зеленогорск, Красноярский край, Россия';\n            url.search = new URLSearchParams({format:'jsonv2',q:searchQuery,limit:'1',addressdetails:'1'});
+            const searchQuery = /зеленогорск|красноярск/i.test(query) ? query : query + ', Зеленогорск, Красноярский край, Россия';
+            url.search = new URLSearchParams({format:'jsonv2',q:searchQuery,limit:'1',addressdetails:'1'});
             const response = await fetch(url, {headers:{'Accept':'application/json'}});
             if (!response.ok) throw new Error('Не удалось найти адрес на карте.');
             const results = await response.json();
@@ -327,7 +330,8 @@
             fields.entrance.value = d.entrance || '';
             fields.floor.value = d.floor || '';
             fields.apartment.value = d.apartment || '';
-            fields.intercom.value = d.intercom || '';\n            fields.gateCode.value = d.gateCode || '';
+            fields.intercom.value = d.intercom || '';
+            fields.gateCode.value = d.gateCode || '';
             fields.comment.value = d.comment || '';
             fields.favorite.checked = d.favorite === '1';
             if (d.latitude && d.longitude) {
