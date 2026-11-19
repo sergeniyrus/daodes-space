@@ -34,9 +34,30 @@ class CustomerFeedbackController extends Controller
 
         $reviews = OrderReview::query()->with(['organization', 'order'])->where('customer_id', $customer->id)->latest()->paginate(15, ['*'], 'reviews_page');
 
-        $organizations = Organization::query()->where('status', 'active')->orderBy('name')->get();
-        $customerOrders = $customer->orders()->with('organization')->latest()->limit(100)->get();
-        return view('customer.feedback.index', compact('feedback', 'reviews', 'organizations', 'customerOrders'));
+        $selectedOrganization = null;
+        if (request()->filled('organization')) {
+            $selectedOrganization = Organization::query()
+                ->where('status', 'active')
+                ->findOrFail((int) request()->query('organization'));
+        }
+
+        $organizations = $selectedOrganization
+            ? collect()
+            : Organization::query()->where('status', 'active')->orderBy('name')->get();
+
+        $customerOrdersQuery = $customer->orders()->with('organization');
+        if ($selectedOrganization) {
+            $customerOrdersQuery->where('organization_id', $selectedOrganization->id);
+        }
+        $customerOrders = $customerOrdersQuery->latest()->limit(100)->get();
+
+        return view('customer.feedback.index', compact(
+            'feedback',
+            'reviews',
+            'organizations',
+            'customerOrders',
+            'selectedOrganization'
+        ));
     }
 
     public function publicReviews(Organization $organization): View
@@ -90,6 +111,8 @@ class CustomerFeedbackController extends Controller
     {
         $customer = Auth::guard('customer')->user();
         if (!$customer) return redirect()->guest(route('customer.login'));
+
+        abort_unless($organization->isActive(), 404);
 
         $validated = $request->validate([
             'type' => ['required', 'in:review,suggestion,complaint,thanks'],
