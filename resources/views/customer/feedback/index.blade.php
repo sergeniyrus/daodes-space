@@ -19,6 +19,7 @@
     @include('components.order-notifications', [
         'notificationsUrl' => route('customer.orders.notifications'),
         'notificationReadUrlTemplate' => route('customer.orders.notifications.read', '__ID__'),
+        'notificationReadAllUrl' => route('customer.orders.notifications.read-all'),
     ])
     @if(session('success'))<div class="feedback-panel" style="border-color:#00e5a8;color:#00e5a8">{{ session('success') }}</div>@endif
     <section class="feedback-panel">
