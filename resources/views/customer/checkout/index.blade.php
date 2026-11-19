@@ -592,7 +592,7 @@
                                 data-intercom="{{ $savedAddress->intercom }}"
                                 data-delivery-comment="{{ $savedAddress->delivery_comment }}"
                                 @selected($loop->first && old('address_line', $defaultAddress?->address_line) === $savedAddress->address_line)
-                            >{{ $savedAddress->label ?: 'Сохранённый адрес' }} — {{ $savedAddress->address_line }}</option>
+                            >{{ $savedAddress->is_favorite ? '★ ' : '' }}{{ $savedAddress->label ?: 'Сохранённый адрес' }} — {{ $savedAddress->address_line }}</option>
                         @endforeach
                     </select>
                     <span class="customer-checkout-muted">Выберите адрес — поля заполнятся автоматически.</span>
