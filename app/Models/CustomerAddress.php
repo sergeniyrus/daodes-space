@@ -23,6 +23,7 @@ class CustomerAddress extends Model
         'latitude',
         'longitude',
         'is_default',
+        'is_favorite',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class CustomerAddress extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'is_default' => 'boolean',
+            'is_favorite' => 'boolean',
         ];
     }
 
