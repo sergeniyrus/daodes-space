@@ -881,19 +881,6 @@
     box-shadow: 0 0 12px rgba(255,207,74,.35);
 }
 .customer-order-header-notification-badge[hidden] { display:none !important; }
-.customer-order-header-feedback-rating {
-    display:flex;
-    flex-wrap:wrap;
-    align-items:center;
-    justify-content:center;
-    gap:3px 7px;
-    margin:0 0 7px;
-    color:#aeb5c4;
-    font-size:.74rem;
-    line-height:1.25;
-    text-align:center;
-}
-.customer-order-header-feedback-rating > span:first-child { color:#ffd700; font-weight:800; }
 .customer-order-header-cart-total {
     color: #00e5d4;
     font-size: .95rem;
@@ -2241,11 +2228,14 @@ body.customer-menu-image-open { overflow: hidden !important; }
         @if(auth('customer')->check())
             <section class="customer-order-header-card {{ request()->routeIs('customer.feedback.*') ? 'is-active' : '' }}">
                 <a class="customer-order-header-action" href="{{ route('customer.feedback.index', ['organization' => $customerWorkspace['organization']->id]) }}">
-                    <span class="customer-order-header-action-title">Отзывы и предложения</span>
+                    <span class="customer-order-header-action-title">Отзывы</span>
+                    <span class="customer-order-header-action-stats">
+                        <span class="customer-order-header-action-stat">и предложения</span>
+                    </span>
                     @if($customerHeaderPublicRating && (int) $customerHeaderPublicRating->total > 0)
-                        <span class="customer-order-header-feedback-rating">
-                            <span>★ {{ number_format((float) $customerHeaderPublicRating->average, 1, ',', ' ') }} / 5</span>
-                            <span>· {{ $customerHeaderPublicRating->total }} отзыв(ов)</span>
+                        <span class="customer-order-header-action-stats">
+                            <span class="customer-order-header-action-stat"><span style="color:#ffd700;">★ {{ number_format((float) $customerHeaderPublicRating->average, 1, ',', ' ') }}</span> / 5</span>
+                            <span class="customer-order-header-action-stat">· {{ $customerHeaderPublicRating->total }} отзыв(ов)</span>
                         </span>
                     @endif
                     <span class="customer-order-header-notification-badge" data-header-notifications-count {{ ($customerUnreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}>{{ ($customerUnreadNotificationsCount ?? 0) > 0 ? $customerUnreadNotificationsCount : '' }}</span>
