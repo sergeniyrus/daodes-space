@@ -1,10 +1,10 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page')
     {{ __('organizations.management') }} — {{ $organization->name }}
 @endsection
 
-@section('main')
+@section('management-content')
 
 <style>
 
@@ -1223,97 +1223,9 @@
 </style>
 
 
-<div class="organization-container">
+@endsection
 
-    {{-- =====================================================
-         ЗАГОЛОВОК ОРГАНИЗАЦИИ
-         ===================================================== --}}
-
-    <div class="organization-header">
-
-    <div class="organization-header-main">
-
-        <div class="organization-management-title">
-            {{ __('organizations.management') }}
-        </div>
-
-        <div class="organization-name">
-            {{ $organization->name }}
-        </div>
-
-    </div>
-
-
-    <div style="
-        display:flex;
-        align-items:center;
-        gap:10px;
-        flex-wrap:wrap;
-        justify-content:flex-end;
-    ">
-
-        
-
-
-        <div class="organization-header-status">
-
-            <span class="organization-status-indicator"></span>
-
-            <span>
-                {{ __('organizations.status') }}:
-                {{ __('organizations.statuses.' . $organization->status) }}
-            </span>
-
-        </div>
-
-    </div>
-
-</div>
-
-    {{-- =====================================================
-         УВЕДОМЛЕНИЯ
-         ===================================================== --}}
-
-    @if(session('success'))
-
-        <div class="organization-alert success">
-            {{ session('success') }}
-        </div>
-
-    @endif
-
-
-    @if(session('error'))
-
-        <div class="organization-alert error">
-            {{ session('error') }}
-        </div>
-
-    @endif
-
-
-    @if($errors->any())
-
-        <div class="organization-alert error">
-
-            @foreach($errors->all() as $error)
-
-                <div>
-                    {{ $error }}
-                </div>
-
-            @endforeach
-
-        </div>
-
-    @endif
-
-
-    
-
-@include('organizations.partials.management-navigation', ['organization' => $organization]){{-- =====================================================
-         АНАЛИТИКА ОНЛАЙН-ЗАКАЗОВ
-         ===================================================== --}}
+@section('management-content')
 
     <section class="organization-tab-panel is-active" data-tab-panel="overview">
 <section class="organization-order-dashboard">
@@ -2405,7 +2317,6 @@
         ← {{ __('organizations.back_to_organization') }}
     </a>
 
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
