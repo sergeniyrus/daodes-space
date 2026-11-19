@@ -8,6 +8,8 @@
     'notificationReadUrlTemplate' => route('employee.organization.admin.orders.notifications.read', [$organization, '__ID__']),
 ])
 
+@include('employee.admin.partials.navigation', ['organization' => $organization])
+
 @php
 $statusLabels=['new'=>'Новый','awaiting_payment'=>'Ожидает оплаты','confirmed'=>'Подтверждён','preparing'=>'Готовится','ready'=>'Готов','handed_to_courier'=>'Передан курьеру','in_transit'=>'В пути','issued'=>'Выдан','served'=>'Подан','delivered'=>'Доставлен','completed'=>'Завершён','cancelled'=>'Отменён'];
 $paymentLabels=['pending'=>'Ожидает оплаты','succeeded'=>'Оплачен','failed'=>'Ошибка оплаты','cancelled'=>'Отменён','refunded'=>'Возвращён'];
