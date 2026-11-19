@@ -591,6 +591,8 @@ class OrganizationController extends Controller
                 'min:0',
                 'max:1440',
             ],
+            'delivery_city' => ['nullable', 'string', 'max:255'],
+            'pickup_address' => ['nullable', 'string', 'max:500'],
         ]);
 
         if ($validated['orders_enabled']) {
