@@ -38,8 +38,8 @@ class CustomerCatalogController extends Controller
         $settings = $organization->orderSettings;
 
         $publicRating = OrderReview::query()->where('organization_id', $organization->id)
-            ->where('is_public', true)->whereNotNull('published_at')
-            ->selectRaw('COUNT(*) as total, AVG(rating) as average')->first();
+            ->where('is_public', true)->whereNotNull('published_at')->whereNotNull('rating')
+            ->selectRaw('COUNT(DISTINCT order_id) as total, AVG(rating) as average')->first();
 
         $sections = $organization->menuSections()
             ->where('is_active', true)
