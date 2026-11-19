@@ -41,10 +41,10 @@ Route::prefix('customer')->name('customer.')->group(function () {
     Route::post('/checkout', [CustomerCheckoutController::class, 'store'])->name('checkout.store');
     Route::get('/receipt/{token}', [CustomerOrderController::class, 'receipt'])
         ->where('token', '[A-Za-z0-9]{64}')->middleware('throttle:30,1')->name('receipt');
-    Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');
+    Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');\n    Route::get('/feedback', [CustomerFeedbackController::class, 'index'])->middleware('auth:customer')->name('feedback.index');
 
     Route::middleware('auth:customer')->group(function () {
-        Route::post('/push/devices', [CustomerPushController::class, 'store'])
+        Route::post('/feedback/organizations/{organization}', [CustomerFeedbackController::class, 'storeFeedback'])->middleware('throttle:5,1')->name('feedback.store');\n        Route::post('/orders/{order}/review', [CustomerFeedbackController::class, 'storeReview'])->middleware('throttle:5,1')->name('orders.review.store');\n        Route::post('/push/devices', [CustomerPushController::class, 'store'])
             ->middleware('throttle:10,1')->name('push.devices.store');
         Route::delete('/push/devices', [CustomerPushController::class, 'destroy'])
             ->middleware('throttle:20,1')->name('push.devices.destroy');
