@@ -209,7 +209,7 @@ class OrganizationMenuController extends Controller
             'menu_section.settings_updated',
             'Изменены настройки раздела «' . $section->name . '»',
             $beforeValues,
-            $section->fresh()->only(['name', 'sort_order', 'tv_screen', 'delivery_enabled', 'pickup_enabled']),
+            $section->fresh()->only(['name', 'sort_order', 'tv_screen', 'delivery_enabled', 'pickup_enabled', 'dine_in_enabled']),
             'menu_section',
             $section->id
         );
@@ -417,7 +417,7 @@ class OrganizationMenuController extends Controller
             'menu_item.created',
             'Добавлено блюдо «' . $item->name . '»',
             [],
-            $item->only(['name', 'weight', 'unit', 'price', 'description', 'is_active', 'delivery_enabled', 'pickup_enabled']),
+            $item->only(['name', 'weight', 'unit', 'price', 'description', 'is_active', 'delivery_enabled', 'pickup_enabled', 'dine_in_enabled']),
             'menu_item',
             $item->id
         );
