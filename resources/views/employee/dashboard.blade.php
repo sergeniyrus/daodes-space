@@ -151,6 +151,11 @@
                         href="{{ route('employee.organization.orders.index', $membership->organization) }}"
                         class="employee-organization-card"
                     >
+                @elseif($membership->role === 'admin')
+                    <a
+                        href="{{ route('employee.organization.menu.index', $membership->organization) }}"
+                        class="employee-organization-card"
+                    >
                 @else
                     <div class="employee-organization-card">
                 @endif
@@ -168,11 +173,15 @@
                                 🚚 Курьер
                                 @break
 
+                            @case('admin')
+                                🛡 Администратор
+                                @break
+
                             @default
                                 👤 Сотрудник
                         @endswitch
                     </div>
-                @if(in_array($membership->role, ['cook', 'courier'], true))
+                @if(in_array($membership->role, ['cook', 'courier', 'admin'], true))
                     </a>
                 @else
                     </div>
