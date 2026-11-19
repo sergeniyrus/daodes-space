@@ -57,23 +57,8 @@ class MenuSection extends Model
      */
     public function activeItems(): HasMany
     {
-        return $this->hasMany(
-            MenuItem::class
-        )
+        return $this->hasMany(MenuItem::class)
             ->where('is_active', true)
-            ->whereHas('section', function ($sectionQuery) {
-                $sectionQuery->where(function ($availabilityQuery) {
-                    $availabilityQuery->where(function ($methodQuery) {
-                        $methodQuery->where('menu_sections.delivery_enabled', true)
-                            ->where('menu_items.delivery_enabled', true);
-                    })->orWhere(function ($methodQuery) {
-                        $methodQuery->where('menu_sections.pickup_enabled', true)
-                            ->where('menu_items.pickup_enabled', true);
-                    });
-                });
-            })
-            ->orderBy(
-                'sort_order'
-            );
+            ->orderBy('sort_order');
     }
 }
