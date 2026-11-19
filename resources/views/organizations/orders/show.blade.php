@@ -345,6 +345,41 @@
     </section>
 
     <section class="organization-order-detail__panel">
+        <h2 class="organization-order-detail__title">Управление заказом</h2>
+
+        @if(in_array($order->status, ['ready', 'delivered', 'issued', 'served', 'new', 'confirmed', 'preparing'], true))
+            <form
+                method="POST"
+                action="{{ route('organizations.orders.status', [$organization, $order]) }}"
+                class="organization-order-detail__actions"
+                onsubmit="return confirm('Применить изменение статуса заказа №{{ $order->order_number }}?');"
+            >
+                @csrf
+                @method('PATCH')
+
+                <select
+                    name="status"
+                    required
+                    style="min-height: 40px; min-width: 230px; padding: 8px 12px; color: #f4f4f4; background: #090c16; border: 1px solid rgba(0, 229, 212, .45); border-radius: 10px;"
+                >
+                    <option value="">Выберите действие</option>
+                    <option value="served">Отметить как поданный (для зала)</option>
+                    <option value="completed">Завершить заказ (после оплаты)</option>
+                    <option value="cancelled">Отменить заказ</option>
+                </select>
+
+                <button type="submit" class="organization-order-detail__button">
+                    Применить
+                </button>
+            </form>
+        @else
+            <div class="organization-order-detail__empty">
+                Для текущего состояния дополнительных действий нет.
+            </div>
+        @endif
+    </section>
+
+    <section class="organization-order-detail__panel">
         <h2 class="organization-order-detail__title">Назначенные сотрудники</h2>
         @forelse($order->assignments->sortByDesc('assigned_at') as $assignment)
             <div class="organization-order-detail__entry">
