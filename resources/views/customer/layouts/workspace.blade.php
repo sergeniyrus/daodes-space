@@ -881,6 +881,21 @@
     box-shadow: 0 0 12px rgba(255,207,74,.35);
 }
 .customer-order-header-notification-badge[hidden] { display:none !important; }
+.customer-order-header-feedback-rating {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+    gap:4px 7px;
+    padding:0 10px 10px;
+    color:#aeb5c4;
+    font-size:.76rem;
+    line-height:1.35;
+    text-align:center;
+}
+.customer-order-header-feedback-rating > span:first-child { color:#ffd700; font-weight:800; }
+.customer-order-header-feedback-rating a { color:#00e5d4; text-decoration:none; white-space:nowrap; }
+.customer-order-header-feedback-rating a:hover { color:#ffd700; }
 .customer-order-header-cart-total {
     color: #00e5d4;
     font-size: .95rem;
@@ -2141,6 +2156,16 @@ body.customer-menu-image-open { overflow: hidden !important; }
             'currencySymbol' => $currencySymbol ?? '',
         ];
     }
+
+    $customerHeaderPublicRating = null;
+    if (isset($customerWorkspace['organization'])) {
+        $customerHeaderPublicRating = \\App\\Models\\OrderReview::query()
+            ->where('organization_id', $customerWorkspace['organization']->id)
+            ->where('is_public', true)
+            ->whereNotNull('published_at')
+            ->selectRaw('COUNT(*) as total, AVG(rating) as average')
+            ->first();
+    }
 @endphp
 
 @if(isset($customerWorkspace))
@@ -2224,6 +2249,13 @@ body.customer-menu-image-open { overflow: hidden !important; }
                     </span>
                     <span class="customer-order-header-notification-badge" data-header-notifications-count {{ ($customerUnreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}>{{ ($customerUnreadNotificationsCount ?? 0) > 0 ? $customerUnreadNotificationsCount : '' }}</span>
                 </a>
+                @if($customerHeaderPublicRating && (int) $customerHeaderPublicRating->total > 0)
+                    <div class="customer-order-header-feedback-rating">
+                        <span>★ {{ number_format((float) $customerHeaderPublicRating->average, 1, ',', ' ') }} / 5</span>
+                        <span>· {{ $customerHeaderPublicRating->total }} отзыв(ов)</span>
+                        <a href="{{ route('customer.organizations.reviews', $customerWorkspace['organization']) }}">Читать отзывы →</a>
+                    </div>
+                @endif
             </section>
         @else
             <section class="customer-order-header-card">
