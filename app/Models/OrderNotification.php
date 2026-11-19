@@ -37,6 +37,11 @@ class OrderNotification extends Model
         return $this->belongsTo(Organization::class);
     }
 
+    public function feedback(): BelongsTo
+    {
+        return $this->belongsTo(OrganizationFeedback::class, 'feedback_id');
+    }
+
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
