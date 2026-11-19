@@ -15,7 +15,6 @@
 .feedback-stars{color:#ffd700;letter-spacing:2px}
 </style>
 <div class="feedback-page">
-    @include('components.customer-push-subscription')
     @include('components.order-notifications', [
         'notificationsUrl' => route('customer.orders.notifications'),
         'notificationReadUrlTemplate' => route('customer.orders.notifications.read', '__ID__'),
