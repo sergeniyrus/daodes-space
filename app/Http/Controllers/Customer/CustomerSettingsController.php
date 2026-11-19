@@ -27,10 +27,8 @@ class CustomerSettingsController extends Controller
             $organization = $customer->orders()
                 ->with('organization.orderSettings')
                 ->latest()
-                ->get()
-                ->pluck('organization')
-                ->filter()
-                ->first();
+                ->first()
+                ?->organization;
         }
 
         $customerWorkspace = null;
