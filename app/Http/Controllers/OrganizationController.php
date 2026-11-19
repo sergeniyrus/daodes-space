@@ -594,9 +594,9 @@ class OrganizationController extends Controller
                 'between:-180,180',
             ],
             'delivery_zones' => [
-                'required_if:delivery_enabled,1',
+                $request->boolean('delivery_enabled') ? 'required' : 'nullable',
                 'array',
-                'min:1',
+                $request->boolean('delivery_enabled') ? 'min:1' : 'min:0',
                 'max:100',
             ],
             'delivery_zones.*.max_distance_km' => [
