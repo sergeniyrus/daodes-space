@@ -1910,15 +1910,18 @@
 <style>
 .organization-order-settings {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-    gap: 14px;
-    margin-top: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+    gap: 10px 14px;
+    margin-top: 12px;
+    align-items: end;
 }
 .organization-order-field {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 5px;
     color: #d8dce8;
+    font-size: .86rem;
+    font-weight: 650;
 }
 .organization-order-field--compact {
     width: min(100%, 220px);
@@ -1928,12 +1931,12 @@
 .organization-order-input {
     box-sizing: border-box;
     width: 100%;
-    min-height: 42px;
-    padding: 9px 12px;
+    min-height: 38px;
+    padding: 7px 10px;
     color: #fff;
     background: #090c16;
     border: 1px solid rgba(0, 229, 212, .45);
-    border-radius: 9px;
+    border-radius: 8px;
 }
 .organization-order-input:focus {
     border-color: gold;
@@ -1956,11 +1959,27 @@
     accent-color: #00e5d4;
 }
 .organization-order-hint {
-    margin-top: 14px;
+    margin-top: 10px;
     color: #9da7b8;
-    font-size: .88rem;
-    line-height: 1.5;
+    font-size: .82rem;
+    line-height: 1.4;
 }
+.organization-order-hint ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 20px;
+    margin: 7px 0 0;
+    padding-left: 18px;
+}
+.organization-order-options {
+    gap: 8px 14px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(0,229,212,.035);
+    border: 1px solid rgba(0,229,212,.13);
+    border-radius: 11px;
+}
+.organization-order-options label {font-size:.88rem}
 .organization-order-error {
     color: #ff8585;
     font-size: .85rem;
@@ -2195,10 +2214,7 @@
         @enderror
 
         <div class="organization-order-hint">
-            Для включения заказов укажите валюту, выберите хотя бы один способ получения
-            и включите наличные или оплату терминалом при получении. Флажок онлайн-оплаты
-            сохраняет настройку на будущее, но сама онлайн-оплата станет доступна только
-            после подключения провайдера и серверного подтверждения webhook.
+            Укажите валюту, включите нужные способы получения и оплаты. Онлайн-оплата станет доступна после подключения платёжного провайдера.
         </div>
 
         <div class="organization-order-hint">
@@ -2415,7 +2431,7 @@ document.addEventListener('DOMContentLoaded', function () {
  let initialTab='overview';try{initialTab=sessionStorage.getItem(storageKey)||'overview';}catch(error){}
  @if($errors->has('screen_name') || $errors->has('background_fit') || $errors->has('rotation_seconds'))
  initialTab='tv';
- @elseif($errors->has('currency') || $errors->has('delivery_fee') || $errors->has('minimum_order') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled'))
+ @elseif($errors->has('currency') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled') || $errors->has('delivery_zones') || $errors->has('delivery_origin_latitude') || $errors->has('delivery_origin_longitude'))
  initialTab='settings';
  @elseif($errors->has('name') || $errors->has('phone') || $errors->has('role') || $errors->has('user_id'))
  initialTab='team';
