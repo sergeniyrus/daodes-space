@@ -108,7 +108,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
     <section class="admin-orders-shell">
         <header class="admin-orders-heading">
             <div>
-                <p class="admin-orders-eyebrow">{{ $organization->name }} · Панель администратора</p>
+                <p class="admin-orders-eyebrow">АНАЛИТИКА ЗАКАЗОВ</p>
                 <h1>Заказы организации</h1>
                 <p class="admin-orders-subtitle">Контроль заказов, оплат и показателей работы</p>
             </div>
