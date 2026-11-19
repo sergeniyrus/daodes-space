@@ -3,6 +3,11 @@
 @section('title_page') Настройки организации — {{ $organization->name }} @endsection
 
 @section('main')
+@include('components.order-notifications', [
+    'notificationsUrl' => route('employee.organization.admin.orders.notifications', $organization),
+    'notificationReadUrlTemplate' => route('employee.organization.admin.orders.notifications.read', [$organization, '__ID__']),
+])
+
 <style>
 .admin-settings{width:min(1050px,calc(100% - 24px));margin:25px auto;color:#eee}.admin-settings section{padding:18px;margin-bottom:15px;background:linear-gradient(145deg,#0b0c18,#14182a);border:1px solid rgba(255,215,0,.4);border-radius:15px}.admin-settings h1,.admin-settings h2{color:#ffd700}.admin-settings label{display:inline-flex;gap:7px;align-items:center;margin:7px 12px 7px 0}.admin-settings input,.admin-settings select{padding:8px;color:#fff;background:#101522;border:1px solid #52606f;border-radius:7px}.admin-settings input[type=checkbox]{accent-color:#00e5d4}.admin-settings button,.admin-settings a.btn{display:inline-block;padding:8px 13px;margin:5px 4px 5px 0;border:1px solid #00e5d4;border-radius:18px;background:transparent;color:#00e5d4;text-decoration:none;cursor:pointer}.admin-settings .danger{border-color:#ff7777;color:#ff7777}.admin-settings .screen{padding:13px 0;border-top:1px solid rgba(0,229,212,.2)}.admin-settings .muted{color:#aeb5c4}
 </style>
