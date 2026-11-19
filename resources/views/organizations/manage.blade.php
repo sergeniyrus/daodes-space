@@ -1311,15 +1311,7 @@
 
     
 
-<nav class="organization-tabs" aria-label="Разделы управления организацией" data-organization-tabs>
-<button type="button" class="organization-tab is-active" data-tab="overview"><span>⌂</span> Обзор</button>
-<button type="button" class="organization-tab" data-tab="team"><span>♙</span> Команда</button>
-<button type="button" class="organization-tab" data-tab="orders"><span>▤</span> Заказы</button>
-<a class="organization-tab" href="{{ route('organizations.feedback.index', $organization) }}" style="text-decoration:none"><span>☆</span> Отзывы</a>
-<a class="organization-tab" href="{{ route('organizations.menu.index', $organization) }}" style="text-decoration:none"><span>☷</span> Меню</a>
-<button type="button" class="organization-tab" data-tab="tv"><span>▣</span> TV-экраны</button>
-<button type="button" class="organization-tab" data-tab="settings"><span>⚙</span> Настройки</button>
-</nav>{{-- =====================================================
+@include('organizations.partials.management-navigation', ['organization' => $organization]){{-- =====================================================
          АНАЛИТИКА ОНЛАЙН-ЗАКАЗОВ
          ===================================================== --}}
 
@@ -2423,7 +2415,7 @@ document.addEventListener('DOMContentLoaded', function () {
  const storageKey='organization-management-tab-{{ $organization->id }}';
  function activateTab(name,persist=true){
   if(!panels.some(panel=>panel.dataset.tabPanel===name))name='overview';
-  tabs.forEach(tab=>{const active=tab.dataset.tab===name;tab.classList.toggle('is-active',active);tab.setAttribute('aria-selected',active?'true':'false');tab.setAttribute('tabindex',active?'0':'-1');});
+  tabs.forEach(tab=>{const active=tab.dataset.tab===name;tab.classList.toggle('is-active',active);if(active)tab.setAttribute('aria-current','page');else tab.removeAttribute('aria-current');});
   panels.forEach(panel=>{const active=panel.dataset.tabPanel===name;panel.classList.toggle('is-active',active);panel.hidden=!active;});
   if(persist){try{sessionStorage.setItem(storageKey,name);}catch(error){}}
  }
