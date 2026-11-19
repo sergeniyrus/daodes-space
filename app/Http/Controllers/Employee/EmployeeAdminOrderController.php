@@ -162,7 +162,8 @@ class EmployeeAdminOrderController extends Controller
             ->latest()->paginate(25)->withQueryString();
 
         return view('employee.admin.orders.index', compact(
-            'organization', 'orders', 'filters', 'summary', 'period', 'dateFrom', 'dateTo'
+            'organization', 'orders', 'filters', 'summary', 'period', 'dateFrom', 'dateTo',
+            'bestSellingProducts', 'leastSellingProducts'
         ));
     }
 
