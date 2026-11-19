@@ -123,19 +123,9 @@
     class="organization-orders-page"
     data-orders-updates-url="{{ route('organizations.orders.updates', $organization) }}{{ request()->getQueryString() ? '?' . request()->getQueryString() : '' }}"
 >
-    @if(session('success'))
-        <div class="organization-orders-panel organization-orders-status">
-            {{ session('success') }}
-        </div>
-    @endif
 
-    @if($errors->any())
-        <div class="organization-orders-panel organization-orders-error">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
+
+
 
     <div class="organization-orders-panel">
         <h1 class="organization-orders-title">Заказы организации</h1>
