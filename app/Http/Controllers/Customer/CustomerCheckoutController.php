@@ -143,7 +143,9 @@ class CustomerCheckoutController extends Controller
                 ),
                 'available_dine_in' => (bool) (
                     $settings->dine_in_enabled
+                    && $item->dine_in_enabled
                     && $section?->is_active
+                    && $section?->dine_in_enabled
                 ),
             ];
         }
@@ -511,6 +513,8 @@ class CustomerCheckoutController extends Controller
                         $query->where('delivery_enabled', true);
                     } elseif ($validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP) {
                         $query->where('pickup_enabled', true);
+                    } elseif ($validated['fulfillment_type'] === Order::FULFILLMENT_DINE_IN) {
+                        $query->where('dine_in_enabled', true);
                     }
                 })
                 ->whereHas('section', function ($query) use ($organizationId, $validated) {
@@ -521,6 +525,8 @@ class CustomerCheckoutController extends Controller
                         $query->where('delivery_enabled', true);
                     } elseif ($validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP) {
                         $query->where('pickup_enabled', true);
+                    } elseif ($validated['fulfillment_type'] === Order::FULFILLMENT_DINE_IN) {
+                        $query->where('dine_in_enabled', true);
                     }
                 })
                 ->orderBy('id')
@@ -579,7 +585,7 @@ class CustomerCheckoutController extends Controller
             }
 
             $fulfillmentEnabled = match ($validated['fulfillment_type']) {
-                Order::FULFILLMENT_DELIVERY => $settings->delivery_enabled,
+                Order::FULFILLMENT_DELIVERY => $settings->hasConfiguredDelivery(),
                 Order::FULFILLMENT_PICKUP => $settings->pickup_enabled,
                 Order::FULFILLMENT_DINE_IN => $settings->dine_in_enabled,
                 default => false,
