@@ -102,6 +102,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
 @media(max-width:900px){.admin-orders-field,.admin-orders-field.search,.admin-orders-field.period{grid-column:span 6}.admin-orders-breakdowns{grid-template-columns:1fr 1fr}.admin-orders-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.admin-orders-page{width:calc(100% - 16px);margin:14px auto 30px}.admin-orders-shell{padding:15px;border-radius:16px}.admin-orders-heading{flex-direction:column}.admin-orders-actions{width:100%}.admin-orders-actions>*{flex:1}.admin-orders-field,.admin-orders-field.search,.admin-orders-field.period{grid-column:span 12}.admin-orders-period-dates{grid-template-columns:1fr}.admin-orders-summary-grid{gap:8px}.admin-orders-stat{padding:13px}.admin-orders-stat small{font-size:.76rem}.admin-orders-breakdowns{grid-template-columns:1fr}.admin-order-bottom>*{width:100%}.admin-order-bottom .admin-orders-link{width:100%}}
 </style>
+<style>@media(max-width:560px){.admin-orders-page{width:100%;margin:0}}</style>
 
 <div class="admin-orders-page">
     <section class="admin-orders-shell">
