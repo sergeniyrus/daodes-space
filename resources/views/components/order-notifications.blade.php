@@ -5,6 +5,7 @@
 
 <section
     class="order-notifications"
+    hidden
     data-notifications-url="{{ $notificationsUrl }}"
     data-read-url-template="{{ $notificationReadUrlTemplate }}"
     data-read-all-url="{{ $notificationReadAllUrl }}"
