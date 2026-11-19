@@ -265,9 +265,47 @@
                 <span class="organization-order-detail__label">Состояние оплаты</span>
                 <div class="organization-order-detail__value organization-order-detail__accent">{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</div>
             </div>
+        
         </div>
 
+        @php
+            $canMarkPaid =
+                $order->payment_status === 'pending'
+                && $order->payment_method !== 'online'
+                && (
+                    ($order->fulfillment_type === 'pickup' && $order->status === 'issued')
+                    || ($order->fulfillment_type === 'delivery' && $order->status === 'delivered')
+                    || ($order->fulfillment_type === 'dine_in' && $order->status === 'served')
+                );
+        @endphp
+
+        @if($canMarkPaid)
+            <div class="organization-order-detail__entry">
+                <div class="organization-order-detail__subtitle" style="margin-bottom: 12px;">
+                    Заказ передан клиенту. Если деньги фактически получены, подтвердите оплату.
+                </div>
+
+                <form
+                    method="POST"
+                    action="{{ route('organizations.orders.payment', [$organization, $order]) }}"
+                    onsubmit="return confirm('Подтвердить фактическое получение оплаты за заказ №{{ $order->order_number }}?');"
+                >
+                    @csrf
+                    @method('PATCH')
+
+                    <button type="submit" class="organization-order-detail__button">
+                        ✓ Подтвердить получение оплаты
+                    </button>
+                </form>
+            </div>
+        @elseif($order->payment_status === 'pending' && $order->payment_method !== 'online')
+            <div class="organization-order-detail__subtitle" style="margin-top: 12px;">
+                Подтверждение оплаты станет доступно после фактической передачи заказа клиенту.
+            </div>
+        @endif
+
         <h3 class="organization-order-detail__subtitle" style="margin-top: 18px;">Платёжные попытки</h3>
+
         @forelse($order->payments->sortByDesc('created_at') as $payment)
             <div class="organization-order-detail__entry">
                 <div class="organization-order-detail__grid">
