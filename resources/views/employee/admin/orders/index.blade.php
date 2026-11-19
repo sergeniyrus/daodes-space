@@ -19,7 +19,11 @@ $paymentLabels = ['pending'=>'Ожидает оплаты','succeeded'=>'Опл�
  <section class="admin-orders-panel">
   <p class="muted">{{ $organization->name }} · Администратор</p>
   <h1>Заказы организации</h1>
-  <p><a href="{{ route('employee.organization.menu.index', $organization) }}">← Управление меню</a> · <a href="{{ route('employee.organization.admin.orders.export', array_merge(['organization' => $organization->id], request()->query())) }}">Экспорт CSV</a></p>
+  <p><a href="{{ route('employee.organization.menu.index', $organization) }}">← Управление меню</a> · <a href="{{ route('employee.organization.admin.orders.export', array_merge(
+      ['organization' => $organization->id],
+      request()->query(),
+      ['date_from' => $dateFrom?->format('Y-m-d'), 'date_to' => $dateTo?->format('Y-m-d')]
+  )) }}">Экспорт CSV</a></p>
   <form class="filters" method="GET">
    <select name="period" onchange="this.form.submit()">
     <option value="day" @selected($period === 'day')>Сегодня</option>
