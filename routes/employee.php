@@ -69,7 +69,7 @@ Route::prefix('staff')->name('employee.')->group(function () {
                 Route::post('/{feedback}/reply', [\App\Http\Controllers\Employee\EmployeeOrganizationFeedbackController::class, 'reply'])
                     ->whereNumber('feedback')
                     ->name('reply');
-                Route::patch('/reviews/{review}/visibility', [\\App\\Http\\Controllers\\Employee\\EmployeeOrganizationFeedbackController::class, 'moderateReview'])
+                Route::patch('/reviews/{review}/visibility', [\App\Http\Controllers\Employee\EmployeeOrganizationFeedbackController::class, 'moderateReview'])
                     ->whereNumber('review')
                     ->name('visibility');
             });
