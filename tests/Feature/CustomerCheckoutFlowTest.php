@@ -2042,6 +2042,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 $table->boolean('is_active')->default(true);
                 $table->boolean('delivery_enabled')->default(true);
                 $table->boolean('pickup_enabled')->default(true);
+                $table->boolean('dine_in_enabled')->default(true);
                 $table->timestamps();
 
                 $table->unique(
@@ -2076,6 +2077,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 $table->boolean('is_active')->default(true);
                 $table->boolean('delivery_enabled')->default(true);
                 $table->boolean('pickup_enabled')->default(true);
+                $table->boolean('dine_in_enabled')->default(true);
                 $table->timestamps();
 
                 $table->unique(
