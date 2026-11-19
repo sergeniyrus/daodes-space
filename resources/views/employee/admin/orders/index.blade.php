@@ -250,7 +250,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
                 <h2>Продажи товаров</h2>
                 <p class="admin-orders-muted" style="margin:5px 0 0;">Рейтинг рассчитывается по оплаченным, неотменённым заказам за выбранный период. Учитываются также отключённые позиции меню.</p>
             </div>
-            <span class="admin-orders-period">{{ $bestSellingProducts->sum('sold_quantity') >= 0 ? 'Топ и низ продаж' : '' }}</span>
+            <span class="admin-orders-period">Топ-10 / Антирейтинг</span>
         </div>
 
         <div class="product-analytics-grid">
@@ -262,7 +262,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
                         <div style="min-width:0;">
                             <div class="product-analytics-name">{{ $product->name }}</div>
                             <div class="product-analytics-meta">
-                                <span>{{ $product->orders_count }} {{ trans_choice('заказ|заказа|заказов', (int) $product->orders_count) }}</span>
+                                <span>{{ $product->orders_count }} заказ(ов)</span>
                                 @if(!$product->is_active)
                                     <span class="product-analytics-state">Отключено в меню</span>
                                 @endif
