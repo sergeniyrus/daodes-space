@@ -7,7 +7,7 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderReview;
 use App\Models\Organization;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Auth;\nuse Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CustomerCatalogController extends Controller
@@ -31,72 +31,68 @@ class CustomerCatalogController extends Controller
         ]);
     }
 
-    public function index(Organization $organization): View
+    public function index(Request $request, Organization $organization): View
     {
         abort_unless($organization->isActive(), 404);
 
         $settings = $organization->orderSettings;
+        $availableFulfillments = [
+            'delivery' => (bool) ($settings?->delivery_enabled && $settings?->hasConfiguredDelivery()),
+            'pickup' => (bool) $settings?->pickup_enabled,
+            'dine_in' => (bool) $settings?->dine_in_enabled,
+        ];
+
+        $defaultFulfillment = $availableFulfillments['pickup']
+            ? 'pickup'
+            : ($availableFulfillments['dine_in']
+                ? 'dine_in'
+                : ($availableFulfillments['delivery'] ? 'delivery' : null));
+
+        $sessionKey = 'customer_order_fulfillment_' . $organization->id;
+        $requestedFulfillment = $request->query('fulfillment');
+        $selectedFulfillment = is_string($requestedFulfillment)
+            && ($availableFulfillments[$requestedFulfillment] ?? false)
+                ? $requestedFulfillment
+                : session($sessionKey, $defaultFulfillment);
+
+        if (!($availableFulfillments[$selectedFulfillment] ?? false)) {
+            $selectedFulfillment = $defaultFulfillment;
+        }
+
+        if ($selectedFulfillment) {
+            session([$sessionKey => $selectedFulfillment]);
+        }
 
         $publicRating = OrderReview::query()->where('organization_id', $organization->id)
             ->where('is_public', true)->whereNotNull('published_at')->whereNotNull('rating')
             ->selectRaw('COUNT(DISTINCT order_id) as total, AVG(rating) as average')->first();
 
-        $sections = $organization->menuSections()
-            ->where('is_active', true)
-            ->where(function ($sectionQuery) use ($settings) {
-                if (
-                    !$settings ||
-                    (!$settings->delivery_enabled && !$settings->pickup_enabled && !$settings->dine_in_enabled)
-                ) {
-                    $sectionQuery->whereRaw('1 = 0');
-                    return;
+        $sectionsQuery = $organization->menuSections()
+            ->where('is_active', true);
+
+        if ($selectedFulfillment === 'delivery') {
+            $sectionsQuery->where('delivery_enabled', true);
+        } elseif ($selectedFulfillment === 'pickup') {
+            $sectionsQuery->where('pickup_enabled', true);
+        }
+
+        $sections = $sectionsQuery
+            ->with(['activeItems' => function ($itemQuery) use ($selectedFulfillment) {
+                if ($selectedFulfillment === 'delivery') {
+                    $itemQuery->where('delivery_enabled', true);
+                } elseif ($selectedFulfillment === 'pickup') {
+                    $itemQuery->where('pickup_enabled', true);
                 }
-
-                // Раздел показывается, только если в нём доступен хотя бы
-                // один способ получения, включённый самой организацией.
-                if ($settings?->delivery_enabled) {
-                    $sectionQuery->where('delivery_enabled', true);
-                }
-
-                if ($settings?->pickup_enabled) {
-                    $method = $settings?->delivery_enabled ? 'orWhere' : 'where';
-                    $sectionQuery->{$method}('pickup_enabled', true);
-                }
-
-                if ($settings?->dine_in_enabled) {
-                    $sectionQuery->orWhereRaw('1 = 1');
-                }
-            })
-            ->with(['activeItems' => function ($itemQuery) use ($settings) {
-                $itemQuery->where(function ($availabilityQuery) use ($settings) {
-                    if (
-                        !$settings ||
-                        (!$settings->delivery_enabled && !$settings->pickup_enabled && !$settings->dine_in_enabled)
-                    ) {
-                        $availabilityQuery->whereRaw('1 = 0');
-                        return;
-                    }
-
-                    if ($settings?->delivery_enabled) {
-                        $availabilityQuery->where('delivery_enabled', true);
-                    }
-
-                    if ($settings?->pickup_enabled) {
-                        $method = $settings?->delivery_enabled ? 'orWhere' : 'where';
-                        $availabilityQuery->{$method}('pickup_enabled', true);
-                    }
-
-                    if ($settings?->dine_in_enabled) {
-                        $availabilityQuery->orWhereRaw('1 = 1');
-                    }
-                });
             }])
             ->orderBy('sort_order')
-            ->get();
+            ->get()
+            ->filter(fn ($section) => $section->activeItems->isNotEmpty())
+            ->values();
 
         $cart = session('customer_order_cart', []);
         $cartCount = 0;
         $cartSubtotalCents = 0;
+        $cartUnavailableCount = 0;
 
         if (
             (int) ($cart['organization_id'] ?? 0) === (int) $organization->id
@@ -106,51 +102,31 @@ class CustomerCatalogController extends Controller
             $quantities = $cart['items'];
             $cartCount = array_sum(array_map('intval', $quantities));
 
-            $cartItems = MenuItem::query()
+            $cartItemsQuery = MenuItem::query()
                 ->whereIn('id', array_map('intval', array_keys($quantities)))
-                ->where('is_active', true)
-                ->where(function ($query) use ($settings) {
-                    if ($settings?->delivery_enabled) {
-                        $query->where('delivery_enabled', true);
-                    }
-                    if ($settings?->pickup_enabled) {
-                        $method = $settings?->delivery_enabled ? 'orWhere' : 'where';
-                        $query->{$method}('pickup_enabled', true);
-                    }
-                    if ($settings?->dine_in_enabled) {
-                        $query->orWhereRaw('1 = 1');
-                    }
-                    if (!$settings || (!$settings->delivery_enabled && !$settings->pickup_enabled && !$settings->dine_in_enabled)) {
-                        $query->whereRaw('1 = 0');
-                    }
-                })
-                ->whereHas('section', function ($query) use ($organization, $settings) {
+                ->where('is_active', true);
+
+            if ($selectedFulfillment === 'delivery') {
+                $cartItemsQuery->where('delivery_enabled', true);
+            } elseif ($selectedFulfillment === 'pickup') {
+                $cartItemsQuery->where('pickup_enabled', true);
+            }
+
+            $cartItems = $cartItemsQuery
+                ->whereHas('section', function ($query) use ($organization, $selectedFulfillment) {
                     $query->where('organization_id', $organization->id)
-                        ->where('is_active', true)
-                        ->where(function ($availabilityQuery) use ($settings) {
-                            if ($settings?->delivery_enabled) {
-                                $availabilityQuery->where(function ($methodQuery) {
-                                    $methodQuery->where('menu_sections.delivery_enabled', true)
-                                        ->where('menu_items.delivery_enabled', true);
-                                });
-                            }
-                            if ($settings?->pickup_enabled) {
-                                $method = $settings?->delivery_enabled ? 'orWhere' : 'where';
-                                $availabilityQuery->{$method}(function ($methodQuery) {
-                                    $methodQuery->where('menu_sections.pickup_enabled', true)
-                                        ->where('menu_items.pickup_enabled', true);
-                                });
-                            }
-                            if ($settings?->dine_in_enabled) {
-                                $availabilityQuery->orWhereRaw('1 = 1');
-                            }
-                            if (!$settings || (!$settings->delivery_enabled && !$settings->pickup_enabled && !$settings->dine_in_enabled)) {
-                                $availabilityQuery->whereRaw('1 = 0');
-                            }
-                        });
+                        ->where('is_active', true);
+
+                    if ($selectedFulfillment === 'delivery') {
+                        $query->where('delivery_enabled', true);
+                    } elseif ($selectedFulfillment === 'pickup') {
+                        $query->where('pickup_enabled', true);
+                    }
                 })
                 ->get()
                 ->keyBy('id');
+
+            $cartUnavailableCount = count($quantities) - $cartItems->count();
 
             foreach ($quantities as $itemId => $quantity) {
                 $item = $cartItems->get((int) $itemId);
@@ -182,12 +158,16 @@ class CustomerCatalogController extends Controller
             'settings' => $settings,
             'sections' => $sections,
             'canOrder' => $settings?->canAcceptOrders() ?? false,
+            'selectedFulfillment' => $selectedFulfillment,
+            'availableFulfillments' => $availableFulfillments,
             'cartCount' => $cartCount,
             'cartSubtotal' => $cartSubtotalCents / 100,
+            'cartUnavailableCount' => $cartUnavailableCount,
             'ordersCount' => $ordersCount,
             'ordersHistoryCount' => $ordersHistoryCount,
             'ordersInProgressCount' => $ordersInProgressCount,
             'currencySymbol' => $settings?->currency === 'RUB' ? '₽' : ($settings?->currency ?? ''),
         ]);
     }
+
 }
