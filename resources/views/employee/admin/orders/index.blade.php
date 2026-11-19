@@ -3,6 +3,11 @@
 @section('title_page') Заказы — {{ $organization->name }} @endsection
 
 @section('main')
+@include('components.order-notifications', [
+    'notificationsUrl' => route('employee.organization.admin.orders.notifications', $organization),
+    'notificationReadUrlTemplate' => route('employee.organization.admin.orders.notifications.read', [$organization, '__ID__']),
+])
+
 @php
 $statusLabels = ['new'=>'Новый','awaiting_payment'=>'Ожидает оплаты','confirmed'=>'Подтверждён','preparing'=>'Готовится','ready'=>'Готов','handed_to_courier'=>'У курьера','in_transit'=>'В пути','issued'=>'Выдан','served'=>'Подан','delivered'=>'Доставлен','completed'=>'Завершён','cancelled'=>'Отменён'];
 $paymentLabels = ['pending'=>'Ожидает оплаты','succeeded'=>'Оплачен','failed'=>'Ошибка','cancelled'=>'Отменён','refunded'=>'Возвращён'];
