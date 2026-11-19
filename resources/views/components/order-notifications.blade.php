@@ -14,7 +14,9 @@
         <strong>Уведомления</strong>
         <div class="order-notifications-controls">
             <span class="order-notifications-count" id="order-notifications-count">0</span>
+            @if($notificationReadAllUrl)
             <button type="button" class="order-notifications-read-all" id="order-notifications-read-all">Прочитать все</button>
+            @endif
             <button type="button" class="order-notifications-sound" id="order-notifications-sound" aria-pressed="false">🔇 Звук выключен</button>
         </div>
     </div>
