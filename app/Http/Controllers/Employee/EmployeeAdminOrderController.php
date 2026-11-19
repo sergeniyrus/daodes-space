@@ -90,12 +90,18 @@ class EmployeeAdminOrderController extends Controller
             'pending_count' => (clone $periodQuery)->where('payment_status', Order::PAYMENT_PENDING)->count(),
             'cancelled_count' => (clone $periodQuery)->where('status', Order::STATUS_CANCELLED)->count(),
             'amounts' => (clone $periodQuery)->select('currency')
+                ->selectRaw('COUNT(*) as orders_count')
                 ->selectRaw('SUM(total) as total_amount')
+                ->selectRaw('AVG(total) as average_amount')
                 ->selectRaw('SUM(CASE WHEN payment_status = ? THEN total ELSE 0 END) as paid_amount', [Order::PAYMENT_SUCCEEDED])
                 ->selectRaw('SUM(CASE WHEN payment_status = ? THEN total ELSE 0 END) as pending_amount', [Order::PAYMENT_PENDING])
                 ->groupBy('currency')->get(),
             'statuses' => (clone $periodQuery)->select('status')
                 ->selectRaw('COUNT(*) as orders_count')->groupBy('status')->get(),
+            'fulfillment' => (clone $periodQuery)->select('fulfillment_type')
+                ->selectRaw('COUNT(*) as orders_count')->groupBy('fulfillment_type')->get(),
+            'payment_methods' => (clone $periodQuery)->select('payment_method')
+                ->selectRaw('COUNT(*) as orders_count')->groupBy('payment_method')->get(),
         ];
 
         $orders = (clone $periodQuery)->with('items')
