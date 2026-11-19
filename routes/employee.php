@@ -46,6 +46,19 @@ Route::prefix('staff')->name('employee.')->group(function () {
                     ->name('orders.payment');
             });
 
+        Route::middleware(['employee.organization', 'employee.role:admin'])
+            ->prefix('organizations/{organization}/admin')
+            ->name('organization.admin.')
+            ->group(function () {
+                Route::get('/manage', [\App\Http\Controllers\Employee\EmployeeAdminOrganizationController::class, 'manage'])->name('manage');
+                Route::put('/order-settings', [\App\Http\Controllers\OrganizationController::class, 'updateOrderSettings'])->name('order-settings.update');
+                Route::post('/tv-screens', [\App\Http\Controllers\OrganizationTVController::class, 'createScreen'])->name('tv.screens.store');
+                Route::patch('/tv-screens/{screen}/settings', [\App\Http\Controllers\OrganizationTVController::class, 'updateScreenSettings'])->whereNumber('screen')->name('tv.screens.settings');
+                Route::delete('/tv-screens/{screen}', [\App\Http\Controllers\OrganizationTVController::class, 'deleteScreen'])->whereNumber('screen')->name('tv.screens.delete');
+                Route::post('/tv-background', [\App\Http\Controllers\OrganizationTVController::class, 'uploadBackground'])->name('tv.background.store');
+                Route::delete('/tv-background', [\App\Http\Controllers\OrganizationTVController::class, 'deleteBackground'])->name('tv.background.delete');
+            });
+
         // Полный операционный доступ администратора к заказам организации.
         Route::middleware(['employee.organization', 'employee.role:admin'])
             ->prefix('organizations/{organization}/admin/orders')
