@@ -32,6 +32,22 @@
     @for($star=5;$star>=1;$star--)
         <div style="display:flex;gap:12px;align-items:center;margin:7px 0"><span class="org-feedback-stars">{{ str_repeat('★',$star) }}</span><span>{{ (int)($ratingDistribution[$star] ?? 0) }}</span></div>
     @endfor
+    <form method="GET" style="display:flex;gap:9px;flex-wrap:wrap;margin:14px 0">
+        <select name="status" style="padding:9px;color:#fff;background:#0b1422;border:1px solid rgba(0,229,212,.35);border-radius:9px">
+            <option value="">Все статусы</option>
+            @foreach(['new'=>'Новое','in_progress'=>'Рассматривается','answered'=>'Отвечено','closed'=>'Закрыто'] as $key=>$label)
+                <option value="{{ $key }}" @selected(($filters['status'] ?? '') === $key)>{{ $label }}</option>
+            @endforeach
+        </select>
+        <select name="type" style="padding:9px;color:#fff;background:#0b1422;border:1px solid rgba(0,229,212,.35);border-radius:9px">
+            <option value="">Все типы</option>
+            @foreach(['review'=>'Отзыв','suggestion'=>'Предложение','complaint'=>'Жалоба','thanks'=>'Благодарность'] as $key=>$label)
+                <option value="{{ $key }}" @selected(($filters['type'] ?? '') === $key)>{{ $label }}</option>
+            @endforeach
+        </select>
+        <button type="submit">Фильтровать обращения</button>
+        <a href="{{ route('organizations.feedback.index', $organization) }}" style="align-self:center">Сбросить</a>
+    </form>
     <h2 style="margin-top:28px">Книга отзывов и предложений</h2>
     @forelse($feedback as $item)
         <article class="org-feedback-card">
@@ -50,6 +66,17 @@
         </article>
     @empty <p class="org-feedback-muted">Обращений пока нет.</p> @endforelse
     {{ $feedback->links() }}
+    <form method="GET" style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:12px 0">
+        <label class="org-feedback-muted">Оценка:
+            <select name="rating" style="padding:8px;color:#fff;background:#0b1422;border:1px solid rgba(0,229,212,.35);border-radius:8px">
+                <option value="">Любая</option>
+                @for($star=5;$star>=1;$star--)
+                    <option value="{{ $star }}" @selected((string)($filters['rating'] ?? '') === (string)$star)>{{ $star }} ★</option>
+                @endfor
+            </select>
+        </label>
+        <button type="submit">Фильтровать оценки</button>
+    </form>
     <h2 style="margin-top:28px">Оценки заказов</h2>
     @forelse($reviews as $review)
         <article class="org-feedback-card">
