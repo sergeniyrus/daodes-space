@@ -30,6 +30,8 @@ Route::prefix('customer')->name('customer.')->group(function () {
         ->name('organizations.index');
     Route::get('/organizations/{organization}', [CustomerCatalogController::class, 'index'])
         ->name('catalog');
+    Route::get('/organizations/{organization}/reviews', [CustomerFeedbackController::class, 'publicReviews'])
+        ->name('organizations.reviews');
     Route::get('/cart', [CustomerCartController::class, 'index'])->name('cart');
     Route::post('/organizations/{organization}/cart/items', [CustomerCartController::class, 'add'])
         ->name('cart.add');
