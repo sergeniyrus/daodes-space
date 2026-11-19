@@ -24,7 +24,6 @@
     @empty <p class="admin-feedback-muted">Оценок пока нет.</p> @endforelse
     {{ $reviews->links() }}
     <h2>Книга отзывов и предложений</h2>
-        @if($errors->any())<div style="color:#ff9999;margin:10px 0">{{ $errors->first() }}</div>@endif
     @forelse($feedback as $item)
         <article class="admin-feedback-card">
             <strong>{{ $item->subject }}</strong>
