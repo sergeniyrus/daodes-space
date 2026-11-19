@@ -2181,6 +2181,9 @@ body.customer-menu-image-open { overflow: hidden !important; }
                     <span class="customer-order-header-action-stat">В работе <span class="customer-order-header-action-count">{{ $customerWorkspace['ordersInProgressCount'] }}</span></span>
                 </span>
             </a>
+            @if(auth('customer')->check())
+                <a href="{{ route('customer.feedback.index') }}" style="display:block;margin:0 14px 10px;color:#00e5d4;text-align:center;text-decoration:none">Отзывы и предложения →</a>
+            @endif
         </section>
 
         <section class="customer-order-header-card {{ request()->routeIs('customer.cart') || request()->routeIs('customer.checkout') ? 'is-active' : '' }}">
