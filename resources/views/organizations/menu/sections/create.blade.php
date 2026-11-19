@@ -226,6 +226,7 @@
 
         <div class="menu-form-group">
             <label class="menu-form-checkbox">
+                <input type="hidden" name="delivery_enabled" value="0">
                 <input type="checkbox" name="delivery_enabled" value="1" @checked(old('delivery_enabled', true))>
                 Доставка разрешена для всех блюд раздела
             </label>
@@ -233,12 +234,14 @@
 
         <div class="menu-form-group">
             <label class="menu-form-checkbox">
+                <input type="hidden" name="pickup_enabled" value="0">
                 <input type="checkbox" name="pickup_enabled" value="1" @checked(old('pickup_enabled', true))>
                 Самовывоз разрешён для всех блюд раздела
             </label>
         </div>
         <div class="menu-form-group">
             <label class="menu-form-checkbox">
+                <input type="hidden" name="dine_in_enabled" value="0">
                 <input type="checkbox" name="dine_in_enabled" value="1" @checked(old('dine_in_enabled', true))>
                 Заказ в заведении разрешён для всех блюд раздела
             </label>
