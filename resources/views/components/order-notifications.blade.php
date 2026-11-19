@@ -9,7 +9,7 @@
     aria-live="polite"
 >
     <div class="order-notifications-heading">
-        <strong>Уведомления по заказам</strong>
+        <strong>Уведомления</strong>
         <div class="order-notifications-controls">
             <span class="order-notifications-count" id="order-notifications-count">0</span>
             <button type="button" class="order-notifications-sound" id="order-notifications-sound" aria-pressed="false">🔇 Звук выключен</button>
@@ -205,7 +205,7 @@
                 const link = document.createElement('a');
                 link.className = 'order-notifications-link';
                 link.href = notification.url;
-                link.textContent = 'Открыть заказы';
+                link.textContent = 'Открыть';
                 link.addEventListener('click', async event => {
                     event.preventDefault();
 
