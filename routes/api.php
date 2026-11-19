@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AppVersionController;
 use App\Http\Controllers\AIController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\AppReleaseController;
+use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Middleware\ReleaseAdmin;
 
 /*
@@ -41,6 +42,20 @@ Route::middleware(['web', 'auth'])->group(function () {
         ->withoutMiddleware([VerifyCsrfToken::class])
         ->name('user.online');
 });
+
+/*
+|--------------------------------------------------------------------------
+| PAYMENT PROVIDER WEBHOOKS
+|--------------------------------------------------------------------------
+|
+| Отдельный API endpoint без пользовательской сессии и CSRF.
+| Онлайн-провайдер должен быть явно зарегистрирован в config/payments.php.
+|
+*/
+Route::post('/webhooks/payments/{provider}', PaymentWebhookController::class)
+    ->where('provider', '[a-z0-9_-]{1,64}')
+    ->middleware('throttle:120,1')
+    ->name('payments.webhook');
 
 Route::get('/app/version', [AppVersionController::class, 'check']);
 

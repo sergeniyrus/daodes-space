@@ -6,47 +6,54 @@ use Illuminate\Support\Facades\Schema;
 
 class ModifyCategoryOffersAndOffersTablesForLocalization extends Migration
 {
-    public function up()
+    public function up(): void
     {
-        
+        if (Schema::hasTable('category_offers')) {
+            if (Schema::hasColumn('category_offers', 'name') && !Schema::hasColumn('category_offers', 'name_ru')) {
+                Schema::table('category_offers', function (Blueprint $table) {
+                    $table->renameColumn('name', 'name_ru');
+                });
+            }
 
-        // Обновление таблицы offers
+            if (!Schema::hasColumn('category_offers', 'name_en')) {
+                Schema::table('category_offers', function (Blueprint $table) {
+                    $after = Schema::hasColumn('category_offers', 'name_ru') ? 'name_ru' : 'name';
+                    $table->string('name_en', 255)->nullable()->after($after);
+                });
+            }
+        }
+
         if (Schema::hasTable('offers')) {
-            Schema::table('offers', function (Blueprint $table) {
-                
-                // Переименовываем поля title и content
-                $table->renameColumn('title', 'title_ru');
-                $table->string('title_en', 255)->nullable()->after('title_ru'); // Добавление поля title_en
+            if (Schema::hasColumn('offers', 'title') && !Schema::hasColumn('offers', 'title_ru')) {
+                Schema::table('offers', function (Blueprint $table) {
+                    $table->renameColumn('title', 'title_ru');
+                });
+            }
 
-                $table->renameColumn('content', 'content_ru');
-                $table->text('content_en')->nullable()->after('content_ru'); // Добавление поля content_en
-            });
+            if (!Schema::hasColumn('offers', 'title_en')) {
+                Schema::table('offers', function (Blueprint $table) {
+                    $after = Schema::hasColumn('offers', 'title_ru') ? 'title_ru' : 'title';
+                    $table->string('title_en', 255)->nullable()->after($after);
+                });
+            }
+
+            if (Schema::hasColumn('offers', 'content') && !Schema::hasColumn('offers', 'content_ru')) {
+                Schema::table('offers', function (Blueprint $table) {
+                    $table->renameColumn('content', 'content_ru');
+                });
+            }
+
+            if (!Schema::hasColumn('offers', 'content_en')) {
+                Schema::table('offers', function (Blueprint $table) {
+                    $after = Schema::hasColumn('offers', 'content_ru') ? 'content_ru' : 'content';
+                    $table->text('content_en')->nullable()->after($after);
+                });
+            }
         }
     }
 
-    public function down()
+    public function down(): void
     {
-        // Откат изменений для таблицы category_offers
-        if (Schema::hasTable('category_offers')) {
-            Schema::table('category_offers', function (Blueprint $table) {
-                $table->dropColumn('name_en'); // Удаляем поле name_en
-                $table->renameColumn('name_ru', 'name'); // Переименовываем обратно name_ru в name
-            });
-        }
-
-        // Откат изменений для таблицы offers
-        if (Schema::hasTable('offers')) {
-            Schema::table('offers', function (Blueprint $table) {
-                // Восстанавливаем внешний ключ для привязки пользователя (автора)
-                $table->foreignId('user_id')->constrained('users')->onDelete('cascade')->index()
-                    ->name('fk_offers_user_id');
-
-                // Восстанавливаем поля title и content
-                $table->renameColumn('title_ru', 'title');
-                $table->renameColumn('content_ru', 'content');
-                $table->dropColumn('title_en'); // Удаляем поле title_en
-                $table->dropColumn('content_en'); // Удаляем поле content_en
-            });
-        }
+        // Не удаляем локализованные поля: они могли существовать до запуска миграции.
     }
 }

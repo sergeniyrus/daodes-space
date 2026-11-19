@@ -1,0 +1,66 @@
+<?php
+
+namespace Tests\Unit;
+
+use App\Models\OrganizationOrderSetting;
+use PHPUnit\Framework\TestCase;
+
+class OrganizationOrderSettingTest extends TestCase
+{
+    public function test_orders_are_disabled_until_manager_enables_them(): void
+    {
+        $settings = new OrganizationOrderSetting([
+            'currency' => 'EUR',
+            'orders_enabled' => false,
+            'delivery_enabled' => true,
+            'cash_payment_enabled' => true,
+        ]);
+
+        $this->assertFalse($settings->canAcceptOrders());
+    }
+
+    public function test_orders_require_currency_and_fulfillment_method(): void
+    {
+        $missingCurrency = new OrganizationOrderSetting([
+            'orders_enabled' => true,
+            'delivery_enabled' => true,
+            'cash_payment_enabled' => true,
+        ]);
+
+        $missingFulfillment = new OrganizationOrderSetting([
+            'currency' => 'EUR',
+            'orders_enabled' => true,
+            'cash_payment_enabled' => true,
+        ]);
+
+        $this->assertFalse($missingCurrency->canAcceptOrders());
+        $this->assertFalse($missingFulfillment->canAcceptOrders());
+    }
+
+    public function test_orders_require_a_supported_payment_method(): void
+    {
+        $settings = new OrganizationOrderSetting([
+            'currency' => 'EUR',
+            'orders_enabled' => true,
+            'pickup_enabled' => true,
+            'online_payment_enabled' => true,
+            'cash_payment_enabled' => false,
+            'card_payment_enabled' => false,
+        ]);
+
+        $this->assertFalse($settings->canAcceptOrders());
+    }
+
+    public function test_orders_can_be_enabled_with_supported_settings(): void
+    {
+        $settings = new OrganizationOrderSetting([
+            'currency' => 'EUR',
+            'orders_enabled' => true,
+            'delivery_enabled' => true,
+            'pickup_enabled' => true,
+            'cash_payment_enabled' => true,
+        ]);
+
+        $this->assertTrue($settings->canAcceptOrders());
+    }
+}

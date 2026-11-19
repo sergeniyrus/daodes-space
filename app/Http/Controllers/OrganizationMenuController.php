@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\Organization;
+use App\Services\IPFSService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -32,6 +33,7 @@ class OrganizationMenuController extends Controller
         return view('organizations.menu.index', [
             'organization' => $organization,
             'sections' => $sections,
+            'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
         ]);
     }
 
@@ -43,6 +45,7 @@ class OrganizationMenuController extends Controller
     ): View {
         return view('organizations.menu.sections.create', [
             'organization' => $organization,
+            'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
         ]);
     }
 
@@ -59,6 +62,9 @@ class OrganizationMenuController extends Controller
                 'string',
                 'max:255',
             ],
+            'delivery_enabled' => ['nullable', 'boolean'],
+            'pickup_enabled' => ['nullable', 'boolean'],
+            'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
         ]);
 
         $maxSortOrder = $organization->menuSections()
@@ -68,6 +74,9 @@ class OrganizationMenuController extends Controller
             'name' => $validated['name'],
             'sort_order' => ($maxSortOrder ?? 0) + 1,
             'is_active' => true,
+            'delivery_enabled' => $request->boolean('delivery_enabled', true),
+            'pickup_enabled' => $request->boolean('pickup_enabled', true),
+            'tv_screen' => $validated['tv_screen'],
         ]);
 
         return redirect()
@@ -96,6 +105,7 @@ class OrganizationMenuController extends Controller
         return view('organizations.menu.sections.edit', [
             'organization' => $organization,
             'section' => $section,
+            'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
         ]);
     }
 
@@ -127,12 +137,18 @@ class OrganizationMenuController extends Controller
                 'nullable',
                 'boolean',
             ],
+            'delivery_enabled' => ['nullable', 'boolean'],
+            'pickup_enabled' => ['nullable', 'boolean'],
+            'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
         ]);
 
         $section->update([
             'name' => $validated['name'],
             'sort_order' => $validated['sort_order'] ?? $section->sort_order,
             'is_active' => $request->boolean('is_active'),
+            'delivery_enabled' => $request->boolean('delivery_enabled'),
+            'pickup_enabled' => $request->boolean('pickup_enabled'),
+            'tv_screen' => $validated['tv_screen'],
         ]);
 
         return redirect()
@@ -144,6 +160,56 @@ class OrganizationMenuController extends Controller
                 'success',
                 'Категория меню успешно изменена.'
             );
+    }
+
+    /**
+     * Быстрое управление настройками раздела прямо из списка меню.
+     */
+    public function updateSectionQuickSettings(
+        Request $request,
+        Organization $organization,
+        MenuSection $section
+    ): RedirectResponse {
+        $this->ensureSectionBelongsToOrganization($section, $organization);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'sort_order' => ['required', 'integer', 'min:0'],
+            'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
+            'delivery_enabled' => ['nullable', 'boolean'],
+            'pickup_enabled' => ['nullable', 'boolean'],
+        ]);
+
+        $beforeValues = $section->only([
+            'name',
+            'sort_order',
+            'tv_screen',
+            'delivery_enabled',
+            'pickup_enabled',
+        ]);
+
+        $section->update([
+            'name' => $validated['name'],
+            'sort_order' => $validated['sort_order'],
+            'tv_screen' => $validated['tv_screen'],
+            'delivery_enabled' => $request->boolean('delivery_enabled'),
+            'pickup_enabled' => $request->boolean('pickup_enabled'),
+        ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_section.settings_updated',
+            'Изменены настройки раздела «' . $section->name . '»',
+            $beforeValues,
+            $section->fresh()->only(['name', 'sort_order', 'tv_screen', 'delivery_enabled', 'pickup_enabled']),
+            'menu_section',
+            $section->id
+        );
+
+        return redirect()
+            ->route('organizations.menu.index', $organization)
+            ->withFragment('menu-section-' . $section->id)
+            ->with('success', 'Настройки раздела «' . $section->name . '» сохранены.');
     }
 
     /**
@@ -160,9 +226,21 @@ class OrganizationMenuController extends Controller
             'sort_order' => ['required', 'integer', 'min:0'],
         ]);
 
+        $beforeValues = ['sort_order' => $section->sort_order];
+
         $section->update([
             'sort_order' => $validated['sort_order'],
         ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_section.sorted',
+            'Изменён порядок раздела «' . $section->name . '»',
+            $beforeValues,
+            ['sort_order' => $section->sort_order],
+            'menu_section',
+            $section->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
@@ -178,9 +256,21 @@ class OrganizationMenuController extends Controller
     ): RedirectResponse {
         $this->ensureSectionBelongsToOrganization($section, $organization);
 
+        $beforeActive = (bool) $section->is_active;
+
         $section->update([
             'is_active' => !$section->is_active,
         ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_section.toggled',
+            ($section->is_active ? 'Включён' : 'Выключен') . ' раздел «' . $section->name . '»',
+            ['is_active' => $beforeActive],
+            ['is_active' => (bool) $section->is_active],
+            'menu_section',
+            $section->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
@@ -206,9 +296,32 @@ class OrganizationMenuController extends Controller
             $organization
         );
 
+        $section->items()->get()->each(function (MenuItem $item) use ($organization) {
+            if ($item->image_path) {
+                $this->deleteMenuItemImage($item->image_path, $organization);
+            }
+        });
+
+        $deletedSection = [
+            'name' => $section->name,
+            'items_count' => $section->items()->count(),
+            'is_active' => (bool) $section->is_active,
+            'tv_screen' => (int) $section->tv_screen,
+        ];
+
         $section->items()->delete();
 
         $section->delete();
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_section.deleted',
+            'Удалён раздел меню «' . $deletedSection['name'] . '»',
+            $deletedSection,
+            [],
+            'menu_section',
+            $section->id
+        );
 
         return redirect()
             ->route(
@@ -247,64 +360,58 @@ class OrganizationMenuController extends Controller
         Organization $organization,
         MenuSection $section
     ): RedirectResponse {
-        $this->ensureSectionBelongsToOrganization(
-            $section,
-            $organization
-        );
+        $this->ensureSectionBelongsToOrganization($section, $organization);
 
         $validated = $request->validate([
-            'name' => [
-                'required',
-                'string',
-                'max:255',
-            ],
-
-            'weight' => [
-                'nullable',
-                'numeric',
-                'min:0',
-            ],
-
-            'unit' => [
-                'nullable',
-                'string',
-                'max:50',
-            ],
-
-            'price' => [
-                'required',
-                'numeric',
-                'min:0',
-            ],
-
-            'description' => [
-                'nullable',
-                'string',
-            ],
+            'name' => ['required', 'string', 'max:255'],
+            'weight' => ['nullable', 'numeric', 'min:0'],
+            'unit' => ['nullable', 'string', 'max:50'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'description' => ['nullable', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'is_active' => ['nullable', 'boolean'],
+            'delivery_enabled' => ['nullable', 'boolean'],
+            'pickup_enabled' => ['nullable', 'boolean'],
         ]);
 
-        $maxSortOrder = $section->items()
-            ->max('sort_order');
+        $maxSortOrder = $section->items()->max('sort_order');
+        $imageCid = null;
 
-        $section->items()->create([
+        if ($request->hasFile('image')) {
+            $uploadResult = app(IPFSService::class)->uploadFileAndVerify(
+                $request->file('image')
+            );
+
+            $imageCid = $uploadResult['cid'];
+        }
+
+        $item = $section->items()->create([
             'name' => $validated['name'],
             'weight' => $validated['weight'] ?? null,
             'unit' => $validated['unit'] ?? null,
             'price' => $validated['price'],
             'description' => $validated['description'] ?? null,
+            'image_path' => null,
+            'image_cid' => $imageCid,
             'sort_order' => ($maxSortOrder ?? 0) + 1,
-            'is_active' => true,
+            'is_active' => $request->boolean('is_active', true),
+            'delivery_enabled' => $request->boolean('delivery_enabled', true),
+            'pickup_enabled' => $request->boolean('pickup_enabled', true),
         ]);
 
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_item.created',
+            'Добавлено блюдо «' . $item->name . '»',
+            [],
+            $item->only(['name', 'weight', 'unit', 'price', 'description', 'is_active', 'delivery_enabled', 'pickup_enabled']),
+            'menu_item',
+            $item->id
+        );
+
         return redirect()
-            ->route(
-                'organizations.menu.index',
-                $organization
-            )
-            ->with(
-                'success',
-                'Блюдо успешно добавлено.'
-            );
+            ->route('organizations.menu.index', $organization)
+            ->with('success', 'Блюдо успешно добавлено.');
     }
 
     /**
@@ -342,109 +449,114 @@ class OrganizationMenuController extends Controller
      * ОБНОВЛЕНИЕ БЛЮДА
      */
     public function updateItem(
-    Request $request,
-    Organization $organization,
-    MenuSection $section,
-    MenuItem $item
-): RedirectResponse {
-    $this->ensureSectionBelongsToOrganization(
-        $section,
-        $organization
-    );
+        Request $request,
+        Organization $organization,
+        MenuSection $section,
+        MenuItem $item
+    ): RedirectResponse {
+        $this->ensureSectionBelongsToOrganization($section, $organization);
+        $this->ensureItemBelongsToSection($item, $section);
 
-    $this->ensureItemBelongsToSection(
-        $item,
-        $section
-    );
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'menu_section_id' => ['required', 'integer', 'exists:menu_sections,id'],
+            'weight' => ['nullable', 'numeric', 'min:0'],
+            'unit' => ['nullable', 'string', 'max:50'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'description' => ['nullable', 'string'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+            'delivery_enabled' => ['nullable', 'boolean'],
+            'pickup_enabled' => ['nullable', 'boolean'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+            'remove_image' => ['nullable', 'boolean'],
+        ]);
 
-    $validated = $request->validate([
-        'name' => [
-            'required',
-            'string',
-            'max:255',
-        ],
+        $targetSection = $organization->menuSections()
+            ->whereKey($validated['menu_section_id'])
+            ->firstOrFail();
 
-        'menu_section_id' => [
-            'required',
-            'integer',
-            'exists:menu_sections,id',
-        ],
+        $sectionChanged = (int) $targetSection->id !== (int) $section->id;
+        $sortOrder = $sectionChanged
+            ? ($targetSection->items()->max('sort_order') ?? 0) + 1
+            : ($validated['sort_order'] ?? $item->sort_order);
 
-        'weight' => [
-            'nullable',
-            'numeric',
-            'min:0',
-        ],
+        $imagePath = $item->image_path;
+        $imageCid = $item->image_cid;
+        $oldImagePath = $item->image_path;
 
-        'unit' => [
-            'nullable',
-            'string',
-            'max:50',
-        ],
+        if ($request->hasFile('image')) {
+            $uploadResult = app(IPFSService::class)->uploadFileAndVerify(
+                $request->file('image')
+            );
 
-        'price' => [
-            'required',
-            'numeric',
-            'min:0',
-        ],
+            $imageCid = $uploadResult['cid'];
+            $imagePath = null;
+        } elseif ($request->boolean('remove_image')) {
+            $imagePath = null;
+            $imageCid = null;
+        }
 
-        'description' => [
-            'nullable',
-            'string',
-        ],
+        $beforeValues = $item->only([
+            'menu_section_id',
+            'name',
+            'weight',
+            'unit',
+            'price',
+            'description',
+            'is_active',
+            'delivery_enabled',
+            'pickup_enabled',
+        ]);
 
-        'sort_order' => [
-            'nullable',
-            'integer',
-            'min:0',
-        ],
+        $item->update([
+            'menu_section_id' => $targetSection->id,
+            'name' => $validated['name'],
+            'weight' => $validated['weight'] ?? null,
+            'unit' => $validated['unit'] ?? null,
+            'price' => $validated['price'],
+            'description' => $validated['description'] ?? null,
+            'image_path' => $imagePath,
+            'image_cid' => $imageCid,
+            'sort_order' => $sortOrder,
+            'is_active' => $request->boolean('is_active'),
+            'delivery_enabled' => $request->boolean('delivery_enabled'),
+            'pickup_enabled' => $request->boolean('pickup_enabled'),
+        ]);
 
-        'is_active' => [
-            'nullable',
-            'boolean',
-        ],
-    ]);
+        if ($oldImagePath && $oldImagePath !== $imagePath) {
+            $this->deleteMenuItemImage($oldImagePath, $organization);
+        }
 
-    // Получаем целевую категорию только из текущей организации.
-    // Категорию другой организации выбрать нельзя.
-    $targetSection = $organization->menuSections()
-        ->whereKey($validated['menu_section_id'])
-        ->firstOrFail();
-
-    // Проверяем, меняется ли категория.
-    $sectionChanged = (int) $targetSection->id !== (int) $section->id;
-
-    // При переносе ставим блюдо в конец новой категории.
-    // Если категория прежняя — сохраняем ручную сортировку.
-    if ($sectionChanged) {
-        $sortOrder = ($targetSection->items()->max('sort_order') ?? 0) + 1;
-    } else {
-        $sortOrder = $validated['sort_order'] ?? $item->sort_order;
-    }
-
-    $item->update([
-        'menu_section_id' => $targetSection->id,
-        'name' => $validated['name'],
-        'weight' => $validated['weight'] ?? null,
-        'unit' => $validated['unit'] ?? null,
-        'price' => $validated['price'],
-        'description' => $validated['description'] ?? null,
-        'sort_order' => $sortOrder,
-        'is_active' => $request->boolean('is_active'),
-    ]);
-
-    return redirect()
-        ->route(
-            'organizations.menu.index',
-            $organization
-        )
-        ->with(
-            'success',
-            $sectionChanged
-                ? 'Блюдо успешно перенесено в категорию «' . $targetSection->name . '».'
-                : 'Блюдо успешно изменено.'
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_item.updated',
+            'Изменено блюдо «' . $item->name . '»',
+            $beforeValues,
+            $item->fresh()->only([
+                'menu_section_id',
+                'name',
+                'weight',
+                'unit',
+                'price',
+                'description',
+                'is_active',
+                'delivery_enabled',
+                'pickup_enabled',
+            ]),
+            'menu_item',
+            $item->id
         );
-}
+
+        return redirect()
+            ->route('organizations.menu.index', $organization)
+            ->with(
+                'success',
+                $sectionChanged
+                    ? 'Блюдо успешно перенесено в категорию «' . $targetSection->name . '».'
+                    : 'Блюдо успешно изменено.'
+            );
+    }
 
     /**
      * Быстрое изменение порядка блюда без открытия редактора.
@@ -462,9 +574,21 @@ class OrganizationMenuController extends Controller
             'sort_order' => ['required', 'integer', 'min:0'],
         ]);
 
+        $beforeSortOrder = (int) $item->sort_order;
+
         $item->update([
             'sort_order' => $validated['sort_order'],
         ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_item.sorted',
+            'Изменён порядок блюда «' . $item->name . '»',
+            ['sort_order' => $beforeSortOrder],
+            ['sort_order' => (int) $item->sort_order],
+            'menu_item',
+            $item->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
@@ -482,9 +606,21 @@ class OrganizationMenuController extends Controller
         $this->ensureSectionBelongsToOrganization($section, $organization);
         $this->ensureItemBelongsToSection($item, $section);
 
+        $beforeActive = (bool) $item->is_active;
+
         $item->update([
             'is_active' => !$item->is_active,
         ]);
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_item.toggled',
+            ($item->is_active ? 'Включено' : 'Выключено') . ' блюдо «' . $item->name . '»',
+            ['is_active' => $beforeActive],
+            ['is_active' => (bool) $item->is_active],
+            'menu_item',
+            $item->id
+        );
 
         return redirect()
             ->route('organizations.menu.index', $organization)
@@ -514,7 +650,34 @@ class OrganizationMenuController extends Controller
             $section
         );
 
+        $imagePath = $item->image_path;
+        $deletedValues = $item->only([
+            'menu_section_id',
+            'name',
+            'weight',
+            'unit',
+            'price',
+            'description',
+            'is_active',
+            'delivery_enabled',
+            'pickup_enabled',
+        ]);
+
         $item->delete();
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            'menu_item.deleted',
+            'Удалено блюдо «' . $deletedValues['name'] . '»',
+            $deletedValues,
+            [],
+            'menu_item',
+            $item->id
+        );
+
+        if ($imagePath) {
+            $this->deleteMenuItemImage($imagePath, $organization);
+        }
 
         return redirect()
             ->route(
@@ -525,6 +688,19 @@ class OrganizationMenuController extends Controller
                 'success',
                 'Блюдо удалено.'
             );
+    }
+
+    private function deleteMenuItemImage(string $imagePath, Organization $organization): void
+    {
+        $expectedPrefix = 'images/org/' . $organization->id . '/menu/';
+        if (!str_starts_with($imagePath, $expectedPrefix)) {
+            return;
+        }
+
+        $fullPath = public_path($imagePath);
+        if (is_file($fullPath)) {
+            @unlink($fullPath);
+        }
     }
 
     /**

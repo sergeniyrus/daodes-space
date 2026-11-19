@@ -2,6 +2,7 @@
 
 @section('title_page')
     Новое блюдо — {{ $section->name }}
+
 @endsection
 
 @section('main')
@@ -191,10 +192,29 @@
     }
 }
 
+
+.menu-image-preview { display:block; width:100%; max-width:260px; aspect-ratio:4/3; object-fit:cover; margin:10px auto; border:1px solid rgba(0,229,212,.5); border-radius:13px; background:#090e1a; }
+.menu-image-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+.menu-image-actions label, .menu-image-remove { display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:7px 14px; border:1px solid #00e5d4; border-radius:20px; color:#00e5d4; background:rgba(0,229,212,.07); cursor:pointer; }
+.menu-image-actions input[type=file] { display:none; }
+.menu-availability-list { display:grid; grid-template-columns:1fr; gap:9px; padding:12px; border:1px solid rgba(0,229,212,.25); border-radius:12px; background:rgba(0,229,212,.035); }
+.menu-availability-list .menu-form-checkbox { padding:5px 0; }
+
 </style>
 
 
 <div class="menu-form-container">
+
+    @if($errors->any())
+        <div class="menu-form-errors" role="alert" style="margin-bottom:18px;padding:13px 16px;border:1px solid #ff6b6b;border-radius:12px;background:rgba(255,107,107,.08);color:#ff9b9b;">
+            <strong style="display:block;margin-bottom:8px;color:#ff6b6b;">Не удалось сохранить блюдо:</strong>
+            <ul style="margin:0;padding-left:20px;">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <div class="menu-form-title">
         Новое блюдо
@@ -207,6 +227,7 @@
 
     <form
         method="POST"
+        enctype="multipart/form-data"
         action="{{ route('organizations.menu.items.store', [
             'organization' => $organization,
             'section' => $section,
@@ -294,6 +315,16 @@
 
 
         <div class="menu-form-group">
+            <label class="menu-form-label">Фотография блюда</label>
+            <img id="menu-image-preview" class="menu-image-preview" src="{{ asset('images/org/' . $organization->id . '/not-img.png') }}" alt="Предпросмотр фотографии" onerror="this.onerror=null;this.src='{{ asset('images/org/' . $organization->id . '/not-img.png') }}';">
+            <div class="menu-image-actions">
+                <label for="menu-image-input">Выбрать изображение</label>
+                <input id="menu-image-input" type="file" name="image" accept="image/jpeg,image/png,image/webp">
+            </div>
+            <small class="menu-form-label">JPG, PNG или WEBP, до 10 МБ.</small>
+        </div>
+
+        <div class="menu-form-group">
 
             <label class="menu-form-label">
                 Описание
@@ -324,21 +355,10 @@
         </div>
 
 
-        <div class="menu-form-group">
-
-            <label class="menu-form-checkbox">
-
-                <input
-                    type="checkbox"
-                    name="is_active"
-                    value="1"
-                    @checked(old('is_active', true))
-                >
-
-                Блюдо активно
-
-            </label>
-
+        <div class="menu-form-group menu-availability-list">
+            <label class="menu-form-checkbox"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', true))> Блюдо активно в меню</label>
+            <label class="menu-form-checkbox"><input type="checkbox" name="delivery_enabled" value="1" @checked(old('delivery_enabled', true))> Доступно для доставки</label>
+            <label class="menu-form-checkbox"><input type="checkbox" name="pickup_enabled" value="1" @checked(old('pickup_enabled', true))> Доступно для самовывоза</label>
         </div>
 
 
@@ -365,3 +385,57 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+(() => {
+    'use strict';
+
+    const initializeMenuImagePreview = () => {
+        const input = document.getElementById('menu-image-input');
+        const preview = document.getElementById('menu-image-preview');
+
+        if (!input || !preview || input.dataset.previewInitialized === '1') {
+            return;
+        }
+
+        input.dataset.previewInitialized = '1';
+
+        let previewUrl = null;
+
+        input.addEventListener('change', () => {
+            const file = input.files && input.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                input.value = '';
+                return;
+            }
+
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+
+            previewUrl = URL.createObjectURL(file);
+            preview.src = previewUrl;
+            preview.style.display = 'block';
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        });
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeMenuImagePreview, { once: true });
+    } else {
+        initializeMenuImagePreview();
+    }
+})();
+</script>
+@endpush

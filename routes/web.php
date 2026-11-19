@@ -53,7 +53,14 @@ use App\Http\Controllers\Admin\ReleaseAdminController;
 
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationMenuController;
+use App\Http\Controllers\OrganizationTVController;
 use App\Http\Controllers\OrganizationStaffController;
+use App\Http\Controllers\OrganizationOrderController;
+use App\Http\Controllers\Customer\CustomerPushController;
+use App\Http\Controllers\OrderNotificationController;
+
+Route::get('/firebase-messaging-sw.js', [CustomerPushController::class, 'serviceWorker'])
+    ->name('firebase.messaging.sw');
 
 Route::middleware(['auth', ReleaseAdmin::class])
     ->get('/admin/ai/approval', function () {
@@ -67,6 +74,11 @@ Route::get('/tv1', [TV1Controller::class, 'index'])->name('tv1');
 Route::get('/tv2', [TV2Controller::class, 'index'])->name('tv2');
 
 Route::get('/tv3', [TV3Controller::class, 'index'])->name('tv3');
+
+// Новые TV-экраны организаций. Старые /tv1, /tv2, /tv3 остаются без изменений.
+Route::get('/organization/{organization}/tv', [OrganizationTVController::class, 'show'])
+    ->whereNumber('organization')
+    ->name('organization.tv');
 
 
 /*
@@ -1081,6 +1093,117 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('manage');
 
+        Route::put(
+            '/{organization}/order-settings',
+            [OrganizationController::class, 'updateOrderSettings']
+        )
+            ->middleware('organization.manager')
+            ->name('order-settings.update');
+
+        // Управление количеством TV-экранов организации
+        Route::post(
+            '/{organization}/tv-screens',
+            [OrganizationTVController::class, 'createScreen']
+        )
+            ->middleware('organization.manager')
+            ->name('tv.screens.store');
+
+        Route::patch(
+            '/{organization}/tv-screens/{screen}/settings',
+            [OrganizationTVController::class, 'updateScreenSettings']
+        )
+            ->whereNumber('screen')
+            ->middleware('organization.manager')
+            ->name('tv.screens.settings');
+
+        Route::delete(
+            '/{organization}/tv-screens/{screen}',
+            [OrganizationTVController::class, 'deleteScreen']
+        )
+            ->whereNumber('screen')
+            ->middleware('organization.manager')
+            ->name('tv.screens.delete');
+
+        // Фоновые изображения TV-экранов организации
+        Route::post(
+            '/{organization}/tv-background',
+            [OrganizationTVController::class, 'uploadBackground']
+        )
+            ->middleware('organization.manager')
+            ->name('tv.background.store');
+
+        Route::delete(
+            '/{organization}/tv-background',
+            [OrganizationTVController::class, 'deleteBackground']
+        )
+            ->middleware('organization.manager')
+            ->name('tv.background.delete');
+
+        Route::get(
+            '/{organization}/orders',
+            [OrganizationOrderController::class, 'index']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.index');
+
+        Route::get(
+            '/{organization}/orders/updates',
+            [OrganizationOrderController::class, 'updates']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.updates');
+
+        Route::get(
+            '/{organization}/orders/export',
+            [OrganizationOrderController::class, 'export']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.export');
+
+        Route::get(
+            '/{organization}/orders/{order}',
+            [OrganizationOrderController::class, 'show']
+        )
+            ->middleware('organization.manager')
+            ->whereNumber('order')
+            ->name('orders.show');
+
+        Route::get(
+            '/{organization}/orders/{order}/receipt',
+            [OrganizationOrderController::class, 'receipt']
+        )
+            ->middleware('organization.manager')
+            ->whereNumber('order')
+            ->name('orders.receipt');
+
+        Route::get(
+            '/{organization}/orders/notifications',
+            [OrderNotificationController::class, 'managerIndex']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.notifications');
+
+        Route::post(
+            '/{organization}/orders/notifications/{notification}/read',
+            [OrderNotificationController::class, 'markManagerRead']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.notifications.read');
+
+        Route::patch(
+            '/{organization}/orders/{order}/status',
+            [OrganizationOrderController::class, 'updateStatus']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.status');
+
+        Route::patch(
+            '/{organization}/orders/{order}/payment',
+            [OrganizationOrderController::class, 'markPaid']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.payment');
+
 
         /*
          * =====================================================
@@ -1135,7 +1258,7 @@ Route::middleware('auth')
             '/{organization}/staff',
             [OrganizationStaffController::class, 'store']
         )
-            ->middleware('organization.manager')
+            ->middleware(['organization.manager', 'throttle:5,1'])
             ->name('staff.store');
 
         Route::patch(
@@ -1151,6 +1274,13 @@ Route::middleware('auth')
         )
             ->middleware('organization.manager')
             ->name('staff.status');
+
+        Route::post(
+            '/{organization}/staff/{employee}/invite',
+            [OrganizationStaffController::class, 'resendInvitation']
+        )
+            ->middleware(['organization.manager', 'throttle:5,1'])
+            ->name('staff.invite');
 
         Route::delete(
             '/{organization}/staff/{employee}',
@@ -1364,6 +1494,13 @@ Route::middleware('auth')
         )
             ->middleware('organization.manager')
             ->name('menu.sections.toggle');
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/quick-settings',
+            [OrganizationMenuController::class, 'updateSectionQuickSettings']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.quick_settings');
 
 
         // =========================================================
@@ -1716,6 +1853,7 @@ Route::middleware([
 */
 
 require __DIR__ . '/employee.php';
+require __DIR__ . '/customer.php';
 
 
 /*

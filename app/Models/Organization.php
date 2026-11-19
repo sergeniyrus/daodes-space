@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Organization extends Model
 {
@@ -16,6 +17,10 @@ class Organization extends Model
     protected $fillable = [
         'name',
         'status',
+    ];
+
+    protected $casts = [
+        'tv_screens_config' => 'array',
     ];
 
     /**
@@ -86,6 +91,37 @@ class Organization extends Model
             MenuSection::class,
             'organization_id'
         );
+    }
+
+    /**
+     * Настройки онлайн-заказов организации.
+     */
+    public function orderSettings(): HasOne
+    {
+        return $this->hasOne(OrganizationOrderSetting::class);
+    }
+
+    /**
+     * Заказы клиентов организации.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Клиенты, связанные с организацией через customer_organizations.
+     */
+    public function customers(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Customer::class,
+            'customer_organizations',
+            'organization_id',
+            'customer_id'
+        )
+            ->withPivot('source')
+            ->withTimestamps();
     }
 
     /**

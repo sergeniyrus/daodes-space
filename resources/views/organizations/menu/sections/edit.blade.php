@@ -213,6 +213,29 @@
         </div>
 
 
+        <div class="menu-form-group">
+            <label class="menu-form-label" for="tv_screen">Экран TV</label>
+            <select id="tv_screen" name="tv_screen" class="menu-form-input" required>
+                @foreach($tvScreens as $screen)
+                    <option value="{{ $screen }}" @selected(old('tv_screen', $section->tv_screen ?? 1) == $screen)>Экран {{ $screen }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="menu-form-group">
+            <label class="menu-form-checkbox">
+                <input type="checkbox" name="delivery_enabled" value="1" @checked(old('delivery_enabled', $section->delivery_enabled ?? true))>
+                Доставка разрешена для всех блюд раздела
+            </label>
+        </div>
+
+        <div class="menu-form-group">
+            <label class="menu-form-checkbox">
+                <input type="checkbox" name="pickup_enabled" value="1" @checked(old('pickup_enabled', $section->pickup_enabled ?? true))>
+                Самовывоз разрешён для всех блюд раздела
+            </label>
+        </div>
+
         <div class="menu-form-actions">
 
             <a

@@ -237,6 +237,17 @@
    ЗАГОЛОВОК СЕКЦИИ
    ========================================================= */
 
+.organization-activity-list { display: grid; gap: 9px; }
+.organization-activity-item {
+    padding: 11px 13px;
+    border: 1px solid rgba(0, 229, 212, .18);
+    border-radius: 10px;
+    background: rgba(8, 16, 25, .48);
+}
+.organization-activity-item strong { display: block; color: #f0d68a; font-size: .9rem; }
+.organization-activity-meta { display: flex; flex-wrap: wrap; gap: 7px 14px; margin-top: 5px; color: #929daf; font-size: .76rem; }
+.organization-activity-item details { margin-top: 8px; color: #aeb9c8; font-size: .78rem; }
+.organization-activity-item pre { overflow-x: auto; padding: 8px; color: #dce4e8; background: rgba(0,0,0,.24); border-radius: 7px; white-space: pre-wrap; }
 .organization-section-title {
     color: gold;
 
@@ -965,6 +976,250 @@
     }
 }
 
+/* =========================================================
+   АНАЛИТИКА ОНЛАЙН-ЗАКАЗОВ
+   ========================================================= */
+
+.organization-order-dashboard {
+    margin: 0 0 26px;
+    padding: 20px;
+    border: 1px solid rgba(0, 229, 255, 0.22);
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(0, 229, 255, 0.055), rgba(255, 215, 0, 0.035));
+}
+
+.organization-order-dashboard-title {
+    margin: 0 0 5px;
+    color: #00e5ff;
+    font-size: 1.12rem;
+    font-weight: 700;
+}
+
+.organization-order-dashboard-subtitle {
+    margin-bottom: 17px;
+    color: #9298aa;
+    font-size: 0.82rem;
+}
+
+.organization-order-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.organization-order-stat {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 13px;
+    background: rgba(7, 9, 19, 0.72);
+}
+
+.organization-order-stat-label {
+    display: block;
+    margin-bottom: 8px;
+    color: #a7adbd;
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+.organization-order-stat-value {
+    display: block;
+    color: #f5d76e;
+    font-size: 1.65rem;
+    font-weight: 800;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.organization-order-stat-value.turquoise {
+    color: #00e5c3;
+}
+
+.organization-order-stat-value.muted {
+    color: #c5cad5;
+}
+
+.organization-courier-loads {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 16px;
+}
+
+.organization-courier-load {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 11px;
+    border: 1px solid rgba(0, 229, 255, 0.18);
+    border-radius: 10px;
+    background: rgba(0, 229, 255, 0.045);
+    color: #dce5ef;
+    font-size: 0.82rem;
+}
+
+.organization-courier-load strong {
+    color: #00e5c3;
+}
+
+@media (max-width: 760px) {
+    .organization-order-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 420px) {
+    .organization-order-dashboard {
+        padding: 14px;
+    }
+
+    .organization-order-stats {
+        gap: 8px;
+    }
+
+    .organization-order-stat {
+        padding: 11px;
+    }
+
+    .organization-order-stat-value {
+        font-size: 1.4rem;
+    }
+}
+
+
+.organization-container{width:calc(100% - 32px);max-width:none;box-sizing:border-box;margin:22px auto 42px;padding:clamp(14px,2vw,28px);overflow:visible;background:radial-gradient(ellipse at 92% 0%,rgba(255,215,0,.09),transparent 34%),radial-gradient(ellipse at 0% 100%,rgba(0,229,212,.08),transparent 38%),linear-gradient(145deg,#080d18 0%,#101827 48%,#080d18 100%);border-color:rgba(0,229,212,.48);box-shadow:0 16px 48px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,215,0,.14)}
+.organization-header{border-bottom-color:rgba(0,229,212,.28)}.organization-name{color:#f5cf67}
+.organization-tabs{position:sticky;top:8px;z-index:100;display:flex;align-items:center;gap:7px;margin:0 0 20px;padding:8px;overflow-x:auto;scrollbar-width:thin;background:rgba(7,13,24,.94);border:1px solid rgba(0,229,212,.32);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);backdrop-filter:blur(14px)}
+.organization-tab{display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:1 0 auto;min-height:42px;padding:0 15px;color:#aebdca;background:transparent;border:1px solid transparent;border-radius:10px;font:inherit;font-size:.88rem;font-weight:650;white-space:nowrap;cursor:pointer;transition:.18s ease}
+.organization-tab span{color:#00e5d4;font-size:1.05rem}.organization-tab:hover{color:#fff;background:rgba(0,229,212,.07);border-color:rgba(0,229,212,.22)}
+.organization-tab.is-active{color:#f5d76e;background:linear-gradient(135deg,rgba(0,229,212,.12),rgba(245,207,103,.10));border-color:rgba(245,207,103,.48);box-shadow:inset 0 0 14px rgba(0,229,212,.06),0 0 12px rgba(245,207,103,.06)}
+.organization-tab-panel{display:none;min-width:0;animation:organizationTabIn .18s ease-out}.organization-tab-panel.is-active{display:block}
+@keyframes organizationTabIn{from{opacity:.65;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.organization-quick-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+.organization-quick-link{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:112px;padding:18px;color:#dce7ee;text-decoration:none;background:linear-gradient(145deg,rgba(20,34,49,.94),rgba(9,16,29,.96));border:1px solid rgba(0,229,212,.27);border-radius:14px;transition:.18s ease}
+.organization-quick-link:hover{color:#fff;border-color:rgba(245,207,103,.7);box-shadow:0 0 18px rgba(0,229,212,.08);transform:translateY(-2px)}
+.organization-quick-link strong{color:#f5cf67;font-size:1rem}.organization-quick-link small{color:#9aabba;line-height:1.45}
+@media(max-width:700px){.organization-container{width:calc(100% - 12px);margin:10px auto 24px;padding:11px;border-radius:15px}.organization-tabs{top:4px;gap:5px;margin-bottom:14px;padding:6px;border-radius:12px}.organization-tab{min-height:40px;padding:0 12px;font-size:.8rem}}
+
+
+
+/* Фоны отдельных TV-экранов */
+.tv-background-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+.tv-background-card {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid rgba(0, 229, 255, .24);
+    border-radius: 14px;
+    background: rgba(5, 10, 20, .55);
+}
+.tv-background-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #f5d76e;
+}
+.tv-background-card-heading a { color: #00e5ff; font-size: .82rem; text-decoration: none; white-space: nowrap; }
+.tv-background-preview, .tv-background-empty {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border: 1px solid rgba(255, 215, 0, .25);
+    border-radius: 9px;
+    background: #101522;
+}
+.tv-background-empty {
+    display: grid;
+    place-items: center;
+    color: #9da5b5;
+    font-size: .9rem;
+}
+.tv-screen-settings {
+    display: grid;
+    gap: 7px;
+    margin: 12px 0;
+    padding: 11px;
+    border: 1px solid rgba(0, 229, 212, .2);
+    border-radius: 10px;
+    background: rgba(0, 229, 212, .035);
+}
+.tv-screen-settings label { color: #d7dce6; font-size: .82rem; }
+.tv-screen-settings input,
+.tv-screen-settings select {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    padding: 7px 9px;
+    color: #f4f5f7;
+    background: #171b24;
+    border: 1px solid rgba(0, 229, 212, .3);
+    border-radius: 8px;
+}
+.tv-screen-settings small { color: #9298aa; line-height: 1.4; }
+.tv-screen-settings .organization-button { width: 100%; min-height: 38px; }
+.tv-background-form { display: grid; gap: 8px; margin-top: 12px; }
+.tv-background-form label { color: #d7dce6; font-size: .88rem; }
+.tv-background-form input[type="file"] {
+    width: 100%;
+    min-width: 0;
+    padding: 8px;
+    color: #ddd;
+    background: #17181f;
+    border: 1px solid rgba(0, 229, 255, .3);
+    border-radius: 8px;
+    font-size: .8rem;
+}
+.tv-background-form small { color: #9298aa; }
+.tv-background-form .organization-button { width: 100%; min-height: 40px; padding: 7px 12px; }
+.tv-background-delete {
+    width: 100%;
+    min-height: 36px;
+    margin-top: 8px;
+    color: #ff8585;
+    background: transparent;
+    border: 1px solid rgba(255, 107, 107, .55);
+    border-radius: 9px;
+    cursor: pointer;
+}
+.tv-background-delete:hover { background: rgba(255, 107, 107, .12); }
+@media (max-width: 850px) { .tv-background-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .tv-background-grid { grid-template-columns: 1fr; } }
+
+
+
+.tv-management-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.tv-management-heading .organization-section-title { margin: 0; }
+.tv-management-heading form { flex: 0 0 auto; }
+.tv-management-heading .organization-button { white-space: nowrap; }
+.tv-screen-delete {
+    width: 100%;
+    min-height: 36px;
+    margin-top: 8px;
+    color: #ff8585;
+    background: rgba(100, 20, 25, .12);
+    border: 1px solid rgba(255, 107, 107, .55);
+    border-radius: 9px;
+    cursor: pointer;
+}
+.tv-screen-delete:hover { background: rgba(255, 107, 107, .18); }
+@media (max-width: 560px) {
+    .tv-management-heading { align-items: flex-start; flex-direction: column; }
+    .tv-management-heading form, .tv-management-heading .organization-button { width: 100%; }
+}
+
 </style>
 
 
@@ -1015,7 +1270,6 @@
 
 </div>
 
-
     {{-- =====================================================
          УВЕДОМЛЕНИЯ
          ===================================================== --}}
@@ -1055,7 +1309,117 @@
     @endif
 
 
-    {{-- =====================================================
+    
+
+<nav class="organization-tabs" aria-label="Разделы управления организацией" data-organization-tabs>
+<button type="button" class="organization-tab is-active" data-tab="overview"><span>⌂</span> Обзор</button>
+<button type="button" class="organization-tab" data-tab="team"><span>♙</span> Команда</button>
+<button type="button" class="organization-tab" data-tab="orders"><span>▤</span> Заказы</button>
+<button type="button" class="organization-tab" data-tab="menu"><span>☷</span> Меню</button>
+<button type="button" class="organization-tab" data-tab="tv"><span>▣</span> TV-экраны</button>
+<button type="button" class="organization-tab" data-tab="settings"><span>⚙</span> Настройки</button>
+</nav>{{-- =====================================================
+         АНАЛИТИКА ОНЛАЙН-ЗАКАЗОВ
+         ===================================================== --}}
+
+    <section class="organization-tab-panel is-active" data-tab-panel="overview">
+<section class="organization-order-dashboard">
+        <h2 class="organization-order-dashboard-title">📊 Заказы и выручка</h2>
+        <div class="organization-order-dashboard-subtitle">
+            Операционная сводка за {{ now()->format('d.m.Y') }} и текущая загрузка
+        </div>
+
+        <div class="organization-order-stats">
+            <div class="organization-order-stat" data-stat="orders-today">
+                <span class="organization-order-stat-label">Заказов сегодня</span>
+                <strong class="organization-order-stat-value">{{ (int) ($orderStats->orders_today ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="new-orders">
+                <span class="organization-order-stat-label">Новые</span>
+                <strong class="organization-order-stat-value">{{ (int) ($orderStats->new_orders ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="kitchen-orders">
+                <span class="organization-order-stat-label">На кухне</span>
+                <strong class="organization-order-stat-value">{{ (int) ($orderStats->kitchen_orders ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="ready-orders">
+                <span class="organization-order-stat-label">Готовы к выдаче</span>
+                <strong class="organization-order-stat-value">{{ (int) ($orderStats->ready_orders ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="delivery-orders">
+                <span class="organization-order-stat-label">У курьеров</span>
+                <strong class="organization-order-stat-value">{{ (int) ($orderStats->delivery_orders ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="completed-today">
+                <span class="organization-order-stat-label">Завершено сегодня</span>
+                <strong class="organization-order-stat-value turquoise">{{ (int) ($orderStats->completed_today ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="cancelled-today">
+                <span class="organization-order-stat-label">Отменено сегодня</span>
+                <strong class="organization-order-stat-value muted">{{ (int) ($orderStats->cancelled_today ?? 0) }}</strong>
+            </div>
+
+            <div class="organization-order-stat" data-stat="paid-today">
+                <span class="organization-order-stat-label">Оплачено сегодня</span>
+                <strong class="organization-order-stat-value turquoise">{{ number_format((float) $paidToday, 2, ',', ' ') }} {{ $orderSettings?->currency ?? 'EUR' }}</strong>
+            </div>
+        </div>
+
+        @if($courierMemberships->isNotEmpty())
+            <div class="organization-courier-loads">
+                @foreach($courierMemberships as $membership)
+                    <div class="organization-courier-load">
+                        <span>🚚 {{ $membership->employee->name }}</span>
+                        <strong>{{ $membership->employee->active_delivery_orders_count }} в доставке</strong>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        <a
+            href="{{ route('organizations.orders.index', $organization) }}"
+            class="organization-button"
+            style="display: inline-flex; margin-top: 16px; text-decoration: none;"
+        >
+            📋 Открыть все заказы
+        </a>
+    </section>
+
+    <section class="organization-section">
+        <h2 class="organization-section-title">История действий</h2>
+        @if($activityLogs->isEmpty())
+            <div class="organization-empty">Пока нет записей об изменениях организации.</div>
+        @else
+            <div class="organization-activity-list">
+                @foreach($activityLogs as $activity)
+                    <article class="organization-activity-item">
+                        <strong>{{ $activity->description }}</strong>
+                        <div class="organization-activity-meta">
+                            <span>{{ $activity->actor?->name ?? 'Система' }}</span>
+                            <span>{{ $activity->created_at?->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</span>
+                        </div>
+                        @if($activity->before_values || $activity->after_values)
+                            <details>
+                                <summary>Посмотреть изменения</summary>
+                                <pre>{{ json_encode(['до' => $activity->before_values, 'после' => $activity->after_values], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                            </details>
+                        @endif
+                    </article>
+                @endforeach
+            </div>
+        @endif
+    </section>
+</section>
+
+
+    <section class="organization-tab-panel" data-tab-panel="team">
+{{-- =====================================================
          УЧАСТНИКИ
          ===================================================== --}}
 
@@ -1253,6 +1617,26 @@
         </h2>
 
 
+        <form
+            method="GET"
+            action="{{ route('organizations.manage', $organization) }}"
+            class="organization-add-form"
+            style="margin-bottom: 12px;"
+        >
+            <input
+                type="search"
+                name="user_search"
+                class="organization-select"
+                value="{{ request('user_search') }}"
+                placeholder="Поиск пользователя DAODES..."
+                aria-label="Поиск пользователя DAODES"
+            >
+            <button type="submit" class="organization-button">Найти</button>
+            @if(request()->filled('user_search'))
+                <a href="{{ route('organizations.manage', $organization) }}" class="organization-button" style="text-decoration:none;">Сбросить</a>
+            @endif
+        </form>
+
         @if($availableUsers->isNotEmpty())
 
             <form
@@ -1292,10 +1676,14 @@
 
             </form>
 
+            <div class="organization-pagination">
+                {{ $availableUsers->links() }}
+            </div>
+
         @else
 
             <div class="organization-empty">
-                {{ __('organizations.no_available_users') }}
+                {{ request()->filled('user_search') ? 'По вашему запросу пользователи не найдены.' : __('organizations.no_available_users') }}
             </div>
 
         @endif
@@ -1418,6 +1806,18 @@
                         </div>
 
                         <div class="organization-staff-actions">
+                            @if(!$staffEmployee->phone_verified_at && $staffMembership->status === 'pending')
+                                <form
+                                    method="POST"
+                                    action="{{ route('organizations.staff.invite', [$organization, $staffEmployee]) }}"
+                                >
+                                    @csrf
+                                    <button type="submit" class="organization-button">
+                                        Отправить приглашение повторно
+                                    </button>
+                                </form>
+                            @endif
+
                             <form
                                 method="POST"
                                 action="{{ route('organizations.staff.role', [$organization, $staffEmployee]) }}"
@@ -1492,10 +1892,318 @@
 
     </div>
 
+</section>
+
+{{-- =====================================================
+     НАСТРОЙКИ ОНЛАЙН-ЗАКАЗОВ
+     ===================================================== --}}
+<style>
+.organization-order-settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 14px;
+    margin-top: 16px;
+}
+.organization-order-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    color: #d8dce8;
+}
+.organization-order-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 12px;
+    color: #fff;
+    background: #090c16;
+    border: 1px solid rgba(0, 229, 212, .45);
+    border-radius: 9px;
+}
+.organization-order-input:focus {
+    border-color: gold;
+    outline: none;
+    box-shadow: 0 0 8px rgba(255, 215, 0, .18);
+}
+.organization-order-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 10px 16px;
+    margin-top: 18px;
+}
+.organization-order-options label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #d8dce8;
+}
+.organization-order-options input {
+    accent-color: #00e5d4;
+}
+.organization-order-hint {
+    margin-top: 14px;
+    color: #9da7b8;
+    font-size: .88rem;
+    line-height: 1.5;
+}
+.organization-order-error {
+    color: #ff8585;
+    font-size: .85rem;
+}
+</style>
+
+<section class="organization-tab-panel" data-tab-panel="settings">
+<div class="organization-section">
+    <h2 class="organization-section-title">
+        🛒 Настройки онлайн-заказов
+    </h2>
+
+    <form
+        method="POST"
+        action="{{ route('organizations.order-settings.update', $organization) }}"
+    >
+        @csrf
+        @method('PUT')
+
+        <div class="organization-order-settings">
+            <label class="organization-order-field">
+                Валюта (ISO 4217)
+                <input
+                    type="text"
+                    name="currency"
+                    class="organization-order-input"
+                    value="{{ old('currency', $orderSettings?->currency) }}"
+                    maxlength="3"
+                    minlength="3"
+                    pattern="[A-Za-z]{3}"
+                    placeholder="EUR"
+                    autocomplete="off"
+                >
+                @error('currency')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+
+            <label class="organization-order-field">
+                Стоимость доставки
+                <input
+                    type="number"
+                    name="delivery_fee"
+                    class="organization-order-input"
+                    value="{{ old('delivery_fee', $orderSettings?->delivery_fee ?? '0.00') }}"
+                    min="0"
+                    max="9999999999.99"
+                    step="0.01"
+                    required
+                >
+                @error('delivery_fee')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+
+            <label class="organization-order-field">
+                Бесплатная доставка от суммы товаров
+                <input
+                    type="number"
+                    name="minimum_order"
+                    class="organization-order-input"
+                    value="{{ old('minimum_order', $orderSettings?->minimum_order) }}"
+                    min="0"
+                    max="9999999999.99"
+                    step="0.01"
+                    placeholder="Без порога"
+                >
+                @error('minimum_order')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+
+            <label class="organization-order-field">
+                Минимальное время самовывоза (мин.)
+                <input
+                    type="number"
+                    name="pickup_min_minutes"
+                    class="organization-order-input"
+                    value="{{ old('pickup_min_minutes', $orderSettings?->pickup_min_minutes) }}"
+                    min="0"
+                    max="1440"
+                    step="1"
+                    placeholder="Не задано"
+                >
+                @error('pickup_min_minutes')
+                    <span class="organization-order-error">{{ $message }}</span>
+                @enderror
+            </label>
+        </div>
+
+        <div class="organization-order-options">
+            <label>
+                <input
+                    type="checkbox"
+                    name="delivery_enabled"
+                    value="1"
+                    @checked(old('delivery_enabled', $orderSettings?->delivery_enabled ?? false))
+                >
+                🚚 Доставка
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="pickup_enabled"
+                    value="1"
+                    @checked(old('pickup_enabled', $orderSettings?->pickup_enabled ?? false))
+                >
+                🛍 Самовывоз
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="dine_in_enabled"
+                    value="1"
+                    @checked(old('dine_in_enabled', $orderSettings?->dine_in_enabled ?? false))
+                >
+                🍽 Заказ в заведении
+            </label>
+        </div>
+
+        <div class="organization-order-options">
+            <label>
+                <input
+                    type="checkbox"
+                    name="online_payment_enabled"
+                    value="1"
+                    @checked(old('online_payment_enabled', $orderSettings?->online_payment_enabled ?? false))
+                >
+                💳 Онлайн-оплата
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="cash_payment_enabled"
+                    value="1"
+                    @checked(old('cash_payment_enabled', $orderSettings?->cash_payment_enabled ?? false))
+                >
+                💵 Наличные при получении
+            </label>
+
+            <label>
+                <input
+                    type="checkbox"
+                    name="card_payment_enabled"
+                    value="1"
+                    @checked(old('card_payment_enabled', $orderSettings?->card_payment_enabled ?? false))
+                >
+                💳 Терминал при получении
+            </label>
+        </div>
+
+        <div class="organization-order-options">
+            <label>
+                <input
+                    type="checkbox"
+                    name="orders_enabled"
+                    value="1"
+                    @checked(old('orders_enabled', $orderSettings?->orders_enabled ?? false))
+                >
+                <strong style="color: gold;">Принимать онлайн-заказы</strong>
+            </label>
+        </div>
+
+        @error('delivery_enabled')
+            <div class="organization-order-error">{{ $message }}</div>
+        @enderror
+        @error('cash_payment_enabled')
+            <div class="organization-order-error">{{ $message }}</div>
+        @enderror
+
+        <div class="organization-order-hint">
+            Для включения заказов укажите валюту, выберите хотя бы один способ получения
+            и включите наличные или оплату терминалом при получении. Флажок онлайн-оплаты
+            сохраняет настройку на будущее, но сама онлайн-оплата станет доступна только
+            после подключения провайдера и серверного подтверждения webhook.
+        </div>
+
+        <div class="organization-order-hint">
+            <strong style="color: #f5d76e;">Проверка готовности корзины:</strong>
+            <ul style="margin: 8px 0 0; padding-left: 20px;">
+                <li>
+                    @if(filled($orderSettings?->currency))
+                        <span style="color: #00e5a8;">✓ Валюта указана ({{ $orderSettings->currency }})</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Укажите валюту (например, EUR или RUB)</span>
+                    @endif
+                </li>
+                <li>
+                    @if($orderSettings?->orders_enabled)
+                        <span style="color: #00e5a8;">✓ Приём онлайн-заказов включён</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Включите «Принимать онлайн-заказы»</span>
+                    @endif
+                </li>
+                <li>
+                    @if($orderSettings?->delivery_enabled || $orderSettings?->pickup_enabled || $orderSettings?->dine_in_enabled)
+                        <span style="color: #00e5a8;">✓ Способ получения выбран</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Выберите доставку, самовывоз или заказ в заведении</span>
+                    @endif
+                </li>
+                <li>
+                    @if($orderSettings?->cash_payment_enabled || $orderSettings?->card_payment_enabled)
+                        <span style="color: #00e5a8;">✓ Оплата при получении включена</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Включите наличные или терминал при получении</span>
+                    @endif
+                </li>
+            </ul>
+            @if(!$orderSettings?->canAcceptOrders())
+                <div style="margin-top: 8px; color: #ffb74d;">
+                    Пока все четыре условия не выполнены, клиент не сможет добавлять блюда в корзину.
+                </div>
+            @endif
+        </div>
+
+        <button type="submit" class="organization-button" style="margin-top: 16px;">
+            Сохранить настройки заказов
+        </button>
+    </form>
+
+    <div class="organization-order-hint">
+        @if($orderSettings?->canAcceptOrders())
+            <span style="color: #00e5a8;">● Онлайн-заказы включены</span>
+        @else
+            <span style="color: #d8b45b;">● Онлайн-заказы пока выключены или настройки не завершены</span>
+        @endif
+    </div>
+
+    <a
+        href="{{ route('organizations.orders.index', $organization) }}"
+        class="organization-button"
+        style="display: inline-flex; margin-top: 14px; text-decoration: none;"
+    >
+        📋 Управление заказами
+    </a>
+
+    <a
+        href="{{ route('customer.catalog', $organization) }}"
+        class="organization-button"
+        style="display: inline-flex; margin-top: 14px; text-decoration: none;"
+        target="_blank"
+        rel="noopener"
+    >
+        Открыть клиентский каталог
+    </a>
+</div></section>
+
+
+
 {{-- =====================================================
      УПРАВЛЕНИЕ МЕНЮ
      ===================================================== --}}
 
+<section class="organization-tab-panel" data-tab-panel="menu">
 <div class="organization-section">
 
     <h2 class="organization-section-title">
@@ -1510,9 +2218,124 @@
         🍽 Управление меню
     </a>
 
-</div>
+</div></section>
 
-    {{-- =====================================================
+
+
+    
+<section class="organization-tab-panel" data-tab-panel="orders"><div class="organization-section">
+<h2 class="organization-section-title">📋 Управление заказами</h2><div class="organization-quick-links">
+<a class="organization-quick-link" href="{{ route('organizations.orders.index', $organization) }}"><strong>Все заказы</strong><small>Просмотр заказов, статусов и деталей выполнения</small></a>
+<a class="organization-quick-link" href="{{ route('organizations.orders.notifications', $organization) }}"><strong>Уведомления</strong><small>События и уведомления по заказам организации</small></a>
+<a class="organization-quick-link" href="{{ route('customer.catalog', $organization) }}" target="_blank" rel="noopener"><strong>Клиентский каталог</strong><small>Открыть меню так, как его видят посетители</small></a>
+</div></div></section>
+<section class="organization-tab-panel" data-tab-panel="tv">
+<div class="organization-section" id="tv-screens">
+    <div class="tv-management-heading">
+        <h2 class="organization-section-title">📺 TV-экраны организации</h2>
+        <form method="POST" action="{{ route('organizations.tv.screens.store', $organization) }}">
+            @csrf
+            <button type="submit" class="organization-button" {{ count($tvScreens) >= 20 ? 'disabled' : '' }}>＋ Добавить экран</button>
+        </form>
+    </div>
+
+    <div class="tv-background-grid">
+        @foreach($tvScreens as $screen)
+            @php
+                $tvScreenConfig = $tvScreensConfig[$screen] ?? [];
+                $tvScreenName = $tvScreenConfig['name'] ?? ('TV-экран ' . $screen);
+                $tvBackgroundUrl = !empty($tvScreenConfig['background_cid'])
+                    ? app(\App\Services\IPFSService::class)->gatewayUrl($tvScreenConfig['background_cid'])
+                    : null;
+            @endphp
+
+            @if(!$tvBackgroundUrl)
+                @foreach(['png', 'jpg', 'jpeg', 'webp'] as $extension)
+                    @php
+                        $candidatePath = 'images/org/' . $organization->id . '/tv-backgrounds/tv' . $screen . '.' . $extension;
+                    @endphp
+                    @if(is_file(public_path($candidatePath)))
+                        @php
+                            $tvBackgroundUrl = asset($candidatePath);
+                        @endphp
+                        @break
+                    @endif
+                @endforeach
+            @endif
+
+            <div class="tv-background-card">
+
+                <div class="tv-background-card-heading">
+                    <strong>{{ $tvScreenName }}</strong>
+                    <a href="{{ route('organization.tv', $organization) }}?screen={{ $screen }}" target="_blank" rel="noopener">Предпросмотр ↗</a>
+                </div>
+
+                <form method="POST" action="{{ route('organizations.tv.screens.settings', [$organization, $screen]) }}" class="tv-screen-settings">
+                    @csrf
+                    @method('PATCH')
+
+                    <label for="tv-screen-name-{{ $screen }}">Название экрана</label>
+                    <input id="tv-screen-name-{{ $screen }}" type="text" name="screen_name" maxlength="60" value="{{ old('screen_name', $tvScreenName) }}" required>
+
+                    <label for="tv-background-fit-{{ $screen }}">Отображение фона</label>
+                    <select id="tv-background-fit-{{ $screen }}" name="background_fit">
+                        <option value="cover" @selected(old('background_fit', $tvScreenConfig['background_fit'] ?? 'cover') === 'cover')>Заполнить экран (cover)</option>
+                        <option value="contain" @selected(old('background_fit', $tvScreenConfig['background_fit'] ?? 'cover') === 'contain')>Вписать целиком (contain)</option>
+                        <option value="stretch" @selected(old('background_fit', $tvScreenConfig['background_fit'] ?? 'cover') === 'stretch')>Растянуть (stretch)</option>
+                    </select>
+
+                    <label for="tv-rotation-{{ $screen }}">Автопереключение экранов, секунд</label>
+                    <input id="tv-rotation-{{ $screen }}" type="number" name="rotation_seconds" min="0" max="3600" value="{{ old('rotation_seconds', (int) ($tvScreenConfig['rotation_seconds'] ?? 0)) }}">
+                    <small>0 — выключено для этого экрана. Для непрерывного переключения задайте интервал на каждом экране.</small>
+
+                    <button type="submit" class="organization-button">Сохранить настройки экрана</button>
+                </form>
+
+                @if($tvBackgroundUrl)
+                    <img class="tv-background-preview" src="{{ $tvBackgroundUrl }}" alt="Фон TV-экрана {{ $screen }}">
+                @else
+                    <div class="tv-background-empty">Фон не загружен</div>
+                @endif
+
+                <form method="POST" action="{{ route('organizations.tv.background.store', $organization) }}" enctype="multipart/form-data" class="tv-background-form">
+                    @csrf
+                    <input type="hidden" name="screen" value="{{ $screen }}">
+                    <label for="tv-background-{{ $screen }}">Изображение фона</label>
+                    <input id="tv-background-{{ $screen }}" type="file" name="background" accept="image/png,image/jpeg,image/webp" required>
+                    <small>PNG, JPG или WEBP · до 10 МБ</small>
+                    <button type="submit" class="organization-button">Загрузить фон</button>
+                </form>
+
+                @if($tvBackgroundUrl)
+                    <form method="POST" action="{{ route('organizations.tv.background.delete', $organization) }}" onsubmit="return confirm('Удалить фон TV-экрана {{ $screen }}?')">
+                        @csrf
+                        @method('DELETE')
+                        <input type="hidden" name="screen" value="{{ $screen }}">
+                        <button type="submit" class="tv-background-delete">Удалить фон</button>
+                    </form>
+                @endif
+
+                @if(count($tvScreens) > 1)
+                    <form method="POST" action="{{ route('organizations.tv.screens.delete', [$organization, $screen]) }}" onsubmit="return confirm('Удалить TV-экран {{ $screen }}? Разделы меню будут перенесены на первый экран, остальные экраны перенумеруются.')">
+                        @csrf
+                        @method('DELETE')
+                        <input type="hidden" name="expected_screens_count" value="{{ count($tvScreens) }}">
+                        <button type="submit" class="tv-screen-delete">Удалить TV-экран</button>
+                    </form>
+                @endif
+            </div>
+        @endforeach
+    </div>
+
+    <div class="organization-order-hint">
+        Фон настраивается отдельно для каждого экрана и применяется автоматически. Рекомендуемый формат — горизонтальное изображение 16:9.
+        Распределение разделов по экранам настраивается в редакторе меню в параметре «TV экран» каждого раздела.
+    </div>
+
+    <a href="{{ route('organizations.menu.index', $organization) }}" class="organization-button" style="display:inline-flex;margin-top:14px;text-decoration:none;">Настроить распределение разделов</a>
+</div>
+</section>
+{{-- =====================================================
          НАЗАД
          ===================================================== --}}
 
@@ -1524,5 +2347,31 @@
     </a>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+ const root=document.querySelector('.organization-container');if(!root)return;
+ const tabs=Array.from(root.querySelectorAll('[data-organization-tabs] [data-tab]'));
+ const panels=Array.from(root.querySelectorAll('[data-tab-panel]'));
+ const storageKey='organization-management-tab-{{ $organization->id }}';
+ function activateTab(name,persist=true){
+  if(!panels.some(panel=>panel.dataset.tabPanel===name))name='overview';
+  tabs.forEach(tab=>{const active=tab.dataset.tab===name;tab.classList.toggle('is-active',active);tab.setAttribute('aria-selected',active?'true':'false');tab.setAttribute('tabindex',active?'0':'-1');});
+  panels.forEach(panel=>{const active=panel.dataset.tabPanel===name;panel.classList.toggle('is-active',active);panel.hidden=!active;});
+  if(persist){try{sessionStorage.setItem(storageKey,name);}catch(error){}}
+ }
+ tabs.forEach(tab=>tab.addEventListener('click',()=>activateTab(tab.dataset.tab)));
+ let initialTab='overview';try{initialTab=sessionStorage.getItem(storageKey)||'overview';}catch(error){}
+ @if($errors->has('screen_name') || $errors->has('background_fit') || $errors->has('rotation_seconds'))
+ initialTab='tv';
+ @elseif($errors->has('currency') || $errors->has('delivery_fee') || $errors->has('minimum_order') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled'))
+ initialTab='settings';
+ @elseif($errors->has('name') || $errors->has('phone') || $errors->has('role') || $errors->has('user_id'))
+ initialTab='team';
+ @endif
+ activateTab(initialTab,false);
+ root.querySelectorAll('form').forEach(form=>form.addEventListener('submit',function(){const active=root.querySelector('[data-tab-panel].is-active');if(active){try{sessionStorage.setItem(storageKey,active.dataset.tabPanel);}catch(error){}}}));
+});
+</script>
 
 @endsection

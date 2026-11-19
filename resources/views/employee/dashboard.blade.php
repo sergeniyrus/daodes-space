@@ -146,7 +146,14 @@
     @if ($memberships->isNotEmpty())
         <div class="employee-organizations">
             @foreach ($memberships as $membership)
-                <div class="employee-organization-card">
+                @if(in_array($membership->role, ['cook', 'courier'], true))
+                    <a
+                        href="{{ route('employee.organization.orders.index', $membership->organization) }}"
+                        class="employee-organization-card"
+                    >
+                @else
+                    <div class="employee-organization-card">
+                @endif
                     <div class="employee-organization-name">
                         {{ $membership->organization->name }}
                     </div>
@@ -165,7 +172,11 @@
                                 👤 Сотрудник
                         @endswitch
                     </div>
-                </div>
+                @if(in_array($membership->role, ['cook', 'courier'], true))
+                    </a>
+                @else
+                    </div>
+                @endif
             @endforeach
         </div>
     @else

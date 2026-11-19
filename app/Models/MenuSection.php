@@ -15,13 +15,19 @@ class MenuSection extends Model
         'organization_id',
         'name',
         'sort_order',
+        'tv_screen',
         'is_active',
+        'delivery_enabled',
+        'pickup_enabled',
     ];
 
     protected $casts = [
         'organization_id' => 'integer',
         'sort_order' => 'integer',
+        'tv_screen' => 'integer',
         'is_active' => 'boolean',
+        'delivery_enabled' => 'boolean',
+        'pickup_enabled' => 'boolean',
     ];
 
     /**
@@ -54,10 +60,18 @@ class MenuSection extends Model
         return $this->hasMany(
             MenuItem::class
         )
-            ->where(
-                'is_active',
-                true
-            )
+            ->where('is_active', true)
+            ->whereHas('section', function ($sectionQuery) {
+                $sectionQuery->where(function ($availabilityQuery) {
+                    $availabilityQuery->where(function ($methodQuery) {
+                        $methodQuery->where('menu_sections.delivery_enabled', true)
+                            ->where('menu_items.delivery_enabled', true);
+                    })->orWhere(function ($methodQuery) {
+                        $methodQuery->where('menu_sections.pickup_enabled', true)
+                            ->where('menu_items.pickup_enabled', true);
+                    });
+                });
+            })
             ->orderBy(
                 'sort_order'
             );

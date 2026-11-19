@@ -308,6 +308,69 @@
     margin: 0;
 }
 
+.menu-section-settings-form {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 9px;
+    padding: 10px;
+    background: rgba(0, 229, 255, .045);
+    border: 1px solid rgba(0, 229, 255, .2);
+    border-radius: 12px;
+}
+
+.menu-section-setting {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: #aaa;
+    font-size: .75rem;
+}
+
+.menu-section-select {
+    min-height: 38px;
+    padding: 4px 9px;
+    color: #fff;
+    background: #171927;
+    border: 1px solid rgba(0, 229, 255, .55);
+    border-radius: 9px;
+}
+
+.menu-section-text-input {
+    width: 190px;
+    min-height: 38px;
+    box-sizing: border-box;
+    padding: 4px 10px;
+    color: #fff;
+    background: #171927;
+    border: 1px solid rgba(0, 229, 255, .55);
+    border-radius: 9px;
+}
+
+.menu-section-text-input:focus,
+.menu-section-select:focus,
+.menu-sort-input:focus {
+    outline: none;
+    border-color: gold;
+    box-shadow: 0 0 8px rgba(255, 215, 0, .2);
+}
+
+.menu-section-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 38px;
+    color: #ddd;
+    font-size: .82rem;
+    white-space: nowrap;
+}
+
+.menu-section-check input {
+    accent-color: #00e5ff;
+    width: 17px;
+    height: 17px;
+}
+
 .menu-sort-input {
     width: 64px;
     min-height: 38px;
@@ -572,14 +635,27 @@
         margin-left: 0;
     }
 
-    .menu-section.collapsed .menu-section-actions {
-        display: none;
+    .menu-section-actions {
+        display: flex;
+        margin-top: 12px;
+        justify-content: flex-start;
     }
 
-    .menu-section-actions {
-        margin-top: 12px;
+    .menu-section-settings-form {
+        align-items: stretch;
+        width: 100%;
+    }
 
-        justify-content: flex-start;
+    .menu-section-setting {
+        flex: 1 1 90px;
+    }
+
+    .menu-section-text-input {
+        width: 100%;
+    }
+
+    .menu-section-settings-form .menu-admin-button {
+        flex: 1 1 100%;
     }
 
     .menu-item {
@@ -635,6 +711,361 @@
         width: 100%;
 
         box-sizing: border-box;
+    }
+}
+
+
+/* =========================================================
+   DAODES: FULL-WIDTH MENU WORKSPACE
+   ========================================================= */
+
+.menu-admin-container {
+    width: calc(100% - 32px);
+    max-width: none;
+    box-sizing: border-box;
+    margin: 22px auto 42px;
+    padding: clamp(14px, 2vw, 28px);
+    overflow: visible;
+    background:
+        radial-gradient(ellipse at 92% 0%, rgba(255, 215, 0, .10), transparent 34%),
+        radial-gradient(ellipse at 0% 100%, rgba(0, 229, 212, .09), transparent 38%),
+        linear-gradient(145deg, #080d18 0%, #101827 48%, #080d18 100%);
+    border: 1px solid rgba(0, 229, 212, .48);
+    border-radius: 20px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, .48), inset 0 1px 0 rgba(255, 215, 0, .14);
+}
+
+.menu-admin-header {
+    border-bottom: 1px solid rgba(0, 229, 212, .28);
+}
+
+.menu-admin-title {
+    color: #f5cf67;
+    letter-spacing: .025em;
+    text-shadow: 0 0 16px rgba(245, 207, 103, .22);
+}
+
+.menu-admin-title-small {
+    color: #8ba5b5;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.menu-section {
+    width: 100%;
+    box-sizing: border-box;
+    padding: clamp(12px, 1.5vw, 20px);
+    background:
+        linear-gradient(145deg, rgba(20, 34, 49, .94), rgba(9, 16, 29, .96));
+    border: 1px solid rgba(245, 207, 103, .24);
+    border-radius: 15px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+}
+
+.menu-section.open {
+    border-color: rgba(0, 229, 212, .62);
+    box-shadow: 0 0 18px rgba(0, 229, 212, .07);
+}
+
+.menu-section-header {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 13px;
+}
+
+.menu-section-title-wrapper {
+    width: 100%;
+}
+
+.menu-section-title {
+    color: #f5cf67;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.menu-section-actions {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    justify-content: flex-start;
+    align-items: stretch;
+}
+
+.menu-section-quick-actions {
+    width: 100%;
+    min-width: 0;
+}
+
+.menu-section-settings-form {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    align-items: end;
+    background: rgba(0, 229, 212, .045);
+    border-color: rgba(0, 229, 212, .24);
+}
+
+.menu-section-setting {
+    flex: 0 1 auto;
+}
+
+.menu-section-name-setting {
+    flex: 1 1 220px;
+    min-width: 160px;
+}
+
+.menu-section-text-input {
+    width: 100%;
+    min-width: 0;
+}
+
+.menu-section-select,
+.menu-section-text-input,
+.menu-sort-input {
+    background: #0b1421;
+    border-color: rgba(0, 229, 212, .48);
+}
+
+.menu-section-check {
+    color: #d5e1e8;
+}
+
+.menu-item {
+    background: linear-gradient(120deg, rgba(19, 34, 49, .98), rgba(12, 22, 36, .98));
+    border-color: rgba(0, 229, 212, .20);
+}
+
+.menu-item:hover {
+    border-color: rgba(0, 229, 212, .72);
+    box-shadow: 0 5px 18px rgba(0, 0, 0, .28), 0 0 12px rgba(0, 229, 212, .07);
+}
+
+.menu-item-name {
+    color: #f3f6f8;
+}
+
+.menu-item-description {
+    color: #9db0bd;
+}
+
+.menu-item-badge.price {
+    color: #f5cf67;
+    border-color: rgba(245, 207, 103, .72);
+}
+
+.menu-admin-button {
+    background: linear-gradient(145deg, #111d2b, #0a111d);
+    border-color: rgba(245, 207, 103, .75);
+    color: #f5cf67;
+}
+
+.menu-admin-button.cyan {
+    color: #00e5d4;
+    border-color: rgba(0, 229, 212, .78);
+}
+
+.menu-admin-button.danger {
+    color: #ff8585;
+    border-color: rgba(255, 107, 107, .72);
+}
+
+.menu-empty {
+    color: #a9bac5;
+    border-color: rgba(0, 229, 212, .32);
+    background: rgba(0, 229, 212, .035);
+}
+
+@media (max-width: 750px) {
+    .menu-admin-container {
+        width: calc(100% - 16px);
+        margin: 12px auto 28px;
+        padding: 12px;
+        border-radius: 15px;
+    }
+
+    .menu-section-header {
+        display: flex;
+    }
+
+    .menu-section-actions,
+    .menu-section-quick-actions {
+        width: 100%;
+    }
+
+    .menu-section-settings-form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .menu-section-name-setting,
+    .menu-section-settings-form > button {
+        grid-column: 1 / -1;
+    }
+
+    .menu-section-setting,
+    .menu-section-text-input,
+    .menu-section-select,
+    .menu-sort-input {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .menu-section-check {
+        white-space: normal;
+    }
+
+    .menu-item {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
+@media (max-width: 420px) {
+    .menu-admin-container {
+        width: calc(100% - 10px);
+        padding: 9px;
+    }
+
+    .menu-section {
+        padding: 10px;
+    }
+
+    .menu-section-actions,
+    .menu-section-quick-actions,
+    .menu-section-settings-form {
+        min-width: 0;
+    }
+
+    .menu-section-settings-form .menu-admin-button {
+        width: 100%;
+    }
+}
+
+
+/* Desktop: one compact horizontal row per menu section. */
+@media (min-width: 1100px) {
+    .menu-section-header {
+        display: grid;
+        grid-template-columns: minmax(135px, .72fr) minmax(0, 4fr);
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 0;
+    }
+
+    .menu-section-title-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 5px;
+        min-width: 0;
+    }
+
+    .menu-section-title {
+        width: 100%;
+        font-size: 1.08rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .menu-section-meta {
+        margin-left: 0;
+        font-size: .72rem;
+    }
+
+    .menu-section-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+        gap: 6px;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .menu-section-quick-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 6px;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .menu-section-settings-form {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 6px;
+        min-width: 0;
+        flex: 1 1 auto;
+        padding: 6px;
+    }
+
+    .menu-section-setting {
+        flex: 0 0 auto;
+        gap: 3px;
+        font-size: .66rem;
+    }
+
+    .menu-section-name-setting {
+        flex: 1 1 130px;
+        min-width: 95px;
+    }
+
+    .menu-section-text-input {
+        width: 100%;
+        min-width: 0;
+        min-height: 34px;
+        padding: 3px 7px;
+        font-size: .78rem;
+    }
+
+    .menu-sort-input,
+    .menu-section-select {
+        min-height: 34px;
+        height: 34px;
+        padding: 3px 6px;
+        font-size: .76rem;
+    }
+
+    .menu-sort-input {
+        width: 48px;
+    }
+
+    .menu-section-select {
+        width: 66px;
+    }
+
+    .menu-section-check {
+        min-height: 34px;
+        gap: 3px;
+        font-size: .7rem;
+    }
+
+    .menu-section-check input {
+        width: 14px;
+        height: 14px;
+        margin: 0;
+    }
+
+    .menu-quick-button,
+    .menu-section-actions > .menu-admin-button,
+    .menu-section-actions > form > .menu-admin-button {
+        min-height: 34px;
+        padding: 0 8px;
+        font-size: .72rem;
+        white-space: nowrap;
+    }
+
+    .menu-section-actions > .menu-admin-button,
+    .menu-section-actions > form {
+        flex: 0 0 auto;
     }
 }
 
@@ -721,6 +1152,7 @@
     @forelse($sections as $section)
 
         <div
+            id="menu-section-{{ $section->id }}"
             class="menu-section collapsed {{ !$section->is_active ? 'inactive-section' : '' }}"
             data-section
         >
@@ -748,25 +1180,62 @@
                     <div class="menu-section-quick-actions" data-stop-propagation>
                         <form
                             method="POST"
-                            action="{{ route('organizations.menu.sections.sort', [
+                            action="{{ route('organizations.menu.sections.quick_settings', [
                                 'organization' => $organization,
                                 'section' => $section,
                             ]) }}"
-                            class="menu-quick-form"
+                            class="menu-section-settings-form"
                         >
                             @csrf
                             @method('PATCH')
-                            <label class="menu-item-badge" for="section-sort-{{ $section->id }}">№</label>
-                            <input
-                                id="section-sort-{{ $section->id }}"
-                                class="menu-sort-input"
-                                type="number"
-                                name="sort_order"
-                                min="0"
-                                value="{{ $section->sort_order }}"
-                                aria-label="Порядок раздела"
-                            >
-                            <button type="submit" class="menu-admin-button menu-quick-button">Сохранить</button>
+
+                            <label class="menu-section-setting menu-section-name-setting">
+                                <span>Название раздела</span>
+                                <input
+                                    class="menu-section-text-input"
+                                    type="text"
+                                    name="name"
+                                    maxlength="255"
+                                    value="{{ $section->name }}"
+                                    required
+                                    aria-label="Название раздела"
+                                >
+                            </label>
+
+                            <label class="menu-section-setting">
+                                <span>Порядок</span>
+                                <input
+                                    class="menu-sort-input"
+                                    type="number"
+                                    name="sort_order"
+                                    min="0"
+                                    value="{{ $section->sort_order }}"
+                                    aria-label="Порядок раздела"
+                                >
+                            </label>
+
+                            <label class="menu-section-setting">
+                                <span>TV экран</span>
+                                <select name="tv_screen" class="menu-section-select" aria-label="TV экран">
+                                    @foreach($tvScreens as $screen)
+                                        <option value="{{ $screen }}" {{ (int) $section->tv_screen === (int) $screen ? 'selected' : '' }}>TV {{ $screen }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+
+                            <label class="menu-section-check">
+                                <input type="hidden" name="delivery_enabled" value="0">
+                                <input type="checkbox" name="delivery_enabled" value="1" {{ $section->delivery_enabled ? 'checked' : '' }}>
+                                <span>Доставка</span>
+                            </label>
+
+                            <label class="menu-section-check">
+                                <input type="hidden" name="pickup_enabled" value="0">
+                                <input type="checkbox" name="pickup_enabled" value="1" {{ $section->pickup_enabled ? 'checked' : '' }}>
+                                <span>Самовывоз</span>
+                            </label>
+
+                            <button type="submit" class="menu-admin-button menu-quick-button">Сохранить настройки</button>
                         </form>
 
                         <form
@@ -784,7 +1253,7 @@
                                 class="menu-admin-button menu-quick-button {{ $section->is_active ? 'danger' : 'cyan' }}"
                                 title="{{ $section->is_active ? 'Выключить раздел' : 'Включить раздел' }}"
                             >
-                                {{ $section->is_active ? 'Выключить' : 'Включить' }}
+                                {{ $section->is_active ? 'Выключить раздел' : 'Включить раздел' }}
                             </button>
                         </form>
                     </div>

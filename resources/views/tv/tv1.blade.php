@@ -39,7 +39,7 @@
             height: 1080px;
             position: relative;
 
-            background-image: url("{{ asset('images/tv1.png') }}");
+            background-image: url("{{ asset('images/org/2/tv-backgrounds/tv1.png') }}");
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;

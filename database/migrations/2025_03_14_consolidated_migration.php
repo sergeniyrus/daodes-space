@@ -65,9 +65,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('chat_user');
-        Schema::dropIfExists('notifications');
-        Schema::dropIfExists('messages');
-        Schema::dropIfExists('chats');
+        // Не удаляем существующие таблицы и данные при откате миграции.
     }
 };

@@ -35,7 +35,7 @@
             min-height: 600px;
             overflow: hidden;
 
-            background: url('/images/tv2.png?v=2') center / cover no-repeat;
+            background: url('/images/org/2/tv-backgrounds/tv2.png?v=2') center / cover no-repeat;
         }
 
         .tv-content {

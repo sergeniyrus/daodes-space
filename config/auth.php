@@ -54,6 +54,15 @@ return [
         'driver' => 'session',
         'provider' => 'organization_employees',
     ],
+
+    /*
+     * Отдельный клиентский контур. Вход выполняется по SMS OTP,
+     * без пароля и без доступа к guard web.
+     */
+    'customer' => [
+        'driver' => 'session',
+        'provider' => 'customers',
+    ],
 ],
 
     /*
@@ -82,6 +91,11 @@ return [
         'organization_employees' => [
             'driver' => 'eloquent',
             'model' => App\Models\OrganizationEmployee::class,
+        ],
+
+        'customers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Customer::class,
         ],
 
         // 'users' => [

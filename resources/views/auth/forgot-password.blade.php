@@ -97,7 +97,7 @@
 
             <h1 class="form-title">{{ __('forgot.title') }}</h1>
             
-            <form method="POST" action="{{ route('password.submit') }}" id="forgotForm">
+            <form method="POST" action="{{ route('partner.password.submit') }}" id="forgotForm">
                 @csrf
 
                 <!-- Поле для имени пользователя -->

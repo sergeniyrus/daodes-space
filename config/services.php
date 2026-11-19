@@ -9,8 +9,8 @@ return [
     |
     | This file is for storing the credentials for third party services such
     | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
+    | location for such credentials. This file may also provide any service
+    | credentials for third party integrations.
     |
     */
 
@@ -46,21 +46,26 @@ return [
         'secret_token' => env('TELEGRAM_SECRET_TOKEN'),
     ],
 
-    'firebase' => [
-    'project_id' => env('FIREBASE_PROJECT_ID'),
-    'client_email' => env('FIREBASE_CLIENT_EMAIL'),
-    'private_key' => env('FIREBASE_PRIVATE_KEY'),
-    'token_uri' => env('FIREBASE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
-
-    'web' => [
-        'api_key' => env('FIREBASE_WEB_API_KEY'),
-        'auth_domain' => env('FIREBASE_WEB_AUTH_DOMAIN'),
-        'project_id' => env('FIREBASE_WEB_PROJECT_ID'),
-        'storage_bucket' => env('FIREBASE_WEB_STORAGE_BUCKET'),
-        'messaging_sender_id' => env('FIREBASE_WEB_MESSAGING_SENDER_ID'),
-        'app_id' => env('FIREBASE_WEB_APP_ID'),
-        'vapid_key' => env('FIREBASE_WEB_VAPID_KEY'),
+    'sms_ru' => [
+        'api_id' => env('SMS_RU_API_ID'),
+        'from' => env('SMS_RU_FROM'),
     ],
-],
+
+    'firebase' => [
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+        'client_email' => env('FIREBASE_CLIENT_EMAIL'),
+        'private_key' => env('FIREBASE_PRIVATE_KEY'),
+        'token_uri' => env('FIREBASE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
+
+        'web' => [
+            'api_key' => env('FIREBASE_WEB_API_KEY'),
+            'auth_domain' => env('FIREBASE_WEB_AUTH_DOMAIN'),
+            'project_id' => env('FIREBASE_WEB_PROJECT_ID', env('FIREBASE_PROJECT_ID')),
+            'storage_bucket' => env('FIREBASE_WEB_STORAGE_BUCKET'),
+            'messaging_sender_id' => env('FIREBASE_WEB_MESSAGING_SENDER_ID'),
+            'app_id' => env('FIREBASE_WEB_APP_ID'),
+            'vapid_key' => env('FIREBASE_WEB_VAPID_KEY'),
+        ],
+    ],
 
 ];

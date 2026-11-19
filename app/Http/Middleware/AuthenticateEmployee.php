@@ -33,7 +33,8 @@ class AuthenticateEmployee
             !$employee->activeMemberships()->exists()
         ) {
             $guard->logout();
-            $request->session()->regenerateToken();
+            // Rotate the session ID without destroying the separate web guard.
+            $request->session()->regenerate();
 
             return redirect()
                 ->route('employee.login')

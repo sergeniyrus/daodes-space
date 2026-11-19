@@ -5,6 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Organization;
 use App\Models\OrganizationEmployee;
 use App\Models\OrganizationEmployeeMembership;
+use App\Models\EmployeePhoneChallenge;
+use App\Exceptions\EmployeeInvitationRateLimitException;
+use App\Exceptions\SmsTransportException;
+use App\Services\EmployeeInvitationService;
 use App\Support\EmployeePhone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +28,8 @@ class OrganizationStaffController extends Controller
      */
     public function store(
         Request $request,
-        Organization $organization
+        Organization $organization,
+        EmployeeInvitationService $invitations
     ): RedirectResponse {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
@@ -41,42 +46,37 @@ class OrganizationStaffController extends Controller
         }
 
         $result = DB::transaction(function () use ($validated, $phone, $organization) {
-            $employee = OrganizationEmployee::query()
-                ->where('phone', $phone)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$employee) {
-                $employee = OrganizationEmployee::create([
+            // Уникальный индекс phone гарантирует одну учётную запись на номер.
+            // firstOrCreate обрабатывает конкурентную вставку того же телефона.
+            $employee = OrganizationEmployee::query()->firstOrCreate(
+                ['phone' => $phone],
+                [
                     'name' => $validated['name'],
-                    'phone' => $phone,
-                    // До прохождения собственного процесса активации
-                    // пароль неизвестен менеджеру и не может быть использован.
+                    // Менеджер не знает пароль сотрудника и не может им войти.
                     'password' => Str::random(64),
-                ]);
-            }
+                ]
+            );
 
-            $membership = OrganizationEmployeeMembership::query()
-                ->where('organization_id', $organization->id)
-                ->where('employee_id', $employee->id)
+            $employee = OrganizationEmployee::query()
+                ->whereKey($employee->id)
                 ->lockForUpdate()
-                ->first();
+                ->firstOrFail();
 
-            if ($membership) {
-                return [
-                    'created' => false,
-                    'employee' => $employee,
-                ];
-            }
-
-            $organization->employeeMemberships()->create([
-                'employee_id' => $employee->id,
-                'role' => $validated['role'],
-                'status' => 'pending',
-            ]);
+            // Уникальный индекс пары организация/сотрудник не позволяет
+            // создать дублирующее членство при параллельном приглашении.
+            $membership = OrganizationEmployeeMembership::query()->firstOrCreate(
+                [
+                    'organization_id' => $organization->id,
+                    'employee_id' => $employee->id,
+                ],
+                [
+                    'role' => $validated['role'],
+                    'status' => 'pending',
+                ]
+            );
 
             return [
-                'created' => true,
+                'created' => $membership->wasRecentlyCreated,
                 'employee' => $employee,
             ];
         });
@@ -87,13 +87,30 @@ class OrganizationStaffController extends Controller
                 ->with('error', 'Этот телефон уже добавлен в персонал организации.');
         }
 
-        $message = $result['employee']->phone_verified_at
-            ? 'Сотрудник добавлен. Его доступ ожидает активации менеджером.'
-            : 'Сотрудник добавлен. Доступ ожидает подтверждения телефона и активации.';
+        if ($result['employee']->phone_verified_at) {
+            return redirect()
+                ->route('organizations.manage', $organization)
+                ->with('success', 'Сотрудник добавлен. Его доступ ожидает активации менеджером.');
+        }
 
-        return redirect()
-            ->route('organizations.manage', $organization)
-            ->with('success', $message);
+        try {
+            $invitations->sendInvitation(
+                (int) $result['employee']->id,
+                (int) $organization->id
+            );
+
+            return redirect()
+                ->route('organizations.manage', $organization)
+                ->with('success', 'Сотрудник добавлен. SMS-приглашение передано провайдеру.');
+        } catch (SmsTransportException | EmployeeInvitationRateLimitException $exception) {
+            $message = $exception instanceof EmployeeInvitationRateLimitException
+                ? $exception->getMessage()
+                : 'SMS-провайдер не подключён или отправка временно недоступна. Сотрудник сохранён, приглашение можно отправить повторно.';
+
+            return redirect()
+                ->route('organizations.manage', $organization)
+                ->with('error', 'Сотрудник добавлен, но SMS не отправлено: ' . $message);
+        }
     }
 
     /**
@@ -142,13 +159,66 @@ class OrganizationStaffController extends Controller
                 ->with('error', 'Нельзя активировать доступ до подтверждения телефона сотрудника.');
         }
 
-        $membership->update([
-            'status' => $validated['status'],
-        ]);
+        DB::transaction(function () use ($membership, $employee, $organization, $validated) {
+            $membership->update([
+                'status' => $validated['status'],
+            ]);
+
+            if ($validated['status'] === 'blocked') {
+                EmployeePhoneChallenge::query()
+                    ->where('employee_id', $employee->id)
+                    ->where('organization_id', $organization->id)
+                    ->whereNull('consumed_at')
+                    ->whereNull('revoked_at')
+                    ->update(['revoked_at' => now()]);
+            }
+        });
 
         return redirect()
             ->route('organizations.manage', $organization)
             ->with('success', 'Статус доступа сотрудника обновлён.');
+    }
+
+    /**
+     * Повторно отправляет приглашение только для членства текущей организации.
+     */
+    public function resendInvitation(
+        Organization $organization,
+        OrganizationEmployee $employee,
+        EmployeeInvitationService $invitations
+    ): RedirectResponse {
+        $membership = $this->membership($organization, $employee);
+
+        if ($membership->status !== 'pending') {
+            return redirect()
+                ->route('organizations.manage', $organization)
+                ->with('error', 'Повторное приглашение доступно только для ожидающего членства.');
+        }
+
+        if ($employee->phone_verified_at) {
+            return redirect()
+                ->route('organizations.manage', $organization)
+                ->with('success', 'Телефон уже подтверждён. Менеджер может активировать членство.');
+        }
+
+        try {
+            $invitations->sendInvitation(
+                (int) $employee->id,
+                (int) $organization->id
+            );
+
+            return redirect()
+                ->route('organizations.manage', $organization)
+                ->with('success', 'Повторное SMS-приглашение передано провайдеру.');
+        } catch (SmsTransportException | EmployeeInvitationRateLimitException $exception) {
+            $message = $exception instanceof EmployeeInvitationRateLimitException
+                ? $exception->getMessage()
+                : 'SMS-провайдер не подключён или отправка временно недоступна.';
+
+            return redirect()
+                ->route('organizations.manage', $organization)
+                ->with('error', 'SMS не отправлено: ' . $message);
+        }
     }
 
     /**
@@ -160,7 +230,17 @@ class OrganizationStaffController extends Controller
         OrganizationEmployee $employee
     ): RedirectResponse {
         $membership = $this->membership($organization, $employee);
-        $membership->delete();
+
+        DB::transaction(function () use ($membership, $employee, $organization) {
+            EmployeePhoneChallenge::query()
+                ->where('employee_id', $employee->id)
+                ->where('organization_id', $organization->id)
+                ->whereNull('consumed_at')
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now()]);
+
+            $membership->delete();
+        });
 
         return redirect()
             ->route('organizations.manage', $organization)
