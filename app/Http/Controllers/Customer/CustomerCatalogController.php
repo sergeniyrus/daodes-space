@@ -75,6 +75,8 @@ class CustomerCatalogController extends Controller
             $sectionsQuery->where('delivery_enabled', true);
         } elseif ($selectedFulfillment === 'pickup') {
             $sectionsQuery->where('pickup_enabled', true);
+        } elseif ($selectedFulfillment === 'dine_in') {
+            $sectionsQuery->where('dine_in_enabled', true);
         }
 
         $sections = $sectionsQuery
@@ -83,6 +85,8 @@ class CustomerCatalogController extends Controller
                     $itemQuery->where('delivery_enabled', true);
                 } elseif ($selectedFulfillment === 'pickup') {
                     $itemQuery->where('pickup_enabled', true);
+                } elseif ($selectedFulfillment === 'dine_in') {
+                    $itemQuery->where('dine_in_enabled', true);
                 }
             }])
             ->orderBy('sort_order')
@@ -111,6 +115,8 @@ class CustomerCatalogController extends Controller
                 $cartItemsQuery->where('delivery_enabled', true);
             } elseif ($selectedFulfillment === 'pickup') {
                 $cartItemsQuery->where('pickup_enabled', true);
+            } elseif ($selectedFulfillment === 'dine_in') {
+                $cartItemsQuery->where('dine_in_enabled', true);
             }
 
             $cartItems = $cartItemsQuery
@@ -122,6 +128,8 @@ class CustomerCatalogController extends Controller
                         $query->where('delivery_enabled', true);
                     } elseif ($selectedFulfillment === 'pickup') {
                         $query->where('pickup_enabled', true);
+                    } elseif ($selectedFulfillment === 'dine_in') {
+                        $query->where('dine_in_enabled', true);
                     }
                 })
                 ->get()
