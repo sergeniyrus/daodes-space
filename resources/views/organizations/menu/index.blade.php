@@ -1099,6 +1099,12 @@
 
         <div class="menu-admin-header-actions">
 
+            @if(auth('employee')->check())
+                <a href="{{ route('employee.organization.admin.orders.index', $organization) }}" class="menu-admin-button cyan">
+                    Заказы организации
+                </a>
+            @endif
+
             <a
                 href="{{ route($menuRoutePrefix . 'sections.create', $organization) }}"
                 class="menu-admin-button"
