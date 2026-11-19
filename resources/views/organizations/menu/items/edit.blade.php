@@ -405,6 +405,7 @@
             <label class="menu-form-checkbox"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $item->is_active))> Блюдо активно в меню</label>
             <label class="menu-form-checkbox"><input type="checkbox" name="delivery_enabled" value="1" @checked(old('delivery_enabled', $item->delivery_enabled ?? true))> Доступно для доставки</label>
             <label class="menu-form-checkbox"><input type="checkbox" name="pickup_enabled" value="1" @checked(old('pickup_enabled', $item->pickup_enabled ?? true))> Доступно для самовывоза</label>
+            <label class="menu-form-checkbox"><input type="checkbox" name="dine_in_enabled" value="1" @checked(old('dine_in_enabled', $item->dine_in_enabled ?? true))> Доступно для заказа в заведении</label>
         </div>
 
 
