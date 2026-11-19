@@ -831,6 +831,12 @@
     font-weight: 800;
     letter-spacing: .035em;
 }
+.customer-order-header-feedback-title {
+    max-width: 100%;
+    font-size: clamp(.98rem, 1.25vw, 1.25rem);
+    line-height: 1.2;
+    text-wrap: balance;
+}
 .customer-order-header-action-stats {
     width: 100%;
     display: flex;
@@ -881,19 +887,29 @@
     box-shadow: 0 0 12px rgba(255,207,74,.35);
 }
 .customer-order-header-notification-badge[hidden] { display:none !important; }
+/* Рейтинг в карточке отзывов оформлен в той же типографике,
+   что и статистика соседних кнопок шапки. */
 .customer-order-header-feedback-rating {
-    display:flex;
-    flex-wrap:wrap;
-    align-items:center;
-    justify-content:center;
-    gap:3px 7px;
-    margin:0 0 7px;
-    color:#aeb5c4;
-    font-size:.74rem;
-    line-height:1.25;
-    text-align:center;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px 9px;
+    margin: 0;
+    color: #bafaf3;
+    font-size: .88rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
 }
-.customer-order-header-feedback-rating > span:first-child { color:#ffd700; font-weight:800; }
+.customer-order-header-feedback-rating > span:first-child {
+    color: #ffd700;
+    font-weight: 900;
+}
+.customer-order-header-feedback-rating > span:last-child {
+    color: #bafaf3;
+}
 .customer-order-header-cart-total {
     color: #00e5d4;
     font-size: .95rem;
@@ -2241,7 +2257,7 @@ body.customer-menu-image-open { overflow: hidden !important; }
         @if(auth('customer')->check())
             <section class="customer-order-header-card {{ request()->routeIs('customer.feedback.*') ? 'is-active' : '' }}">
                 <a class="customer-order-header-action" href="{{ route('customer.feedback.index', ['organization' => $customerWorkspace['organization']->id]) }}">
-                    <span class="customer-order-header-action-title">Отзывы и предложения</span>
+                    <span class="customer-order-header-action-title customer-order-header-feedback-title">Отзывы и предложения</span>
                     @if($customerHeaderPublicRating && (int) $customerHeaderPublicRating->total > 0)
                         <span class="customer-order-header-feedback-rating">
                             <span>★ {{ number_format((float) $customerHeaderPublicRating->average, 1, ',', ' ') }} / 5</span>
