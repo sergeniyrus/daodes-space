@@ -29,6 +29,9 @@
         'refunded' => 'Возвращён',
     ];
 @endphp
+
+@include('organizations.partials.management-navigation', ['organization' => $organization])
+
 <style>
 .organization-orders-page {
     width: min(1180px, calc(100% - 24px));
