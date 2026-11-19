@@ -106,6 +106,47 @@ class EmployeeAdminOrderController extends Controller
                 ->selectRaw('COUNT(*) as orders_count')->groupBy('payment_method')->get(),
         ];
 
+        // Аналитика блюд строится только по фактически оплаченным и неотменённым заказам.
+        // В выборке остаются все позиции меню организации, включая временно отключённые,
+        // чтобы видеть товары без продаж за выбранный период.
+        $productSalesQuery = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.organization_id', $organization->id)
+            ->where('orders.payment_status', Order::PAYMENT_SUCCEEDED)
+            ->where('orders.status', '<>', Order::STATUS_CANCELLED)
+            ->when($dateFrom, fn ($q) => $q->where('orders.created_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->where('orders.created_at', '<=', $dateTo))
+            ->select('order_items.menu_item_id')
+            ->selectRaw('SUM(order_items.quantity) as sold_quantity')
+            ->selectRaw('COUNT(DISTINCT orders.id) as orders_count')
+            ->groupBy('order_items.menu_item_id');
+
+        $productAnalyticsQuery = DB::table('menu_items')
+            ->join('menu_sections', 'menu_sections.id', '=', 'menu_items.menu_section_id')
+            ->leftJoinSub($productSalesQuery, 'product_sales', function ($join) {
+                $join->on('product_sales.menu_item_id', '=', 'menu_items.id');
+            })
+            ->where('menu_sections.organization_id', $organization->id)
+            ->select(
+                'menu_items.id',
+                'menu_items.name',
+                'menu_items.is_active'
+            )
+            ->selectRaw('COALESCE(product_sales.sold_quantity, 0) as sold_quantity')
+            ->selectRaw('COALESCE(product_sales.orders_count, 0) as orders_count');
+
+        $bestSellingProducts = (clone $productAnalyticsQuery)
+            ->orderByDesc('sold_quantity')
+            ->orderBy('menu_items.name')
+            ->limit(10)
+            ->get();
+
+        $leastSellingProducts = (clone $productAnalyticsQuery)
+            ->orderBy('sold_quantity')
+            ->orderBy('menu_items.name')
+            ->limit(10)
+            ->get();
+
         $orders = (clone $periodQuery)->with('items')
             ->when($filters['q'] ?? null, function ($q, $v) {
                 $q->where(function ($w) use ($v) {
