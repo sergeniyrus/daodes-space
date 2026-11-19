@@ -20,6 +20,21 @@ return new class extends Migration
             });
         }
 
+        if (Schema::hasTable('organization_order_settings')) {
+            $obsoleteColumns = [];
+            foreach (['delivery_fee', 'minimum_order'] as $column) {
+                if (Schema::hasColumn('organization_order_settings', $column)) {
+                    $obsoleteColumns[] = $column;
+                }
+            }
+
+            if ($obsoleteColumns !== []) {
+                Schema::table('organization_order_settings', function (Blueprint $table) use ($obsoleteColumns) {
+                    $table->dropColumn($obsoleteColumns);
+                });
+            }
+        }
+
         if (!Schema::hasTable('organization_delivery_zones')) {
             Schema::create('organization_delivery_zones', function (Blueprint $table) {
                 $table->id();
