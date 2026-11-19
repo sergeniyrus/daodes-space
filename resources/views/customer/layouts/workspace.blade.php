@@ -644,7 +644,7 @@
 }
 .customer-order-header {
     display: grid;
-    grid-template-columns: minmax(220px, 1.35fr) repeat(4, minmax(0, 1fr)) !important;
+    grid-template-columns: minmax(220px, 1.35fr) repeat(3, minmax(0, 1fr)) !important;
     gap: 14px;
     flex: 0 0 auto;
     margin-bottom: 16px;
@@ -666,6 +666,7 @@
     box-sizing: border-box;
 }
 .customer-order-header-info {
+    position: relative;
     border-color: rgba(255, 215, 0, .52);
     height: 190px;
     min-height: 190px;
@@ -675,6 +676,32 @@
     justify-content: stretch;
     gap: 0;
     padding: 10px 18px;
+}
+.customer-order-header-settings-link {
+    position: absolute !important;
+    top: 9px;
+    right: 10px;
+    z-index: 6;
+    width: 36px !important;
+    height: 36px;
+    min-height: 36px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    color: #00e5d4;
+    background: rgba(5, 13, 25, .82);
+    border: 1px solid rgba(0, 229, 212, .55);
+    border-radius: 50%;
+    font-size: 20px;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 3px 12px rgba(0,0,0,.3);
+}
+.customer-order-header-settings-link:hover,
+.customer-order-header-settings-link:focus-visible {
+    color: #081016;
+    background: #00e5d4;
 }
 .customer-order-header-info > * {
     min-width: 0;
@@ -2176,6 +2203,7 @@ body.customer-menu-image-open { overflow: hidden !important; }
 
     <div class="customer-order-header">
         <section class="customer-order-header-card customer-order-header-info">
+            <a class="customer-order-header-settings-link" href="{{ route('customer.settings.index', ['organization' => $customerWorkspace['organization']->id]) }}" aria-label="Настройки" title="Настройки">⚙</a>
             <h1 class="customer-order-header-organization">{{ $customerWorkspace['organization']->name }}</h1>
             <div class="customer-order-header-menu-title">НАШЕ МЕНЮ</div>
             <div class="customer-order-header-methods">
@@ -2261,14 +2289,6 @@ body.customer-menu-image-open { overflow: hidden !important; }
             </a>
         </section>
 
-        <section class="customer-order-header-card {{ request()->routeIs('customer.settings.*') ? 'is-active' : '' }}">
-            <a class="customer-order-header-action" href="{{ route('customer.settings.index', ['organization' => $customerWorkspace['organization']->id]) }}">
-                <span class="customer-order-header-action-title">⚙ Настройки</span>
-                <span class="customer-order-header-action-stats">
-                    <span class="customer-order-header-action-stat">Профиль и уведомления</span>
-                </span>
-            </a>
-        </section>
     </div>
 
     @if(request()->routeIs('customer.catalog'))
