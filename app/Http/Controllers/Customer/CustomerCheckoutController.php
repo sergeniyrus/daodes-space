@@ -656,6 +656,8 @@ class CustomerCheckoutController extends Controller
             }
 
             $deliveryFeeCents = 0;
+            $deliveryDistanceKm = null;
+            $deliveryZone = null;
 
             if ($validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY) {
                 if (
@@ -712,6 +714,9 @@ class CustomerCheckoutController extends Controller
                     'house_number' => $validated['house_number'] ?? null,
                     'latitude' => (float) $validated['delivery_latitude'],
                     'longitude' => (float) $validated['delivery_longitude'],
+                    'distance_km' => round((float) $deliveryDistanceKm, 3),
+                    'zone_max_distance_km' => (string) $deliveryZone->max_distance_km,
+                    'zone_minimum_order_amount' => (string) $deliveryZone->minimum_order_amount,
                     'entrance' => $validated['entrance'] ?? null,
                     'floor' => $validated['floor'] ?? null,
                     'apartment' => $validated['apartment'] ?? null,
