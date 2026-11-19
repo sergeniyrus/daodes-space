@@ -2,6 +2,7 @@
     @php
         $adminNavigationMenuActive = request()->routeIs('employee.organization.menu.*');
         $adminNavigationOrdersActive = request()->routeIs('employee.organization.admin.orders.*');
+        $adminNavigationFeedbackActive = request()->routeIs('employee.organization.admin.feedback.*');
     @endphp
 
     <style>
@@ -79,6 +80,9 @@
         </a>
         <a href="{{ route('employee.organization.admin.orders.index', $organization) }}" class="{{ $adminNavigationOrdersActive ? 'is-active' : '' }}" @if($adminNavigationOrdersActive) aria-current="page" @endif>
             <span>▤</span> Заказы
+        </a>
+        <a href="{{ route('employee.organization.admin.feedback.index', $organization) }}" class="{{ $adminNavigationFeedbackActive ? 'is-active' : '' }}" @if($adminNavigationFeedbackActive) aria-current="page" @endif>
+            <span>☆</span> Отзывы
         </a>
     </nav>
 @endif
