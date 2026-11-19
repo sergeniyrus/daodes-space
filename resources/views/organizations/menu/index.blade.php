@@ -1092,11 +1092,11 @@
         <div class="menu-admin-header-title">
 
             <div class="menu-admin-title-small">
-                Управление меню
+                РАЗДЕЛЫ И БЛЮДА
             </div>
 
             <div class="menu-admin-title">
-                {{ $organization->name }}
+                Управление меню
             </div>
 
         </div>
