@@ -19,7 +19,7 @@ $paymentLabels = ['pending'=>'Ожидает оплаты','succeeded'=>'Опл�
  <section class="admin-orders-panel">
   <p class="muted">{{ $organization->name }} · Администратор</p>
   <h1>Заказы организации</h1>
-  <p><a href="{{ route('employee.organization.menu.index', $organization) }}">← Управление меню</a></p>
+  <p><a href="{{ route('employee.organization.menu.index', $organization) }}">← Управление меню</a> · <a href="{{ route('employee.organization.admin.manage', $organization) }}">Настройки организации</a> · <a href="{{ route('employee.organization.admin.orders.export', array_merge(['organization' => $organization->id], request()->query())) }}">Экспорт CSV</a></p>
   <form class="filters" method="GET">
    <input name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Номер, имя или телефон">
    <select name="status"><option value="">Все статусы</option>@foreach($statusLabels as $key=>$label)<option value="{{ $key }}" @selected(($filters['status'] ?? '') === $key)>{{ $label }}</option>@endforeach</select>
