@@ -1125,39 +1125,13 @@
          УВЕДОМЛЕНИЯ
          ===================================================== --}}
 
-    @if(session('success'))
-
-        <div class="menu-admin-alert success">
-            {{ session('success') }}
-        </div>
-
-    @endif
 
 
-    @if(session('error'))
-
-        <div class="menu-admin-alert error">
-            {{ session('error') }}
-        </div>
-
-    @endif
 
 
-    @if($errors->any())
 
-        <div class="menu-admin-alert error">
 
-            @foreach($errors->all() as $error)
 
-                <div>
-                    {{ $error }}
-                </div>
-
-            @endforeach
-
-        </div>
-
-    @endif
 
 
     {{-- =====================================================
