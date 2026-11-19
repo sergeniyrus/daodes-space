@@ -509,6 +509,10 @@
             @enderror
 
             <div class="customer-checkout-grid">
+                <div class="customer-checkout-field" id="customer-pickup-address-field" @if($selectedFulfillment !== 'pickup') hidden @endif>
+                    Адрес самовывоза
+                    <strong>{{ $settings->pickup_address ?: 'Адрес уточняется у организации' }}</strong>
+                </div>
                 <label class="customer-checkout-field" id="customer-pickup-time-field" @if($selectedFulfillment !== 'pickup') hidden @endif>
                     Время самовывоза
                     <input
@@ -586,13 +590,14 @@
                         @foreach($savedAddresses as $savedAddress)
                             <option value="{{ $savedAddress->id }}"
                                 data-address-line="{{ $savedAddress->address_line }}"
+                                data-house-number="{{ $savedAddress->house_number }}"
                                 data-entrance="{{ $savedAddress->entrance }}"
                                 data-floor="{{ $savedAddress->floor }}"
                                 data-apartment="{{ $savedAddress->apartment }}"
                                 data-intercom="{{ $savedAddress->intercom }}"
                                 data-delivery-comment="{{ $savedAddress->delivery_comment }}"
                                 @selected($loop->first && old('address_line', $defaultAddress?->address_line) === $savedAddress->address_line)
-                            >{{ $savedAddress->is_favorite ? '★ ' : '' }}{{ $savedAddress->label ?: 'Сохранённый адрес' }} — {{ $savedAddress->address_line }}</option>
+                            >{{ $savedAddress->is_favorite ? '★ ' : '' }}{{ $savedAddress->label ?: 'Сохранённый адрес' }} — {{ $savedAddress->address_line }}{{ $savedAddress->house_number ? ', дом ' . $savedAddress->house_number : '' }}</option>
                         @endforeach
                     </select>
                     <span class="customer-checkout-muted">Выберите адрес — поля заполнятся автоматически.</span>
@@ -610,7 +615,7 @@
                 <label class="customer-checkout-field">
                     Номер дома
                     <input type="text" name="house_number" id="customer-address-house-number"
-                        value="{{ old('house_number') }}"
+                        value="{{ old('house_number', $defaultAddress?->house_number) }}"
                         maxlength="30" placeholder="Например, 15 корпус 2">
                     @error('house_number') <span class="customer-checkout-error">{{ $message }}</span> @enderror
                 </label>
@@ -713,6 +718,7 @@
     const addressPanel = document.getElementById('customer-delivery-address-panel');
     const deliverySummary = document.getElementById('customer-delivery-summary');
     const pickupTimeField = document.getElementById('customer-pickup-time-field');
+    const pickupAddressField = document.getElementById('customer-pickup-address-field');
     const requestedAt = document.querySelector('input[name="requested_at"]');
     const dineInField = document.getElementById('customer-dine-in-field');
     const fulfillmentInputs = document.querySelectorAll('input[name="fulfillment_type"]');
@@ -738,6 +744,7 @@
         if (addressPanel) addressPanel.hidden = !isDelivery;
         if (deliverySummary) deliverySummary.hidden = !isDelivery;
         if (pickupTimeField) pickupTimeField.hidden = !isPickup;
+        if (pickupAddressField) pickupAddressField.hidden = !isPickup;
         if (requestedAt) requestedAt.required = isPickup;
         if (dineInField) dineInField.hidden = !isDineIn;
         if (addressFields.address_line) addressFields.address_line.required = isDelivery;
@@ -759,7 +766,7 @@
         if (!option || !option.value) return;
         const values = {
             address_line: option.dataset.addressLine,
-            house_number: '',
+            house_number: option.dataset.houseNumber,
             entrance: option.dataset.entrance,
             floor: option.dataset.floor,
             apartment: option.dataset.apartment,
