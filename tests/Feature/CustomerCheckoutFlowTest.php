@@ -70,6 +70,24 @@ class CustomerCheckoutFlowTest extends TestCase
             });
     }
 
+    public function test_customer_catalog_filters_dine_in_items_by_item_availability(): void
+    {
+        [$organization, $item] = $this->createOrderableMenu('Dine-in filtering cafe');
+        $item->update([
+            'delivery_enabled' => false,
+            'pickup_enabled' => false,
+            'dine_in_enabled' => false,
+        ]);
+
+        $this->get(route('customer.catalog', [
+            'organization' => $organization->id,
+            'fulfillment' => 'dine_in',
+        ]))
+            ->assertOk()
+            ->assertDontSee('Test dish')
+            ->assertSee('В заведении');
+    }
+
     public function test_dine_in_only_items_remain_available_in_cart_and_checkout_disables_other_methods(): void
     {
         $customer = $this->createVerifiedCustomer();
