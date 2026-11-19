@@ -566,18 +566,6 @@ class OrganizationController extends Controller
                 'size:3',
                 'regex:/^[A-Z]{3}$/',
             ],
-            'delivery_fee' => [
-                'required',
-                'numeric',
-                'min:0',
-                'max:9999999999.99',
-            ],
-            'minimum_order' => [
-                'nullable',
-                'numeric',
-                'min:0',
-                'max:9999999999.99',
-            ],
             'orders_enabled' => ['required', 'boolean'],
             'delivery_enabled' => ['required', 'boolean'],
             'pickup_enabled' => ['required', 'boolean'],
@@ -592,7 +580,37 @@ class OrganizationController extends Controller
                 'max:1440',
             ],
             'delivery_city' => ['nullable', 'string', 'max:255'],
-            'pickup_address' => ['nullable', 'string', 'max:500'],
+            'pickup_address' => ['required_if:delivery_enabled,1', 'nullable', 'string', 'max:500'],
+            'delivery_origin_latitude' => [
+                'required_if:delivery_enabled,1',
+                'nullable',
+                'numeric',
+                'between:-90,90',
+            ],
+            'delivery_origin_longitude' => [
+                'required_if:delivery_enabled,1',
+                'nullable',
+                'numeric',
+                'between:-180,180',
+            ],
+            'delivery_zones' => [
+                'required_if:delivery_enabled,1',
+                'array',
+                'min:1',
+                'max:100',
+            ],
+            'delivery_zones.*.max_distance_km' => [
+                'required',
+                'numeric',
+                'gt:0',
+                'lte:10',
+            ],
+            'delivery_zones.*.minimum_order_amount' => [
+                'required',
+                'numeric',
+                'min:0',
+                'max:9999999999.99',
+            ],
         ]);
 
         if ($validated['orders_enabled']) {
@@ -622,22 +640,106 @@ class OrganizationController extends Controller
             }
         }
 
+        $zones = collect($validated['delivery_zones'] ?? [])
+            ->values()
+            ->map(function (array $zone, int $index) {
+                return [
+                    'max_distance_km' => round((float) $zone['max_distance_km'], 2),
+                    'minimum_order_amount' => round((float) $zone['minimum_order_amount'], 2),
+                    'sort_order' => $index,
+                ];
+            });
+
+        if ($validated['delivery_enabled']) {
+            $previousDistance = 0;
+
+            foreach ($zones as $zone) {
+                if ($zone['max_distance_km'] <= $previousDistance) {
+                    return back()
+                        ->withErrors(['delivery_zones' => 'Расстояние каждой следующей зоны должно быть больше предыдущего.'])
+                        ->withInput();
+                }
+
+                $previousDistance = $zone['max_distance_km'];
+            }
+
+            if (!$zones->isNotEmpty() || (float) $zones->last()['max_distance_km'] !== 10.0) {
+                return back()
+                    ->withErrors(['delivery_zones' => 'Последняя зона должна заканчиваться на 10 км. За пределами 10 км доставка не выполняется.'])
+                    ->withInput();
+            }
+        }
+
         $settings = $organization->orderSettings;
-        $trackedFields = array_keys($validated);
-        $beforeValues = $settings?->only($trackedFields) ?? [];
+        $beforeValues = [
+            'settings' => $settings?->only([
+                'currency',
+                'orders_enabled',
+                'delivery_enabled',
+                'pickup_enabled',
+                'dine_in_enabled',
+                'online_payment_enabled',
+                'cash_payment_enabled',
+                'card_payment_enabled',
+                'pickup_min_minutes',
+                'delivery_city',
+                'pickup_address',
+                'delivery_origin_latitude',
+                'delivery_origin_longitude',
+            ]) ?? [],
+            'delivery_zones' => $settings
+                ? $settings->deliveryZones()->get(['max_distance_km', 'minimum_order_amount', 'sort_order'])->toArray()
+                : [],
+        ];
 
-        $settings = OrganizationOrderSetting::updateOrCreate(
-            ['organization_id' => $organization->id],
-            $validated
-        );
+        unset($validated['delivery_zones']);
 
-        $afterValues = $settings->only($trackedFields);
+        \Illuminate\Support\Facades\DB::transaction(function () use (
+            $organization,
+            $validated,
+            $zones,
+            &$settings
+        ) {
+            $settings = OrganizationOrderSetting::updateOrCreate(
+                ['organization_id' => $organization->id],
+                $validated
+            );
+
+            $settings->deliveryZones()->delete();
+
+            if ($settings->delivery_enabled) {
+                foreach ($zones as $zone) {
+                    $settings->deliveryZones()->create($zone);
+                }
+            }
+        });
+
+        $afterValues = [
+            'settings' => $settings->only([
+                'currency',
+                'orders_enabled',
+                'delivery_enabled',
+                'pickup_enabled',
+                'dine_in_enabled',
+                'online_payment_enabled',
+                'cash_payment_enabled',
+                'card_payment_enabled',
+                'pickup_min_minutes',
+                'delivery_city',
+                'pickup_address',
+                'delivery_origin_latitude',
+                'delivery_origin_longitude',
+            ]),
+            'delivery_zones' => $settings->deliveryZones()
+                ->get(['max_distance_km', 'minimum_order_amount', 'sort_order'])
+                ->toArray(),
+        ];
 
         if ($beforeValues !== $afterValues) {
             app(\App\Services\OrganizationActivityLogger::class)->record(
                 $organization,
                 'order_settings.updated',
-                'Изменены настройки онлайн-заказов',
+                'Изменены настройки онлайн-заказов и зон доставки',
                 $beforeValues,
                 $afterValues,
                 'order_settings',
