@@ -80,6 +80,21 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
 .admin-order-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .admin-order-total{color:var(--gold);font-size:1.1rem;font-weight:700;font-variant-numeric:tabular-nums}
 .admin-orders-empty{padding:30px 15px;text-align:center;color:var(--muted);border:1px dashed rgba(0,229,212,.25);border-radius:13px}
+.product-analytics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}
+.product-analytics-card{min-width:0;padding:17px;border:1px solid rgba(0,229,212,.24);border-radius:15px;background:linear-gradient(145deg,rgba(17,29,44,.92),rgba(9,15,27,.92))}
+.product-analytics-card.least{border-color:rgba(255,215,0,.25)}
+.product-analytics-card h3{margin:0 0 5px;color:var(--gold)}
+.product-analytics-hint{margin:0 0 13px;color:var(--muted);font-size:.82rem;line-height:1.45}
+.product-analytics-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-top:1px solid rgba(255,255,255,.07)}
+.product-analytics-name{min-width:0;color:#f2f4f8;font-weight:650;overflow-wrap:anywhere}
+.product-analytics-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:5px;color:var(--muted);font-size:.78rem}
+.product-analytics-quantity{flex:0 0 auto;text-align:right;color:var(--cyan);font-weight:750;font-variant-numeric:tabular-nums}
+.product-analytics-card.least .product-analytics-quantity{color:var(--gold)}
+.product-analytics-quantity small{display:block;color:var(--muted);font-size:.72rem;font-weight:500}
+.product-analytics-zero{color:#ffb86b}
+.product-analytics-state{padding:3px 7px;border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:.7rem}
+@media(max-width:700px){.product-analytics-grid{grid-template-columns:1fr}.product-analytics-card{padding:14px}}
+
 .admin-orders-pagination{margin-top:18px}
 .admin-orders-pagination nav{display:flex;justify-content:center}
 .admin-orders-page .pagination{flex-wrap:wrap;gap:5px}
@@ -225,6 +240,66 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
                         <span class="admin-orders-chip">{{ $statusLabels[$statusRow->status] ?? $statusRow->status }} <strong>{{ $statusRow->orders_count }}</strong></span>
                     @empty <span class="admin-orders-muted">Нет данных</span> @endforelse
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="admin-orders-shell">
+        <div class="admin-orders-list-head">
+            <div>
+                <h2>Продажи товаров</h2>
+                <p class="admin-orders-muted" style="margin:5px 0 0;">Рейтинг рассчитывается по оплаченным, неотменённым заказам за выбранный период. Учитываются также отключённые позиции меню.</p>
+            </div>
+            <span class="admin-orders-period">{{ $bestSellingProducts->sum('sold_quantity') >= 0 ? 'Топ и низ продаж' : '' }}</span>
+        </div>
+
+        <div class="product-analytics-grid">
+            <div class="product-analytics-card">
+                <h3>🔥 Самые ходовые</h3>
+                <p class="product-analytics-hint">Позиции с наибольшим количеством проданных единиц.</p>
+                @forelse($bestSellingProducts as $product)
+                    <div class="product-analytics-row">
+                        <div style="min-width:0;">
+                            <div class="product-analytics-name">{{ $product->name }}</div>
+                            <div class="product-analytics-meta">
+                                <span>{{ $product->orders_count }} {{ trans_choice('заказ|заказа|заказов', (int) $product->orders_count) }}</span>
+                                @if(!$product->is_active)
+                                    <span class="product-analytics-state">Отключено в меню</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="product-analytics-quantity">
+                            {{ number_format((int) $product->sold_quantity, 0, ',', ' ') }}
+                            <small>продано шт.</small>
+                        </div>
+                    </div>
+                @empty
+                    <div class="admin-orders-empty">В меню пока нет товаров.</div>
+                @endforelse
+            </div>
+
+            <div class="product-analytics-card least">
+                <h3>◷ Самые невостребованные</h3>
+                <p class="product-analytics-hint">Позиции с минимальным количеством продаж. Товары без продаж также попадают в рейтинг.</p>
+                @forelse($leastSellingProducts as $product)
+                    <div class="product-analytics-row">
+                        <div style="min-width:0;">
+                            <div class="product-analytics-name">{{ $product->name }}</div>
+                            <div class="product-analytics-meta">
+                                <span>{{ $product->orders_count }} {{ trans_choice('заказ|заказа|заказов', (int) $product->orders_count) }}</span>
+                                @if(!$product->is_active)
+                                    <span class="product-analytics-state">Отключено в меню</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="product-analytics-quantity {{ (int) $product->sold_quantity === 0 ? 'product-analytics-zero' : '' }}">
+                            {{ number_format((int) $product->sold_quantity, 0, ',', ' ') }}
+                            <small>продано шт.</small>
+                        </div>
+                    </div>
+                @empty
+                    <div class="admin-orders-empty">В меню пока нет товаров.</div>
+                @endforelse
             </div>
         </div>
     </section>
