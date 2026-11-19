@@ -580,15 +580,20 @@ class OrganizationController extends Controller
                 'max:1440',
             ],
             'delivery_city' => ['nullable', 'string', 'max:255'],
-            'pickup_address' => ['required_if:delivery_enabled,1', 'nullable', 'string', 'max:500'],
+            'pickup_address' => [
+                $request->boolean('delivery_enabled') ? 'required' : 'nullable',
+                'nullable',
+                'string',
+                'max:500',
+            ],
             'delivery_origin_latitude' => [
-                'required_if:delivery_enabled,1',
+                $request->boolean('delivery_enabled') ? 'required' : 'nullable',
                 'nullable',
                 'numeric',
                 'between:-90,90',
             ],
             'delivery_origin_longitude' => [
-                'required_if:delivery_enabled,1',
+                $request->boolean('delivery_enabled') ? 'required' : 'nullable',
                 'nullable',
                 'numeric',
                 'between:-180,180',
