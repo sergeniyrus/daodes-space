@@ -26,7 +26,7 @@
    <label>Минут до самовывоза <input type="number" min="0" max="1440" name="pickup_min_minutes" value="{{ old('pickup_min_minutes',$orderSettings?->pickup_min_minutes ?? 0) }}"></label>
    <div>
     @foreach(['orders_enabled'=>'Приём заказов','delivery_enabled'=>'Доставка','pickup_enabled'=>'Самовывоз','dine_in_enabled'=>'В заведении','online_payment_enabled'=>'Онлайн-оплата','cash_payment_enabled'=>'Наличные','card_payment_enabled'=>'Картой при получении'] as $field=>$label)
-     <label><input type="checkbox" name="{{ $field }}" value="1" @checked(old($field,$orderSettings?->$field ?? false))> {{ $label }}</label>
+     <label><input type="checkbox" name="{{ $field }}" value="1" @checked(old($field, data_get($orderSettings, $field, false)))> {{ $label }}</label>
     @endforeach
    </div>
    <button type="submit">Сохранить настройки</button>
