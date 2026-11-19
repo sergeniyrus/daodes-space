@@ -1141,6 +1141,21 @@ Route::middleware('auth')
             ->name('tv.background.delete');
 
         Route::get(
+            '/{organization}/feedback',
+            [OrganizationFeedbackController::class, 'index']
+        )->middleware('organization.manager')->name('feedback.index');
+
+        Route::post(
+            '/{organization}/feedback/{feedback}/reply',
+            [OrganizationFeedbackController::class, 'reply']
+        )->middleware('organization.manager')->name('feedback.reply');
+
+        Route::patch(
+            '/{organization}/feedback/reviews/{review}/visibility',
+            [OrganizationFeedbackController::class, 'moderateReview']
+        )->middleware('organization.manager')->name('feedback.reviews.visibility');
+
+        Route::get(
             '/{organization}/orders',
             [OrganizationOrderController::class, 'index']
         )
