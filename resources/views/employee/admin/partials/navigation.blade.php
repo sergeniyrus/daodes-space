@@ -75,14 +75,14 @@
     </style>
 
     <nav class="admin-section-navigation" aria-label="Разделы администратора">
-        <a href="{{ route('employee.organization.menu.index', $organization) }}" class="{{ $adminNavigationMenuActive ? 'is-active' : '' }}" @if($adminNavigationMenuActive) aria-current="page" @endif>
-            <span>☷</span> Меню
-        </a>
         <a href="{{ route('employee.organization.admin.orders.index', $organization) }}" class="{{ $adminNavigationOrdersActive ? 'is-active' : '' }}" @if($adminNavigationOrdersActive) aria-current="page" @endif>
             <span>▤</span> Заказы
         </a>
         <a href="{{ route('employee.organization.admin.feedback.index', $organization) }}" class="{{ $adminNavigationFeedbackActive ? 'is-active' : '' }}" @if($adminNavigationFeedbackActive) aria-current="page" @endif>
             <span>☆</span> Отзывы
+        </a>
+        <a href="{{ route('employee.organization.menu.index', $organization) }}" class="{{ $adminNavigationMenuActive ? 'is-active' : '' }}" @if($adminNavigationMenuActive) aria-current="page" @endif>
+            <span>☷</span> Меню
         </a>
     </nav>
 @endif
