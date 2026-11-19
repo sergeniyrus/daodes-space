@@ -12,8 +12,6 @@ class OrganizationOrderSetting extends Model
     protected $fillable = [
         'organization_id',
         'currency',
-        'delivery_fee',
-        'minimum_order',
         'orders_enabled',
         'delivery_enabled',
         'pickup_enabled',
@@ -30,8 +28,6 @@ class OrganizationOrderSetting extends Model
     {
         return [
             'organization_id' => 'integer',
-            'delivery_fee' => 'decimal:2',
-            'minimum_order' => 'decimal:2',
             'orders_enabled' => 'boolean',
             'delivery_enabled' => 'boolean',
             'pickup_enabled' => 'boolean',
