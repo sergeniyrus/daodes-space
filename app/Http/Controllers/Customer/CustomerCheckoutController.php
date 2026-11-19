@@ -148,7 +148,7 @@ class CustomerCheckoutController extends Controller
             ];
         }
 
-        $canUseDelivery = $settings->delivery_enabled
+        $canUseDelivery = $settings->hasConfiguredDelivery()
             && collect($lines)->every(fn ($line) => $line['available_delivery']);
         $canUsePickup = $settings->pickup_enabled
             && collect($lines)->every(fn ($line) => $line['available_pickup']);
@@ -163,7 +163,21 @@ class CustomerCheckoutController extends Controller
                 ? Order::FULFILLMENT_DINE_IN
                 : ($canUseDelivery ? Order::FULFILLMENT_DELIVERY : null));
 
-        $selectedFulfillment = $request->old('fulfillment_type', $defaultFulfillment);
+        $sessionFulfillment = session('customer_order_fulfillment_' . $organization->id);
+        $sessionFulfillment = in_array($sessionFulfillment, [
+            Order::FULFILLMENT_DELIVERY,
+            Order::FULFILLMENT_PICKUP,
+            Order::FULFILLMENT_DINE_IN,
+        ], true) ? $sessionFulfillment : $defaultFulfillment;
+
+        $selectedFulfillment = $request->old('fulfillment_type', $sessionFulfillment);
+        if (!in_array($selectedFulfillment, [
+            Order::FULFILLMENT_DELIVERY,
+            Order::FULFILLMENT_PICKUP,
+            Order::FULFILLMENT_DINE_IN,
+        ], true)) {
+            $selectedFulfillment = $defaultFulfillment;
+        }
 
         $savedAddresses = $customer->addresses()
             ->orderByDesc('is_favorite')
