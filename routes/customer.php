@@ -51,9 +51,9 @@ Route::prefix('customer')->name('customer.')->group(function () {
         Route::get('/settings', [\App\Http\Controllers\Customer\CustomerSettingsController::class, 'index'])->name('settings.index');
         Route::put('/settings/profile', [\App\Http\Controllers\Customer\CustomerSettingsController::class, 'updateProfile'])->name('settings.profile.update');
         Route::put('/settings/addresses/{address}/favorite', [\App\Http\Controllers\Customer\CustomerSettingsController::class, 'toggleFavoriteAddress'])->whereNumber('address')->name('settings.addresses.favorite');
-        Route::post('/settings/addresses', [\App\\Http\\Controllers\\Customer\\CustomerSettingsController::class, 'storeAddress'])->name('settings.addresses.store');
-        Route::put('/settings/addresses/{address}', [\App\\Http\\Controllers\\Customer\\CustomerSettingsController::class, 'updateAddress'])->whereNumber('address')->name('settings.addresses.update');
-        Route::delete('/settings/addresses/{address}', [\App\\Http\\Controllers\\Customer\\CustomerSettingsController::class, 'destroyAddress'])->whereNumber('address')->name('settings.addresses.destroy');
+        Route::post('/settings/addresses', [\App\Http\Controllers\Customer\CustomerSettingsController::class, 'storeAddress'])->name('settings.addresses.store');
+        Route::put('/settings/addresses/{address}', [\App\Http\Controllers\Customer\CustomerSettingsController::class, 'updateAddress'])->whereNumber('address')->name('settings.addresses.update');
+        Route::delete('/settings/addresses/{address}', [\App\Http\Controllers\Customer\CustomerSettingsController::class, 'destroyAddress'])->whereNumber('address')->name('settings.addresses.destroy');
         Route::post('/feedback/organizations/{organization}', [CustomerFeedbackController::class, 'storeFeedback'])->middleware('throttle:5,1')->name('feedback.store');
         Route::post('/orders/{order}/review', [CustomerFeedbackController::class, 'storeReview'])->middleware('throttle:5,1')->name('orders.review.store');
         Route::post('/push/devices', [CustomerPushController::class, 'store'])
