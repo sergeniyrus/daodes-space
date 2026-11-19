@@ -111,6 +111,71 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertViewHas('selectedFulfillment', Order::FULFILLMENT_DINE_IN);
     }
 
+    public function test_manager_can_save_delivery_zones_and_origin_coordinates(): void
+    {
+        [$organization] = $this->createOrderableMenu('Delivery zones cafe');
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->put(route('organizations.order-settings.update', $organization), [
+                'currency' => 'EUR',
+                'orders_enabled' => '1',
+                'delivery_enabled' => '1',
+                'pickup_enabled' => '1',
+                'dine_in_enabled' => '1',
+                'online_payment_enabled' => '0',
+                'cash_payment_enabled' => '1',
+                'card_payment_enabled' => '1',
+                'pickup_min_minutes' => '30',
+                'delivery_city' => 'Test city',
+                'pickup_address' => 'Test street 1',
+                'delivery_origin_latitude' => '55.0000000',
+                'delivery_origin_longitude' => '90.0000000',
+                'delivery_zones' => [
+                    ['max_distance_km' => '2', 'minimum_order_amount' => '15'],
+                    ['max_distance_km' => '5', 'minimum_order_amount' => '25'],
+                    ['max_distance_km' => '7', 'minimum_order_amount' => '30'],
+                    ['max_distance_km' => '10', 'minimum_order_amount' => '40'],
+                ],
+            ])
+            ->assertRedirect(route('organizations.manage', $organization));
+
+        $settings = $organization->orderSettings()->firstOrFail();
+        $this->assertTrue($settings->hasConfiguredDelivery());
+        $this->assertSame('55.0000000', $settings->delivery_origin_latitude);
+        $this->assertDatabaseHas('organization_delivery_zones', [
+            'organization_id' => $organization->id,
+            'max_distance_km' => '5.00',
+            'minimum_order_amount' => '25.00',
+        ]);
+        $this->assertDatabaseMissing('organization_order_settings', [
+            'organization_id' => $organization->id,
+            'delivery_fee' => '5.00',
+        ]);
+    }
+
+    public function test_delivery_outside_ten_kilometres_is_rejected(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $response = $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'delivery_latitude' => '55.0000000',
+                'delivery_longitude' => '90.2000000',
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'address_line' => 'Far street 10',
+            ]);
+
+        $response->assertRedirect(route('customer.checkout'));
+        $response->assertSessionHasErrors('address_line');
+        $this->assertDatabaseCount('orders', 0);
+    }
+
     public function test_manager_can_save_tv_screen_settings_and_public_tv_uses_them(): void
     {
         [$organization] = $this->createOrderableMenu('TV settings cafe');
