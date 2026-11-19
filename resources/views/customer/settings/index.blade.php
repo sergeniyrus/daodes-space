@@ -110,7 +110,11 @@
             <input type="hidden" name="longitude" id="customer-address-longitude">
 
             <div class="customer-settings-map" id="customer-address-map" aria-label="Карта выбора адреса"></div>
-            <p class="customer-settings-muted">Нажмите на карту или перетащите маркер, чтобы указать точное место. Можно также ввести адрес вручную.</p>
+            <p class="customer-settings-muted">Нажмите на карту или перетащите маркер, чтобы указать точное место. Введите адрес и нажмите «Найти на карте», чтобы перейти к нему.</p>
+            <div class="customer-settings-actions">
+                <button type="button" class="customer-settings-button" id="customer-address-search">Найти адрес на карте</button>
+                <button type="button" class="customer-settings-button" id="customer-address-locate">Моё местоположение</button>
+            </div>
 
             <div class="customer-settings-field"><label for="customer-address-label">Название адреса</label><input id="customer-address-label" name="label" maxlength="50" required placeholder="Дом, Работа, Родители"></div>
             <div class="customer-settings-field"><label for="customer-address-line">Адрес</label><input id="customer-address-line" name="address_line" maxlength="500" required placeholder="Улица, дом, город"></div>
@@ -212,6 +216,38 @@
     map.on('click', event => {
         setMarker(event.latlng.lat, event.latlng.lng, true);
         fields.address.focus();
+    });
+
+    document.getElementById('customer-address-search').addEventListener('click', async () => {
+        const query = fields.address.value.trim();
+        if (!query) { fields.address.focus(); return; }
+        const button = document.getElementById('customer-address-search');
+        button.disabled = true;
+        try {
+            const url = new URL('https://nominatim.openstreetmap.org/search');
+            url.search = new URLSearchParams({format:'jsonv2',q:query,limit:'1'});
+            const response = await fetch(url, {headers:{'Accept':'application/json'}});
+            if (!response.ok) throw new Error('Не удалось найти адрес на карте.');
+            const results = await response.json();
+            if (!results.length) { alert('Адрес не найден. Уточните улицу, дом и город.'); return; }
+            const point = results[0];
+            setMarker(Number(point.lat), Number(point.lon), false);
+            map.setView([Number(point.lat), Number(point.lon)], 17);
+        } catch (error) {
+            alert(error.message || 'Ошибка поиска адреса.');
+        } finally {
+            button.disabled = false;
+        }
+    });
+
+    document.getElementById('customer-address-locate').addEventListener('click', () => {
+        if (!navigator.geolocation) { alert('Геолокация не поддерживается браузером.'); return; }
+        navigator.geolocation.getCurrentPosition(position => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            setMarker(lat, lng, true);
+            map.setView([lat, lng], 17);
+        }, () => alert('Не удалось получить местоположение. Проверьте разрешение браузера.'), {enableHighAccuracy:true,timeout:10000});
     });
 
     function resetEditor() {
