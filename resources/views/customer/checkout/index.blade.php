@@ -631,9 +631,12 @@
             <div id="customer-delivery-map"
                 data-origin-latitude="{{ $deliveryOrigin['latitude'] ?? '' }}"
                 data-origin-longitude="{{ $deliveryOrigin['longitude'] ?? '' }}"
+                data-city="{{ $settings->delivery_city }}"
                 data-zones="{{ e(json_encode($deliveryZones->map(fn ($zone) => ['max_distance_km' => (float) $zone->max_distance_km, 'minimum_order_amount' => (float) $zone->minimum_order_amount])->values()->all(), JSON_UNESCAPED_UNICODE)) }}"
                 class="customer-checkout-address-map"></div>
             <div id="customer-delivery-zone-feedback" class="customer-checkout-note">Расстояние и минимальная сумма будут рассчитаны после выбора точки на карте.</div>
+            @error('delivery_latitude') <span class="customer-checkout-error">{{ $message }}</span> @enderror
+            @error('delivery_longitude') <span class="customer-checkout-error">{{ $message }}</span> @enderror
 
             <div class="customer-checkout-grid customer-checkout-address-details">
                 <label class="customer-checkout-field">Подъезд
@@ -787,10 +790,11 @@
             mapStatus.textContent = 'Точка доставки выбрана';
             updateZonePreview();
         };
+        window.customerSetDeliveryPoint = setDeliveryPoint;
         if (hasCurrent) setDeliveryPoint(currentLat,currentLng);
         deliveryMap.on('click', event => setDeliveryPoint(event.latlng.lat,event.latlng.lng));
         document.getElementById('customer-delivery-find-address')?.addEventListener('click', async () => {
-            const query = [addressFields.address_line?.value, addressFields.house_number?.value].filter(Boolean).join(', ');
+            const query = [addressFields.address_line?.value, addressFields.house_number?.value, deliveryMapElement.dataset.city].filter(Boolean).join(', ');
             if (!query) { mapStatus.textContent = 'Сначала укажите улицу и номер дома.'; return; }
             mapStatus.textContent = 'Ищем адрес…';
             try {
@@ -874,10 +878,8 @@
         if (latitudeInput.value && longitudeInput.value && deliveryMap) {
             const lat = Number(latitudeInput.value), lng = Number(longitudeInput.value);
             deliveryMap.setView([lat,lng],16);
-            if (deliveryMarker) deliveryMarker.setLatLng([lat,lng]);
-            else deliveryMarker = L.marker([lat,lng],{draggable:true}).addTo(deliveryMap);
+            window.customerSetDeliveryPoint?.(lat,lng);
             mapStatus.textContent = 'Координаты сохранённого адреса загружены';
-            window.customerUpdateDeliveryZonePreview?.();
         } else {
             mapStatus.textContent = 'У этого адреса нет координат. Выберите дом на карте.';
             window.customerUpdateDeliveryZonePreview?.();
