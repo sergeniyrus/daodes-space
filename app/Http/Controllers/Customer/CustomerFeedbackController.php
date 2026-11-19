@@ -50,7 +50,8 @@ class CustomerFeedbackController extends Controller
                 ->where('organization_id', $selectedOrganization->id)
                 ->where('is_public', true)
                 ->whereNotNull('published_at')
-                ->selectRaw('COUNT(*) as total, AVG(rating) as average')
+                ->whereNotNull('rating')
+                ->selectRaw('COUNT(DISTINCT order_id) as total, AVG(rating) as average')
                 ->first()
             : null;
 
@@ -78,13 +79,15 @@ class CustomerFeedbackController extends Controller
             ->where('organization_id', $organization->id)
             ->where('is_public', true)
             ->whereNotNull('published_at')
+            ->whereNotNull('rating')
             ->latest('published_at')
             ->paginate(20);
 
         $ratingStats = OrderReview::query()->where('organization_id', $organization->id)
             ->where('is_public', true)
             ->whereNotNull('published_at')
-            ->selectRaw('COUNT(*) as total, AVG(rating) as average')->first();
+            ->whereNotNull('rating')
+            ->selectRaw('COUNT(DISTINCT order_id) as total, AVG(rating) as average')->first();
 
         return view('customer.feedback.public', compact('organization', 'reviews', 'ratingStats'));
     }
