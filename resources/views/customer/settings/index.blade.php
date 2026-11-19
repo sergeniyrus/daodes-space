@@ -2,6 +2,28 @@
 
 @section('title_page')
     Настройки клиента
+<script>
+(() => {
+    const button = document.getElementById('customer-settings-sound');
+    if (!button) return;
+    const key = 'daodes_order_notification_sound';
+    let enabled = false;
+    try { enabled = localStorage.getItem(key) === '1'; } catch (error) {}
+    const render = () => {
+        button.textContent = enabled ? '🔊 Звук включён' : '🔇 Звук выключен';
+        button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    };
+    button.addEventListener('click', () => {
+        enabled = !enabled;
+        try { localStorage.setItem(key, enabled ? '1' : '0'); } catch (error) {}
+        render();
+        if (enabled && typeof window.playCustomerOrderNotificationSound === 'function') {
+            window.playCustomerOrderNotificationSound();
+        }
+    });
+    render();
+})();
+</script>
 @endsection
 
 @section('customer-content')
@@ -36,7 +58,14 @@
 
     <section class="customer-settings-panel">
         <h2 class="customer-settings-title">Уведомления и звук</h2>
-        <p class="customer-settings-muted">Уведомления в кабинете включены постоянно. Разрешение на push можно выдать отдельно для этого браузера.</p>
+        <p class="customer-settings-muted">Уведомления в кабинете включены постоянно. Здесь можно настроить звук и разрешение на push для этого браузера.</p>
+        <div class="customer-settings-address" style="border-top:0;padding-top:0;">
+            <div>
+                <strong>Звуковые уведомления</strong>
+                <div class="customer-settings-muted">Звук новых заказов и ответов организации.</div>
+            </div>
+            <button type="button" class="customer-settings-button" id="customer-settings-sound" aria-pressed="false">Загрузка…</button>
+        </div>
         @include('components.customer-push-subscription')
     </section>
 
