@@ -23,6 +23,26 @@
 .customer-settings-check{display:flex;align-items:center;gap:9px;color:#d8dce8;margin:12px 0}
 .customer-settings-check input{accent-color:#00e5d4}
 .customer-settings-error{color:#ff9999;font-size:.88rem}
+.customer-profile-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;align-items:start}
+.customer-profile-save{display:block;margin-top:7px}
+.customer-profile-phone-note{display:block;margin-top:4px;color:#8f9bad;font-size:.78rem}
+.customer-settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:11px 0;border-top:1px solid rgba(0,229,212,.16)}
+.customer-settings-row:first-of-type{border-top:0;padding-top:0}
+.customer-settings-row__copy{min-width:0}
+.customer-settings-row__copy strong{display:block;color:#f4f4f4}
+.customer-settings-row__copy small{display:block;margin-top:3px;color:#aeb5c4;font-size:.82rem}
+.customer-push-settings{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0!important;padding:11px 0!important;background:none!important;border:0!important;border-top:1px solid rgba(0,229,212,.16)!important;border-radius:0!important;box-shadow:none!important}
+.customer-push-settings__content strong{color:#f4f4f4!important}
+.customer-push-settings__content p{margin-top:3px!important}
+.customer-push-settings__button{min-height:36px!important;padding:7px 13px!important;font-size:.86rem}
+@media(max-width:600px){
+ .customer-profile-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 9px}
+ .customer-settings-row,.customer-push-settings{gap:10px}
+ .customer-settings-row__copy small{font-size:.76rem}
+ .customer-push-settings{align-items:center!important;flex-direction:row!important}
+ .customer-push-settings__button{white-space:nowrap}
+}
+@media(max-width:380px){.customer-profile-fields{grid-template-columns:1fr}}
  .customer-address-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px 12px}
 .customer-address-fields .customer-settings-field-wide{grid-column:1/-1}
 .customer-settings-check{grid-column:1/-1;margin:7px 0}
@@ -48,19 +68,24 @@
         <form method="POST" action="{{ route('customer.settings.profile.update') }}">
             @csrf
             @method('PUT')
-            <label class="customer-settings-field">Имя
-                <input type="text" name="name" value="{{ old('name', $customer->name) }}" maxlength="100" required>
-            </label>
-            @error('name')<p class="customer-settings-error">{{ $message }}</p>@enderror
-            <button class="customer-settings-button" type="submit">Сохранить имя</button>
+            <div class="customer-profile-fields">
+                <label class="customer-settings-field">Имя
+                    <input type="text" name="name" value="{{ old('name', $customer->name) }}" maxlength="100" required>
+                    @error('name')<span class="customer-settings-error">{{ $message }}</span>@enderror
+                    <button class="customer-settings-button customer-profile-save" type="submit">Сохранить имя</button>
+                </label>
+                <label class="customer-settings-field">Телефон
+                    <input type="tel" value="{{ $customer->phone }}" readonly aria-readonly="true">
+                    <small class="customer-profile-phone-note">Телефон привязан к аккаунту и используется для входа.</small>
+                </label>
+            </div>
         </form>
     </section>
 
     <section class="customer-settings-panel">
         <h2 class="customer-settings-title">Уведомления и звук</h2>
-        <p class="customer-settings-muted">Уведомления в кабинете включены постоянно. Здесь можно настроить звук и разрешение на push для этого браузера.</p>
-        <div class="customer-settings-address" style="border-top:0;padding-top:0;">
-            <div><strong>Звуковые уведомления</strong><div class="customer-settings-muted">Звук новых заказов и ответов организации.</div></div>
+        <div class="customer-settings-row">
+            <div class="customer-settings-row__copy"><strong>Звуковые уведомления</strong><small>Звук новых заказов и ответов организации.</small></div>
             <button type="button" class="customer-settings-button" id="customer-settings-sound" aria-pressed="false">Загрузка…</button>
         </div>
         @include('components.customer-push-subscription')
@@ -92,7 +117,7 @@
                         data-entrance="{{ $address->entrance }}"
                         data-floor="{{ $address->floor }}"
                         data-apartment="{{ $address->apartment }}"
-                        data-intercom="{{ $address->intercom }}"
+                        data-intercom="{{ $address->intercom }}"\n                        data-gate-code="{{ $address->gate_code }}"
                         data-comment="{{ $address->delivery_comment }}"
                         data-latitude="{{ $address->latitude }}"
                         data-longitude="{{ $address->longitude }}"
@@ -124,7 +149,7 @@
             <input type="hidden" name="longitude" id="customer-address-longitude">
 
             <div class="customer-settings-map" id="customer-address-map" aria-label="Карта выбора адреса"></div>
-            <p class="customer-settings-muted">Нажмите на карту или перетащите маркер, чтобы указать точное место. Введите адрес и нажмите «Найти на карте», чтобы перейти к нему.</p>
+            <p class="customer-settings-muted">Выберите дом на карте: адрес заполнится с улицей и номером дома. Затем укажите подъезд, квартиру и способ доступа курьеру.</p>
             <div class="customer-settings-actions">
                 <button type="button" class="customer-settings-button" id="customer-address-search">Найти адрес на карте</button>
                 <button type="button" class="customer-settings-button" id="customer-address-locate">Моё местоположение</button>
@@ -135,10 +160,11 @@
             <div class="customer-settings-field customer-settings-field-wide"><label for="customer-address-line">Адрес</label><input id="customer-address-line" name="address_line" maxlength="500" required placeholder="Улица, дом, город"></div>
             <div class="customer-settings-field"><label for="customer-address-recipient">Получатель</label><input id="customer-address-recipient" name="recipient_name" maxlength="100" value="{{ $customer->name }}"></div>
             <div class="customer-settings-field"><label for="customer-address-phone">Телефон получателя</label><input id="customer-address-phone" name="recipient_phone" maxlength="20" value="{{ $customer->phone }}"></div>
-            <div class="customer-settings-field"><label for="customer-address-entrance">Подъезд</label><input id="customer-address-entrance" name="entrance" maxlength="30"></div>
-            <div class="customer-settings-field"><label for="customer-address-floor">Этаж</label><input id="customer-address-floor" name="floor" maxlength="30"></div>
-            <div class="customer-settings-field"><label for="customer-address-apartment">Квартира / офис</label><input id="customer-address-apartment" name="apartment" maxlength="30"></div>
-            <div class="customer-settings-field"><label for="customer-address-intercom">Домофон</label><input id="customer-address-intercom" name="intercom" maxlength="50"></div>
+            <div class="customer-settings-field"><label for="customer-address-entrance">Подъезд / вход</label><input id="customer-address-entrance" name="entrance" maxlength="30" placeholder="№ подъезда или вход"></div>
+            <div class="customer-settings-field"><label for="customer-address-apartment">Квартира / офис</label><input id="customer-address-apartment" name="apartment" maxlength="30" placeholder="№ квартиры"></div>
+            <div class="customer-settings-field"><label for="customer-address-floor">Этаж</label><input id="customer-address-floor" name="floor" maxlength="30" placeholder="Этаж"></div>
+            <div class="customer-settings-field"><label for="customer-address-intercom">Домофон / код</label><input id="customer-address-intercom" name="intercom" maxlength="50" placeholder="Код домофона"></div>
+            <div class="customer-settings-field"><label for="customer-address-gate-code">Шлагбаум / въезд</label><input id="customer-address-gate-code" name="gate_code" maxlength="100" placeholder="Код или как открыть"></div>
             <div class="customer-settings-field customer-settings-field-wide"><label for="customer-address-comment">Комментарий курьеру</label><textarea id="customer-address-comment" name="delivery_comment" maxlength="1000"></textarea></div>
             <label class="customer-settings-check"><input type="checkbox" name="is_favorite" id="customer-address-favorite" value="1"> Добавить в избранное</label>
             </div>
@@ -188,7 +214,7 @@
         entrance: document.getElementById('customer-address-entrance'),
         floor: document.getElementById('customer-address-floor'),
         apartment: document.getElementById('customer-address-apartment'),
-        intercom: document.getElementById('customer-address-intercom'),
+        intercom: document.getElementById('customer-address-intercom'),\n        gateCode: document.getElementById('customer-address-gate-code'),
         comment: document.getElementById('customer-address-comment'),
         latitude: document.getElementById('customer-address-latitude'),
         longitude: document.getElementById('customer-address-longitude'),
@@ -223,7 +249,16 @@
                     const response = await fetch(url, {headers:{'Accept':'application/json'}});
                     if (!response.ok) return;
                     const data = await response.json();
-                    if (data.display_name && !fields.address.value.trim()) fields.address.value = data.display_name;
+                    const parts = data.address || {};
+                    const street = parts.road || parts.pedestrian || parts.residential || parts.footway || '';
+                    const houseNumber = parts.house_number || '';
+                    const locality = parts.city || parts.town || parts.village || parts.municipality || 'Зеленогорск';
+                    const streetAddress = [street, houseNumber].filter(Boolean).join(', ');
+                    if (streetAddress) {
+                        fields.address.value = [streetAddress, locality, 'Красноярский край'].join(', ');
+                    } else if (data.display_name && !fields.address.value.trim()) {
+                        fields.address.value = data.display_name;
+                    }
                 } catch (error) { console.warn('Address lookup:', error); }
             }, 700);
         }
@@ -241,7 +276,7 @@
         button.disabled = true;
         try {
             const url = new URL('https://nominatim.openstreetmap.org/search');
-            url.search = new URLSearchParams({format:'jsonv2',q:query,limit:'1'});
+            const searchQuery = /зеленогорск|красноярск/i.test(query) ? query : query + ', Зеленогорск, Красноярский край, Россия';\n            url.search = new URLSearchParams({format:'jsonv2',q:searchQuery,limit:'1',addressdetails:'1'});
             const response = await fetch(url, {headers:{'Accept':'application/json'}});
             if (!response.ok) throw new Error('Не удалось найти адрес на карте.');
             const results = await response.json();
@@ -292,7 +327,7 @@
             fields.entrance.value = d.entrance || '';
             fields.floor.value = d.floor || '';
             fields.apartment.value = d.apartment || '';
-            fields.intercom.value = d.intercom || '';
+            fields.intercom.value = d.intercom || '';\n            fields.gateCode.value = d.gateCode || '';
             fields.comment.value = d.comment || '';
             fields.favorite.checked = d.favorite === '1';
             if (d.latitude && d.longitude) {
