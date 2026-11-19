@@ -42,6 +42,25 @@
     const csrfToken=document.querySelector('meta[name="csrf-token"]')?.content||'';
     let messaging=null,currentToken=null,enabled=false,foregroundHandlerRegistered=false;
     function setStatus(message){status.textContent=message;}
+
+    // Общий звуковой обработчик предотвращает двойной сигнал,
+    // если один статус одновременно пришёл через Firebase и опрос заказа.
+    window.playDaodesCustomerNotificationSound = window.playDaodesCustomerNotificationSound || function(){
+        const now = Date.now();
+        if (window.__daodesCustomerNotificationSoundAt && now - window.__daodesCustomerNotificationSoundAt < 2000) return;
+        window.__daodesCustomerNotificationSoundAt = now;
+
+        try {
+            const audio = new Audio('/sounds/notification.mp3');
+            audio.preload = 'auto';
+            audio.play().catch(function(error){
+                console.debug('Customer notification sound was blocked:', error);
+            });
+        } catch(error) {
+            console.warn('Customer notification sound:', error);
+        }
+    };
+
     async function initializeMessaging(){
         if(!('serviceWorker'in navigator)||!('Notification'in window))throw new Error('Этот браузер не поддерживает push-уведомления.');
         if(!(await firebase.messaging.isSupported()))throw new Error('Push-уведомления не поддерживаются в этом браузере.');
@@ -70,16 +89,7 @@
                 const notification=payload.notification||{};
 
                 // Звук для push, полученного при открытой странице клиента.
-                try {
-                    const notificationAudio = new Audio('/sounds/notification.mp3');
-                    notificationAudio.preload = 'auto';
-                    notificationAudio.play().catch(function(error){
-                        // Браузер может блокировать звук до первого взаимодействия с сайтом.
-                        console.debug('Customer notification sound was blocked:', error);
-                    });
-                } catch(error) {
-                    console.warn('Customer notification sound:', error);
-                }
+                window.playDaodesCustomerNotificationSound();
 
                 if(Notification.permission==='granted'){
                     const browserNotification=new Notification(notification.title||'DAODES',{body:notification.body||'',icon:'/pwa-icon.svg',data:{url:payload.data?.url||'/customer/orders'}});
