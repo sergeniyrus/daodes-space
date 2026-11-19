@@ -33,6 +33,25 @@ class OrderNotificationService
                 'message' => 'Поступил новый заказ №' . $order->order_number . '. Он ожидает принятия поваром.',
             ]);
         }
+
+        // Администраторы организации также получают уведомление о новом заказе.
+        $adminIds = DB::table('organization_employee_memberships')
+            ->where('organization_id', $order->organization_id)
+            ->where('role', 'admin')
+            ->where('status', 'active')
+            ->pluck('employee_id');
+
+        foreach ($adminIds as $adminId) {
+            OrderNotification::query()->create([
+                'organization_id' => $order->organization_id,
+                'order_id' => $order->id,
+                'recipient_type' => 'employee',
+                'recipient_id' => $adminId,
+                'event_type' => 'new_order',
+                'title' => 'Новый заказ',
+                'message' => 'Поступил новый заказ №' . $order->order_number . '.',
+            ]);
+        }
     }
 
     /**
