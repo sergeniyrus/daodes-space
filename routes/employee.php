@@ -72,8 +72,8 @@ Route::prefix('staff')->name('employee.')->group(function () {
                 Route::patch('/{order}/payment', [\App\Http\Controllers\Employee\EmployeeAdminOrderController::class, 'markPaid'])->whereNumber('order')->name('payment');
             });
 
-        // Администратор организации управляет меню, но не персоналом,
-        // настройками онлайн-заказов или TV-экранами.
+        // Администратор управляет меню, заказами, настройками и TV-экранами.
+        // Управление персоналом остаётся исключительно у менеджера.
         Route::middleware(['employee.organization', 'employee.role:admin'])
             ->prefix('organizations/{organization}/menu')
             ->name('organization.menu.')
