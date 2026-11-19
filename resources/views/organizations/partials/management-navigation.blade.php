@@ -58,9 +58,9 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    width: calc(100% - 32px);
+    width: 100%;
     max-width: none;
-    margin: 22px auto 20px;
+    margin: 0 0 20px;
     padding: 8px;
     overflow-x: auto;
     scrollbar-width: thin;
@@ -108,9 +108,9 @@
 @media (max-width: 700px) {
     .organization-tabs {
         top: 4px;
-        width: calc(100% - 12px);
+        width: 100%;
         gap: 5px;
-        margin: 10px auto 14px;
+        margin: 0 0 14px;
         padding: 6px;
         border-radius: 12px;
     }
