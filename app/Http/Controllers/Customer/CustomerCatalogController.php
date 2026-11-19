@@ -38,7 +38,38 @@ class CustomerCatalogController extends Controller
 
         $sections = $organization->menuSections()
             ->where('is_active', true)
-            ->with(['activeItems'])
+            ->where(function ($sectionQuery) use ($settings) {
+                // Раздел показывается, только если в нём доступен хотя бы
+                // один способ получения, включённый самой организацией.
+                if ($settings?->delivery_enabled) {
+                    $sectionQuery->where('delivery_enabled', true);
+                }
+
+                if ($settings?->pickup_enabled) {
+                    $method = $settings?->delivery_enabled ? 'orWhere' : 'where';
+                    $sectionQuery->{$method}('pickup_enabled', true);
+                }
+
+                if ($settings?->dine_in_enabled) {
+                    $sectionQuery->orWhereRaw('1 = 1');
+                }
+            })
+            ->with(['activeItems' => function ($itemQuery) use ($settings) {
+                $itemQuery->where(function ($availabilityQuery) use ($settings) {
+                    if ($settings?->delivery_enabled) {
+                        $availabilityQuery->where('delivery_enabled', true);
+                    }
+
+                    if ($settings?->pickup_enabled) {
+                        $method = $settings?->delivery_enabled ? 'orWhere' : 'where';
+                        $availabilityQuery->{$method}('pickup_enabled', true);
+                    }
+
+                    if ($settings?->dine_in_enabled) {
+                        $availabilityQuery->orWhereRaw('1 = 1');
+                    }
+                });
+            }])
             ->orderBy('sort_order')
             ->get();
 
