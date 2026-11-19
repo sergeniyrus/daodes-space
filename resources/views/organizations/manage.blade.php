@@ -2429,6 +2429,8 @@ document.addEventListener('DOMContentLoaded', function () {
  }
  tabs.forEach(tab=>tab.addEventListener('click',()=>activateTab(tab.dataset.tab)));
  let initialTab='overview';try{initialTab=sessionStorage.getItem(storageKey)||'overview';}catch(error){}
+ const hashTab=window.location.hash.replace(/^#/, '');
+ if(panels.some(panel=>panel.dataset.tabPanel===hashTab))initialTab=hashTab;
  @if($errors->has('screen_name') || $errors->has('background_fit') || $errors->has('rotation_seconds'))
  initialTab='tv';
  @elseif($errors->has('currency') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled') || $errors->has('delivery_zones') || $errors->has('delivery_origin_latitude') || $errors->has('delivery_origin_longitude'))
