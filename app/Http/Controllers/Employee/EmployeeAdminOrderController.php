@@ -33,11 +33,66 @@ class EmployeeAdminOrderController extends Controller
     {
         $this->assertAdmin($organization);
         $filters = $request->validate([
+            'period' => ['nullable', 'in:day,yesterday,week,month,year,all,custom'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'in:new,awaiting_payment,confirmed,preparing,ready,handed_to_courier,in_transit,issued,served,delivered,completed,cancelled'],
             'payment_status' => ['nullable', 'in:pending,succeeded,failed,cancelled,refunded'],
         ]);
-        $orders = $organization->orders()->with('items')
+
+        $period = $filters['period'] ?? 'month';
+        $now = now();
+        $dateFrom = null;
+        $dateTo = $now->copy()->endOfDay();
+
+        switch ($period) {
+            case 'day':
+                $dateFrom = $now->copy()->startOfDay();
+                break;
+            case 'yesterday':
+                $dateFrom = $now->copy()->subDay()->startOfDay();
+                $dateTo = $now->copy()->subDay()->endOfDay();
+                break;
+            case 'week':
+                $dateFrom = $now->copy()->startOfWeek();
+                break;
+            case 'year':
+                $dateFrom = $now->copy()->startOfYear();
+                break;
+            case 'all':
+                $dateFrom = null;
+                $dateTo = null;
+                break;
+            case 'custom':
+                $dateFrom = !empty($filters['date_from']) ? \\Illuminate\\Support\\Carbon::parse($filters['date_from'])->startOfDay() : $now->copy()->startOfMonth();
+                $dateTo = !empty($filters['date_to']) ? \\Illuminate\\Support\\Carbon::parse($filters['date_to'])->endOfDay() : $now->copy()->endOfDay();
+                break;
+            case 'month':
+            default:
+                $dateFrom = $now->copy()->startOfMonth();
+                break;
+        }
+
+        $periodQuery = $organization->orders()
+            ->when($dateFrom, fn ($q) => $q->where('created_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->where('created_at', '<=', $dateTo));
+
+        $summary = [
+            'count' => (clone $periodQuery)->count(),
+            'paid_count' => (clone $periodQuery)->where('payment_status', Order::PAYMENT_SUCCEEDED)->count(),
+            'pending_count' => (clone $periodQuery)->where('payment_status', Order::PAYMENT_PENDING)->count(),
+            'cancelled_count' => (clone $periodQuery)->where('status', Order::STATUS_CANCELLED)->count(),
+            'amounts' => (clone $periodQuery)->select('currency')
+                ->selectRaw('SUM(total) as total_amount')
+                ->selectRaw('SUM(CASE WHEN payment_status = ? THEN total ELSE 0 END) as paid_amount', [Order::PAYMENT_SUCCEEDED])
+                ->selectRaw('SUM(CASE WHEN payment_status = ? THEN total ELSE 0 END) as pending_amount', [Order::PAYMENT_PENDING])
+                ->groupBy('currency')->get(),
+            'statuses' => (clone $periodQuery)->select('status')
+                ->selectRaw('COUNT(*) as orders_count')->groupBy('status')->get(),
+        ];
+
+        $orders = (clone $periodQuery)->with('items')
             ->when($filters['q'] ?? null, function ($q, $v) {
                 $q->where(function ($w) use ($v) {
                     $w->where('order_number', 'like', "%{$v}%")
@@ -48,7 +103,10 @@ class EmployeeAdminOrderController extends Controller
             ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
             ->when($filters['payment_status'] ?? null, fn ($q, $v) => $q->where('payment_status', $v))
             ->latest()->paginate(25)->withQueryString();
-        return view('employee.admin.orders.index', compact('organization', 'orders', 'filters'));
+
+        return view('employee.admin.orders.index', compact(
+            'organization', 'orders', 'filters', 'summary', 'period', 'dateFrom', 'dateTo'
+        ));
     }
 
     public function show(Organization $organization, int $order): View
