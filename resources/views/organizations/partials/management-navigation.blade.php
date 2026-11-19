@@ -17,7 +17,7 @@
         [
             'label' => 'Заказы',
             'icon' => '▤',
-            'url' => route('organizations.manage', $organization) . '#orders',
+            'url' => route('organizations.orders.index', $organization),
             'tab' => 'orders',
             'active' => request()->routeIs('organizations.orders.*'),
         ],
@@ -39,6 +39,13 @@
             'url' => route('organizations.manage', $organization) . '#tv',
             'tab' => 'tv',
             'active' => false,
+        ],
+        [
+            'label' => 'Клиентский каталог',
+            'icon' => '↗',
+            'url' => route('customer.catalog', $organization),
+            'active' => false,
+            'target' => '_blank',
         ],
         [
             'label' => 'Настройки',
@@ -126,6 +133,7 @@
     @foreach($managementLinks as $link)
         <a
             href="{{ $link['url'] }}"
+            @if(!empty($link['target'])) target="{{ $link['target'] }}" rel="noopener" @endif
             class="organization-tab {{ $link['active'] ? 'is-active' : '' }}"
             @if(isset($link['tab'])) data-tab="{{ $link['tab'] }}" @endif
             @if($link['active']) aria-current="page" @endif
