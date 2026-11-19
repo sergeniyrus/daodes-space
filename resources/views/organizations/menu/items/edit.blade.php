@@ -214,16 +214,7 @@
 
 <div class="menu-form-container">
 
-    @if($errors->any())
-        <div class="menu-form-errors" role="alert" style="margin-bottom:18px;padding:13px 16px;border:1px solid #ff6b6b;border-radius:12px;background:rgba(255,107,107,.08);color:#ff9b9b;">
-            <strong style="display:block;margin-bottom:8px;color:#ff6b6b;">Не удалось сохранить блюдо:</strong>
-            <ul style="margin:0;padding-left:20px;">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+
 
     <div class="menu-form-title">
         Редактирование блюда
