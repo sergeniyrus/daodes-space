@@ -128,6 +128,28 @@ class OrderNotificationController extends Controller
             ->header('Cache-Control', 'private, no-store, max-age=0');
     }
 
+    public function markAllCustomerRead(): JsonResponse
+    {
+        $customer = Auth::guard('customer')->user();
+
+        abort_unless($customer, 401);
+
+        $query = OrderNotification::query()
+            ->where('recipient_type', 'customer')
+            ->where('recipient_id', $customer->id)
+            ->whereNull('read_at')
+            ->where(function ($owned) use ($customer) {
+                $owned->whereHas('order', fn ($orderQuery) => $orderQuery->where('customer_id', $customer->id))
+                    ->orWhereHas('feedback', fn ($feedbackQuery) => $feedbackQuery->where('customer_id', $customer->id));
+            });
+
+        $updated = $query->update(['read_at' => now()]);
+
+        return response()
+            ->json(['marked_read' => true, 'updated' => $updated, 'unread_count' => 0])
+            ->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
     public function markCustomerRead(OrderNotification $notification): JsonResponse
     {
         $customer = Auth::guard('customer')->user();
