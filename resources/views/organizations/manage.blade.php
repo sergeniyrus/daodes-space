@@ -2044,6 +2044,22 @@
                     <span class="organization-order-error">{{ $message }}</span>
                 @enderror
             </label>
+
+            <label class="organization-order-field">
+                Город и регион доставки по умолчанию
+                <input type="text" name="delivery_city" class="organization-order-input"
+                    value="{{ old('delivery_city', $orderSettings?->delivery_city) }}"
+                    maxlength="255" placeholder="Зеленогорск, Красноярский край, Россия">
+                @error('delivery_city')<span class="organization-order-error">{{ $message }}</span>@enderror
+            </label>
+
+            <label class="organization-order-field">
+                Адрес точки самовывоза
+                <input type="text" name="pickup_address" class="organization-order-input"
+                    value="{{ old('pickup_address', $orderSettings?->pickup_address) }}"
+                    maxlength="500" placeholder="Парковая улица, 23, Термбург">
+                @error('pickup_address')<span class="organization-order-error">{{ $message }}</span>@enderror
+            </label>
         </div>
 
         <div class="organization-order-options">
