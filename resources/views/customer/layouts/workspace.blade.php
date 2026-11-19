@@ -2148,7 +2148,8 @@ body.customer-menu-image-open { overflow: hidden !important; }
             ->where('organization_id', $customerWorkspace['organization']->id)
             ->where('is_public', true)
             ->whereNotNull('published_at')
-            ->selectRaw('COUNT(*) as total, AVG(rating) as average')
+            ->whereNotNull('rating')
+            ->selectRaw('COUNT(DISTINCT order_id) as total, AVG(rating) as average')
             ->first();
     }
 @endphp
