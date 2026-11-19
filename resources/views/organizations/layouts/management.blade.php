@@ -62,7 +62,7 @@
     <header class="organization-header">
         <div class="organization-header-main">
             <div class="organization-management-title">
-                @if(auth('employee')->check())
+                @if(request()->routeIs('employee.organization.*'))
                     <span class="organization-layout-label">ПАНЕЛЬ АДМИНИСТРАТОРА</span>
                 @else
                     {{ __('organizations.management') }}
@@ -70,20 +70,20 @@
             </div>
             <div class="organization-name">{{ $organization->name }}</div>
         </div>
-        @if(!auth('employee')->check())
-            <div class="organization-header-status">
-                <span class="organization-status-indicator"></span>
-                <span>{{ __('organizations.status') }}: {{ __('organizations.statuses.' . $organization->status) }}</span>
-            </div>
-        @else
+        @if(request()->routeIs('employee.organization.*'))
             <div class="organization-header-status">
                 <span class="organization-status-indicator"></span>
                 <span>Доступ администратора</span>
             </div>
+        @else
+            <div class="organization-header-status">
+                <span class="organization-status-indicator"></span>
+                <span>{{ __('organizations.status') }}: {{ __('organizations.statuses.' . $organization->status) }}</span>
+            </div>
         @endif
     </header>
 
-    @if(auth('employee')->check())
+    @if(request()->routeIs('employee.organization.*'))
         @include('employee.admin.partials.navigation', ['organization' => $organization])
     @else
         @include('organizations.partials.management-navigation', ['organization' => $organization])
