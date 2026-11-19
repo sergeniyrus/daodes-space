@@ -48,9 +48,9 @@ Route::prefix('customer')->name('customer.')->group(function () {
     Route::get('/feedback', [CustomerFeedbackController::class, 'index'])->middleware('auth:customer')->name('feedback.index');
 
     Route::middleware('auth:customer')->group(function () {
-        Route::get('/settings', [\\App\\Http\\Controllers\\Customer\\CustomerSettingsController::class, 'index'])->name('settings.index');
-        Route::put('/settings/profile', [\\App\\Http\\Controllers\\Customer\\CustomerSettingsController::class, 'updateProfile'])->name('settings.profile.update');
-        Route::put('/settings/addresses/{address}/favorite', [\\App\\Http\\Controllers\\Customer\\CustomerSettingsController::class, 'toggleFavoriteAddress'])->whereNumber('address')->name('settings.addresses.favorite');
+        Route::get('/settings', [\App\Http\Controllers\Customer\CustomerSettingsController::class, 'index'])->name('settings.index');
+        Route::put('/settings/profile', [\App\Http\Controllers\Customer\CustomerSettingsController::class, 'updateProfile'])->name('settings.profile.update');
+        Route::put('/settings/addresses/{address}/favorite', [\App\Http\Controllers\Customer\CustomerSettingsController::class, 'toggleFavoriteAddress'])->whereNumber('address')->name('settings.addresses.favorite');
         Route::post('/feedback/organizations/{organization}', [CustomerFeedbackController::class, 'storeFeedback'])->middleware('throttle:5,1')->name('feedback.store');
         Route::post('/orders/{order}/review', [CustomerFeedbackController::class, 'storeReview'])->middleware('throttle:5,1')->name('orders.review.store');
         Route::post('/push/devices', [CustomerPushController::class, 'store'])
