@@ -675,6 +675,7 @@ class CustomerCheckoutController extends Controller
                     (float) $validated['delivery_latitude'],
                     (float) $validated['delivery_longitude']
                 );
+                $deliveryDistanceKm = $distanceKm;
 
                 $deliveryZone = $settings->deliveryZones()
                     ->where('max_distance_km', '>=', $distanceKm)
