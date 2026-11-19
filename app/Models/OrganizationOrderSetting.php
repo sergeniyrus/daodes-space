@@ -3,7 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;\nuse Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrganizationOrderSetting extends Model
 {
@@ -22,12 +23,16 @@ class OrganizationOrderSetting extends Model
         'pickup_min_minutes',
         'delivery_city',
         'pickup_address',
+        'delivery_origin_latitude',
+        'delivery_origin_longitude',
     ];
 
     protected function casts(): array
     {
         return [
             'organization_id' => 'integer',
+            'delivery_origin_latitude' => 'decimal:7',
+            'delivery_origin_longitude' => 'decimal:7',
             'orders_enabled' => 'boolean',
             'delivery_enabled' => 'boolean',
             'pickup_enabled' => 'boolean',
@@ -42,6 +47,20 @@ class OrganizationOrderSetting extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function deliveryZones(): HasMany
+    {
+        return $this->hasMany(OrganizationDeliveryZone::class, 'organization_id', 'organization_id')
+            ->orderBy('sort_order');
+    }
+
+    public function hasConfiguredDelivery(): bool
+    {
+        return $this->delivery_enabled
+            && $this->delivery_origin_latitude !== null
+            && $this->delivery_origin_longitude !== null
+            && $this->deliveryZones()->exists();
     }
 
     public function canAcceptOrders(): bool
