@@ -10,6 +10,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Этот reconcile рассчитан на MySQL information_schema.
+        // SQLite используется в автоматических тестах и не имеет такой схемы.
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         // offers.user_id -> users.id
         $this->addForeignKeyIfMissing(
             'offers',
