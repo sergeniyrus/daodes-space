@@ -21,7 +21,7 @@
     @if(session('success'))<p style="color:#00e5a8">{{ session('success') }}</p>@endif
     <div class="org-feedback-grid">
         <div class="org-feedback-stat"><span class="org-feedback-muted">Средняя оценка</span><strong>{{ $ratingStats->total ? number_format((float)$ratingStats->average,1,',',' ') : '—' }} / 5</strong><small>{{ $ratingStats->total }} оценок</small></div>
-        <div class="org-feedback-stat"><span class="org-feedback-muted">Новые обращения</span><strong>{{ $feedback->where('status','new')->count() }}</strong><small>на текущей странице</small></div>
+        <div class="org-feedback-stat"><span class="org-feedback-muted">Новые обращения</span><strong>{{ $newFeedbackCount }}</strong><small>всего</small></div>
         <div class="org-feedback-stat"><span class="org-feedback-muted">Отзывы</span><strong>{{ $reviews->total() }}</strong><small>всего оценок заказов</small></div>
     </div>
     <h2>Распределение оценок</h2>
