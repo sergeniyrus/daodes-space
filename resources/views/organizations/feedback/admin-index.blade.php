@@ -1,13 +1,12 @@
-@extends('template')
+@extends('organizations.layouts.management')
 @section('title_page') Отзывы · {{ $organization->name }} @endsection
-@section('main')
+@section('management-content')
 @include('components.order-notifications', [
     'notificationsUrl' => route('employee.organization.admin.orders.notifications', $organization),
     'notificationReadUrlTemplate' => route('employee.organization.admin.orders.notifications.read', [$organization, '__ID__']),
 ])
-@include('employee.admin.partials.navigation', ['organization' => $organization])
 <style>
-.admin-feedback{max-width:1100px;margin:25px auto;padding:20px;color:#f4f4f4;background:linear-gradient(145deg,#0b0c18,#14182a);border:1px solid rgba(255,215,0,.4);border-radius:18px}
+.admin-feedback{width:100%;max-width:none;box-sizing:border-box;margin:0;padding:0;color:#f4f4f4;background:transparent;border:0;border-radius:0}
 .admin-feedback h1,.admin-feedback h2{color:#ffd700}.admin-feedback-muted{color:#aeb5c4}.admin-feedback-card{padding:14px 0;border-top:1px solid rgba(0,229,212,.2)}
 .admin-feedback-stars{color:#ffd700;letter-spacing:2px}.admin-feedback-stat{display:inline-block;min-width:190px;padding:14px;margin:8px 8px 8px 0;border:1px solid rgba(0,229,212,.25);border-radius:12px}
 .admin-feedback-stat strong{display:block;color:#00e5d4;font-size:1.5rem}
@@ -25,8 +24,7 @@
     @empty <p class="admin-feedback-muted">Оценок пока нет.</p> @endforelse
     {{ $reviews->links() }}
     <h2>Книга отзывов и предложений</h2>
-    @if(session('success'))<p style="color:#00e5a8">{{ session('success') }}</p>@endif
-    @if($errors->any())<div style="color:#ff9999;margin:10px 0">{{ $errors->first() }}</div>@endif
+        @if($errors->any())<div style="color:#ff9999;margin:10px 0">{{ $errors->first() }}</div>@endif
     @forelse($feedback as $item)
         <article class="admin-feedback-card">
             <strong>{{ $item->subject }}</strong>
