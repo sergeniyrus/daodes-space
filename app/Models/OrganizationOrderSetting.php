@@ -22,6 +22,8 @@ class OrganizationOrderSetting extends Model
         'cash_payment_enabled',
         'card_payment_enabled',
         'pickup_min_minutes',
+        'delivery_city',
+        'pickup_address',
     ];
 
     protected function casts(): array
