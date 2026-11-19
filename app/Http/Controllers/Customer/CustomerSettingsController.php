@@ -58,7 +58,9 @@ class CustomerSettingsController extends Controller
             ->orderBy('label')
             ->get();
 
-        return view('customer.settings.index', compact('customer', 'addresses', 'customerWorkspace'));
+        $defaultDeliveryCity = $organization?->orderSettings?->delivery_city ?: 'Зеленогорск, Красноярский край, Россия';
+
+        return view('customer.settings.index', compact('customer', 'addresses', 'customerWorkspace', 'defaultDeliveryCity'));
     }
 
     public function updateProfile(Request $request): RedirectResponse
@@ -134,6 +136,7 @@ class CustomerSettingsController extends Controller
             'recipient_name' => ['nullable', 'string', 'max:100'],
             'recipient_phone' => ['nullable', 'string', 'max:20'],
             'address_line' => ['required', 'string', 'max:500'],
+            'house_number' => ['nullable', 'string', 'max:30'],
             'entrance' => ['nullable', 'string', 'max:30'],
             'floor' => ['nullable', 'string', 'max:30'],
             'apartment' => ['nullable', 'string', 'max:30'],
