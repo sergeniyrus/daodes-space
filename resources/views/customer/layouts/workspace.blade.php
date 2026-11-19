@@ -2159,7 +2159,7 @@ body.customer-menu-image-open { overflow: hidden !important; }
 
     $customerHeaderPublicRating = null;
     if (isset($customerWorkspace['organization'])) {
-        $customerHeaderPublicRating = \\App\\Models\\OrderReview::query()
+        $customerHeaderPublicRating = \App\Models\OrderReview::query()
             ->where('organization_id', $customerWorkspace['organization']->id)
             ->where('is_public', true)
             ->whereNotNull('published_at')
