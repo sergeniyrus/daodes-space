@@ -12,6 +12,9 @@
 @endphp
 
 @include('employee.admin.partials.navigation', ['organization' => $organization])
+@if(!auth('employee')->check())
+    @include('organizations.partials.management-navigation', ['organization' => $organization])
+@endif
 
 <style>
 
