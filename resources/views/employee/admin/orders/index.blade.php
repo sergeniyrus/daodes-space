@@ -1,14 +1,13 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page') Заказы — {{ $organization->name }} @endsection
 
-@section('main')
+@section('management-content')
 @include('components.order-notifications', [
     'notificationsUrl' => route('employee.organization.admin.orders.notifications', $organization),
     'notificationReadUrlTemplate' => route('employee.organization.admin.orders.notifications.read', [$organization, '__ID__']),
 ])
 
-@include('employee.admin.partials.navigation', ['organization' => $organization])
 
 @php
 $statusLabels = ['new'=>'Новый','awaiting_payment'=>'Ожидает оплаты','confirmed'=>'Подтверждён','preparing'=>'Готовится','ready'=>'Готов','handed_to_courier'=>'У курьера','in_transit'=>'В пути','issued'=>'Выдан','served'=>'Подан','delivered'=>'Доставлен','completed'=>'Завершён','cancelled'=>'Отменён'];
@@ -18,7 +17,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
 @endphp
 
 <style>
-.admin-orders-page{--gold:#ffd700;--cyan:#00e5d4;--muted:#aeb5c4;--line:rgba(0,229,212,.2);width:min(1180px,calc(100% - 28px));margin:28px auto 50px;color:#f4f5fa}
+.admin-orders-page{--gold:#ffd700;--cyan:#00e5d4;--muted:#aeb5c4;--line:rgba(0,229,212,.2);width:100%;max-width:none;margin:0;color:#f4f5fa}
 .admin-orders-page *{box-sizing:border-box}
 .admin-orders-shell{padding:clamp(16px,2.5vw,28px);background:radial-gradient(circle at 100% 0,rgba(255,215,0,.075),transparent 30%),radial-gradient(circle at 0 100%,rgba(0,229,212,.045),transparent 32%),linear-gradient(145deg,#0b0c18,#111626 55%,#0b0c18);border:1px solid rgba(255,215,0,.42);border-radius:22px;box-shadow:0 16px 48px rgba(0,0,0,.38);margin-bottom:16px}
 .admin-orders-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid rgba(255,215,0,.2)}
