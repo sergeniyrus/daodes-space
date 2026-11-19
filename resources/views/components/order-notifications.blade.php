@@ -10,7 +10,10 @@
 >
     <div class="order-notifications-heading">
         <strong>Уведомления по заказам</strong>
-        <span class="order-notifications-count" id="order-notifications-count">0</span>
+        <div class="order-notifications-controls">
+            <span class="order-notifications-count" id="order-notifications-count">0</span>
+            <button type="button" class="order-notifications-sound" id="order-notifications-sound" aria-pressed="false">🔇 Звук выключен</button>
+        </div>
     </div>
     <div class="order-notifications-list" id="order-notifications-list">
         <span class="order-notifications-muted">Загрузка уведомлений…</span>
@@ -34,6 +37,13 @@
     margin-bottom: 10px;
     color: #ffd700;
 }
+.order-notifications-controls { display:flex; align-items:center; gap:9px; }
+.order-notifications-sound {
+    min-height:30px; padding:4px 10px; color:#00e5d4;
+    background:transparent; border:1px solid rgba(0,229,212,.5);
+    border-radius:16px; cursor:pointer; font-size:.78rem;
+}
+.order-notifications-sound:hover { color:#081016; background:#00e5d4; }
 .order-notifications-count {
     min-width: 25px;
     padding: 3px 8px;
@@ -81,7 +91,66 @@
 
     const list = root.querySelector('#order-notifications-list');
     const count = root.querySelector('#order-notifications-count');
+    const soundButton = root.querySelector('#order-notifications-sound');
+    const soundStorageKey = 'daodes_order_notification_sound';
+    let soundEnabled = false;
+    let knownNotificationIds = null;
     let requestInProgress = false;
+
+    try {
+        soundEnabled = localStorage.getItem(soundStorageKey) === '1';
+    } catch (error) {
+        soundEnabled = false;
+    }
+
+    const updateSoundButton = () => {
+        soundButton.textContent = soundEnabled ? '🔊 Звук включён' : '🔇 Звук выключен';
+        soundButton.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
+    };
+
+    const playNotificationSound = () => {
+        if (!soundEnabled) return;
+
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+
+            const audioContext = new AudioContextClass();
+            const oscillator = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(1174.66, audioContext.currentTime + 0.11);
+            gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.32);
+
+            oscillator.connect(gain);
+            gain.connect(audioContext.destination);
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.34);
+            oscillator.onended = () => audioContext.close();
+        } catch (error) {
+            console.warn('Order notification sound:', error);
+        }
+    };
+
+    soundButton.addEventListener('click', async () => {
+        soundEnabled = !soundEnabled;
+
+        try {
+            localStorage.setItem(soundStorageKey, soundEnabled ? '1' : '0');
+        } catch (error) {}
+
+        updateSoundButton();
+
+        if (soundEnabled) {
+            playNotificationSound();
+        }
+    });
+
+    updateSoundButton();
 
     const refresh = async () => {
         if (requestInProgress || document.hidden) return;
@@ -100,10 +169,21 @@
             if (!response.ok) throw new Error('Не удалось загрузить уведомления.');
 
             const data = await response.json();
+            const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+            const currentIds = new Set(notifications.map(notification => String(notification.id)));
+
+            // Первый ответ только запоминаем: уже существующие уведомления
+            // не должны звучать как новые при открытии страницы.
+            if (knownNotificationIds !== null) {
+                const hasNewNotification = [...currentIds].some(id => !knownNotificationIds.has(id));
+                if (hasNewNotification) playNotificationSound();
+            }
+            knownNotificationIds = currentIds;
+
             count.textContent = String(data.unread_count ?? 0);
             list.replaceChildren();
 
-            if (!Array.isArray(data.notifications) || data.notifications.length === 0) {
+            if (notifications.length === 0) {
                 const empty = document.createElement('span');
                 empty.className = 'order-notifications-muted';
                 empty.textContent = 'Новых уведомлений нет.';
@@ -111,7 +191,7 @@
                 return;
             }
 
-            data.notifications.forEach(notification => {
+            notifications.forEach(notification => {
                 const item = document.createElement('div');
                 item.className = 'order-notifications-item';
 
