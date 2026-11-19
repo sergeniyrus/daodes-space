@@ -161,7 +161,6 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
             <div class="admin-orders-filter-actions">
                 <button class="admin-orders-button" type="submit">Применить фильтры</button>
                 <a class="admin-orders-link" href="{{ route('employee.organization.admin.orders.index', $organization) }}">Сбросить</a>
-                @if($period === 'custom')<button class="admin-orders-button" type="submit">Применить период</button>@endif
             </div>
         </form>
     </section>
