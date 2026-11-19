@@ -348,8 +348,6 @@
             fields.label.value = d.label || '';
             fields.address.value = d.address || '';
             fields.houseNumber.value = d.houseNumber || '';
-            fields.recipient.value = d.recipient || '';
-            fields.phone.value = d.phone || '';
             fields.entrance.value = d.entrance || '';
             fields.floor.value = d.floor || '';
             fields.apartment.value = d.apartment || '';
