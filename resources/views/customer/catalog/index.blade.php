@@ -11,14 +11,6 @@
 
 
 
-    @if(($publicRating->total ?? 0) > 0)
-        <div style="width:min(1200px,calc(100% - 24px));margin:18px auto;padding:13px 17px;color:#f4f4f4;background:linear-gradient(110deg,rgba(255,215,0,.09),rgba(0,229,212,.05));border:1px solid rgba(255,215,0,.35);border-radius:12px">
-            <span style="color:#ffd700;font-weight:800">★ {{ number_format((float)$publicRating->average,1,',',' ') }} / 5</span>
-            <span style="color:#aeb5c4"> · {{ $publicRating->total }} отзыв(ов)</span>
-            <a href="{{ route('customer.organizations.reviews', $organization) }}" style="float:right;color:#00e5d4;text-decoration:none">Читать отзывы →</a>
-        </div>
-    @endif
-
     @if(($cartUnavailableCount ?? 0) > 0)
         <div style="width:min(1200px,calc(100% - 24px));margin:12px auto;padding:12px 15px;color:#ffe9a0;background:rgba(255,183,77,.08);border:1px solid rgba(255,183,77,.35);border-radius:11px">
             В корзине есть {{ $cartUnavailableCount }} позиция(й), недоступная(ых) для выбранного способа получения. Корзина сохранена — переключите способ или удалите неподходящие блюда перед оформлением.
