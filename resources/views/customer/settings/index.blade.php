@@ -23,6 +23,14 @@
 .customer-settings-check{display:flex;align-items:center;gap:9px;color:#d8dce8;margin:12px 0}
 .customer-settings-check input{accent-color:#00e5d4}
 .customer-settings-error{color:#ff9999;font-size:.88rem}
+.customer-settings-toast{position:fixed;top:18px;right:20px;z-index:2147483647;display:flex;align-items:center;gap:12px;width:min(410px,calc(100vw - 32px));padding:14px 16px 17px;color:#f4f4f4;background:radial-gradient(circle at 0 0,rgba(0,229,212,.16),transparent 48%),linear-gradient(135deg,#101522 0%,#171b2b 55%,#0b0c18 100%);border:1px solid rgba(0,229,212,.58);border-left:3px solid #00e5d4;border-radius:13px;box-shadow:0 14px 38px rgba(0,0,0,.48);overflow:hidden;animation:customer-toast-enter .32s ease-out both}
+.customer-settings-toast-icon{flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;color:#071817;background:linear-gradient(145deg,#65fff0,#00cbbb);border-radius:50%;font-weight:900}
+.customer-settings-toast-message{font-weight:600;font-size:13px;line-height:1.5}
+.customer-settings-toast-progress{position:absolute;right:0;bottom:0;left:0;height:2px;background:rgba(0,229,212,.14)}
+.customer-settings-toast-progress:after{content:'';display:block;width:100%;height:100%;transform-origin:left;background:linear-gradient(90deg,#00e5d4,#ffd700);animation:customer-toast-progress 4.8s linear forwards}
+@media(max-width:700px){.customer-settings-toast{top:12px;right:12px;left:12px;width:auto}}
+@media(prefers-reduced-motion:reduce){.customer-settings-toast,.customer-settings-toast-progress:after{animation:none!important}}
+
 .customer-profile-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;align-items:start}
 .customer-profile-save{display:block;margin-top:7px}
 .customer-profile-phone-note{display:block;margin-top:4px;color:#8f9bad;font-size:.78rem}
@@ -61,6 +69,13 @@
 </style>
 
 <div class="customer-settings-page">
+    @if(session('success'))
+        <div class="customer-settings-toast" role="status" aria-live="polite">
+            <span class="customer-settings-toast-icon">✓</span>
+            <span class="customer-settings-toast-message">{{ session('success') }}</span>
+            <span class="customer-settings-toast-progress"></span>
+        </div>
+    @endif
     @if(session('success'))<div class="customer-settings-panel" style="border-color:#00e5a8;color:#00e5a8">{{ session('success') }}</div>@endif
 
     <section class="customer-settings-panel">
@@ -163,8 +178,6 @@
             <div class="customer-address-fields">
             <div class="customer-settings-field"><label for="customer-address-label">Название адреса</label><input id="customer-address-label" name="label" maxlength="50" required placeholder="Дом, Работа, Родители"></div>
             <div class="customer-settings-field customer-settings-field-wide"><label for="customer-address-line">Адрес</label><input id="customer-address-line" name="address_line" maxlength="500" required placeholder="Улица, дом, город"></div>
-            <div class="customer-settings-field"><label for="customer-address-recipient">Получатель</label><input id="customer-address-recipient" name="recipient_name" maxlength="100" value="{{ $customer->name }}"></div>
-            <div class="customer-settings-field"><label for="customer-address-phone">Телефон получателя</label><input id="customer-address-phone" name="recipient_phone" maxlength="20" value="{{ $customer->phone }}"></div>
             <div class="customer-settings-field"><label for="customer-address-entrance">Подъезд / вход</label><input id="customer-address-entrance" name="entrance" maxlength="30" placeholder="№ подъезда или вход"></div>
             <div class="customer-settings-field"><label for="customer-address-apartment">Квартира / офис</label><input id="customer-address-apartment" name="apartment" maxlength="30" placeholder="№ квартиры"></div>
             <div class="customer-settings-field"><label for="customer-address-floor">Этаж</label><input id="customer-address-floor" name="floor" maxlength="30" placeholder="Этаж"></div>
