@@ -56,6 +56,7 @@ return [
         'client_email' => env('FIREBASE_CLIENT_EMAIL'),
         'private_key' => env('FIREBASE_PRIVATE_KEY'),
         'token_uri' => env('FIREBASE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
+
         'web' => [
             'api_key' => env('FIREBASE_WEB_API_KEY'),
             'auth_domain' => env('FIREBASE_WEB_AUTH_DOMAIN'),
