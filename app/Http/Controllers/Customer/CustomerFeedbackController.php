@@ -41,6 +41,8 @@ class CustomerFeedbackController extends Controller
 
     public function publicReviews(Organization $organization): View
     {
+        abort_unless($organization->isActive(), 404);
+
         $reviews = OrderReview::query()->with('customer')
             ->where('organization_id', $organization->id)
             ->where('is_public', true)
