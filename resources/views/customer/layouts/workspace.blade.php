@@ -2187,7 +2187,9 @@ body.customer-menu-image-open { overflow: hidden !important; }
 @if(isset($customerWorkspace))
 <div class="customer-order-page {{ request()->routeIs('customer.catalog') ? 'customer-workspace-catalog' : 'customer-workspace-other' }}">
     @if(session('success') || session('error'))
-        @php($toastIsError = session()->has('error'))
+        @php
+            $toastIsError = session()->has('error');
+        @endphp
         <div
             class="customer-order-toast{{ $toastIsError ? ' error' : '' }}"
             role="{{ $toastIsError ? 'alert' : 'status' }}"
