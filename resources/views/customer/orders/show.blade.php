@@ -258,6 +258,30 @@
         <p id="customer-order-update-error" class="customer-order-detail-muted" hidden>Не удалось обновить статус. Повторяем попытку…</p>
     </div>
 
+    @if(in_array($order->status, ['issued', 'served', 'delivered', 'completed'], true))
+        <div class="customer-order-detail-panel">
+            <h2>Оценка заказа</h2>
+            @if($order->review)
+                <p style="color:#ffd700;font-size:1.25rem">{{ str_repeat('★', $order->review->rating) }}{{ str_repeat('☆', 5 - $order->review->rating) }}</p>
+                <p class="customer-order-detail-muted">Вы уже оценили этот заказ. Оценку можно изменить.</p>
+            @else
+                <p class="customer-order-detail-muted">Расскажите, как прошёл заказ. Оценить его можно только после получения.</p>
+            @endif
+            <form method="POST" action="{{ route('customer.orders.review.store', $order) }}">
+                @csrf
+                <label for="order-review-rating" style="display:block;margin:12px 0 6px;color:#00e5d4">Ваша оценка</label>
+                <select id="order-review-rating" name="rating" required style="width:100%;padding:11px;color:#fff;background:#0b1422;border:1px solid rgba(0,229,212,.4);border-radius:9px">
+                    @for($rating = 5; $rating >= 1; $rating--)
+                        <option value="{{ $rating }}" @selected((int) old('rating', $order->review?->rating ?? 5) === $rating)>{{ $rating }} из 5 {{ str_repeat('★', $rating) }}</option>
+                    @endfor
+                </select>
+                <label for="order-review-comment" style="display:block;margin:12px 0 6px;color:#00e5d4">Комментарий</label>
+                <textarea id="order-review-comment" name="comment" rows="4" maxlength="3000" style="width:100%;padding:11px;color:#fff;background:#0b1422;border:1px solid rgba(0,229,212,.4);border-radius:9px">{{ old('comment', $order->review?->comment) }}</textarea>
+                <button type="submit" style="margin-top:12px;padding:11px 18px;color:#071416;background:#00e5d4;border:0;border-radius:9px;font-weight:800;cursor:pointer">Сохранить оценку</button>
+            </form>
+        </div>
+    @endif
+
     <div class="customer-order-detail-panel">
         <h2>Контактные данные</h2>
         <p>{{ $order->customer_name }}</p>
