@@ -845,6 +845,10 @@
         if (requestedAt) requestedAt.required = isPickup;
         if (dineInField) dineInField.hidden = !isDineIn;
         if (addressFields.address_line) addressFields.address_line.required = isDelivery;
+        if (isDelivery && deliveryMap) {
+            setTimeout(() => deliveryMap.invalidateSize(), 180);
+            window.customerUpdateDeliveryZonePreview?.();
+        }
 
         if (!isDelivery && saveAddress) {
             saveAddress.checked = false;
@@ -856,6 +860,18 @@
         if (addressLabelWrap) addressLabelWrap.hidden = !enabled;
         if (addressLabel) addressLabel.required = enabled;
     }
+    [addressFields.address_line, addressFields.house_number].forEach((field) => {
+        field?.addEventListener('input', () => {
+            latitudeInput.value = '';
+            longitudeInput.value = '';
+            if (deliveryMarker && deliveryMap) {
+                deliveryMap.removeLayer(deliveryMarker);
+                deliveryMarker = null;
+            }
+            if (mapStatus) mapStatus.textContent = 'Адрес изменён. Выберите новую точку на карте.';
+            window.customerUpdateDeliveryZonePreview?.();
+        });
+    });
     fulfillmentInputs.forEach((input) => input.addEventListener('change', updateFulfillmentFields));
     saveAddress?.addEventListener('change', updateSaveAddressFields);
     savedAddressSelect?.addEventListener('change', () => {
