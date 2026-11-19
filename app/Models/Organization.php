@@ -109,6 +109,16 @@ class Organization extends Model
         return $this->hasMany(Order::class);
     }
 
+    public function orderReviews(): HasMany
+    {
+        return $this->hasMany(OrderReview::class);
+    }
+
+    public function feedback(): HasMany
+    {
+        return $this->hasMany(OrganizationFeedback::class);
+    }
+
     /**
      * Клиенты, связанные с организацией через customer_organizations.
      */
