@@ -24,16 +24,22 @@
     <section class="feedback-panel">
         <h1>Книга отзывов и предложений</h1>
         <p class="feedback-muted">Расскажите организации о впечатлениях, предложениях или проблеме. Обращение увидят менеджер и администраторы.</p>
-        <form class="feedback-form" method="POST" action="{{ route('customer.feedback.store', ['organization' => '__ORG__']) }}" id="customer-feedback-form">
+        <form class="feedback-form" method="POST" action="{{ $selectedOrganization ? route('customer.feedback.store', $selectedOrganization) : route('customer.feedback.store', ['organization' => '__ORG__']) }}" id="customer-feedback-form">
             @csrf
-            <label>Организация
-                <select id="feedback-organization" required>
-                    <option value="">Выберите кафе</option>
-                    @foreach($organizations as $organization)
-                        <option value="{{ $organization->id }}">{{ $organization->name }}</option>
-                    @endforeach
-                </select>
-            </label>
+            @if($selectedOrganization)
+                <div class="feedback-muted" style="padding:10px 12px;border:1px solid rgba(0,229,212,.25);border-radius:10px;background:rgba(0,229,212,.04)">
+                    Обращение направляется организации: <strong style="color:#ffd700">{{ $selectedOrganization->name }}</strong>
+                </div>
+            @else
+                <label>Организация
+                    <select id="feedback-organization" required>
+                        <option value="">Выберите кафе</option>
+                        @foreach($organizations as $organization)
+                            <option value="{{ $organization->id }}">{{ $organization->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+            @endif
             <label>Тип обращения
                 <select name="type" required>
                     <option value="review">Отзыв</option><option value="suggestion">Предложение</option><option value="complaint">Жалоба</option><option value="thanks">Благодарность</option>
@@ -77,16 +83,22 @@
 <script>
 (() => {
     const form = document.getElementById('customer-feedback-form');
+    if (!form) return;
+
     const select = document.getElementById('feedback-organization');
-    if (!form || !select) return;
-    const template = @json(route('customer.feedback.store', ['organization' => '__ORG__']));
     const orderSelect = document.getElementById('feedback-order');
     const allOrderOptions = orderSelect ? Array.from(orderSelect.querySelectorAll('option[data-organization]')) : [];
+
+    if (!select) return;
+
+    const template = @json(route('customer.feedback.store', ['organization' => '__ORG__']));
+
     function filterOrders() {
         if (!orderSelect) return;
         allOrderOptions.forEach(option => { option.hidden = option.dataset.organization !== select.value; });
         if (orderSelect.selectedOptions[0]?.hidden) orderSelect.value = '';
     }
+
     filterOrders();
     select.addEventListener('change', filterOrders);
     select.addEventListener('change', () => {
