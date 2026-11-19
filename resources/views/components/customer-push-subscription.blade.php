@@ -68,6 +68,19 @@
         if(!foregroundHandlerRegistered){
             messaging.onMessage(function(payload){
                 const notification=payload.notification||{};
+
+                // Звук для push, полученного при открытой странице клиента.
+                try {
+                    const notificationAudio = new Audio('/sounds/notification.mp3');
+                    notificationAudio.preload = 'auto';
+                    notificationAudio.play().catch(function(error){
+                        // Браузер может блокировать звук до первого взаимодействия с сайтом.
+                        console.debug('Customer notification sound was blocked:', error);
+                    });
+                } catch(error) {
+                    console.warn('Customer notification sound:', error);
+                }
+
                 if(Notification.permission==='granted'){
                     const browserNotification=new Notification(notification.title||'DAODES',{body:notification.body||'',icon:'/pwa-icon.svg',data:{url:payload.data?.url||'/customer/orders'}});
                     browserNotification.onclick=function(){window.focus();window.location.href=browserNotification.data.url;};
