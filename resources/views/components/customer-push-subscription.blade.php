@@ -58,6 +58,7 @@
         soundButton.setAttribute('aria-pressed',soundEnabled?'true':'false');
     }
     function playCustomerOrderSound(){
+        try{soundEnabled=localStorage.getItem(soundStorageKey)==='1';}catch(error){}
         if(!soundEnabled)return;
         const now=Date.now();
         if(now-lastSoundAt<1500)return;
