@@ -1,20 +1,16 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page')
     Управление меню — {{ $organization->name }}
 @endsection
 
-@section('main')
+@section('management-content')
 @php
     $menuRoutePrefix = auth('employee')->check()
         ? 'employee.organization.menu.'
         : 'organizations.menu.';
 @endphp
 
-@include('employee.admin.partials.navigation', ['organization' => $organization])
-@if(!auth('employee')->check())
-    @include('organizations.partials.management-navigation', ['organization' => $organization])
-@endif
 
 <style>
 
@@ -1079,6 +1075,9 @@
     }
 }
 
+</style>
+<style>
+.menu-admin-container{width:100%;max-width:none;box-sizing:border-box;margin:0;padding:0;background:transparent;border:0;border-radius:0;box-shadow:none}
 </style>
 
 
