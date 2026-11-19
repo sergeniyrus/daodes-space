@@ -5,6 +5,8 @@
     'notificationsUrl' => route('organizations.orders.notifications', $organization),
     'notificationReadUrlTemplate' => route('organizations.orders.notifications.read', [$organization, '__ID__']),
 ])
+
+@include('organizations.partials.management-navigation', ['organization' => $organization])
 <style>
 .org-feedback{max-width:1200px;margin:25px auto 50px;padding:20px;color:#f4f4f4;background:linear-gradient(145deg,#0b0c18,#14182a 60%,#0b0c18);border:1px solid rgba(255,215,0,.45);border-radius:18px}
 .org-feedback h1,.org-feedback h2{color:#ffd700}.org-feedback-muted{color:#aeb5c4}
