@@ -1,14 +1,13 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page') Заказ №{{ $order->order_number }} — {{ $organization->name }} @endsection
 
-@section('main')
+@section('management-content')
 @include('components.order-notifications', [
     'notificationsUrl' => route('employee.organization.admin.orders.notifications', $organization),
     'notificationReadUrlTemplate' => route('employee.organization.admin.orders.notifications.read', [$organization, '__ID__']),
 ])
 
-@include('employee.admin.partials.navigation', ['organization' => $organization])
 
 @php
 $statusLabels=['new'=>'Новый','awaiting_payment'=>'Ожидает оплаты','confirmed'=>'Подтверждён','preparing'=>'Готовится','ready'=>'Готов','handed_to_courier'=>'Передан курьеру','in_transit'=>'В пути','issued'=>'Выдан','served'=>'Подан','delivered'=>'Доставлен','completed'=>'Завершён','cancelled'=>'Отменён'];
@@ -19,7 +18,7 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
 @endphp
 
 <style>
-.admin-order-page{--gold:#ffd700;--cyan:#00e5d4;--muted:#aeb5c4;--line:rgba(0,229,212,.2);width:min(1080px,calc(100% - 28px));margin:28px auto 50px;color:#f4f5fa}
+.admin-order-page{--gold:#ffd700;--cyan:#00e5d4;--muted:#aeb5c4;--line:rgba(0,229,212,.2);width:100%;max-width:none;margin:0;color:#f4f5fa}
 .admin-order-page *{box-sizing:border-box}
 .admin-order-shell{padding:clamp(16px,2.5vw,27px);margin-bottom:15px;background:radial-gradient(circle at 100% 0,rgba(255,215,0,.065),transparent 32%),linear-gradient(145deg,#0b0c18,#111626 58%,#0b0c18);border:1px solid rgba(255,215,0,.38);border-radius:20px;box-shadow:0 14px 42px rgba(0,0,0,.32)}
 .admin-order-top{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid rgba(255,215,0,.2)}
