@@ -2,100 +2,133 @@
     $managementLinks = [
         [
             'label' => 'Обзор',
+            'icon' => '⌂',
             'url' => route('organizations.manage', $organization) . '#overview',
+            'tab' => 'overview',
             'active' => request()->routeIs('organizations.manage'),
         ],
         [
             'label' => 'Команда',
+            'icon' => '♙',
             'url' => route('organizations.manage', $organization) . '#team',
+            'tab' => 'team',
             'active' => false,
         ],
         [
             'label' => 'Заказы',
-            'url' => route('organizations.orders.index', $organization),
+            'icon' => '▤',
+            'url' => route('organizations.manage', $organization) . '#orders',
+            'tab' => 'orders',
             'active' => request()->routeIs('organizations.orders.*'),
         ],
         [
             'label' => 'Отзывы',
+            'icon' => '☆',
             'url' => route('organizations.feedback.index', $organization),
             'active' => request()->routeIs('organizations.feedback.*'),
         ],
         [
             'label' => 'Меню',
+            'icon' => '☷',
             'url' => route('organizations.menu.index', $organization),
             'active' => request()->routeIs('organizations.menu.*'),
         ],
         [
             'label' => 'TV-Экраны',
+            'icon' => '▣',
             'url' => route('organizations.manage', $organization) . '#tv',
+            'tab' => 'tv',
             'active' => false,
         ],
         [
             'label' => 'Настройки',
+            'icon' => '⚙',
             'url' => route('organizations.manage', $organization) . '#settings',
+            'tab' => 'settings',
             'active' => false,
         ],
-    ];@endphp
+    ];
+@endphp
 
 <style>
-.organization-management-navigation {
+.organization-tabs {
+    position: sticky;
+    top: 8px;
+    z-index: 100;
     display: flex;
     align-items: center;
     gap: 7px;
-    width: min(1200px, calc(100% - 28px));
-    margin: 18px auto 0;
+    width: calc(100% - 32px);
+    max-width: none;
+    margin: 22px auto 20px;
     padding: 8px;
     overflow-x: auto;
-    border: 1px solid rgba(0, 229, 212, .22);
-    border-radius: 14px;
-    background: linear-gradient(135deg, rgba(11, 15, 29, .96), rgba(18, 25, 42, .94));
     scrollbar-width: thin;
+    background: rgba(7, 13, 24, .94);
+    border: 1px solid rgba(0, 229, 212, .32);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+    backdrop-filter: blur(14px);
 }
-.organization-management-navigation a {
+.organization-tab {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex: 0 0 auto;
-    min-height: 39px;
+    gap: 7px;
+    flex: 1 0 auto;
+    min-height: 42px;
     padding: 0 15px;
-    color: #b9c5d4;
+    color: #aebdca;
+    background: transparent;
     border: 1px solid transparent;
     border-radius: 10px;
     text-decoration: none;
+    font: inherit;
     font-size: .88rem;
     font-weight: 650;
     white-space: nowrap;
+    cursor: pointer;
     transition: .18s ease;
 }
-.organization-management-navigation a:hover {
+.organization-tab span {
     color: #00e5d4;
-    border-color: rgba(0, 229, 212, .35);
+    font-size: 1.05rem;
+}
+.organization-tab:hover {
+    color: #fff;
     background: rgba(0, 229, 212, .07);
+    border-color: rgba(0, 229, 212, .22);
 }
-.organization-management-navigation a.is-active {
-    color: #101522;
-    border-color: #00e5d4;
-    background: linear-gradient(110deg, #00e5d4, #b5f5e9);
-    box-shadow: 0 4px 15px rgba(0, 229, 212, .14);
+.organization-tab.is-active {
+    color: #f5d76e;
+    background: linear-gradient(135deg, rgba(0, 229, 212, .12), rgba(245, 207, 103, .10));
+    border-color: rgba(245, 207, 103, .48);
+    box-shadow: inset 0 0 14px rgba(0, 229, 212, .06), 0 0 12px rgba(245, 207, 103, .06);
 }
-@media (max-width: 600px) {
-    .organization-management-navigation {
-        width: calc(100% - 20px);
-        margin-top: 12px;
+@media (max-width: 700px) {
+    .organization-tabs {
+        top: 4px;
+        width: calc(100% - 12px);
+        gap: 5px;
+        margin: 10px auto 14px;
         padding: 6px;
+        border-radius: 12px;
     }
-    .organization-management-navigation a {
-        min-height: 36px;
+    .organization-tab {
+        min-height: 40px;
         padding: 0 12px;
-        font-size: .82rem;
+        font-size: .8rem;
     }
 }
 </style>
 
-<nav class="organization-management-navigation" aria-label="Разделы управления организацией">
+<nav class="organization-tabs" aria-label="Разделы управления организацией" data-organization-tabs>
     @foreach($managementLinks as $link)
-        <a href="{{ $link['url'] }}" class="{{ $link['active'] ? 'is-active' : '' }}" @if($link['active']) aria-current="page" @endif>
-            {{ $link['label'] }}
-        </a>
+        <a
+            href="{{ $link['url'] }}"
+            class="organization-tab {{ $link['active'] ? 'is-active' : '' }}"
+            @if(isset($link['tab'])) data-tab="{{ $link['tab'] }}" @endif
+            @if($link['active']) aria-current="page" @endif
+        ><span>{{ $link['icon'] }}</span> {{ $link['label'] }}</a>
     @endforeach
 </nav>
