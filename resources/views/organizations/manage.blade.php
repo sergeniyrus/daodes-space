@@ -2177,15 +2177,7 @@
         📋 Управление заказами
     </a>
 
-    <a
-        href="{{ route('customer.catalog', $organization) }}"
-        class="organization-button"
-        style="display: inline-flex; margin-top: 14px; text-decoration: none;"
-        target="_blank"
-        rel="noopener"
-    >
-        Открыть клиентский каталог
-    </a>
+    
 </div></section>
 
 
@@ -2193,7 +2185,6 @@
 <section class="organization-tab-panel" data-tab-panel="orders"><div class="organization-section">
 <h2 class="organization-section-title">📋 Управление заказами</h2><div class="organization-quick-links">
 <a class="organization-quick-link" href="{{ route('organizations.orders.index', $organization) }}"><strong>Все заказы</strong><small>Просмотр заказов, статусов и деталей выполнения</small></a>
-<a class="organization-quick-link" href="{{ route('customer.catalog', $organization) }}" target="_blank" rel="noopener"><strong>Клиентский каталог</strong><small>Открыть меню так, как его видят посетители</small></a>
 </div></div></section>
 <section class="organization-tab-panel" data-tab-panel="tv">
 <div class="organization-section" id="tv-screens">
