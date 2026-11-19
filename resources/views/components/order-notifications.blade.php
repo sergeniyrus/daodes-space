@@ -108,29 +108,23 @@
         soundButton.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
     };
 
+    const notificationAudio = new Audio('/sounds/notification.mp3');
+    notificationAudio.preload = 'auto';
+
     const playNotificationSound = () => {
         if (!soundEnabled) return;
 
+        if (typeof window.playCustomerOrderNotificationSound === 'function') {
+            window.playCustomerOrderNotificationSound();
+            return;
+        }
+
         try {
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContextClass) return;
-
-            const audioContext = new AudioContextClass();
-            const oscillator = audioContext.createOscillator();
-            const gain = audioContext.createGain();
-
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(1174.66, audioContext.currentTime + 0.11);
-            gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.32);
-
-            oscillator.connect(gain);
-            gain.connect(audioContext.destination);
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.34);
-            oscillator.onended = () => audioContext.close();
+            notificationAudio.currentTime = 0;
+            const playback = notificationAudio.play();
+            if (playback && typeof playback.catch === 'function') {
+                playback.catch(error => console.warn('Order notification sound:', error));
+            }
         } catch (error) {
             console.warn('Order notification sound:', error);
         }
