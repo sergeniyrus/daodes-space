@@ -121,9 +121,6 @@
 
         @if(!$organization || $lines->isEmpty())
             <p class="customer-cart-muted">Корзина пока пуста.</p>
-            <div class="customer-cart-links">
-                <a href="{{ route('customer.login') }}">Войти в клиентский кабинет</a>
-            </div>
         @else
             <p class="customer-cart-organization">{{ $organization->name }}</p>
 
