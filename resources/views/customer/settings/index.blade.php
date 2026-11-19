@@ -69,11 +69,13 @@
             @csrf
             @method('PUT')
             <div class="customer-profile-fields">
-                <label class="customer-settings-field">Имя
-                    <input type="text" name="name" value="{{ old('name', $customer->name) }}" maxlength="100" required>
+                <div>
+                    <label class="customer-settings-field" for="customer-profile-name">Имя
+                        <input id="customer-profile-name" type="text" name="name" value="{{ old('name', $customer->name) }}" maxlength="100" required>
+                    </label>
                     @error('name')<span class="customer-settings-error">{{ $message }}</span>@enderror
                     <button class="customer-settings-button customer-profile-save" type="submit">Сохранить имя</button>
-                </label>
+                </div>
                 <label class="customer-settings-field">Телефон
                     <input type="tel" value="{{ $customer->phone }}" readonly aria-readonly="true">
                     <small class="customer-profile-phone-note">Телефон привязан к аккаунту и используется для входа.</small>
@@ -286,6 +288,14 @@
             if (!results.length) { alert('Адрес не найден. Уточните улицу, дом и город.'); return; }
             const point = results[0];
             setMarker(Number(point.lat), Number(point.lon), false);
+            const parts = point.address || {};
+            const street = parts.road || parts.pedestrian || parts.residential || '';
+            const houseNumber = parts.house_number || '';
+            if (street && houseNumber) {
+                fields.address.value = [street + ', ' + houseNumber, parts.city || parts.town || 'Зеленогорск', 'Красноярский край'].join(', ');
+            } else if (point.display_name) {
+                fields.address.value = point.display_name;
+            }
             map.setView([Number(point.lat), Number(point.lon)], 17);
         } catch (error) {
             alert(error.message || 'Ошибка поиска адреса.');
