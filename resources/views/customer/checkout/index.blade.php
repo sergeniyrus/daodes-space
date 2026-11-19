@@ -876,7 +876,19 @@
     saveAddress?.addEventListener('change', updateSaveAddressFields);
     savedAddressSelect?.addEventListener('change', () => {
         const option = savedAddressSelect.selectedOptions[0];
-        if (!option || !option.value) return;
+        if (!option) return;
+        if (!option.value) {
+            Object.values(addressFields).forEach((field) => { if (field) field.value = ''; });
+            latitudeInput.value = '';
+            longitudeInput.value = '';
+            if (deliveryMarker && deliveryMap) {
+                deliveryMap.removeLayer(deliveryMarker);
+                deliveryMarker = null;
+            }
+            if (mapStatus) mapStatus.textContent = 'Введите адрес и выберите точку на карте.';
+            window.customerUpdateDeliveryZonePreview?.();
+            return;
+        }
         const values = {
             address_line: option.dataset.addressLine,
             house_number: option.dataset.houseNumber,
