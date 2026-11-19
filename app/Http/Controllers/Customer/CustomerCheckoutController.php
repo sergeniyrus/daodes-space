@@ -419,7 +419,8 @@ class CustomerCheckoutController extends Controller
             $organizationId,
             $quantities,
             $checkoutSnapshot,
-            $validated
+            $validated,
+            $fullAddressLine
         ) {
             $existingOrder = Order::query()
                 ->where('organization_id', $organizationId)
