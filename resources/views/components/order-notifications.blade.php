@@ -17,8 +17,7 @@
             @if($notificationReadAllUrl)
             <button type="button" class="order-notifications-read-all" id="order-notifications-read-all">Прочитать все</button>
             @endif
-            <button type="button" class="order-notifications-sound" id="order-notifications-sound" aria-pressed="false">🔇 Звук выключен</button>
-        </div>
+                    </div>
     </div>
     <div class="order-notifications-list" id="order-notifications-list">
         <span class="order-notifications-muted">Загрузка уведомлений…</span>
@@ -43,7 +42,6 @@
     color: #ffd700;
 }
 .order-notifications-controls { display:flex; align-items:center; gap:9px; }
-.order-notifications-sound,
 .order-notifications-read-all {
     min-height:30px; padding:4px 10px; color:#00e5d4;
     background:transparent; border:1px solid rgba(0,229,212,.5);
@@ -52,7 +50,6 @@
 .order-notifications-read-all { color:#ffd700; border-color:rgba(255,215,0,.45); }
 .order-notifications-read-all:disabled { opacity:.4; cursor:default; }
 .order-notifications-read-all:hover:not(:disabled) { color:#081016; background:#ffd700; }
-.order-notifications-sound:hover { color:#081016; background:#00e5d4; }
 .order-notifications-count {
     min-width: 25px;
     padding: 3px 8px;
@@ -100,28 +97,18 @@
 
     const list = root.querySelector('#order-notifications-list');
     const count = root.querySelector('#order-notifications-count');
-    const soundButton = root.querySelector('#order-notifications-sound');
     const readAllButton = root.querySelector('#order-notifications-read-all');
-    const soundStorageKey = 'daodes_order_notification_sound';
-    let soundEnabled = false;
     let knownNotificationIds = null;
     let requestInProgress = false;
-
-    try {
-        soundEnabled = localStorage.getItem(soundStorageKey) === '1';
-    } catch (error) {
-        soundEnabled = false;
-    }
-
-    const updateSoundButton = () => {
-        soundButton.textContent = soundEnabled ? '🔊 Звук включён' : '🔇 Звук выключен';
-        soundButton.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
-    };
 
     const notificationAudio = new Audio('/sounds/notification.mp3');
     notificationAudio.preload = 'auto';
 
     const playNotificationSound = () => {
+        let soundEnabled = false;
+        try {
+            soundEnabled = localStorage.getItem('daodes_order_notification_sound') === '1';
+        } catch (error) {}
         if (!soundEnabled) return;
 
         if (typeof window.playCustomerOrderNotificationSound === 'function') {
@@ -139,22 +126,6 @@
             console.warn('Order notification sound:', error);
         }
     };
-
-    soundButton.addEventListener('click', async () => {
-        soundEnabled = !soundEnabled;
-
-        try {
-            localStorage.setItem(soundStorageKey, soundEnabled ? '1' : '0');
-        } catch (error) {}
-
-        updateSoundButton();
-
-        if (soundEnabled) {
-            playNotificationSound();
-        }
-    });
-
-    updateSoundButton();
 
     const refresh = async () => {
         if (requestInProgress || document.hidden) return;
