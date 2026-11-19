@@ -24,6 +24,7 @@ class MenuItem extends Model
         'image_cid',
         'delivery_enabled',
         'pickup_enabled',
+        'dine_in_enabled',
     ];
 
     protected $casts = [
@@ -34,6 +35,7 @@ class MenuItem extends Model
         'is_active' => 'boolean',
         'delivery_enabled' => 'boolean',
         'pickup_enabled' => 'boolean',
+        'dine_in_enabled' => 'boolean',
     ];
 
     /**
