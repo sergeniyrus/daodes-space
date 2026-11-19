@@ -961,7 +961,7 @@
 }
 @media (max-width: 1000px) {
     .customer-order-header {
-        grid-template-columns: minmax(180px, 1.2fr) repeat(3, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
         gap: 8px;
     }
     .customer-order-header-card {
