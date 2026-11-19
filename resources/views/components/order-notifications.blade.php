@@ -25,6 +25,7 @@
 </section>
 
 <style>
+.order-notifications[hidden] { display: none !important; }
 .order-notifications {
     margin: 0 0 16px;
     padding: 15px 18px;
@@ -164,13 +165,8 @@
             });
             list.replaceChildren();
 
-            if (notifications.length === 0) {
-                const empty = document.createElement('span');
-                empty.className = 'order-notifications-muted';
-                empty.textContent = 'Новых уведомлений нет.';
-                list.appendChild(empty);
-                return;
-            }
+            root.hidden = notifications.length === 0;
+            if (notifications.length === 0) return;
 
             notifications.forEach(notification => {
                 const item = document.createElement('div');
