@@ -1,14 +1,12 @@
-@extends('template')
+@extends('organizations.layouts.management')
 @section('title_page') Отзывы и предложения · {{ $organization->name }} @endsection
-@section('main')
+@section('management-content')
 @include('components.order-notifications', [
     'notificationsUrl' => route('organizations.orders.notifications', $organization),
     'notificationReadUrlTemplate' => route('organizations.orders.notifications.read', [$organization, '__ID__']),
 ])
-
-@include('organizations.partials.management-navigation', ['organization' => $organization])
 <style>
-.org-feedback{max-width:1200px;margin:25px auto 50px;padding:20px;color:#f4f4f4;background:linear-gradient(145deg,#0b0c18,#14182a 60%,#0b0c18);border:1px solid rgba(255,215,0,.45);border-radius:18px}
+.org-feedback{width:100%;max-width:none;box-sizing:border-box;margin:0;padding:0;color:#f4f4f4;background:transparent;border:0;border-radius:0}
 .org-feedback h1,.org-feedback h2{color:#ffd700}.org-feedback-muted{color:#aeb5c4}
 .org-feedback-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
 .org-feedback-stat{padding:16px;border:1px solid rgba(0,229,212,.25);border-radius:12px;background:rgba(0,229,212,.04)}
@@ -24,7 +22,6 @@
 <div class="org-feedback">
     <p class="org-feedback-muted">{{ $organization->name }} · Панель менеджера</p>
     <h1>Отзывы и книга предложений</h1>
-    @if(session('success'))<p style="color:#00e5a8">{{ session('success') }}</p>@endif
     <div class="org-feedback-grid">
         <div class="org-feedback-stat"><span class="org-feedback-muted">Средняя оценка</span><strong>{{ $ratingStats->total ? number_format((float)$ratingStats->average,1,',',' ') : '—' }} / 5</strong><small>{{ $ratingStats->total }} оценок</small></div>
         <div class="org-feedback-stat"><span class="org-feedback-muted">Новые обращения</span><strong>{{ $newFeedbackCount }}</strong><small>всего</small></div>
