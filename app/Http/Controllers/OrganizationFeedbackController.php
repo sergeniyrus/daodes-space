@@ -41,11 +41,11 @@ class OrganizationFeedbackController extends Controller
             ->latest()->paginate(20, ['*'], 'feedback_page')->withQueryString();
 
         $ratingStats = OrderReview::query()->where('organization_id', $organization->id)
-            ->selectRaw('COUNT(*) as total, AVG(rating) as average')
+            ->whereNotNull('rating')->selectRaw('COUNT(DISTINCT order_id) as total, AVG(rating) as average')
             ->first();
 
         $ratingDistribution = OrderReview::query()->where('organization_id', $organization->id)
-            ->selectRaw('rating, COUNT(*) as total')->groupBy('rating')->pluck('total', 'rating');
+            ->whereNotNull('rating')->selectRaw('rating, COUNT(DISTINCT order_id) as total')->groupBy('rating')->pluck('total', 'rating');
 
         return view('organizations.feedback.index', compact('organization', 'reviews', 'feedback', 'ratingStats', 'ratingDistribution', 'newFeedbackCount', 'filters'));
     }
