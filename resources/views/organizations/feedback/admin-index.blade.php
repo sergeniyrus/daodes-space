@@ -12,7 +12,7 @@
 .admin-feedback-stat strong{display:block;color:#00e5d4;font-size:1.5rem}
 </style>
 <div class="admin-feedback">
-    <p class="admin-feedback-muted">{{ $organization->name }} · Администратор</p>
+    <p class="admin-feedback-muted">АДМИНИСТРАТОР · ОТЗЫВЫ</p>
     <h1>Отзывы и обращения</h1>
     <p class="admin-feedback-muted">Администратор может просматривать обращения и отправлять ответы клиентам. Управление остальными настройками остаётся у менеджера.</p>
     <div class="admin-feedback-stat"><span class="admin-feedback-muted">Средний рейтинг</span><strong>{{ $ratingStats->total ? number_format((float)$ratingStats->average,1,',',' ') : '—' }} / 5</strong></div>
