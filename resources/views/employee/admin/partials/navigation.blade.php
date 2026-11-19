@@ -72,5 +72,8 @@
         <a href="{{ route('employee.organization.menu.index', $organization) }}" class="organization-tab {{ $adminNavigationMenuActive ? 'is-active' : '' }}" @if($adminNavigationMenuActive) aria-current="page" @endif>
             <span>☷</span> Меню
         </a>
+        <a href="{{ route('customer.catalog', $organization) }}" class="organization-tab" target="_blank" rel="noopener">
+            <span>↗</span> Клиентский каталог
+        </a>
     </nav>
 @endif
