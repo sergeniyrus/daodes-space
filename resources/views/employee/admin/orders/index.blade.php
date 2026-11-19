@@ -286,7 +286,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
                         <div style="min-width:0;">
                             <div class="product-analytics-name">{{ $product->name }}</div>
                             <div class="product-analytics-meta">
-                                <span>{{ $product->orders_count }} {{ trans_choice('заказ|заказа|заказов', (int) $product->orders_count) }}</span>
+                                <span>{{ $product->orders_count }} заказ(ов)</span>
                                 @if(!$product->is_active)
                                     <span class="product-analytics-state">Отключено в меню</span>
                                 @endif
