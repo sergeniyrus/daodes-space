@@ -19,11 +19,15 @@ class OrganizationFeedbackController extends Controller
             'status' => ['nullable', 'in:new,in_progress,answered,closed'],
             'type' => ['nullable', 'in:review,suggestion,complaint,thanks'],
             'rating' => ['nullable', 'integer', 'between:1,5'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ]);
 
         $reviews = OrderReview::query()->with(['customer', 'order'])
             ->where('organization_id', $organization->id)
             ->when($filters['rating'] ?? null, fn ($query, $rating) => $query->where('rating', $rating))
+            ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '>=', $date))
+            ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '<=', $date))
             ->latest()->paginate(20, ['*'], 'reviews_page')->withQueryString();
 
         $newFeedbackCount = OrganizationFeedback::query()->where('organization_id', $organization->id)->where('status', 'new')->count();
@@ -32,6 +36,8 @@ class OrganizationFeedbackController extends Controller
             ->where('organization_id', $organization->id)
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when($filters['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
+            ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '>=', $date))
+            ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '<=', $date))
             ->latest()->paginate(20, ['*'], 'feedback_page')->withQueryString();
 
         $ratingStats = OrderReview::query()->where('organization_id', $organization->id)
