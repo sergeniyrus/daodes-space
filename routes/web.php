@@ -58,6 +58,7 @@ use App\Http\Controllers\OrganizationStaffController;
 use App\Http\Controllers\OrganizationOrderController;
 use App\Http\Controllers\Customer\CustomerPushController;
 use App\Http\Controllers\OrderNotificationController;
+use App\Http\Controllers\OrganizationFeedbackController;
 
 Route::get('/firebase-messaging-sw.js', [CustomerPushController::class, 'serviceWorker'])
     ->name('firebase.messaging.sw');
