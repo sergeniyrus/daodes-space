@@ -11,6 +11,14 @@
 
 
 
+    @if(($publicRating->total ?? 0) > 0)
+        <div style="width:min(1200px,calc(100% - 24px));margin:18px auto;padding:13px 17px;color:#f4f4f4;background:linear-gradient(110deg,rgba(255,215,0,.09),rgba(0,229,212,.05));border:1px solid rgba(255,215,0,.35);border-radius:12px">
+            <span style="color:#ffd700;font-weight:800">★ {{ number_format((float)$publicRating->average,1,',',' ') }} / 5</span>
+            <span style="color:#aeb5c4"> · {{ $publicRating->total }} отзыв(ов)</span>
+            <a href="{{ route('customer.organizations.reviews', $organization) }}" style="float:right;color:#00e5d4;text-decoration:none">Читать отзывы →</a>
+        </div>
+    @endif
+
     @if($sections->isNotEmpty())
         <div class="customer-order-layout">
             <aside class="customer-order-sidebar" aria-label="Разделы меню">
