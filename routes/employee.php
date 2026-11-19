@@ -60,6 +60,14 @@ Route::prefix('staff')->name('employee.')->group(function () {
                 Route::patch('/{order}/payment', [\App\Http\Controllers\Employee\EmployeeAdminOrderController::class, 'markPaid'])->whereNumber('order')->name('payment');
             });
 
+        // Администратор может просматривать отзывы и обращения, но не отвечать на них.
+        Route::middleware(['employee.organization', 'employee.role:admin'])
+            ->prefix('organizations/{organization}/admin/feedback')
+            ->name('organization.admin.feedback.')
+            ->group(function () {
+                Route::get('/', [\\App\\Http\\Controllers\\Employee\\EmployeeOrganizationFeedbackController::class, 'index'])->name('index');
+            });
+
         // Администратор управляет меню и заказами.
         // Управление персоналом остаётся исключительно у менеджера.
         Route::middleware(['employee.organization', 'employee.role:admin'])
