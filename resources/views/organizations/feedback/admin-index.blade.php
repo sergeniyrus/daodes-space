@@ -1,6 +1,7 @@
 @extends('template')
 @section('title_page') Отзывы · {{ $organization->name }} @endsection
 @section('main')
+@include('employee.admin.partials.navigation', ['organization' => $organization])
 <style>
 .admin-feedback{max-width:1100px;margin:25px auto;padding:20px;color:#f4f4f4;background:linear-gradient(145deg,#0b0c18,#14182a);border:1px solid rgba(255,215,0,.4);border-radius:18px}
 .admin-feedback h1,.admin-feedback h2{color:#ffd700}.admin-feedback-muted{color:#aeb5c4}.admin-feedback-card{padding:14px 0;border-top:1px solid rgba(0,229,212,.2)}
