@@ -119,6 +119,7 @@
                     <div>{{ $address->address_line }}</div>
                     <div class="customer-settings-muted">
                         @if($address->entrance) Подъезд: {{ $address->entrance }} · @endif
+                        @if($address->house_number) Дом: {{ $address->house_number }} · @endif
                         @if($address->apartment) Кв.: {{ $address->apartment }} · @endif
                         @if($address->floor) Этаж: {{ $address->floor }} · @endif
                         @if($address->intercom) Домофон: {{ $address->intercom }} · @endif
@@ -131,6 +132,7 @@
                         data-id="{{ $address->id }}"
                         data-label="{{ $address->label }}"
                         data-address="{{ $address->address_line }}"
+                        data-house-number="{{ $address->house_number }}"
                         data-recipient="{{ $address->recipient_name }}"
                         data-phone="{{ $address->recipient_phone }}"
                         data-entrance="{{ $address->entrance }}"
@@ -177,7 +179,8 @@
 
             <div class="customer-address-fields">
             <div class="customer-settings-field"><label for="customer-address-label">Название адреса</label><input id="customer-address-label" name="label" maxlength="50" required placeholder="Дом, Работа, Родители"></div>
-            <div class="customer-settings-field customer-settings-field-wide"><label for="customer-address-line">Адрес</label><input id="customer-address-line" name="address_line" maxlength="500" required placeholder="Улица, дом, город"></div>
+            <div class="customer-settings-field customer-settings-field-wide"><label for="customer-address-line">Улица и город</label><input id="customer-address-line" name="address_line" maxlength="500" required placeholder="Парковая улица, Зеленогорск, Красноярский край"></div>
+            <div class="customer-settings-field"><label for="customer-address-house-number">Номер дома</label><input id="customer-address-house-number" name="house_number" maxlength="30" placeholder="23, корпус 2"></div>
             <div class="customer-settings-field"><label for="customer-address-entrance">Подъезд / вход</label><input id="customer-address-entrance" name="entrance" maxlength="30" placeholder="№ подъезда или вход"></div>
             <div class="customer-settings-field"><label for="customer-address-apartment">Квартира / офис</label><input id="customer-address-apartment" name="apartment" maxlength="30" placeholder="№ квартиры"></div>
             <div class="customer-settings-field"><label for="customer-address-floor">Этаж</label><input id="customer-address-floor" name="floor" maxlength="30" placeholder="Этаж"></div>
@@ -187,7 +190,7 @@
             <label class="customer-settings-check"><input type="checkbox" name="is_favorite" id="customer-address-favorite" value="1"> Добавить в избранное</label>
             </div>
 
-            @foreach(['label','address_line','latitude','longitude'] as $field)
+            @foreach(['label','address_line','house_number','latitude','longitude'] as $field)
                 @error($field)<p class="customer-settings-error">{{ $message }}</p>@enderror
             @endforeach
 
@@ -227,8 +230,7 @@
     const fields = {
         label: document.getElementById('customer-address-label'),
         address: document.getElementById('customer-address-line'),
-        recipient: document.getElementById('customer-address-recipient'),
-        phone: document.getElementById('customer-address-phone'),
+        houseNumber: document.getElementById('customer-address-house-number'),
         entrance: document.getElementById('customer-address-entrance'),
         floor: document.getElementById('customer-address-floor'),
         apartment: document.getElementById('customer-address-apartment'),
@@ -241,6 +243,7 @@
     };
 
     const defaultCenter = [56.1124, 94.5886]; // Зеленогорск, Красноярский край
+    const defaultDeliveryCity = @json($defaultDeliveryCity);
     const map = L.map(mapElement).setView(defaultCenter, 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -272,12 +275,9 @@
                     const street = parts.road || parts.pedestrian || parts.residential || parts.footway || '';
                     const houseNumber = parts.house_number || '';
                     const locality = parts.city || parts.town || parts.village || parts.municipality || 'Зеленогорск';
-                    const streetAddress = [street, houseNumber].filter(Boolean).join(', ');
-                    if (streetAddress) {
-                        fields.address.value = [streetAddress, locality, 'Красноярский край'].join(', ');
-                    } else if (data.display_name && !fields.address.value.trim()) {
-                        fields.address.value = data.display_name;
-                    }
+                    if (street) fields.address.value = [street, locality, 'Красноярский край'].join(', ');
+                    if (houseNumber) fields.houseNumber.value = houseNumber;
+                    if (!street && data.display_name && !fields.address.value.trim()) fields.address.value = data.display_name;
                 } catch (error) { console.warn('Address lookup:', error); }
             }, 700);
         }
@@ -289,13 +289,13 @@
     });
 
     document.getElementById('customer-address-search').addEventListener('click', async () => {
-        const query = fields.address.value.trim();
-        if (!query) { fields.address.focus(); return; }
+        const query = [fields.address.value.trim(), fields.houseNumber.value.trim()].filter(Boolean).join(', ');
+        if (!fields.address.value.trim()) { fields.address.focus(); return; }
         const button = document.getElementById('customer-address-search');
         button.disabled = true;
         try {
             const url = new URL('https://nominatim.openstreetmap.org/search');
-            const searchQuery = /зеленогорск|красноярск/i.test(query) ? query : query + ', Зеленогорск, Красноярский край, Россия';
+            const searchQuery = /зеленогорск|красноярск/i.test(query) ? query : query + ', ' + defaultDeliveryCity;
             url.search = new URLSearchParams({format:'jsonv2',q:searchQuery,limit:'1',addressdetails:'1'});
             const response = await fetch(url, {headers:{'Accept':'application/json'}});
             if (!response.ok) throw new Error('Не удалось найти адрес на карте.');
@@ -306,11 +306,9 @@
             const parts = point.address || {};
             const street = parts.road || parts.pedestrian || parts.residential || '';
             const houseNumber = parts.house_number || '';
-            if (street && houseNumber) {
-                fields.address.value = [street + ', ' + houseNumber, parts.city || parts.town || 'Зеленогорск', 'Красноярский край'].join(', ');
-            } else if (point.display_name) {
-                fields.address.value = point.display_name;
-            }
+            if (street) fields.address.value = [street, parts.city || parts.town || 'Зеленогорск', 'Красноярский край'].join(', ');
+            if (houseNumber) fields.houseNumber.value = houseNumber;
+            if (!street && point.display_name) fields.address.value = point.display_name;
             map.setView([Number(point.lat), Number(point.lon)], 17);
         } catch (error) {
             alert(error.message || 'Ошибка поиска адреса.');
@@ -334,8 +332,7 @@
         document.getElementById('customer-address-method').value = 'POST';
         document.getElementById('customer-address-editor-title').textContent = 'Добавить адрес';
         form.reset();
-        fields.recipient.value = @json($customer->name);
-        fields.phone.value = @json($customer->phone);
+        fields.houseNumber.value = '';
         fields.latitude.value = '';
         fields.longitude.value = '';
         if (marker) { map.removeLayer(marker); marker = null; }
@@ -350,6 +347,7 @@
             document.getElementById('customer-address-editor-title').textContent = 'Редактировать адрес';
             fields.label.value = d.label || '';
             fields.address.value = d.address || '';
+            fields.houseNumber.value = d.houseNumber || '';
             fields.recipient.value = d.recipient || '';
             fields.phone.value = d.phone || '';
             fields.entrance.value = d.entrance || '';
