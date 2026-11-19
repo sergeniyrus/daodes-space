@@ -1,21 +1,17 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page')
     Новое блюдо — {{ $section->name }}
 
 @endsection
 
-@section('main')
+@section('management-content')
 @php
     $menuRoutePrefix = auth('employee')->check()
         ? 'employee.organization.menu.'
         : 'organizations.menu.';
 @endphp
 
-@include('employee.admin.partials.navigation', ['organization' => $organization])
-@if(!auth('employee')->check())
-    @include('organizations.partials.management-navigation', ['organization' => $organization])
-@endif
 
 <style>
 
@@ -210,6 +206,9 @@
 .menu-availability-list { display:grid; grid-template-columns:1fr; gap:9px; padding:12px; border:1px solid rgba(0,229,212,.25); border-radius:12px; background:rgba(0,229,212,.035); }
 .menu-availability-list .menu-form-checkbox { padding:5px 0; }
 
+</style>
+<style>
+.menu-form-container{width:100%;max-width:760px;box-sizing:border-box;margin:0 auto;padding:0;background:transparent;border:0;border-radius:0;color:#fff}
 </style>
 
 
