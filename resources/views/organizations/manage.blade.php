@@ -2447,6 +2447,7 @@ document.addEventListener('DOMContentLoaded', function () {
  activateTab(initialTab,false);
  root.querySelectorAll('form').forEach(form=>form.addEventListener('submit',function(){const active=root.querySelector('[data-tab-panel].is-active');if(active){try{sessionStorage.setItem(storageKey,active.dataset.tabPanel);}catch(error){}}}));
 });
+</script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -2541,7 +2542,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     setTimeout(() => map.invalidateSize(), 250);
 })();
-</script>
+
 
 
 @endsection
