@@ -104,21 +104,44 @@ class CustomerCatalogController extends Controller
             $cartItems = MenuItem::query()
                 ->whereIn('id', array_map('intval', array_keys($quantities)))
                 ->where('is_active', true)
-                ->where(function ($query) {
-                    $query->where('delivery_enabled', true)
-                        ->orWhere('pickup_enabled', true);
+                ->where(function ($query) use ($settings) {
+                    if ($settings?->delivery_enabled) {
+                        $query->where('delivery_enabled', true);
+                    }
+                    if ($settings?->pickup_enabled) {
+                        $method = $settings?->delivery_enabled ? 'orWhere' : 'where';
+                        $query->{$method}('pickup_enabled', true);
+                    }
+                    if ($settings?->dine_in_enabled) {
+                        $query->orWhereRaw('1 = 1');
+                    }
+                    if (!$settings || (!$settings->delivery_enabled && !$settings->pickup_enabled && !$settings->dine_in_enabled)) {
+                        $query->whereRaw('1 = 0');
+                    }
                 })
-                ->whereHas('section', function ($query) use ($organization) {
+                ->whereHas('section', function ($query) use ($organization, $settings) {
                     $query->where('organization_id', $organization->id)
                         ->where('is_active', true)
-                        ->where(function ($availabilityQuery) {
-                            $availabilityQuery->where(function ($methodQuery) {
-                                $methodQuery->where('menu_sections.delivery_enabled', true)
-                                    ->where('menu_items.delivery_enabled', true);
-                            })->orWhere(function ($methodQuery) {
-                                $methodQuery->where('menu_sections.pickup_enabled', true)
-                                    ->where('menu_items.pickup_enabled', true);
-                            });
+                        ->where(function ($availabilityQuery) use ($settings) {
+                            if ($settings?->delivery_enabled) {
+                                $availabilityQuery->where(function ($methodQuery) {
+                                    $methodQuery->where('menu_sections.delivery_enabled', true)
+                                        ->where('menu_items.delivery_enabled', true);
+                                });
+                            }
+                            if ($settings?->pickup_enabled) {
+                                $method = $settings?->delivery_enabled ? 'orWhere' : 'where';
+                                $availabilityQuery->{$method}(function ($methodQuery) {
+                                    $methodQuery->where('menu_sections.pickup_enabled', true)
+                                        ->where('menu_items.pickup_enabled', true);
+                                });
+                            }
+                            if ($settings?->dine_in_enabled) {
+                                $availabilityQuery->orWhereRaw('1 = 1');
+                            }
+                            if (!$settings || (!$settings->delivery_enabled && !$settings->pickup_enabled && !$settings->dine_in_enabled)) {
+                                $availabilityQuery->whereRaw('1 = 0');
+                            }
                         });
                 })
                 ->get()
