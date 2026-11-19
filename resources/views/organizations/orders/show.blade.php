@@ -1,11 +1,10 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page')
     Заказ №{{ $order->order_number }} — {{ $organization->name }}
 @endsection
 
-@section('main')
-@include('organizations.partials.management-navigation', ['organization' => $organization])
+@section('management-content')
 @php
     $statusLabels = [
         'new' => 'Новый',
@@ -45,8 +44,9 @@
 
 <style>
 .organization-order-detail {
-    width: min(1050px, calc(100% - 24px));
-    margin: 28px auto 55px;
+    width: 100%;
+    max-width: none;
+    margin: 0;
     color: #f4f4f4;
 }
 .organization-order-detail__panel {
