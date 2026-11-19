@@ -1,6 +1,10 @@
 @extends('template')
 @section('title_page') Отзывы · {{ $organization->name }} @endsection
 @section('main')
+@include('components.order-notifications', [
+    'notificationsUrl' => route('employee.organization.admin.orders.notifications', $organization),
+    'notificationReadUrlTemplate' => route('employee.organization.admin.orders.notifications.read', [$organization, '__ID__']),
+])
 @include('employee.admin.partials.navigation', ['organization' => $organization])
 <style>
 .admin-feedback{max-width:1100px;margin:25px auto;padding:20px;color:#f4f4f4;background:linear-gradient(145deg,#0b0c18,#14182a);border:1px solid rgba(255,215,0,.4);border-radius:18px}
