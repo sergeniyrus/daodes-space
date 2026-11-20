@@ -77,12 +77,15 @@
         <hr class="rule">
         <div class="row">
             <span>Способ оплаты</span>
-            <span>{{ ['online' => 'Онлайн', 'cash_on_receipt' => 'Наличные при получении', 'card_on_receipt' => 'Картой при получении'][$order->payment_method] ?? $order->payment_method }}</span>
+            <span>{{ ['online' => 'Онлайн', 'cash_on_receipt' => 'Наличные при получении', 'card_on_receipt' => 'Картой при получении', 'guest_account' => 'На счёт гостя — расчёт при выходе'][$order->payment_method] ?? $order->payment_method }}</span>
         </div>
         <div class="row">
             <span>Статус оплаты</span>
             <strong>{{ ['pending' => 'Ожидает оплаты', 'succeeded' => 'Оплачен', 'failed' => 'Ошибка оплаты', 'cancelled' => 'Отменён', 'refunded' => 'Возвращён'][$order->payment_status] ?? $order->payment_status }}</strong>
         </div>
+        @if($order->guest_card_identifier)
+            <div class="row"><span>Браслет / карта сотрудника</span><strong>{{ $order->guest_card_identifier }}</strong></div>
+        @endif
         @if($order->customer_comment)
             <hr class="rule">
             <div><strong>Комментарий:</strong> {{ $order->customer_comment }}</div>
