@@ -126,6 +126,22 @@ class Organization extends Model
     }
 
     /**
+     * Сопоставления заказов DAODES с заказами iiko.
+     */
+    public function iikoOrderMappings(): HasMany
+    {
+        return $this->hasMany(IikoOrderMapping::class);
+    }
+
+    /**
+     * Журнал синхронизации iiko.
+     */
+    public function iikoSyncLogs(): HasMany
+    {
+        return $this->hasMany(IikoSyncLog::class);
+    }
+
+    /**
      * Заказы клиентов организации.
      */
     public function orders(): HasMany
