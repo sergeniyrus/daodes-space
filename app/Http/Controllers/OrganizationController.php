@@ -613,7 +613,7 @@ class OrganizationController extends Controller
             'time_slot_minutes' => ['required', 'integer', 'in:5,10,15,20,30,60'],
             'delivery_city' => ['nullable', 'string', 'max:255'],
             'pickup_address' => [
-                $request->boolean('delivery_enabled') ? 'required' : 'nullable',
+                ($request->boolean('delivery_enabled') || $request->boolean('pickup_enabled')) ? 'required' : 'nullable',
                 'nullable',
                 'string',
                 'max:500',
@@ -754,9 +754,11 @@ class OrganizationController extends Controller
                 $validated
             );
 
-            $settings->deliveryZones()->delete();
-
+            // При временном отключении доставки сохраняем зоны,
+            // чтобы их не приходилось настраивать заново при повторном включении.
             if ($settings->delivery_enabled) {
+                $settings->deliveryZones()->delete();
+
                 foreach ($zones as $zone) {
                     $settings->deliveryZones()->create($zone);
                 }
