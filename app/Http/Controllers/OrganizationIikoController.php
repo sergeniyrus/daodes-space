@@ -8,7 +8,6 @@ use App\Models\Organization;
 use App\Services\Iiko\IikoCloudClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Throwable;
 
