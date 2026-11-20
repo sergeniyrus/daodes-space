@@ -669,9 +669,10 @@ class OrganizationController extends Controller
             if (
                 !$validated['cash_payment_enabled']
                 && !$validated['card_payment_enabled']
+                && !$validated['dine_in_enabled']
             ) {
                 return back()
-                    ->withErrors(['cash_payment_enabled' => 'До подключения платёжного провайдера включите наличные или оплату терминалом при получении.'])
+                    ->withErrors(['cash_payment_enabled' => 'Для доставки и самовывоза включите наличные или оплату терминалом. Заказ в заведении может оформляться на счёт гостя.'])
                     ->withInput();
             }
         }
