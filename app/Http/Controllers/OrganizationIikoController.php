@@ -353,8 +353,8 @@ class OrganizationIikoController extends Controller
             $errors[] = 'Сначала проверьте подключение iiko.';
         }
 
-        if (!$connection->external_menu_id || !$connection->price_category_id) {
-            $errors[] = 'Выберите внешнее меню и ценовую категорию iiko.';
+        if (!$connection->external_menu_id) {
+            $errors[] = 'Выберите внешнее меню iiko. Ценовую категорию указывайте только если она настроена для онлайн-заказов.';
         }
 
         if (!$connection->webhook_enabled || !$connection->status_sync_enabled) {
