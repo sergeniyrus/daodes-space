@@ -141,6 +141,39 @@ class IikoOrderService
             'order' => $orderPayload,
         ];
 
+        $timezone = $order->organization?->orderSettings?->timezoneName()
+            ?? (string) config('app.timezone', 'UTC');
+
+        $deliveryDate = $order->requested_at
+            ? $order->requested_at->copy()->setTimezone($timezone)->format('Y-m-d H:i:s.v')
+            : now($timezone)->format('Y-m-d H:i:s.v');
+
+        $restrictionPayload = $this->client->request(
+            $connection,
+            'POST',
+            '/api/1/delivery_restrictions/allowed',
+            [
+                'organizationId' => $connection->iiko_organization_id,
+                'isCourierDelivery' => $order->fulfillment_type === Order::FULFILLMENT_DELIVERY,
+                'deliveryDate' => $deliveryDate,
+                'orderItems' => collect($iikoItems)->map(fn ($item) => [
+                    'id' => $item['productId'],
+                    'product' => $item['productId'],
+                    'amount' => $item['amount'],
+                ])->all(),
+                'deliverySum' => (float) $order->total,
+                'discountSum' => (float) $order->discount_total,
+            ]
+        );
+
+        $isAllowed = data_get($restrictionPayload, 'isAllowed')
+            ?? data_get($restrictionPayload, 'allowed')
+            ?? data_get($restrictionPayload, 'deliveryIsAllowed');
+
+        if ($isAllowed === false) {
+            throw new RuntimeException('iiko не разрешает доставку или самовывоз на выбранное время.');
+        }
+
         $response = $this->client->request(
             $connection,
             'POST',
