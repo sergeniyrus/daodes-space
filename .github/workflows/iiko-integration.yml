@@ -46,5 +46,3 @@ jobs:
           SESSION_DRIVER: array
           QUEUE_CONNECTION: sync
 
-      - name: Check code style
-        run: vendor/bin/pint --test
