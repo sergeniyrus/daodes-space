@@ -91,6 +91,9 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
                 @if($order->requested_at)
                     <p>Желаемое время: {{ $order->requested_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</p>
                 @endif
+                @if($order->fulfillment_type === 'pickup')
+                    <p>Адрес самовывоза: <strong>{{ $order->pickup_address_snapshot ?: ($organization->orderSettings?->pickup_address ?? '—') }}</strong></p>
+                @endif
                 @if($order->fulfillment_type === 'delivery')
                     <p>Адрес доставки: {{ $order->delivery_address['address_line'] ?? '—' }}</p>
                 @endif
