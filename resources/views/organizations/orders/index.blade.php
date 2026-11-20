@@ -317,7 +317,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
                 </div>
                 <div class="admin-order-customer">{{ $order->customer_name }} · {{ $order->customer_phone }}</div>
                 <div class="admin-order-meta">
-                    <span>◷ {{ $order->created_at?->format('d.m.Y H:i') }}</span>
+                    <span>◷ {{ $order->created_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</span>
                     <span>{{ $fulfillmentLabels[$order->fulfillment_type] ?? $order->fulfillment_type }}</span>
                     <span>{{ $paymentMethodLabels[$order->payment_method] ?? $order->payment_method }}</span>
                 </div>
