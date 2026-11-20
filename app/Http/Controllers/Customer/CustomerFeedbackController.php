@@ -75,7 +75,7 @@ class CustomerFeedbackController extends Controller
     {
         abort_unless($organization->isActive(), 404);
 
-        $reviews = OrderReview::query()->with('customer')
+        $reviews = OrderReview::query()
             ->where('organization_id', $organization->id)
             ->where('is_public', true)
             ->whereNotNull('published_at')
