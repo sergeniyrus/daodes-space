@@ -68,7 +68,7 @@
                         №{{ $order->order_number }} · {{ $order->organization?->name }}
                     </div>
                     <div class="customer-orders-muted">
-                        {{ $order->created_at?->format('d.m.Y H:i') }}
+                        {{ $order->created_at?->timezone($order->organization?->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
                     </div>
                     <div class="customer-orders-status">
                         Статус: {{ $statusLabels[$order->status] ?? $order->status }}
