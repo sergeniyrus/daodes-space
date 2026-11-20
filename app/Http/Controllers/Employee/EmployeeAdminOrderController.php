@@ -43,20 +43,38 @@ class EmployeeAdminOrderController extends Controller
             ->where('created_at', '>=', $todayStart)
             ->where('created_at', '<', $tomorrowStart);
 
+        $currentOrders = $organization->orders()
+            ->whereIn('status', [
+                Order::STATUS_NEW,
+                Order::STATUS_CONFIRMED,
+                Order::STATUS_PREPARING,
+                Order::STATUS_READY,
+                Order::STATUS_HANDED_TO_COURIER,
+                Order::STATUS_IN_TRANSIT,
+            ]);
+
         $overviewStats = [
             'orders_today' => (clone $todayOrders)->count(),
-            'new_orders' => (clone $todayOrders)->where('status', Order::STATUS_NEW)->count(),
-            'kitchen_orders' => (clone $todayOrders)->whereIn('status', [
+            'new_orders' => (clone $currentOrders)->where('status', Order::STATUS_NEW)->count(),
+            'kitchen_orders' => (clone $currentOrders)->whereIn('status', [
                 Order::STATUS_CONFIRMED,
                 Order::STATUS_PREPARING,
             ])->count(),
-            'ready_orders' => (clone $todayOrders)->where('status', Order::STATUS_READY)->count(),
-            'delivery_orders' => (clone $todayOrders)->whereIn('status', [
+            'ready_orders' => (clone $currentOrders)->where('status', Order::STATUS_READY)->count(),
+            'delivery_orders' => (clone $currentOrders)->whereIn('status', [
                 Order::STATUS_HANDED_TO_COURIER,
                 Order::STATUS_IN_TRANSIT,
             ])->count(),
-            'completed_today' => (clone $todayOrders)->where('status', Order::STATUS_COMPLETED)->count(),
-            'cancelled_today' => (clone $todayOrders)->where('status', Order::STATUS_CANCELLED)->count(),
+            'completed_today' => $organization->orders()
+                ->where('status', Order::STATUS_COMPLETED)
+                ->where('completed_at', '>=', $todayStart)
+                ->where('completed_at', '<', $tomorrowStart)
+                ->count(),
+            'cancelled_today' => $organization->orders()
+                ->where('status', Order::STATUS_CANCELLED)
+                ->where('cancelled_at', '>=', $todayStart)
+                ->where('cancelled_at', '<', $tomorrowStart)
+                ->count(),
         ];
 
         $paidToday = DB::table('payments')
