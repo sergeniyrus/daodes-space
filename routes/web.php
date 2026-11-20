@@ -52,6 +52,7 @@ use App\Http\Controllers\Admin\ReleaseAdminController;
 
 
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\OrganizationIikoController;
 use App\Http\Controllers\OrganizationMenuController;
 use App\Http\Controllers\OrganizationTVController;
 use App\Http\Controllers\OrganizationStaffController;
@@ -1100,6 +1101,54 @@ Route::middleware('auth')
         )
             ->middleware('organization.manager')
             ->name('order-settings.update');
+
+        /*
+         * =====================================================
+         * ИНТЕГРАЦИЯ IIKO
+         * =====================================================
+         */
+
+        Route::get(
+            '/{organization}/integrations/iiko',
+            [OrganizationIikoController::class, 'index']
+        )
+            ->middleware('organization.manager')
+            ->name('iiko.index');
+
+        Route::post(
+            '/{organization}/integrations/iiko/credentials',
+            [OrganizationIikoController::class, 'saveCredentials']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.credentials');
+
+        Route::post(
+            '/{organization}/integrations/iiko/organizations',
+            [OrganizationIikoController::class, 'discoverOrganizations']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.organizations');
+
+        Route::post(
+            '/{organization}/integrations/iiko/terminal-groups',
+            [OrganizationIikoController::class, 'discoverTerminalGroups']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.terminal-groups');
+
+        Route::post(
+            '/{organization}/integrations/iiko/select-terminal',
+            [OrganizationIikoController::class, 'selectTerminalGroup']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.select-terminal');
+
+        Route::delete(
+            '/{organization}/integrations/iiko',
+            [OrganizationIikoController::class, 'disconnect']
+        )
+            ->middleware('organization.manager')
+            ->name('iiko.disconnect');
 
         // Управление количеством TV-экранов организации
         Route::post(
