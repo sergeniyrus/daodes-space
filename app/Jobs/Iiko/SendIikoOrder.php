@@ -123,7 +123,6 @@ class SendIikoOrder implements ShouldQueue
                 'last_error' => filled($response['correlationId'] ?? null)
                     ? null
                     : 'iiko приняла запрос, но не вернула correlationId. Повторная отправка заблокирована до ручной сверки.',
-
                 'sent_at' => now(),
                 'request_hash' => hash('sha256', $order->idempotency_key),
             ]);
