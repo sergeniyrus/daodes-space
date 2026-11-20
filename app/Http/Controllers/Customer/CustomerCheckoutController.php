@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\IikoMenuMapping;
+use App\Models\IikoStopListItem;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\Order;
@@ -68,7 +70,7 @@ class CustomerCheckoutController extends Controller
         }
 
         $organization = Organization::query()
-            ->with('orderSettings')
+            ->with(['orderSettings', 'iikoConnection'])
             ->findOrFail($organizationId);
 
         abort_unless($organization->isActive(), 404);
@@ -102,6 +104,19 @@ class CustomerCheckoutController extends Controller
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Некоторые товары больше недоступны. Обновите корзину.');
+        }
+
+        // Если менеджер включил синхронизацию стоп-листа iiko,
+        // не разрешаем оформить временно недоступные сопоставленные блюда.
+        if ($organization->iikoConnection?->stop_list_sync_enabled) {
+            $stoppedMenuItemIds = $this->iikoStoppedMenuItemIds($organizationId);
+            $stoppedItems = $items->whereIn('id', $stoppedMenuItemIds);
+
+            if ($stoppedItems->isNotEmpty()) {
+                return redirect()
+                    ->route('customer.cart')
+                    ->with('error', 'Временно недоступно в ресторане: ' . $stoppedItems->pluck('name')->implode(', ') . '. Обновите корзину.');
+            }
         }
 
         $lines = [];
@@ -517,6 +532,7 @@ class CustomerCheckoutController extends Controller
             }
 
             $organization = Organization::query()
+                ->with('iikoConnection')
                 ->whereKey($organizationId)
                 ->where('status', 'active')
                 ->lockForUpdate()
@@ -633,6 +649,19 @@ class CustomerCheckoutController extends Controller
                 throw ValidationException::withMessages([
                     'cart' => 'Состав меню изменился. Проверьте корзину и повторите оформление.',
                 ]);
+            }
+
+            // Повторная серверная проверка стоп-листа внутри транзакции заказа.
+            // Проверка GET checkout не заменяет эту защиту: стоп-лист мог измениться.
+            if ($organization->iikoConnection?->stop_list_sync_enabled) {
+                $stoppedMenuItemIds = $this->iikoStoppedMenuItemIds($organizationId);
+                $stoppedItems = $items->whereIn('id', $stoppedMenuItemIds);
+
+                if ($stoppedItems->isNotEmpty()) {
+                    throw ValidationException::withMessages([
+                        'cart' => 'Временно недоступно в ресторане: ' . $stoppedItems->pluck('name')->implode(', ') . '. Обновите корзину.',
+                    ]);
+                }
             }
 
             $menuSections = MenuSection::query()
@@ -976,6 +1005,25 @@ class CustomerCheckoutController extends Controller
         return redirect()
             ->route('customer.orders.show', $order)
             ->with('success', 'Заказ успешно оформлен.');
+    }
+
+
+
+    /**
+     * Возвращает ID локальных блюд, сопоставленных с текущим стоп-листом iiko.
+     * Результат всегда ограничен одной организацией DAODES.
+     */
+    private function iikoStoppedMenuItemIds(int $organizationId): array
+    {
+        return IikoMenuMapping::query()
+            ->where('organization_id', $organizationId)
+            ->whereIn('iiko_product_id', IikoStopListItem::query()
+                ->select('iiko_product_id')
+                ->where('organization_id', $organizationId)
+                ->where('is_available', false))
+            ->pluck('menu_item_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     private function calculateDistanceKm(float $latitudeFrom, float $longitudeFrom, float $latitudeTo, float $longitudeTo): float
