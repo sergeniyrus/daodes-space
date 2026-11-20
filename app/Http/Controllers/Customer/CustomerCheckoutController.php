@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\Iiko\SendIikoOrder;
 use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
@@ -948,6 +949,19 @@ class CustomerCheckoutController extends Controller
                     'collection' => $validated['fulfillment_type'] === Order::FULFILLMENT_DINE_IN ? 'guest_account_at_venue' : 'upon_receipt',
                 ],
             ]);
+
+            // Передаём только доставку и самовывоз. Заказы в заведении требуют
+            // отдельного сопоставления столов и гостевых карт с iiko.
+            if (
+                $organization->iikoConnection?->is_enabled
+                && $organization->iikoConnection?->order_sync_enabled
+                && in_array($validated['fulfillment_type'], [
+                    Order::FULFILLMENT_DELIVERY,
+                    Order::FULFILLMENT_PICKUP,
+                ], true)
+            ) {
+                SendIikoOrder::dispatch($order->id)->afterCommit();
+            }
 
             $customer->organizations()->syncWithoutDetaching([
                 $organizationId => ['source' => 'order'],
