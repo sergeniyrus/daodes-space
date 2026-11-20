@@ -4,13 +4,13 @@
 
 @section('customer-content')
 <style>
-.feedback-page{max-width:1000px;margin:25px auto 50px;color:#f4f4f4}
+.feedback-page{width:100%;max-width:none;box-sizing:border-box;margin:25px auto 50px;color:#f4f4f4}
 .feedback-panel{padding:22px;margin-bottom:16px;background:linear-gradient(145deg,#0b0c18,#14182a 58%,#0b0c18);border:1px solid rgba(255,215,0,.4);border-radius:18px;box-shadow:0 12px 35px rgba(0,0,0,.3)}
 .feedback-page h1,.feedback-page h2{color:#ffd700;margin-top:0}
 .feedback-muted{color:#aeb5c4}.feedback-row{padding:15px 0;border-bottom:1px solid rgba(0,229,212,.18)}
 .feedback-form{display:grid;gap:12px}.feedback-form label{display:block;color:#00e5d4;margin-bottom:5px}
 .feedback-form input,.feedback-form select,.feedback-form textarea{width:100%;padding:11px 12px;color:#fff;background:#0c1422;border:1px solid rgba(0,229,212,.35);border-radius:10px}
-.feedback-form button{padding:12px 18px;color:#081416;background:#00e5d4;border:0;border-radius:10px;font-weight:800;cursor:pointer}
+.feedback-form button{width:min(260px,100%);justify-self:center;padding:12px 18px;color:#081416;background:#00e5d4;border:0;border-radius:10px;font-weight:800;cursor:pointer}
 .feedback-link{color:#00e5d4;text-decoration:none}
 .feedback-stars{color:#ffd700;letter-spacing:2px}
 </style>
