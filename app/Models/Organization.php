@@ -141,6 +141,16 @@ class Organization extends Model
         return $this->hasMany(IikoSyncLog::class);
     }
 
+    public function iikoPaymentMappings(): HasMany
+    {
+        return $this->hasMany(IikoPaymentMapping::class);
+    }
+
+    public function iikoTableMappings(): HasMany
+    {
+        return $this->hasMany(IikoTableMapping::class);
+    }
+
     /**
      * Заказы клиентов организации.
      */
