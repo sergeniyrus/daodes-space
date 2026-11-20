@@ -59,6 +59,14 @@ class OrganizationIikoController extends Controller
             $connection->terminal_group_id = null;
             $connection->terminal_group_name = null;
             $connection->is_enabled = false;
+            $connection->menu_sync_enabled = false;
+            $connection->stop_list_sync_enabled = false;
+            $connection->order_sync_enabled = false;
+            $connection->status_sync_enabled = false;
+            $connection->webhook_enabled = false;
+            $connection->external_menu_id = null;
+            $connection->price_category_id = null;
+            $connection->address_format_type = null;
             $connection->connection_status = 'pending';
             $connection->last_connected_at = null;
             $connection->last_error = null;
@@ -263,7 +271,10 @@ class OrganizationIikoController extends Controller
                 report($settingsException);
             }
 
-            $connection->update([
+            $targetChanged = (string) $connection->iiko_organization_id !== $validated['iiko_organization_id']
+                || (string) $connection->terminal_group_id !== $validated['terminal_group_id'];
+
+            $connectionUpdates = [
                 'iiko_organization_id' => $validated['iiko_organization_id'],
                 'iiko_organization_name' => (string) ($availableOrganization['name'] ?? $validated['iiko_organization_name']),
                 'terminal_group_id' => $validated['terminal_group_id'],
@@ -273,7 +284,21 @@ class OrganizationIikoController extends Controller
                 'connection_status' => 'connected',
                 'last_connected_at' => now(),
                 'last_error' => null,
-            ]);
+            ];
+
+            if ($targetChanged) {
+                $connectionUpdates = array_merge($connectionUpdates, [
+                    'menu_sync_enabled' => false,
+                    'stop_list_sync_enabled' => false,
+                    'order_sync_enabled' => false,
+                    'status_sync_enabled' => false,
+                    'webhook_enabled' => false,
+                    'external_menu_id' => null,
+                    'price_category_id' => null,
+                ]);
+            }
+
+            $connection->update($connectionUpdates);
 
             return redirect()
                 ->route('organizations.iiko.index', $organization)
