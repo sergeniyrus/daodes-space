@@ -283,6 +283,12 @@
         
         </div>
 
+        @if($order->payment_method === 'guest_account')
+            <p class="organization-order-detail__subtitle" style="margin-top:12px;">
+                Расчёт предполагается на кассе при выходе. Номер браслета или карты сохранён в заказе DAODES; автоматическая передача и подтверждение оплаты через iiko будут подключены отдельно. Статус оплаты вручную не меняйте.
+            </p>
+        @endif
+
         @php
             $canMarkPaid =
                 $order->payment_status === 'pending'
