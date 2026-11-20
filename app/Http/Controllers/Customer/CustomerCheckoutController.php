@@ -4,14 +4,13 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
-use App\Models\IikoMenuMapping;
-use App\Models\IikoStopListItem;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\Order;
 use App\Models\Organization;
 use App\Models\OrganizationOrderSetting;
 use App\Services\CustomerCartService;
+use App\Services\Iiko\IikoAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +25,7 @@ class CustomerCheckoutController extends Controller
     private const SESSION_KEY = 'customer_order_cart';
     private const MAX_MONEY_CENTS = 999999999999;
 
-    public function create(Request $request, CustomerCartService $cartService): View|RedirectResponse
+    public function create(Request $request, CustomerCartService $cartService, IikoAvailabilityService $iikoAvailability): View|RedirectResponse
     {
         $customer = Auth::guard('customer')->user();
 
@@ -109,7 +108,7 @@ class CustomerCheckoutController extends Controller
         // Если менеджер включил синхронизацию стоп-листа iiko,
         // не разрешаем оформить временно недоступные сопоставленные блюда.
         if ($organization->iikoConnection?->stop_list_sync_enabled) {
-            $stoppedMenuItemIds = $this->iikoStoppedMenuItemIds($organizationId);
+            $stoppedMenuItemIds = $iikoAvailability->stoppedMenuItemIds($organizationId);
             $stoppedItems = $items->whereIn('id', $stoppedMenuItemIds);
 
             if ($stoppedItems->isNotEmpty()) {
@@ -331,7 +330,7 @@ class CustomerCheckoutController extends Controller
         ]);
     }
 
-    public function store(Request $request, CustomerCartService $cartService): RedirectResponse
+    public function store(Request $request, CustomerCartService $cartService, IikoAvailabilityService $iikoAvailability): RedirectResponse
     {
         /** @var Customer|null $customer */
         $customer = Auth::guard('customer')->user();
@@ -1008,23 +1007,6 @@ class CustomerCheckoutController extends Controller
     }
 
 
-
-    /**
-     * Возвращает ID локальных блюд, сопоставленных с текущим стоп-листом iiko.
-     * Результат всегда ограничен одной организацией DAODES.
-     */
-    private function iikoStoppedMenuItemIds(int $organizationId): array
-    {
-        return IikoMenuMapping::query()
-            ->where('organization_id', $organizationId)
-            ->whereIn('iiko_product_id', IikoStopListItem::query()
-                ->select('iiko_product_id')
-                ->where('organization_id', $organizationId)
-                ->where('is_available', false))
-            ->pluck('menu_item_id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-    }
 
     private function calculateDistanceKm(float $latitudeFrom, float $longitudeFrom, float $latitudeTo, float $longitudeTo): float
     {
