@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Exceptions\IikoApiException;
 use App\Models\IikoConnection;
+use App\Models\IikoMenuMapping;
+use App\Models\IikoPaymentMapping;
+use App\Models\MenuItem;
 use App\Models\Organization;
 use App\Services\Iiko\IikoCloudClient;
 use App\Services\Iiko\IikoSyncLogger;
@@ -337,6 +340,153 @@ class OrganizationIikoController extends Controller
         }
     }
 
+
+
+    public function enableOrderSync(Organization $organization): RedirectResponse
+    {
+        $connection = $this->connectionOrFail($organization);
+        $settings = $organization->orderSettings;
+
+        $errors = [];
+
+        if (!$connection->is_enabled || $connection->connection_status !== 'connected') {
+            $errors[] = 'Сначала проверьте подключение iiko.';
+        }
+
+        if (!$connection->external_menu_id || !$connection->price_category_id) {
+            $errors[] = 'Выберите внешнее меню и ценовую категорию iiko.';
+        }
+
+        if (!$connection->webhook_enabled || !$connection->status_sync_enabled) {
+            $errors[] = 'Сначала настройте вебхуки и синхронизацию статусов.';
+        }
+
+        if (!$connection->stop_list_sync_enabled) {
+            $errors[] = 'Сначала выполните успешную синхронизацию стоп-листа.';
+        }
+
+        if (!$connection->iiko_currency_iso_name || strtoupper((string) $settings?->currency) !== strtoupper($connection->iiko_currency_iso_name)) {
+            $errors[] = 'Валюта DAODES должна совпадать с валютой организации iiko.';
+        }
+
+        if (!$settings || !$settings->orders_enabled || (!$settings->delivery_enabled && !$settings->pickup_enabled)) {
+            $errors[] = 'Включите онлайн-заказы, доставку или самовывоз в настройках DAODES.';
+        }
+
+        if ($settings?->delivery_enabled && mb_strtolower((string) $connection->address_format_type) !== 'city') {
+            $errors[] = 'Для доставки требуется подтверждённый формат адреса iiko City.';
+        }
+
+        if ($settings?->online_payment_enabled) {
+            $onlinePaymentMapping = IikoPaymentMapping::query()
+                ->where('organization_id', $organization->id)
+                ->where('iiko_organization_id', $connection->iiko_organization_id)
+                ->where('daodes_payment_method', 'online')
+                ->where('is_enabled', true)
+                ->exists();
+
+            if (!$onlinePaymentMapping) {
+                $errors[] = 'Для включённой онлайн-оплаты сопоставьте платёжный тип iiko.';
+            }
+        }
+
+        if ($settings && ($settings->delivery_enabled || $settings->pickup_enabled)) {
+            $itemsQuery = MenuItem::query()
+                ->where('is_active', true)
+                ->whereHas('section', fn ($query) => $query
+                    ->where('organization_id', $organization->id)
+                    ->where('is_active', true))
+                ->where(function ($query) use ($settings) {
+                    if ($settings->delivery_enabled) {
+                        $query->orWhere('delivery_enabled', true);
+                    }
+
+                    if ($settings->pickup_enabled) {
+                        $query->orWhere('pickup_enabled', true);
+                    }
+                });
+
+            $items = $itemsQuery->get();
+            $mappings = IikoMenuMapping::query()
+                ->where('organization_id', $organization->id)
+                ->where('iiko_organization_id', $connection->iiko_organization_id)
+                ->where('external_menu_id', $connection->external_menu_id)
+                ->where('price_category_id', $connection->price_category_id)
+                ->get()
+                ->keyBy('menu_item_id');
+
+            if ($items->isEmpty()) {
+                $errors[] = 'В меню нет активных блюд, доступных для доставки или самовывоза.';
+            }
+
+            foreach ($items as $item) {
+                $mapping = $mappings->get($item->id);
+
+                if (!$mapping) {
+                    $errors[] = 'Не сопоставлено блюдо: ' . $item->name . '.';
+                    continue;
+                }
+
+                if (
+                    $mapping->last_iiko_price === null ||
+                    abs((float) $item->price - (float) $mapping->last_iiko_price) > 0.01
+                ) {
+                    $errors[] = 'Цена не подтверждена или отличается у блюда: ' . $item->name . '.';
+                }
+
+                if (
+                    !empty($mapping->metadata['has_modifiers']) ||
+                    !empty($mapping->metadata['has_multiple_sizes']) ||
+                    !empty($mapping->metadata['missing_from_menu']) ||
+                    $item->weight !== null
+                ) {
+                    $errors[] = 'Требует отдельной настройки модификаторов, размеров или веса: ' . $item->name . '.';
+                }
+            }
+        }
+
+        if ($errors !== []) {
+            return redirect()
+                ->route('organizations.iiko.index', $organization)
+                ->withErrors(['iiko_order_sync' => array_values(array_unique($errors))]);
+        }
+
+        $connection->update([
+            'order_sync_enabled' => true,
+            'last_error' => null,
+        ]);
+
+        $this->logger->record(
+            $connection,
+            'order_sync',
+            'success',
+            'Автоматическая передача поддерживаемых заказов включена.'
+        );
+
+        return redirect()
+            ->route('organizations.iiko.index', $organization)
+            ->with('success', 'Передача поддерживаемых заказов iiko включена. Dine-in заказы пока остаются в DAODES.');
+    }
+
+    public function disableOrderSync(Organization $organization): RedirectResponse
+    {
+        $connection = $this->connectionOrFail($organization);
+
+        $connection->update([
+            'order_sync_enabled' => false,
+        ]);
+
+        $this->logger->record(
+            $connection,
+            'order_sync',
+            'success',
+            'Автоматическая передача заказов выключена.'
+        );
+
+        return redirect()
+            ->route('organizations.iiko.index', $organization)
+            ->with('success', 'Автоматическая передача заказов iiko выключена.');
+    }
 
     public function configureWebhook(
         Organization $organization,
