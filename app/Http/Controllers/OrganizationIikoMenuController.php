@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\IikoConnection;
 use App\Models\IikoStopListItem;
+use App\Models\IikoMenuMapping;
+use App\Models\MenuItem;
 use App\Services\Iiko\IikoStopListService;
 use App\Models\Organization;
 use App\Services\Iiko\IikoMenuService;
@@ -31,6 +33,8 @@ class OrganizationIikoMenuController extends Controller
             'previewItems' => collect(),
             'menuPreview' => null,
             'stopListCount' => $connection ? IikoStopListItem::query()->where('organization_id', $organization->id)->count() : 0,
+            'localMenuItems' => $this->localMenuItems($organization),
+            'menuMappings' => collect(),
         ]);
     }
 
@@ -158,6 +162,12 @@ class OrganizationIikoMenuController extends Controller
                     'total_items' => $previewItems->count(),
                     'correlation_id' => $payload['correlationId'] ?? null,
                 ],
+                'localMenuItems' => $this->localMenuItems($organization),
+                'menuMappings' => IikoMenuMapping::query()
+                    ->with('menuItem')
+                    ->where('organization_id', $organization->id)
+                    ->get()
+                    ->keyBy('iiko_product_id'),
             ]);
         } catch (Throwable $exception) {
             report($exception);
@@ -186,6 +196,88 @@ class OrganizationIikoMenuController extends Controller
                 ->route('organizations.iiko.menu.index', $organization)
                 ->withErrors(['iiko_menu' => 'Не удалось обновить стоп-лист iiko. Предыдущий снимок сохранён без изменений.']);
         }
+    }
+
+
+    public function saveMapping(Request $request, Organization $organization): RedirectResponse
+    {
+        $validated = $request->validate([
+            'menu_item_id' => ['required', 'integer'],
+            'iiko_product_id' => ['required', 'uuid'],
+            'iiko_product_name' => ['required', 'string', 'max:255'],
+            'iiko_group_name' => ['nullable', 'string', 'max:255'],
+            'iiko_price' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $connection = $this->connectionOrFail($organization);
+
+        $menuItem = MenuItem::query()
+            ->whereKey($validated['menu_item_id'])
+            ->whereHas('section', fn ($query) => $query->where('organization_id', $organization->id))
+            ->firstOrFail();
+
+        try {
+            $payload = $this->menuService->externalMenu(
+                $connection,
+                (string) $connection->external_menu_id,
+                $connection->price_category_id
+            );
+
+            $productExists = collect($payload['itemsGroups'] ?? $payload['itemGroups'] ?? [])
+                ->flatMap(fn ($group) => is_array($group) ? ($group['items'] ?? []) : [])
+                ->contains(fn ($item) =>
+                    is_array($item) &&
+                    (string) ($item['productId'] ?? '') === $validated['iiko_product_id']
+                );
+
+            abort_unless($productExists, 422, 'Блюдо iiko не найдено в выбранном внешнем меню.');
+
+            $alreadyMapped = IikoMenuMapping::query()
+                ->where('organization_id', $organization->id)
+                ->where('iiko_product_id', $validated['iiko_product_id'])
+                ->where('menu_item_id', '!=', $menuItem->id)
+                ->exists();
+
+            abort_unless(!$alreadyMapped, 422, 'Это блюдо iiko уже сопоставлено с другой позицией DAODES.');
+
+            IikoMenuMapping::query()->updateOrCreate(
+                [
+                    'organization_id' => $organization->id,
+                    'menu_item_id' => $menuItem->id,
+                ],
+                [
+                    'iiko_product_id' => $validated['iiko_product_id'],
+                    'iiko_product_name' => $validated['iiko_product_name'],
+                    'external_menu_id' => $connection->external_menu_id,
+                    'price_category_id' => $connection->price_category_id,
+                    'last_iiko_price' => $validated['iiko_price'] ?? null,
+                    'last_checked_at' => now(),
+                    'metadata' => [
+                        'iiko_group_name' => $validated['iiko_group_name'] ?? null,
+                    ],
+                ]
+            );
+
+            return redirect()
+                ->route('organizations.iiko.menu.index', $organization)
+                ->with('success', 'Сопоставление сохранено. Каталог и цены DAODES не изменены.');
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('organizations.iiko.menu.index', $organization)
+                ->withErrors(['iiko_menu' => 'Не удалось сохранить сопоставление. Проверьте, что блюдо присутствует в выбранном меню iiko.']);
+        }
+    }
+
+    private function localMenuItems(Organization $organization): Collection
+    {
+        return MenuItem::query()
+            ->with('section:id,name')
+            ->whereHas('section', fn ($query) => $query->where('organization_id', $organization->id))
+            ->orderBy('menu_section_id')
+            ->orderBy('sort_order')
+            ->get();
     }
 
     private function connectionOrFail(Organization $organization): IikoConnection
