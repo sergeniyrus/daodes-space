@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class IikoConnection extends Model
 {
@@ -53,6 +54,16 @@ class IikoConnection extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function syncLogs(): HasMany
+    {
+        return $this->hasMany(IikoSyncLog::class, 'iiko_connection_id');
+    }
+
+    public function webhookEvents(): HasMany
+    {
+        return $this->hasMany(IikoWebhookEvent::class, 'iiko_connection_id');
     }
 
     public function tokenCacheKey(): string
