@@ -256,6 +256,10 @@
                         <small>Формат адреса iiko</small>
                         <strong>{{ $connection->address_format_type ?: 'Не определён — доставка не отправляется' }}</strong>
                     </div>
+                    <div>
+                        <small>Валюта iiko</small>
+                        <strong>{{ $connection->iiko_currency_iso_name ?: 'Не подтверждена — заказы не отправляются' }}</strong>
+                    </div>
                 </div>
                 <p class="iiko-help">Выбор сохранён, но передача заказов и синхронизация меню пока выключены до завершения следующих этапов интеграции.</p>
             </section>
