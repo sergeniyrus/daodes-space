@@ -1179,6 +1179,13 @@ Route::middleware('auth')
             ->middleware(['organization.manager', 'throttle:10,1'])
             ->name('iiko.menu.stop-list-sync');
 
+        Route::post(
+            '/{organization}/integrations/iiko/menu/mapping',
+            [OrganizationIikoMenuController::class, 'saveMapping']
+        )
+            ->middleware(['organization.manager', 'throttle:20,1'])
+            ->name('iiko.menu.mapping');
+
         // Управление количеством TV-экранов организации
         Route::post(
             '/{organization}/tv-screens',
