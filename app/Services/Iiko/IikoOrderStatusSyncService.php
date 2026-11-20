@@ -20,9 +20,9 @@ class IikoOrderStatusSyncService
         }
 
         $target = match ($status) {
-            'waitcooking', 'waiting' => Order::STATUS_CONFIRMED,
-            'cookingstarted', 'cooking' => Order::STATUS_PREPARING,
-            'cookingcompleted', 'readyforcourier', 'readyforpickup' => Order::STATUS_READY,
+            'waitcooking' => Order::STATUS_CONFIRMED,
+            'cookingstarted' => Order::STATUS_PREPARING,
+            'cookingcompleted' => Order::STATUS_READY,
             'onway', 'on_the_way' => Order::STATUS_IN_TRANSIT,
             'delivered' => $order->fulfillment_type === Order::FULFILLMENT_PICKUP
                 ? Order::STATUS_ISSUED
