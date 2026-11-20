@@ -429,7 +429,11 @@ class CustomerCheckoutController extends Controller
                 'requested_at' => 'Выбранное время находится за пределами графика работы заведения.',
             ]);
         }
-        if (!$settings->preorders_enabled && $requestedAt->gt($minimumOrderAt->copy()->addMinutes($settings->time_slot_minutes))) {
+        $slotMinutes = max(5, (int) ($settings->time_slot_minutes ?? 15));
+        $minimumSlotTime = Carbon::now($settings->timezoneName())
+            ->addMinutes($settings->minimumOrderLeadMinutes());
+        $minimumSlotTime->addMinutes(($slotMinutes - ($minimumSlotTime->minute % $slotMinutes)) % $slotMinutes)->second(0);
+        if (!$settings->preorders_enabled && $requestedAt->gt($minimumSlotTime->copy()->addMinutes($slotMinutes))) {
             throw ValidationException::withMessages([
                 'requested_at' => 'Предзаказ сейчас отключён. Выберите ближайшее доступное время.',
             ]);
@@ -634,7 +638,11 @@ class CustomerCheckoutController extends Controller
                     'requested_at' => 'Выбранное время находится за пределами графика работы заведения.',
                 ]);
             }
-            if (!$settings->preorders_enabled && $requestedAt->gt(Carbon::now($settings->timezoneName())->addMinutes($settings->minimumOrderLeadMinutes() + $settings->time_slot_minutes))) {
+            $slotMinutes = max(5, (int) ($settings->time_slot_minutes ?? 15));
+            $minimumSlotTime = Carbon::now($settings->timezoneName())
+                ->addMinutes($settings->minimumOrderLeadMinutes());
+            $minimumSlotTime->addMinutes(($slotMinutes - ($minimumSlotTime->minute % $slotMinutes)) % $slotMinutes)->second(0);
+            if (!$settings->preorders_enabled && $requestedAt->gt($minimumSlotTime->copy()->addMinutes($slotMinutes))) {
                 throw ValidationException::withMessages([
                     'requested_at' => 'Предзаказ сейчас отключён. Выберите ближайшее доступное время.',
                 ]);
