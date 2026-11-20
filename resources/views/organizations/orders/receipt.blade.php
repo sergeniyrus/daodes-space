@@ -133,6 +133,11 @@
         <div>Клиент: <strong>{{ $order->customer_name }}</strong></div>
         <div>Телефон: {{ $order->customer_phone }}</div>
 
+        @if($order->fulfillment_type === 'pickup')
+            <div style="margin-top: 2mm;">
+                Адрес самовывоза: <strong>{{ $order->pickup_address_snapshot ?: ($organization->orderSettings?->pickup_address ?? 'Не указан') }}</strong>
+            </div>
+        @endif
         @if($order->fulfillment_type === 'delivery')
             <div style="margin-top: 2mm;">
                 Адрес: {{ $order->delivery_address['address_line'] ?? 'Не указан' }}
