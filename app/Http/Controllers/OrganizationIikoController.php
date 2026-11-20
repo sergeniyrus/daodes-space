@@ -260,13 +260,19 @@ class OrganizationIikoController extends Controller
                     ]
                 );
 
-                $organizationSettings = collect($organizationSettingsPayload['organizations'] ?? [])
-                    ->first(fn ($settings) =>
-                        is_array($settings) &&
-                        (string) ($settings['organizationId'] ?? '') === $validated['iiko_organization_id']
-                    );
+                $organizationSettings = collect(
+                    $organizationSettingsPayload['organizations']
+                    ?? $organizationSettingsPayload['organizationSettings']
+                    ?? []
+                )->first(fn ($settings) =>
+                    is_array($settings) &&
+                    (string) ($settings['organizationId'] ?? $settings['id'] ?? '') === $validated['iiko_organization_id']
+                );
 
-                $addressFormatType = $organizationSettings['addressFormatType'] ?? null;
+                $addressFormatType = $organizationSettings['addressFormatType']
+                    ?? data_get($organizationSettings, 'settings.addressFormatType')
+                    ?? $organizationSettingsPayload['addressFormatType']
+                    ?? null;
             } catch (Throwable $settingsException) {
                 report($settingsException);
             }
