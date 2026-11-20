@@ -187,7 +187,7 @@
             @endswitch
         </p>
         <p id="customer-order-payment-status" class="customer-order-detail-muted">
-            Состояние оплаты: {{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}
+            Состояние оплаты: {{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}
         </p>
         @if($order->fulfillment_type === 'pickup')
             <div id="customer-pickup-action" style="margin-top: 15px;" @if($order->status !== 'ready') hidden @endif>
