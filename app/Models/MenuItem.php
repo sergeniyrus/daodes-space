@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Services\IPFSService;
 
 class MenuItem extends Model
@@ -74,5 +75,13 @@ class MenuItem extends Model
             'menu_section_id',
             'organization_id'
         );
+    }
+
+    /**
+     * Сопоставление блюда с iiko в рамках организации.
+     */
+    public function iikoMapping(): HasOne
+    {
+        return $this->hasOne(IikoMenuMapping::class, 'menu_item_id');
     }
 }
