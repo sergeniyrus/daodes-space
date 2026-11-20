@@ -317,7 +317,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
                     <span class="admin-order-number">Заказ №{{ $order->order_number }}</span>
                     <div class="admin-order-badges">
                         <span class="admin-order-badge">{{ $statusLabels[$order->status] ?? $order->status }}</span>
-                        <span class="admin-order-badge payment">{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</span>
+                        <span class="admin-order-badge payment">{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</span>
                     </div>
                 </div>
                 <div class="admin-order-customer">{{ $order->customer_name }} · {{ $order->customer_phone }}</div>
