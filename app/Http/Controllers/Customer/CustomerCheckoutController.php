@@ -659,7 +659,7 @@ class CustomerCheckoutController extends Controller
                 || (int) ($checkoutSnapshot['order_lead_minutes'] ?? 0) !== (int) ($settings->order_lead_minutes ?? 30)
                 || (int) ($checkoutSnapshot['pickup_min_minutes'] ?? 0) !== (int) ($settings->pickup_min_minutes ?? 0)
                 || (int) ($checkoutSnapshot['time_slot_minutes'] ?? 0) !== (int) ($settings->time_slot_minutes ?? 15)
-                || ($checkoutSnapshot['pickup_address'] ?? null) !== trim((string) $settings->pickup_address)
+                || ($validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP && ($checkoutSnapshot['pickup_address'] ?? null) !== trim((string) $settings->pickup_address))
                 || ($checkoutSnapshot['delivery_origin'] ?? null) !== [
                     'latitude' => $settings->delivery_origin_latitude,
                     'longitude' => $settings->delivery_origin_longitude,
