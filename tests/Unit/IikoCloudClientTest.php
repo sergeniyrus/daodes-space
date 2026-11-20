@@ -89,6 +89,34 @@ class IikoCloudClientTest extends TestCase
         Http::assertSentCount(4);
     }
 
+    public function test_api_exception_preserves_the_endpoint_for_safe_reconciliation(): void
+    {
+        Http::fakeSequence()
+            ->push(['token' => 'test-jwt-token'], 200)
+            ->push([
+                'correlationId' => 'create-order-correlation',
+                'error' => 'INTERNAL_ERROR',
+            ], 500);
+
+        try {
+            app(IikoCloudClient::class)->request(
+                $this->connection(),
+                'POST',
+                '/api/1/deliveries/create',
+                ['organizationId' => 'test-organization']
+            );
+
+            $this->fail('Expected iiko infrastructure failure.');
+        } catch (IikoApiException $exception) {
+            $this->assertSame(500, $exception->statusCode);
+            $this->assertSame('/api/1/deliveries/create', $exception->endpoint);
+            $this->assertSame(
+                'create-order-correlation',
+                data_get($exception->responseBody, 'correlationId')
+            );
+        }
+    }
+
     public function test_authentication_failure_throws_a_safe_api_exception(): void
     {
         Http::fake([
