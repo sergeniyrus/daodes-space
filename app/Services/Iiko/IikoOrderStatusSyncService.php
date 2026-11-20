@@ -70,6 +70,15 @@ class IikoOrderStatusSyncService
                 return null;
             }
 
+            // A late cancellation event must never roll back an order that
+            // has already been delivered, issued to the customer, or served.
+            if (
+                $target === Order::STATUS_CANCELLED &&
+                ($ranks[$lockedOrder->status] ?? -1) >= 6
+            ) {
+                return null;
+            }
+
             if (($ranks[$target] ?? -1) <= ($ranks[$lockedOrder->status] ?? -1)) {
                 return null;
             }
