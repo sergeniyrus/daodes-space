@@ -76,7 +76,7 @@ class CustomerCartController extends Controller
                 && $settings?->hasConfiguredDelivery() && $hasPaymentAtReceipt
                 && $item->delivery_enabled && $section->delivery_enabled;
             $pickupAvailable = $item !== null && $item->is_active && $section !== null
-                && $settings?->pickup_enabled && $hasPaymentAtReceipt
+                && $settings?->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt
                 && $item->pickup_enabled && $section->pickup_enabled;
             $dineInAvailable = $item !== null && $item->is_active && $section !== null
                 && (bool) ($settings?->dine_in_enabled)
@@ -123,7 +123,7 @@ class CustomerCartController extends Controller
 
         $hasPaymentAtReceipt = $settings->cash_payment_enabled || $settings->card_payment_enabled;
         $canAddDelivery = $settings->hasConfiguredDelivery() && $hasPaymentAtReceipt;
-        $canAddPickup = $settings->pickup_enabled && $hasPaymentAtReceipt;
+        $canAddPickup = $settings->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt;
         $canAddDineIn = $settings->dine_in_enabled;
 
         $validated = $request->validate([
@@ -257,7 +257,7 @@ class CustomerCartController extends Controller
             && $section !== null
             && (
                 ($settings?->hasConfiguredDelivery() && $hasPaymentAtReceipt && $menuItem->delivery_enabled && $section->delivery_enabled)
-                || ($settings?->pickup_enabled && $hasPaymentAtReceipt && $menuItem->pickup_enabled && $section->pickup_enabled)
+                || ($settings?->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt && $menuItem->pickup_enabled && $section->pickup_enabled)
                 || ($settings?->dine_in_enabled && $menuItem->dine_in_enabled && $section->dine_in_enabled)
             );
 
