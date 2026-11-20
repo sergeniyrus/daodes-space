@@ -81,7 +81,7 @@
         </div>
         <div class="row">
             <span>Статус оплаты</span>
-            <strong>{{ ['pending' => 'Ожидает оплаты', 'succeeded' => 'Оплачен', 'failed' => 'Ошибка оплаты', 'cancelled' => 'Отменён', 'refunded' => 'Возвращён'][$order->payment_status] ?? $order->payment_status }}</strong>
+            <strong>{{ ['pending' => ($order->payment_method === 'guest_account' ? 'Ожидает расчёта на кассе при выходе' : 'Ожидает оплаты'), 'succeeded' => 'Оплачен', 'failed' => 'Ошибка оплаты', 'cancelled' => 'Отменён', 'refunded' => 'Возвращён'][$order->payment_status] ?? $order->payment_status }}</strong>
         </div>
         @if($order->guest_card_identifier)
             <div class="row"><span>Браслет / карта сотрудника</span><strong>{{ $order->guest_card_identifier }}</strong></div>
