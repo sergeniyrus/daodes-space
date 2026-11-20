@@ -249,6 +249,9 @@ class OrganizationIikoController extends Controller
 
             abort_unless($availableGroup, 422, 'Терминальная группа больше недоступна для выбранной организации.');
 
+            $targetChanged = (string) $connection->iiko_organization_id !== $validated['iiko_organization_id']
+                || (string) $connection->terminal_group_id !== $validated['terminal_group_id'];
+
             // Preserve verified settings when the same target is reselected and
             // the settings endpoint is temporarily unavailable.
             $addressFormatType = $targetChanged ? null : $connection->address_format_type;
@@ -297,9 +300,6 @@ class OrganizationIikoController extends Controller
                     ->route('organizations.iiko.index', $organization)
                     ->withErrors(['iiko' => 'Эта организация iiko уже подключена к другой организации DAODES.']);
             }
-
-            $targetChanged = (string) $connection->iiko_organization_id !== $validated['iiko_organization_id']
-                || (string) $connection->terminal_group_id !== $validated['terminal_group_id'];
 
             $connectionUpdates = [
                 'iiko_organization_id' => $validated['iiko_organization_id'],
