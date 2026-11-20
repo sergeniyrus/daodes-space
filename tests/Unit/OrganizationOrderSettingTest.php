@@ -15,6 +15,13 @@ class OrganizationOrderSettingTest extends TestCase
             'orders_enabled' => false,
             'delivery_enabled' => true,
             'cash_payment_enabled' => true,
+            'pickup_enabled' => true,
+            'pickup_address' => 'Test street 1',
+            'working_hours' => array_fill_keys(range(1, 7), [
+                'enabled' => true,
+                'open' => '09:00',
+                'close' => '22:00',
+            ]),
         ]);
 
         $this->assertFalse($settings->canAcceptOrders());
@@ -22,16 +29,25 @@ class OrganizationOrderSettingTest extends TestCase
 
     public function test_orders_require_currency_and_fulfillment_method(): void
     {
+        $workingHours = array_fill_keys(range(1, 7), [
+            'enabled' => true,
+            'open' => '09:00',
+            'close' => '22:00',
+        ]);
+
         $missingCurrency = new OrganizationOrderSetting([
             'orders_enabled' => true,
-            'delivery_enabled' => true,
+            'pickup_enabled' => true,
+            'pickup_address' => 'Test street 1',
             'cash_payment_enabled' => true,
+            'working_hours' => $workingHours,
         ]);
 
         $missingFulfillment = new OrganizationOrderSetting([
             'currency' => 'EUR',
             'orders_enabled' => true,
             'cash_payment_enabled' => true,
+            'working_hours' => $workingHours,
         ]);
 
         $this->assertFalse($missingCurrency->canAcceptOrders());
@@ -44,9 +60,15 @@ class OrganizationOrderSettingTest extends TestCase
             'currency' => 'EUR',
             'orders_enabled' => true,
             'pickup_enabled' => true,
+            'pickup_address' => 'Test street 1',
             'online_payment_enabled' => true,
             'cash_payment_enabled' => false,
             'card_payment_enabled' => false,
+            'working_hours' => array_fill_keys(range(1, 7), [
+                'enabled' => true,
+                'open' => '09:00',
+                'close' => '22:00',
+            ]),
         ]);
 
         $this->assertFalse($settings->canAcceptOrders());
@@ -114,6 +136,41 @@ class OrganizationOrderSettingTest extends TestCase
 
         $this->assertFalse($settings->hasConfiguredWorkingHours());
         $this->assertFalse($settings->canAcceptOrders());
+    }
+
+    public function test_pickup_requires_an_address(): void
+    {
+        $settings = new OrganizationOrderSetting([
+            'currency' => 'EUR',
+            'orders_enabled' => true,
+            'pickup_enabled' => true,
+            'cash_payment_enabled' => true,
+            'working_hours' => array_fill_keys(range(1, 7), [
+                'enabled' => true,
+                'open' => '09:00',
+                'close' => '22:00',
+            ]),
+        ]);
+
+        $this->assertFalse($settings->canAcceptOrders());
+    }
+
+    public function test_dine_in_can_accept_guest_account_orders_without_receipt_payment_methods(): void
+    {
+        $settings = new OrganizationOrderSetting([
+            'currency' => 'EUR',
+            'orders_enabled' => true,
+            'dine_in_enabled' => true,
+            'cash_payment_enabled' => false,
+            'card_payment_enabled' => false,
+            'working_hours' => array_fill_keys(range(1, 7), [
+                'enabled' => true,
+                'open' => '09:00',
+                'close' => '22:00',
+            ]),
+        ]);
+
+        $this->assertTrue($settings->canAcceptOrders());
     }
 
 }
