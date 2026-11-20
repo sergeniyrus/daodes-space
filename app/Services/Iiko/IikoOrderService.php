@@ -45,6 +45,7 @@ class IikoOrderService
 
         $mappings = IikoMenuMapping::query()
             ->where('organization_id', $order->organization_id)
+            ->where('iiko_organization_id', $connection->iiko_organization_id)
             ->whereIn('menu_item_id', $orderMenuItemIds)
             ->get()
             ->keyBy('menu_item_id');
