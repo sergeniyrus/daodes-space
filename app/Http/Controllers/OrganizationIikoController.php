@@ -324,6 +324,7 @@ class OrganizationIikoController extends Controller
 
             $connection->update([
                 'webhook_enabled' => true,
+                'status_sync_enabled' => true,
                 'last_error' => null,
             ]);
 
