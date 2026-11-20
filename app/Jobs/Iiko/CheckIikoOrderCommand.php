@@ -26,7 +26,8 @@ class CheckIikoOrderCommand implements ShouldQueue
     public int $timeout = 60;
 
     public function __construct(
-        public readonly int $orderId
+        public readonly int $orderId,
+        public readonly int $pollCount = 1
     ) {
     }
 
@@ -69,13 +70,14 @@ class CheckIikoOrderCommand implements ShouldQueue
         }
 
         // Unknown or in-progress states are checked again using queue backoff.
-        if ($this->attempts() >= $this->tries) {
+        if ($this->pollCount >= 8) {
             $mapping->update([
                 'sync_status' => 'failed',
                 'last_error' => 'iiko не подтвердила результат создания заказа за отведённое время.',
             ]);
         } else {
-            self::dispatch($this->orderId)->delay(now()->addSeconds(15));
+            self::dispatch($this->orderId, $this->pollCount + 1)
+                ->delay(now()->addSeconds(15));
         }
     }
 
