@@ -516,7 +516,7 @@
                         required
                     >
                     <span class="customer-checkout-muted">
-                        Ближайшее время — не раньше чем через {{ $settings->minimumOrderLeadMinutes() }} минут. Время указано по {{ $settings->timezoneName() }}. Выбрать можно только время работы заведения.
+                        Ближайшее время — не раньше чем через {{ $minimumLeadMinutes }} минут. Время указано по {{ $settings->timezoneName() }}. Выбрать можно только время работы заведения.
                     </span>
                     @error('requested_at')
                         <span class="customer-checkout-error">{{ $message }}</span>
