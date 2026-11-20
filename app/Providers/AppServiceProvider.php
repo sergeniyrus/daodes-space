@@ -101,7 +101,7 @@ class AppServiceProvider extends ServiceProvider
                     $settings?->hasConfiguredDelivery()
                     && $hasPaymentAtReceipt
                 ),
-                'pickup' => (bool) ($settings?->pickup_enabled && $hasPaymentAtReceipt),
+                'pickup' => (bool) ($settings?->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt),
                 'dine_in' => (bool) $settings?->dine_in_enabled,
             ];
             $defaultFulfillment = $availableFulfillments['pickup']
