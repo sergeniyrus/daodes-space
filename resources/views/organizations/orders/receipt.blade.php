@@ -99,7 +99,7 @@
             <div class="receipt__organization">{{ $organization->name }}</div>
             <div class="receipt__muted">Заказ онлайн</div>
             <div class="receipt__heading">ЧЕК №{{ $order->order_number }}</div>
-            <div>{{ $order->created_at?->format('d.m.Y H:i') ?? '—' }}</div>
+            <div>{{ $order->created_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') ?? '—' }}</div>
         </header>
 
         <hr class="receipt__rule">
