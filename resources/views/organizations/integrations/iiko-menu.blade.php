@@ -127,16 +127,44 @@
                         <div class="iiko-menu-table-wrap">
                             <table class="iiko-menu-table">
                                 <thead>
-                                    <tr><th>Категория</th><th>Блюдо</th><th>Цена iiko</th><th>Модификаторы</th><th>Product ID</th></tr>
+                                    <tr><th>Категория</th><th>Блюдо iiko</th><th>Цена</th><th>Модификаторы</th><th>Сопоставление с DAODES</th></tr>
                                 </thead>
                                 <tbody>
                                     @foreach ($previewItems as $item)
                                         <tr>
                                             <td>{{ $item['group'] }}</td>
-                                            <td>{{ $item['name'] }}</td>
+                                            <td>
+                                                <strong>{{ $item['name'] }}</strong>
+                                                <div class="iiko-menu-muted">{{ $item['id'] }}</div>
+                                            </td>
                                             <td>{{ is_numeric($item['price']) ? number_format((float) $item['price'], 2, ',', ' ') : '—' }}</td>
                                             <td>{{ $item['has_modifiers'] ? 'Есть' : '—' }}</td>
-                                            <td><span class="iiko-menu-muted">{{ $item['id'] }}</span></td>
+                                            <td style="min-width:230px">
+                                                @php($existingMapping = $menuMappings->get($item['id']))
+                                                @if ($existingMapping)
+                                                    <div style="color:#76e1ad;font-size:.82rem;margin-bottom:7px">Сопоставлено: {{ $existingMapping->menuItem?->name ?? 'Блюдо DAODES' }}</div>
+                                                @endif
+                                                @if ($localMenuItems->isNotEmpty())
+                                                    <form method="POST" action="{{ route('organizations.iiko.menu.mapping', $organization) }}">
+                                                        @csrf
+                                                        <input type="hidden" name="iiko_product_id" value="{{ $item['id'] }}">
+                                                        <input type="hidden" name="iiko_product_name" value="{{ $item['name'] }}">
+                                                        <input type="hidden" name="iiko_group_name" value="{{ $item['group'] }}">
+                                                        <input type="hidden" name="iiko_price" value="{{ is_numeric($item['price']) ? $item['price'] : '' }}">
+                                                        <select name="menu_item_id" required style="margin-bottom:7px;min-height:36px;padding:6px;font-size:.8rem">
+                                                            <option value="">Выберите блюдо DAODES</option>
+                                                            @foreach ($localMenuItems as $localItem)
+                                                                <option value="{{ $localItem->id }}" @selected($existingMapping && $existingMapping->menu_item_id === $localItem->id)>
+                                                                    {{ $localItem->section?->name }} — {{ $localItem->name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                        <button class="iiko-menu-button" type="submit" style="min-height:34px;padding:6px 10px;font-size:.78rem">Сохранить связь</button>
+                                                    </form>
+                                                @else
+                                                    <span class="iiko-menu-muted">Сначала добавьте блюда в меню DAODES.</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
