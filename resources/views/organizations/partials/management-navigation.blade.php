@@ -34,6 +34,12 @@
             'active' => request()->routeIs('organizations.menu.*'),
         ],
         [
+            'label' => 'Интеграции',
+            'icon' => '⇄',
+            'url' => route('organizations.iiko.index', $organization),
+            'active' => request()->routeIs('organizations.iiko.*'),
+        ],
+        [
             'label' => 'TV-Экраны',
             'icon' => '▣',
             'url' => route('organizations.manage', $organization) . '#tv',
