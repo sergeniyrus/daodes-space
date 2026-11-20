@@ -2192,7 +2192,7 @@
         @enderror
 
         <div class="organization-order-hint">
-            Укажите валюту, включите нужные способы получения и оплаты. Онлайн-оплата станет доступна после подключения платёжного провайдера.
+            Для доставки и самовывоза нужна оплата наличными или терминалом при получении. Для заказа в заведении используется гостевой счёт — расчёт на кассе при выходе. Онлайн-оплата станет доступна после подключения платёжного провайдера.
         </div>
 
         <div class="organization-order-hint">
@@ -2219,20 +2219,41 @@
                         <span style="color: #ffb74d;">○ Включите «Принимать онлайн-заказы»</span>
                     @endif
                 </li>
-                <li>
-                    @if($orderSettings?->delivery_enabled || $orderSettings?->pickup_enabled || $orderSettings?->dine_in_enabled)
-                        <span style="color: #00e5a8;">✓ Способ получения выбран</span>
-                    @else
-                        <span style="color: #ffb74d;">○ Выберите доставку, самовывоз или заказ в заведении</span>
-                    @endif
-                </li>
-                <li>
-                    @if($orderSettings?->cash_payment_enabled || $orderSettings?->card_payment_enabled)
-                        <span style="color: #00e5a8;">✓ Оплата при получении включена</span>
-                    @else
-                        <span style="color: #ffb74d;">○ Включите наличные или терминал при получении</span>
-                    @endif
-                </li>
+                @php
+                    $hasReceiptPayment = $orderSettings
+                        && ($orderSettings->cash_payment_enabled || $orderSettings->card_payment_enabled);
+                    $hasValidDelivery = $orderSettings?->hasConfiguredDelivery() && $hasReceiptPayment;
+                    $hasValidPickup = $orderSettings?->pickup_enabled
+                        && $orderSettings->hasPickupAddress()
+                        && $hasReceiptPayment;
+                    $hasValidDineIn = (bool) $orderSettings?->dine_in_enabled;
+                @endphp
+                @if($orderSettings?->delivery_enabled)
+                    <li>
+                        @if($hasValidDelivery)
+                            <span style="color: #00e5a8;">✓ Доставка: точка, зоны и оплата настроены</span>
+                        @else
+                            <span style="color: #ffb74d;">○ Для доставки настройте точку, зоны и наличные/терминал</span>
+                        @endif
+                    </li>
+                @endif
+                @if($orderSettings?->pickup_enabled)
+                    <li>
+                        @if($hasValidPickup)
+                            <span style="color: #00e5a8;">✓ Самовывоз: адрес и оплата настроены</span>
+                        @else
+                            <span style="color: #ffb74d;">○ Для самовывоза укажите адрес и включите наличные/терминал</span>
+                        @endif
+                    </li>
+                @endif
+                @if($hasValidDineIn)
+                    <li>
+                        <span style="color: #00e5a8;">✓ Заказ в заведении: гостевой счёт, расчёт при выходе</span>
+                    </li>
+                @endif
+                @if(!$hasValidDelivery && !$hasValidPickup && !$hasValidDineIn)
+                    <li><span style="color: #ffb74d;">○ Настройте хотя бы один доступный способ получения заказа</span></li>
+                @endif
             </ul>
             @if(!$orderSettings?->canAcceptOrders())
                 <div style="margin-top: 8px; color: #ffb74d;">
