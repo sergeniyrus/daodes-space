@@ -187,6 +187,10 @@
                         <small>Терминальная группа</small>
                         <strong>{{ $connection->terminal_group_name ?: $connection->terminal_group_id }}</strong>
                     </div>
+                    <div>
+                        <small>Формат адреса iiko</small>
+                        <strong>{{ $connection->address_format_type ?: 'Не определён — доставка не отправляется' }}</strong>
+                    </div>
                 </div>
                 <p class="iiko-help">Выбор сохранён, но передача заказов и синхронизация меню пока выключены до завершения следующих этапов интеграции.</p>
             </section>
