@@ -67,6 +67,7 @@
     gap: 7px;
     width: 100%;
     max-width: none;
+    box-sizing: border-box;
     margin: 0 0 20px;
     padding: 8px;
     overflow-x: auto;
