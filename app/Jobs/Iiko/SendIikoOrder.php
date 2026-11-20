@@ -135,10 +135,42 @@ class SendIikoOrder implements ShouldQueue
         } catch (Throwable $exception) {
             $message = mb_substr($this->safeError($exception), 0, 2000);
 
+            // iiko documents 5xx as an infrastructure error: preserve its
+            // correlationId and reconcile instead of blindly repeating create.
+            if ($exception instanceof IikoApiException && $exception->statusCode >= 500) {
+                $correlationId = is_array($exception->responseBody)
+                    ? data_get($exception->responseBody, 'correlationId')
+                    : null;
+
+                $mapping->update([
+                    'correlation_id' => $correlationId ?: $mapping->correlation_id,
+                    'sync_status' => 'processing',
+                    'last_error' => $correlationId
+                        ? 'iiko вернула инфраструктурную ошибку. Результат проверяется по correlationId; повторная отправка заблокирована.'
+                        : 'iiko вернула инфраструктурную ошибку без correlationId. Повторная отправка заблокирована до ручной сверки.',
+                ]);
+
+                if (filled($correlationId)) {
+                    CheckIikoOrderCommand::dispatch($order->id)
+                        ->delay(now()->addSeconds(15));
+                }
+
+                app(IikoSyncLogger::class)->record(
+                    $connection,
+                    'order_send',
+                    'warning',
+                    $mapping->last_error,
+                    $correlationId,
+                    ['order_id' => $order->id]
+                );
+
+                return;
+            }
+
             $retryable = $exception instanceof ConnectionException
                 || (
                     $exception instanceof IikoApiException &&
-                    ($exception->statusCode === 429 || $exception->statusCode >= 500)
+                    in_array($exception->statusCode, [408, 429], true)
                 );
 
             if (!$retryable) {
