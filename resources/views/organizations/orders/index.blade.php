@@ -303,7 +303,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
     <section class="admin-orders-shell">
         <div class="admin-orders-list-head">
             <h2>Список заказов</h2>
-            <span class="admin-orders-count">Найдено: {{ $orders->total() }}</span>
+            <span class="admin-orders-count">Найдено заказов: {{ $orders->total() }}</span>
         </div>
 
         @forelse($orders as $order)
