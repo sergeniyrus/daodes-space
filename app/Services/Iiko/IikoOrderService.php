@@ -74,7 +74,7 @@ class IikoOrderService
                 !empty($mapping->metadata['has_modifiers']) ||
                 !empty($mapping->metadata['has_multiple_sizes']) ||
                 !empty($item->options) ||
-                $item->weight !== null
+                (float) $item->weight > 0
             ) {
                 throw new RuntimeException('Для блюда «' . $item->item_name . '» ещё не настроена передача модификаторов, размеров или веса iiko.');
             }
