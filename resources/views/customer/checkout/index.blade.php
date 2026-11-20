@@ -511,6 +511,7 @@
                         name="requested_at"
                         value="{{ old('requested_at', $requestedAtDefault) }}"
                         min="{{ $requestedAtMinimum }}"
+                        @if(!$settings->preorders_enabled) max="{{ $requestedAtMaximum }}" @endif
                         step="{{ max(5, (int) ($settings->time_slot_minutes ?? 15)) * 60 }}"
                         required
                     >
