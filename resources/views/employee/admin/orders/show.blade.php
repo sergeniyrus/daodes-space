@@ -75,7 +75,7 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
             <div class="admin-order-fact"><span>Дата создания</span><strong>{{ $order->created_at?->format('d.m.Y H:i:s') }}</strong></div>
             <div class="admin-order-fact"><span>Статус заказа</span><strong>{{ $statusLabels[$order->status] ?? $order->status }}</strong></div>
             <div class="admin-order-fact"><span>Способ получения</span><strong>{{ $fulfillmentLabels[$order->fulfillment_type] ?? $order->fulfillment_type }}</strong></div>
-            <div class="admin-order-fact"><span>Состояние оплаты</span><strong>{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</strong></div>
+            <div class="admin-order-fact"><span>Состояние оплаты</span><strong>{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</strong></div>
         </div>
     </section>
 
@@ -97,9 +97,10 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
         <section class="admin-order-shell">
             <h2>Оплата</h2>
             <div class="admin-order-info">
-                <p><strong>{{ $methodLabels[$order->payment_method] ?? $order->payment_method }}</strong></p>
+                <p><strong>{{ $order->payment_method === 'guest_account' ? 'На счёт гостя — расчёт при выходе' : ($methodLabels[$order->payment_method] ?? $order->payment_method) }}</strong></p>
                 <p class="admin-order-muted">{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</p>
-                @if($order->payment_status === 'pending' && $order->payment_method !== 'online' && $collectable)
+                @if($order->payment_status === 'pending' && $order->payment_method !== 'online'
+                && $order->payment_method !== 'guest_account' && $collectable)
                     <form method="POST" action="{{ route('employee.organization.admin.orders.payment',[$organization,$order]) }}" onsubmit="return confirm('Подтвердить фактическое получение оплаты?')">
                         @csrf
                         @method('PATCH')
