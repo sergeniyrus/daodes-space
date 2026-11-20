@@ -160,6 +160,7 @@ class CustomerCheckoutController extends Controller
             && ($settings->cash_payment_enabled || $settings->card_payment_enabled)
             && collect($lines)->every(fn ($line) => $line['available_delivery']);
         $canUsePickup = $settings->pickup_enabled
+            && $settings->hasPickupAddress()
             && ($settings->cash_payment_enabled || $settings->card_payment_enabled)
             && collect($lines)->every(fn ($line) => $line['available_pickup']);
         $canUseDineIn = $settings->dine_in_enabled
@@ -419,7 +420,7 @@ class CustomerCheckoutController extends Controller
 
         $fulfillmentEnabled = match ($validated['fulfillment_type']) {
             Order::FULFILLMENT_DELIVERY => $settings->delivery_enabled,
-            Order::FULFILLMENT_PICKUP => $settings->pickup_enabled,
+            Order::FULFILLMENT_PICKUP => $settings->pickup_enabled && $settings->hasPickupAddress(),
             Order::FULFILLMENT_DINE_IN => $settings->dine_in_enabled,
             default => false,
         };
