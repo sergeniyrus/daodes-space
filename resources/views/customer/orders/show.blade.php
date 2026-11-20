@@ -177,6 +177,11 @@
                 @default {{ $order->fulfillment_type }}
             @endswitch
         </p>
+        @if($order->fulfillment_type === 'pickup')
+            <p class="customer-order-detail-muted">
+                Адрес самовывоза: {{ $order->pickup_address_snapshot ?: ($order->organization?->orderSettings?->pickup_address ?? 'Уточните адрес у заведения') }}
+            </p>
+        @endif
         <p class="customer-order-detail-muted">
             Оплата:
             @switch($order->payment_method)
