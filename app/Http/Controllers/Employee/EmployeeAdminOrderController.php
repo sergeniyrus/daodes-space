@@ -119,7 +119,8 @@ class EmployeeAdminOrderController extends Controller
         ]);
 
         $period = $filters['period'] ?? 'month';
-        $now = now();
+        $timezone = $organization->orderSettings?->timezoneName() ?? config('app.timezone', 'UTC');
+        $now = now($timezone);
         $dateFrom = null;
         $dateTo = $now->copy()->endOfDay();
 
@@ -157,9 +158,12 @@ class EmployeeAdminOrderController extends Controller
                 break;
         }
 
+        $queryDateFrom = $dateFrom?->copy()->utc();
+        $queryDateTo = $dateTo?->copy()->utc();
+
         $periodQuery = $organization->orders()
-            ->when($dateFrom, fn ($q) => $q->where('created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->where('created_at', '<=', $dateTo));
+            ->when($queryDateFrom, fn ($q) => $q->where('created_at', '>=', $queryDateFrom))
+            ->when($queryDateTo, fn ($q) => $q->where('created_at', '<=', $queryDateTo));
 
         $summary = [
             'count' => (clone $periodQuery)->count(),
