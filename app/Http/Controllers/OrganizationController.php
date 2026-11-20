@@ -556,6 +556,10 @@ class OrganizationController extends Controller
             ]);
         }
 
+        // Онлайн-платёжный провайдер ещё не подключён: не сохраняем флаг,
+        // который мог бы создать впечатление, что онлайн-оплата уже работает.
+        $request->merge(['online_payment_enabled' => false]);
+
         $workingHours = $request->input('working_hours', []);
         if (!is_array($workingHours)) {
             $workingHours = [];
