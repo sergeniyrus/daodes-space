@@ -55,7 +55,7 @@ Route::prefix('staff')->name('employee.')->group(function () {
             ->name('organization.admin.overview');
 
         Route::get('/organizations/{organization}/admin/team', [
-            \\App\\Http\\Controllers\\Employee\\EmployeeAdminOrderController::class,
+            \App\Http\Controllers\Employee\EmployeeAdminOrderController::class,
             'team',
         ])
             ->middleware(['employee.organization', 'employee.role:admin'])
