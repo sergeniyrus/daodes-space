@@ -55,7 +55,7 @@
                 <div class="iiko-tables-card">
                     <h2>Сопоставление</h2>
                     @foreach ($restaurantTables as $table)
-                        @php($existing = $tableMappings->first(fn ($mapping) => $mapping->iiko_table_id === $table['id']))
+                        @php($existing = $tableMappings->first(fn ($mapping) => $mapping->iiko_table_id === $table['id'] && $mapping->terminal_group_id === $connection->terminal_group_id))
                         <form class="iiko-tables-form" method="POST" action="{{ route('organizations.iiko.tables.save', $organization) }}">
                             @csrf
                             <div>
