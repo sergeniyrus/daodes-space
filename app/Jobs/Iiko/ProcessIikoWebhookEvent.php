@@ -56,6 +56,19 @@ class ProcessIikoWebhookEvent implements ShouldQueue
             return;
         }
 
+        if (
+            $event->iiko_organization_id !== $connection->iiko_organization_id ||
+            $event->terminal_group_id !== $connection->terminal_group_id
+        ) {
+            $event->update([
+                'processing_status' => 'processed',
+                'processed_at' => now(),
+                'error_message' => 'Событие пропущено: подключение iiko или терминальная группа изменились после его получения.',
+            ]);
+
+            return;
+        }
+
         try {
             if ($event->event_type === 'StopListUpdate') {
                 $stopListService->synchronize($connection);
