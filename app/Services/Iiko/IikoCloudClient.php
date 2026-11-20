@@ -29,13 +29,13 @@ class IikoCloudClient
         $path = '/' . ltrim($path, '/');
 
         $response = $this->pendingRequest($connection)
-            ->send($method, $path, $payload === [] ? [] : ['json' => $payload]);
+            ->send($method, $path, ['json' => $payload]);
 
         if ($response->status() === 401) {
             $this->authService->forgetToken($connection);
 
             $response = $this->pendingRequest($connection)
-                ->send($method, $path, $payload === [] ? [] : ['json' => $payload]);
+                ->send($method, $path, ['json' => $payload]);
         }
 
         return $this->decodeResponse($response);
