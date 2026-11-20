@@ -278,7 +278,7 @@
             </div>
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Состояние оплаты</span>
-                <div class="organization-order-detail__value organization-order-detail__accent">{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</div>
+                <div class="organization-order-detail__value organization-order-detail__accent">{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</div>
             </div>
         
         </div>
