@@ -247,15 +247,18 @@ class CustomerCartController extends Controller
             ->first();
 
         $settings = $organization?->orderSettings;
+        $hasPaymentAtReceipt = $settings
+            && ($settings->cash_payment_enabled || $settings->card_payment_enabled);
 
         $available = $organizationId > 0
+            && $organization?->isActive()
             && isset($cart['items'][$menuItem->id])
             && $menuItem->is_active
             && $section !== null
             && (
-                ($settings?->delivery_enabled && $menuItem->delivery_enabled && $section->delivery_enabled)
-                || ($settings?->pickup_enabled && $menuItem->pickup_enabled && $section->pickup_enabled)
-                || $settings?->dine_in_enabled
+                ($settings?->hasConfiguredDelivery() && $hasPaymentAtReceipt && $menuItem->delivery_enabled && $section->delivery_enabled)
+                || ($settings?->pickup_enabled && $hasPaymentAtReceipt && $menuItem->pickup_enabled && $section->pickup_enabled)
+                || ($settings?->dine_in_enabled && $menuItem->dine_in_enabled && $section->dine_in_enabled)
             );
 
         abort_unless($available, 404);
