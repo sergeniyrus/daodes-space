@@ -27,6 +27,8 @@ class IikoAvailabilityService
         return IikoMenuMapping::query()
             ->where('organization_id', $organizationId)
             ->where('iiko_organization_id', $connection->iiko_organization_id)
+            ->where('external_menu_id', $connection->external_menu_id)
+            ->where('price_category_id', $connection->price_category_id)
             ->whereIn('iiko_product_id', IikoStopListItem::query()
                 ->select('iiko_product_id')
                 ->where('organization_id', $organizationId)
