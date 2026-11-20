@@ -11,6 +11,7 @@ class IikoTableMapping extends Model
 
     protected $fillable = [
         'organization_id',
+        'iiko_organization_id',
         'daodes_table_number',
         'iiko_table_id',
         'iiko_table_name',
