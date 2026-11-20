@@ -117,13 +117,27 @@ class IikoOrderService
                 );
             }
 
-            $orderPayload['deliveryPoint'] = [
-                'address' => [
-                    'type' => 'city',
-                    'line1' => mb_substr($addressLine, 0, 250),
-                ],
-                'comment' => $deliveryComment,
+            $deliveryAddress = [
+                'type' => 'city',
+                'line1' => mb_substr($addressLine, 0, 250),
             ];
+
+            foreach ([
+                'flat' => $address['apartment'] ?? null,
+                'entrance' => $address['entrance'] ?? null,
+                'floor' => $address['floor'] ?? null,
+                'doorphone' => $address['intercom'] ?? null,
+            ] as $field => $value) {
+                if (filled($value)) {
+                    $deliveryAddress[$field] = (string) $value;
+                }
+            }
+
+            $orderPayload['deliveryPoint'] = ['address' => $deliveryAddress];
+
+            if (filled($address['delivery_comment'] ?? null)) {
+                $orderPayload['deliveryPoint']['comment'] = (string) $address['delivery_comment'];
+            }
         }
 
         $request = [
