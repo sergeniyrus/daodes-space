@@ -43,7 +43,7 @@ class SendIikoOrder implements ShouldQueue
         return [
             (new WithoutOverlapping('iiko-order-' . $this->orderId))
                 ->expireAfter(180)
-                ->releaseAfter(10),
+                ->dontRelease(),
         ];
     }
 
