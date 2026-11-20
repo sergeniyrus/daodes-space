@@ -93,9 +93,15 @@ class AppServiceProvider extends ServiceProvider
             }
 
             $settings = $organization->orderSettings;
+            $hasPaymentAtReceipt = $settings
+                && ($settings->cash_payment_enabled || $settings->card_payment_enabled);
+
             $availableFulfillments = [
-                'delivery' => (bool) ($settings?->delivery_enabled && $settings?->hasConfiguredDelivery()),
-                'pickup' => (bool) $settings?->pickup_enabled,
+                'delivery' => (bool) (
+                    $settings?->hasConfiguredDelivery()
+                    && $hasPaymentAtReceipt
+                ),
+                'pickup' => (bool) ($settings?->pickup_enabled && $hasPaymentAtReceipt),
                 'dine_in' => (bool) $settings?->dine_in_enabled,
             ];
             $defaultFulfillment = $availableFulfillments['pickup']
@@ -112,11 +118,31 @@ class AppServiceProvider extends ServiceProvider
                 session([$fulfillmentSessionKey => $selectedFulfillment]);
             }
 
-            $sections = $organization->menuSections()
-                ->where('is_active', true)
-                ->with('activeItems')
+            $sectionsQuery = $organization->menuSections()
+                ->where('is_active', true);
+
+            if ($selectedFulfillment === 'delivery') {
+                $sectionsQuery->where('delivery_enabled', true);
+            } elseif ($selectedFulfillment === 'pickup') {
+                $sectionsQuery->where('pickup_enabled', true);
+            } elseif ($selectedFulfillment === 'dine_in') {
+                $sectionsQuery->where('dine_in_enabled', true);
+            }
+
+            $sections = $sectionsQuery
+                ->with(['activeItems' => function ($itemQuery) use ($selectedFulfillment) {
+                    if ($selectedFulfillment === 'delivery') {
+                        $itemQuery->where('delivery_enabled', true);
+                    } elseif ($selectedFulfillment === 'pickup') {
+                        $itemQuery->where('pickup_enabled', true);
+                    } elseif ($selectedFulfillment === 'dine_in') {
+                        $itemQuery->where('dine_in_enabled', true);
+                    }
+                }])
                 ->orderBy('sort_order')
-                ->get();
+                ->get()
+                ->filter(fn ($section) => $section->activeItems->isNotEmpty())
+                ->values();
 
             $cartCount = 0;
             $cartSubtotalCents = 0;
@@ -138,6 +164,8 @@ class AppServiceProvider extends ServiceProvider
                         $cartItemsQuery->where('pickup_enabled', true);
                     } elseif ($selectedFulfillment === 'dine_in') {
                         $cartItemsQuery->where('dine_in_enabled', true);
+                    } elseif (!$selectedFulfillment) {
+                        $cartItemsQuery->whereRaw('1 = 0');
                     }
 
                     $cartItems = $cartItemsQuery
