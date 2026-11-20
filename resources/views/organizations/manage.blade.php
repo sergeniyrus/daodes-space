@@ -1958,7 +1958,7 @@
                             $dayHours = $workingHoursValues[$dayNumber] ?? [];
                             $dayEnabled = old("working_hours.$dayNumber.enabled", $dayHours['enabled'] ?? ($orderSettings?->working_hours === null));
                         @endphp
-                        <div style="display:grid; grid-template-columns:minmax(120px,1fr) auto minmax(105px,130px) minmax(105px,130px); align-items:center; gap:9px; padding:8px 10px; border:1px solid rgba(255,215,0,.12); border-radius:9px;">
+                        <div style="display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:9px; padding:8px 10px; border:1px solid rgba(255,215,0,.12); border-radius:9px;">
                             <strong style="color:#e8eaf0;">{{ $dayName }}</strong>
                             <label style="display:flex; align-items:center; gap:6px; color:#00e5d4; white-space:nowrap;">
                                 <input type="checkbox" name="working_hours[{{ $dayNumber }}][enabled]" value="1" @checked($dayEnabled)>
@@ -2399,7 +2399,7 @@ document.addEventListener('DOMContentLoaded', function () {
  if(panels.some(panel=>panel.dataset.tabPanel===hashTab))initialTab=hashTab;
  @if($errors->has('screen_name') || $errors->has('background_fit') || $errors->has('rotation_seconds'))
  initialTab='tv';
- @elseif($errors->has('currency') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled') || $errors->has('delivery_zones') || $errors->has('delivery_origin_latitude') || $errors->has('delivery_origin_longitude'))
+ @elseif($errors->has('currency') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled') || $errors->has('delivery_zones') || $errors->has('delivery_origin_latitude') || $errors->has('delivery_origin_longitude') || $errors->has('working_hours') || $errors->has('timezone') || $errors->has('order_lead_minutes') || $errors->has('time_slot_minutes'))
  initialTab='settings';
  @elseif($errors->has('name') || $errors->has('phone') || $errors->has('role') || $errors->has('user_id'))
  initialTab='team';
