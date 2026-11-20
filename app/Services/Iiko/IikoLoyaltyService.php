@@ -67,7 +67,7 @@ class IikoLoyaltyService
             throw new InvalidArgumentException('Для расчёта скидки iiko требуется телефон в международном формате.');
         }
 
-        if (empty($order['customer']['id']) || empty($order['items']) || empty($order['orderServiceType'])) {
+        if (empty($order['customer']['id']) || empty($order['items']) || (empty($order['orderServiceType']) && empty($order['orderTypeId']))) {
             throw new InvalidArgumentException('Для расчёта скидки iiko нужны гость, позиции и тип заказа.');
         }
 
