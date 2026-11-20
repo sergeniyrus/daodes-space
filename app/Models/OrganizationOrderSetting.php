@@ -101,6 +101,10 @@ class OrganizationOrderSetting extends Model
             }
 
             if (!empty($hours['enabled'])) {
+                if ((string) $hours['open'] === (string) $hours['close']) {
+                    return false;
+                }
+
                 $hasOpenDay = true;
             }
         }
