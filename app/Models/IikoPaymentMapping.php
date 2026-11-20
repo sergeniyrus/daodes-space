@@ -11,6 +11,7 @@ class IikoPaymentMapping extends Model
 
     protected $fillable = [
         'organization_id',
+        'iiko_organization_id',
         'daodes_payment_method',
         'iiko_payment_type_id',
         'iiko_payment_type_name',
