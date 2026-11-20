@@ -13,6 +13,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Throwable;
 
 class SendIikoOrder implements ShouldQueue
@@ -33,6 +34,19 @@ class SendIikoOrder implements ShouldQueue
     public function __construct(
         public readonly int $orderId
     ) {
+    }
+
+    /**
+     * Do not let duplicate queue deliveries submit the same order concurrently.
+     * The lock expires after the maximum job runtime plus a safety margin.
+     */
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping('iiko-order-' . $this->orderId))
+                ->expireAfter(180)
+                ->releaseAfter(10),
+        ];
     }
 
     public function handle(IikoOrderService $orderService): void
