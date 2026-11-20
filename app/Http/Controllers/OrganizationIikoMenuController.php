@@ -54,7 +54,7 @@ class OrganizationIikoMenuController extends Controller
                 ->map(fn ($menu) => [
                     'id' => (string) ($menu['externalMenuId'] ?? $menu['id'] ?? ''),
                     'name' => (string) ($menu['name'] ?? $menu['externalMenuName'] ?? 'Внешнее меню iiko'),
-                    'price_categories' => collect($menu['priceCategories'] ?? [])
+                    'price_categories' => collect($menu['priceCategories'] ?? $payload['priceCategories'] ?? [])
                         ->filter(fn ($category) => is_array($category) && !empty($category['id']))
                         ->map(fn ($category) => [
                             'id' => (string) $category['id'],
@@ -129,7 +129,7 @@ class OrganizationIikoMenuController extends Controller
 
             abort_unless($selectedMenu, 422, 'Выбранное внешнее меню больше недоступно.');
 
-            $priceCategories = collect($selectedMenu['priceCategories'] ?? [])
+            $priceCategories = collect($selectedMenu['priceCategories'] ?? $menusPayload['priceCategories'] ?? [])
                 ->filter(fn ($category) => is_array($category) && !empty($category['id']))
                 ->map(fn ($category) => [
                     'id' => (string) $category['id'],
