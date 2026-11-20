@@ -4,6 +4,8 @@ namespace App\Jobs\Iiko;
 
 use App\Models\IikoOrderMapping;
 use App\Models\Order;
+use App\Exceptions\IikoApiException;
+use Illuminate\Http\Client\ConnectionException;
 use App\Services\Iiko\IikoOrderService;
 use App\Services\Iiko\IikoSyncLogger;
 use Illuminate\Bus\Queueable;
@@ -102,9 +104,35 @@ class SendIikoOrder implements ShouldQueue
                     ->delay(now()->addSeconds(5));
             }
         } catch (Throwable $exception) {
+            $message = mb_substr($this->safeError($exception), 0, 2000);
+
+            $retryable = $exception instanceof ConnectionException
+                || (
+                    $exception instanceof IikoApiException &&
+                    ($exception->statusCode === 429 || $exception->statusCode >= 500)
+                );
+
+            if (!$retryable) {
+                $mapping->update([
+                    'sync_status' => 'failed',
+                    'last_error' => $message,
+                ]);
+
+                app(IikoSyncLogger::class)->record(
+                    $connection,
+                    'order_send',
+                    'failed',
+                    $message,
+                    null,
+                    ['order_id' => $order->id]
+                );
+
+                return;
+            }
+
             $mapping->update([
                 'sync_status' => 'pending',
-                'last_error' => mb_substr($this->safeError($exception), 0, 2000),
+                'last_error' => $message,
             ]);
 
             throw $exception;
