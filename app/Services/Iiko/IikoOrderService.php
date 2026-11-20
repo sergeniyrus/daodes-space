@@ -39,6 +39,10 @@ class IikoOrderService
             throw new RuntimeException('В заказе есть блюдо, которое попало в актуальный стоп-лист iiko.');
         }
 
+        if (!str_starts_with(trim((string) $order->customer_phone), '+')) {
+            throw new RuntimeException('Телефон клиента для iiko должен быть в международном формате и начинаться с +.');
+        }
+
         $mappings = IikoMenuMapping::query()
             ->where('organization_id', $order->organization_id)
             ->whereIn('menu_item_id', $orderMenuItemIds)
