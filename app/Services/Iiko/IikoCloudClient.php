@@ -38,7 +38,7 @@ class IikoCloudClient
                 ->send($method, $path, ['json' => $payload]);
         }
 
-        return $this->decodeResponse($response);
+        return $this->decodeResponse($response, $path);
     }
 
     private function pendingRequest(IikoConnection $connection): PendingRequest
@@ -51,7 +51,7 @@ class IikoCloudClient
             ->connectTimeout((int) config('iiko.connect_timeout', 5));
     }
 
-    private function decodeResponse(Response $response): array
+    private function decodeResponse(Response $response, string $path): array
     {
         $payload = $response->json();
 
@@ -59,7 +59,8 @@ class IikoCloudClient
             throw new IikoApiException(
                 'Ошибка запроса к iikoCloud.',
                 $response->status(),
-                is_array($payload) ? $payload : $response->body()
+                is_array($payload) ? $payload : $response->body(),
+                $path
             );
         }
 
@@ -71,7 +72,8 @@ class IikoCloudClient
             throw new IikoApiException(
                 'iikoCloud вернул ответ в неожиданном формате.',
                 $response->status(),
-                $response->body()
+                $response->body(),
+                $path
             );
         }
 
