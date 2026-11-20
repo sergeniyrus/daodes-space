@@ -763,7 +763,7 @@ class CustomerCheckoutController extends Controller
                     ? ($validated['table_number'] ?? null)
                     : null,
                 'requested_at' => !empty($validated['requested_at'])
-                    ? Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at'], 'Asia/Krasnoyarsk')->utc()
+                    ? Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at'], $settings->timezoneName())->utc()
                     : null,
                 'subtotal' => $this->fromCents($subtotalCents),
                 'delivery_fee' => $this->fromCents($deliveryFeeCents),
