@@ -14,6 +14,7 @@ return [
     'base_url' => env('IIKO_BASE_URL', 'https://api-ru.iiko.services'),
     'app_id' => env('IIKO_APP_ID'),
     'client_secret' => env('IIKO_CLIENT_SECRET'),
+    'source_key' => env('IIKO_SOURCE_KEY'),
     'webhook_url' => env('IIKO_WEBHOOK_URL', 'https://daodes.space/api/integrations/iiko/webhook'),
     'timeout' => (int) env('IIKO_TIMEOUT', 20),
     'connect_timeout' => (int) env('IIKO_CONNECT_TIMEOUT', 5),
