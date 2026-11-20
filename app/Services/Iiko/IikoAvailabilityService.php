@@ -18,7 +18,7 @@ class IikoAvailabilityService
         $connection = IikoConnection::query()
             ->where('organization_id', $organizationId)
             ->where('stop_list_sync_enabled', true)
-            ->first(['id', 'iiko_organization_id']);
+            ->first();
 
         if (!$connection || !$connection->iiko_organization_id) {
             return [];
