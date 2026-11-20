@@ -95,4 +95,24 @@ class OrganizationOrderSettingTest extends TestCase
         );
     }
 
+    public function test_enabled_working_day_cannot_have_identical_open_and_close_times(): void
+    {
+        $workingHours = array_fill_keys(range(1, 7), [
+            'enabled' => true,
+            'open' => '09:00',
+            'close' => '09:00',
+        ]);
+
+        $settings = new OrganizationOrderSetting([
+            'orders_enabled' => true,
+            'currency' => 'EUR',
+            'pickup_enabled' => true,
+            'cash_payment_enabled' => true,
+            'working_hours' => $workingHours,
+        ]);
+
+        $this->assertFalse($settings->hasConfiguredWorkingHours());
+        $this->assertFalse($settings->canAcceptOrders());
+    }
+
 }
