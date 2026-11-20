@@ -72,20 +72,6 @@
             </div>
         </div>
 
-        @if($courierMemberships->isNotEmpty())
-            <div class="admin-overview-money">
-                <strong style="float:none;color:#00e5d4">Загрузка курьеров</strong>
-                <div style="margin-top:10px;display:grid;gap:8px">
-                    @foreach($courierMemberships as $membership)
-                        <div style="display:flex;justify-content:space-between;gap:12px;color:#c5d0dc">
-                            <span>{{ $membership->employee->name }}</span>
-                            <b>{{ $membership->employee->active_delivery_orders_count }} в доставке</b>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        @endif
-
         <div class="admin-overview-money">
             Получено оплат сегодня
             <strong>{{ number_format((float) $paidToday, 2, ',', ' ') }} {{ $orderSettings?->currency ?? 'EUR' }}</strong>
