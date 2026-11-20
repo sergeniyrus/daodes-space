@@ -297,7 +297,7 @@ class OrganizationOrderController extends Controller
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'in:new,awaiting_payment,confirmed,preparing,ready,handed_to_courier,in_transit,issued,served,delivered,completed,cancelled'],
             'fulfillment_type' => ['nullable', 'in:delivery,pickup,dine_in'],
-            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt'],
+            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt,guest_account'],
             'payment_status' => ['nullable', 'in:pending,succeeded,failed,cancelled,refunded'],
         ]);
 
