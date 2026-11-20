@@ -25,7 +25,7 @@
     IIKO_ALLOW_ONLINE_PAYMENT_ORDERS=false
     IIKO_WEBHOOK_URL=https://daodes.space/api/integrations/iiko/webhook
 
-Не помещать реальные секреты в GitHub, миграции, логи или Blade.
+Не помещать реальные секреты в GitHub, миграции, логи или Blade. API Key и webhook authToken зашифрованы ключом APP_KEY: перед ротацией APP_KEY нужно отдельно расшифровать и повторно зашифровать сохранённые секреты.
 
 После изменения .env обновить конфигурационный кэш штатным способом проекта.
 
