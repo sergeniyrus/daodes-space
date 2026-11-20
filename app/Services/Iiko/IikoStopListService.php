@@ -49,6 +49,7 @@ class IikoStopListService
             ->filter(fn ($item) => is_array($item) && filled($item['productId'] ?? null))
             ->map(fn ($item) => [
                 'organization_id' => $connection->organization_id,
+                'iiko_organization_id' => $connection->iiko_organization_id,
                 'iiko_product_id' => (string) $item['productId'],
                 'balance' => (float) ($item['balance'] ?? 0),
                 'is_available' => false,
