@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\OrganizationOrderSetting;
+use Carbon\Carbon;
 use PHPUnit\Framework\TestCase;
 
 class OrganizationOrderSettingTest extends TestCase
@@ -68,4 +69,30 @@ class OrganizationOrderSettingTest extends TestCase
 
         $this->assertTrue($settings->canAcceptOrders());
     }
+    public function test_overnight_hours_remain_open_after_midnight_even_when_the_next_day_is_disabled(): void
+    {
+        $workingHours = array_fill_keys(range(1, 7), [
+            'enabled' => false,
+            'open' => '09:00',
+            'close' => '18:00',
+        ]);
+        $workingHours[4] = [
+            'enabled' => true,
+            'open' => '18:00',
+            'close' => '02:00',
+        ];
+
+        $settings = new OrganizationOrderSetting([
+            'working_hours' => $workingHours,
+            'timezone' => 'Asia/Krasnoyarsk',
+        ]);
+
+        $this->assertTrue(
+            $settings->isWithinWorkingHours(Carbon::create(2026, 11, 20, 1, 0, 0, 'Asia/Krasnoyarsk'))
+        );
+        $this->assertFalse(
+            $settings->isWithinWorkingHours(Carbon::create(2026, 11, 20, 3, 0, 0, 'Asia/Krasnoyarsk'))
+        );
+    }
+
 }
