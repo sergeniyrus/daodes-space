@@ -27,6 +27,7 @@ class OrganizationIikoController extends Controller
         return view('organizations.integrations.iiko', [
             'organization' => $organization,
             'connection' => $connection,
+            'syncLogs' => $organization->iikoSyncLogs()->latest('id')->limit(10)->get(),
             'iikoOrganizations' => [],
             'terminalGroups' => [],
         ]);
