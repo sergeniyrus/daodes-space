@@ -78,6 +78,8 @@ class IikoWebhookController extends Controller
             $inserted = DB::table('iiko_webhook_events')->insertOrIgnore([
                 'organization_id' => $connection->organization_id,
                 'iiko_connection_id' => $connection->id,
+                'iiko_organization_id' => $connection->iiko_organization_id,
+                'terminal_group_id' => $connection->terminal_group_id,
                 'event_key' => $eventKey,
                 'event_type' => $eventType,
                 'iiko_order_id' => $iikoOrderId,
