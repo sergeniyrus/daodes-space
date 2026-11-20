@@ -246,10 +246,10 @@ class OrganizationIikoController extends Controller
 
             abort_unless($availableGroup, 422, 'Терминальная группа больше недоступна для выбранной организации.');
 
-            // Organization settings are useful for address formatting, but a missing
-            // permission must not prevent the manager from saving the restaurant/terminal.
-            $addressFormatType = null;
-            $iikoCurrency = null;
+            // Preserve verified settings when the same target is reselected and
+            // the settings endpoint is temporarily unavailable.
+            $addressFormatType = $targetChanged ? null : $connection->address_format_type;
+            $iikoCurrency = $targetChanged ? null : $connection->iiko_currency_iso_name;
 
             try {
                 $organizationSettingsPayload = $this->iiko->request(
