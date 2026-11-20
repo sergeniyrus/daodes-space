@@ -504,16 +504,18 @@
                     Адрес самовывоза
                     <strong>{{ $settings->pickup_address ?: 'Адрес уточняется у организации' }}</strong>
                 </div>
-                <label class="customer-checkout-field" id="customer-pickup-time-field" @if($selectedFulfillment !== 'pickup') hidden @endif>
-                    Время самовывоза
+                <label class="customer-checkout-field" id="customer-order-time-field">
+                    Дата и время заказа
                     <input
                         type="datetime-local"
                         name="requested_at"
-                        value="{{ old('requested_at', now('Asia/Krasnoyarsk')->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->ceilUnit('minute')->format('Y-m-d\TH:i')) }}"
-                        min="{{ now('Asia/Krasnoyarsk')->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->ceilUnit('minute')->format('Y-m-d\TH:i') }}"
+                        value="{{ old('requested_at', $requestedAtDefault) }}"
+                        min="{{ $requestedAtMinimum }}"
+                        step="{{ max(5, (int) ($settings->time_slot_minutes ?? 15)) * 60 }}"
+                        required
                     >
                     <span class="customer-checkout-muted">
-                        Минимальное время приготовления — 30 минут. Время указано по Красноярску (UTC+7).
+                        Ближайшее время — не раньше чем через {{ $settings->minimumOrderLeadMinutes() }} минут. Время указано по {{ $settings->timezoneName() }}. Выбрать можно только время работы заведения.
                     </span>
                     @error('requested_at')
                         <span class="customer-checkout-error">{{ $message }}</span>
@@ -678,30 +680,28 @@
             <div class="customer-checkout-panel customer-checkout-section-panel">
             <h2 class="customer-checkout-title">Способ оплаты</h2>
 
-            <div class="customer-checkout-options customer-checkout-payment-options">
+            <div id="customer-payment-options" class="customer-checkout-options customer-checkout-payment-options" @if($selectedFulfillment === 'dine_in') hidden @endif>
                 @if($settings->cash_payment_enabled)
                     <label>
-                        <input
-                            type="radio"
-                            name="payment_method"
-                            value="cash_on_receipt"
-                            @checked(old('payment_method', $settings->cash_payment_enabled ? 'cash_on_receipt' : 'card_on_receipt') === 'cash_on_receipt')
-                        >
+                        <input type="radio" name="payment_method" value="cash_on_receipt"
+                            @checked(old('payment_method', $settings->cash_payment_enabled ? 'cash_on_receipt' : 'card_on_receipt') === 'cash_on_receipt')>
                         💵 Наличные при получении
                     </label>
                 @endif
-
                 @if($settings->card_payment_enabled)
                     <label>
-                        <input
-                            type="radio"
-                            name="payment_method"
-                            value="card_on_receipt"
-                            @checked(old('payment_method', $settings->cash_payment_enabled ? 'cash_on_receipt' : 'card_on_receipt') === 'card_on_receipt')
-                        >
+                        <input type="radio" name="payment_method" value="card_on_receipt"
+                            @checked(old('payment_method', $settings->cash_payment_enabled ? 'cash_on_receipt' : 'card_on_receipt') === 'card_on_receipt')>
                         💳 Терминал при получении
                     </label>
                 @endif
+            </div>
+
+            <input type="hidden" name="payment_method" id="customer-guest-account-payment"
+                value="guest_account" @if($selectedFulfillment !== 'dine_in') disabled @endif>
+
+            <div id="customer-guest-account-note" class="customer-checkout-note" @if($selectedFulfillment !== 'dine_in') hidden @endif>
+                Оплата наличными и банковской картой при оформлении не требуется. Заказ будет записан на браслет или карту сотрудника, а расчёт произойдёт на кассе при выходе. Подтверждение фактической оплаты через iiko подключим отдельно.
             </div>
 
             @if($settings->online_payment_enabled)
@@ -735,9 +735,12 @@
 (() => {
     const addressPanel = document.getElementById('customer-delivery-address-panel');
     const deliverySummary = document.getElementById('customer-delivery-summary');
-    const pickupTimeField = document.getElementById('customer-pickup-time-field');
+    const orderTimeField = document.getElementById('customer-order-time-field');
     const pickupAddressField = document.getElementById('customer-pickup-address-field');
     const requestedAt = document.querySelector('input[name="requested_at"]');
+    const paymentOptions = document.getElementById('customer-payment-options');
+    const guestAccountPayment = document.getElementById('customer-guest-account-payment');
+    const guestAccountNote = document.getElementById('customer-guest-account-note');
     const dineInField = document.getElementById('customer-dine-in-field');
     const fulfillmentInputs = document.querySelectorAll('input[name="fulfillment_type"]');
     const saveAddress = document.getElementById('customer-save-address');
@@ -847,9 +850,13 @@
         const isDineIn = fulfillmentType === 'dine_in';
         if (addressPanel) addressPanel.hidden = !isDelivery;
         if (deliverySummary) deliverySummary.hidden = !isDelivery;
-        if (pickupTimeField) pickupTimeField.hidden = !isPickup;
+        if (orderTimeField) orderTimeField.hidden = false;
         if (pickupAddressField) pickupAddressField.hidden = !isPickup;
-        if (requestedAt) requestedAt.required = isPickup;
+        if (requestedAt) requestedAt.required = true;
+        if (paymentOptions) paymentOptions.hidden = isDineIn;
+        if (guestAccountPayment) guestAccountPayment.disabled = !isDineIn;
+        if (guestAccountNote) guestAccountNote.hidden = !isDineIn;
+        paymentOptions?.querySelectorAll('input[name="payment_method"]').forEach(input => { input.disabled = isDineIn; });
         if (dineInField) dineInField.hidden = !isDineIn;
         if (addressFields.address_line) addressFields.address_line.required = isDelivery;
         if (isDelivery && deliveryMap) {
