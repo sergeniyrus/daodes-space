@@ -12,6 +12,8 @@ class IikoWebhookEvent extends Model
     protected $fillable = [
         'organization_id',
         'iiko_connection_id',
+        'iiko_organization_id',
+        'terminal_group_id',
         'event_key',
         'event_type',
         'iiko_order_id',
