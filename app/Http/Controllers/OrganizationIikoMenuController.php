@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\IikoConnection;
+use App\Models\IikoStopListItem;
+use App\Services\Iiko\IikoStopListService;
 use App\Models\Organization;
 use App\Services\Iiko\IikoMenuService;
 use Illuminate\Http\RedirectResponse;
@@ -14,7 +16,8 @@ use Throwable;
 class OrganizationIikoMenuController extends Controller
 {
     public function __construct(
-        private readonly IikoMenuService $menuService
+        private readonly IikoMenuService $menuService,
+        private readonly IikoStopListService $stopListService
     ) {
     }
 
@@ -27,6 +30,7 @@ class OrganizationIikoMenuController extends Controller
             'priceCategories' => collect(),
             'previewItems' => collect(),
             'menuPreview' => null,
+            'stopListCount' => $connection ? IikoStopListItem::query()->where('organization_id', $organization->id)->count() : 0,
         ]);
     }
 
@@ -161,6 +165,26 @@ class OrganizationIikoMenuController extends Controller
             return redirect()
                 ->route('organizations.iiko.menu.index', $organization)
                 ->withErrors(['iiko_menu' => 'Не удалось загрузить меню iiko. Проверьте внешнее меню, ценовую категорию и права API Key.']);
+        }
+    }
+
+
+    public function synchronizeStopList(Organization $organization): RedirectResponse
+    {
+        $connection = $this->connectionOrFail($organization);
+
+        try {
+            $count = $this->stopListService->synchronize($connection);
+
+            return redirect()
+                ->route('organizations.iiko.menu.index', $organization)
+                ->with('success', 'Стоп-лист iiko обновлён. Временно недоступных позиций: ' . $count . '.');
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('organizations.iiko.menu.index', $organization)
+                ->withErrors(['iiko_menu' => 'Не удалось обновить стоп-лист iiko. Предыдущий снимок сохранён без изменений.']);
         }
     }
 
