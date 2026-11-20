@@ -266,6 +266,12 @@ class CustomerCheckoutController extends Controller
             'organization_id' => $organization->id,
             'prices' => $priceSnapshot,
             'currency' => $settings->currency,
+            'working_hours' => $settings->working_hours,
+            'timezone' => $settings->timezoneName(),
+            'preorders_enabled' => (bool) $settings->preorders_enabled,
+            'order_lead_minutes' => (int) ($settings->order_lead_minutes ?? 30),
+            'pickup_min_minutes' => (int) ($settings->pickup_min_minutes ?? 0),
+            'time_slot_minutes' => (int) ($settings->time_slot_minutes ?? 15),
             'delivery_origin' => $deliveryOrigin,
             'delivery_zones' => $deliveryZones->map(fn ($zone) => [
                 'max_distance_km' => (string) $zone->max_distance_km,
@@ -550,6 +556,48 @@ class CustomerCheckoutController extends Controller
                 ]);
             }
 
+            // Повторно проверяем время по заблокированным настройкам:
+            // график, часовой пояс или шаг слотов могли измениться после открытия checkout.
+            $requestedAt = Carbon::createFromFormat(
+                'Y-m-d\\TH:i',
+                $validated['requested_at'],
+                $settings->timezoneName()
+            );
+            $minimumLeadMinutes = $settings->minimumOrderLeadMinutes($validated['fulfillment_type']);
+            $slotMinutes = max(5, (int) ($settings->time_slot_minutes ?? 15));
+
+            if ($requestedAt->lt(Carbon::now($settings->timezoneName())->addMinutes($minimumLeadMinutes))) {
+                throw ValidationException::withMessages([
+                    'requested_at' => 'Заказ можно запланировать не раньше чем через ' . $minimumLeadMinutes . ' минут от текущего времени.',
+                ]);
+            }
+
+            if (((int) $requestedAt->format('i')) % $slotMinutes !== 0) {
+                throw ValidationException::withMessages([
+                    'requested_at' => 'Выберите время с шагом ' . $slotMinutes . ' минут.',
+                ]);
+            }
+
+            if (!$settings->isWithinWorkingHours($requestedAt)) {
+                throw ValidationException::withMessages([
+                    'requested_at' => 'Выбранное время находится за пределами графика работы заведения.',
+                ]);
+            }
+
+            $minimumSlotTime = Carbon::now($settings->timezoneName())
+                ->addMinutes($minimumLeadMinutes)
+                ->ceilUnit('minute');
+            $minimumSlotTime->addMinutes(($slotMinutes - ($minimumSlotTime->minute % $slotMinutes)) % $slotMinutes)->second(0);
+
+            if (
+                !$settings->preorders_enabled
+                && $requestedAt->gt($minimumSlotTime->copy()->addMinutes($slotMinutes))
+            ) {
+                throw ValidationException::withMessages([
+                    'requested_at' => 'Предзаказ сейчас отключён. Выберите ближайшее доступное время.',
+                ]);
+            }
+
             $items = MenuItem::query()
                 ->whereIn('id', array_map('intval', array_keys($quantities)))
                 ->where('is_active', true)
@@ -603,6 +651,12 @@ class CustomerCheckoutController extends Controller
                 (int) ($checkoutSnapshot['organization_id'] ?? 0) !== $organizationId
                 || count($checkoutSnapshot['prices'] ?? []) !== count($quantities)
                 || strtoupper((string) ($checkoutSnapshot['currency'] ?? '')) !== strtoupper((string) $settings->currency)
+                || ($checkoutSnapshot['working_hours'] ?? null) !== $settings->working_hours
+                || ($checkoutSnapshot['timezone'] ?? null) !== $settings->timezoneName()
+                || (bool) ($checkoutSnapshot['preorders_enabled'] ?? false) !== (bool) $settings->preorders_enabled
+                || (int) ($checkoutSnapshot['order_lead_minutes'] ?? 0) !== (int) ($settings->order_lead_minutes ?? 30)
+                || (int) ($checkoutSnapshot['pickup_min_minutes'] ?? 0) !== (int) ($settings->pickup_min_minutes ?? 0)
+                || (int) ($checkoutSnapshot['time_slot_minutes'] ?? 0) !== (int) ($settings->time_slot_minutes ?? 15)
                 || ($checkoutSnapshot['delivery_origin'] ?? null) !== [
                     'latitude' => $settings->delivery_origin_latitude,
                     'longitude' => $settings->delivery_origin_longitude,
