@@ -198,7 +198,11 @@ class PaymentWebhookProcessor
                 ->where('organization_id', $order->organization_id)
                 ->first();
 
-            if ($connection?->is_enabled && $connection?->order_sync_enabled) {
+            if (
+                $connection?->is_enabled &&
+                $connection?->order_sync_enabled &&
+                config('iiko.allow_online_payment_orders')
+            ) {
                 SendIikoOrder::dispatch($order->id)->afterCommit();
             }
         }
