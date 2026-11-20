@@ -31,8 +31,20 @@ class IikoReservationService
             }
         }
 
+        if (!is_array($reservation['customer']) || !filled($reservation['customer']['name'] ?? null)) {
+            throw new InvalidArgumentException('Для бронирования iiko укажите имя гостя.');
+        }
+
         if (!str_starts_with(trim((string) $reservation['phone']), '+')) {
             throw new InvalidArgumentException('Телефон для бронирования iiko должен начинаться с +.');
+        }
+
+        if ((int) $reservation['guestsCount'] < 1 || (int) $reservation['durationInMinutes'] < 15) {
+            throw new InvalidArgumentException('Укажите корректное количество гостей и длительность бронирования.');
+        }
+
+        if (!is_array($reservation['tableIds']) || $reservation['tableIds'] === []) {
+            throw new InvalidArgumentException('Для бронирования iiko выберите хотя бы один стол.');
         }
 
         if (empty($connection->terminal_group_id)) {
@@ -44,7 +56,7 @@ class IikoReservationService
             'POST',
             '/api/1/reserve/create',
             array_merge($reservation, [
-                'organizationId' => $connection->iiko_organization_id,
+                'organizationId' => $this->organizationId($connection),
                 'terminalGroupId' => $connection->terminal_group_id,
             ])
         );
@@ -144,4 +156,14 @@ class IikoReservationService
             ]
         );
     }
+
+    private function organizationId(IikoConnection $connection): string
+    {
+        if (!filled($connection->iiko_organization_id)) {
+            throw new RuntimeException('Сначала выберите организацию iiko.');
+        }
+
+        return (string) $connection->iiko_organization_id;
+    }
+
 }
