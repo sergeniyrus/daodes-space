@@ -18,6 +18,7 @@ class IikoConnection extends Model
         'terminal_group_id',
         'terminal_group_name',
         'address_format_type',
+        'iiko_currency_iso_name',
         'external_menu_id',
         'price_category_id',
         'connection_status',
