@@ -15,20 +15,22 @@ class IikoAvailabilityService
      */
     public function stoppedMenuItemIds(int $organizationId): array
     {
-        $enabled = IikoConnection::query()
+        $connection = IikoConnection::query()
             ->where('organization_id', $organizationId)
             ->where('stop_list_sync_enabled', true)
-            ->exists();
+            ->first(['id', 'iiko_organization_id']);
 
-        if (!$enabled) {
+        if (!$connection || !$connection->iiko_organization_id) {
             return [];
         }
 
         return IikoMenuMapping::query()
             ->where('organization_id', $organizationId)
+            ->where('iiko_organization_id', $connection->iiko_organization_id)
             ->whereIn('iiko_product_id', IikoStopListItem::query()
                 ->select('iiko_product_id')
                 ->where('organization_id', $organizationId)
+                ->where('iiko_organization_id', $connection->iiko_organization_id)
                 ->where('is_available', false))
             ->pluck('menu_item_id')
             ->map(fn ($id) => (int) $id)
