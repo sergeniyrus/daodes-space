@@ -142,7 +142,8 @@ class OrganizationOrderSetting extends Model
                 || ($this->delivery_enabled && $this->hasConfiguredDelivery())
             )
             && (
-                $this->cash_payment_enabled
+                $this->dine_in_enabled
+                || $this->cash_payment_enabled
                 || $this->card_payment_enabled
             );
     }
