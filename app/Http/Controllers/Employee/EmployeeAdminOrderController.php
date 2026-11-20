@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Organization;
+use App\Models\OrganizationActivityLog;
 use App\Models\OrganizationEmployeeMembership;
 use App\Support\OrderNotificationService;
 use App\Support\OrderTransitionPolicy;
@@ -71,11 +72,51 @@ class EmployeeAdminOrderController extends Controller
             ->orderBy('id')
             ->get();
 
+        $courierLoads = DB::table('order_assignments')
+            ->join('orders', 'orders.id', '=', 'order_assignments.order_id')
+            ->where('orders.organization_id', $organization->id)
+            ->where('order_assignments.role', 'courier')
+            ->whereNull('order_assignments.unassigned_at')
+            ->whereIn('orders.status', [
+                Order::STATUS_HANDED_TO_COURIER,
+                Order::STATUS_IN_TRANSIT,
+            ])
+            ->select(
+                'order_assignments.employee_id',
+                DB::raw('COUNT(DISTINCT orders.id) as active_delivery_orders_count')
+            )
+            ->groupBy('order_assignments.employee_id')
+            ->pluck('active_delivery_orders_count', 'order_assignments.employee_id');
+
+        $courierMemberships = $staffMemberships
+            ->where('role', 'courier')
+            ->where('status', 'active')
+            ->filter(fn ($membership) => $membership->employee !== null);
+
+        foreach ($courierMemberships as $membership) {
+            $membership->employee->setAttribute(
+                'active_delivery_orders_count',
+                (int) ($courierLoads[$membership->employee_id] ?? 0)
+            );
+        }
+
+        $activityLogs = OrganizationActivityLog::query()
+            ->with('actor:id,name')
+            ->where('organization_id', $organization->id)
+            ->latest('id')
+            ->limit(30)
+            ->get();
+
+        $orderSettings = $organization->orderSettings;
+
         return view('employee.admin.organizations.overview', compact(
             'organization',
             'overviewStats',
             'paidToday',
-            'staffMemberships'
+            'staffMemberships',
+            'courierMemberships',
+            'activityLogs',
+            'orderSettings'
         ));
     }
 
