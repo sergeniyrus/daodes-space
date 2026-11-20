@@ -99,6 +99,7 @@ class OnlineOrdersSchemaTest extends TestCase
         ]));
 
         $this->assertTrue(Schema::hasColumn('orders', 'guest_card_identifier'));
+        $this->assertTrue(Schema::hasColumn('orders', 'pickup_address_snapshot'));
     }
 
     public function test_customer_otp_and_order_history_are_persisted_separately(): void
