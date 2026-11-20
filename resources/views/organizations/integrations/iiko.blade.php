@@ -299,6 +299,14 @@
                                         {{ $mapping->last_error }}
                                     </div>
                                 @endif
+                                @if ($isSyncProcessing && filled($mapping->correlation_id))
+                                    <div class="iiko-actions">
+                                        <form method="POST" action="{{ route('organizations.iiko.orders.recheck', [$organization, $mapping->order_id]) }}">
+                                            @csrf
+                                            <button class="iiko-button gold" type="submit">Продолжить сверку с iiko</button>
+                                        </form>
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
