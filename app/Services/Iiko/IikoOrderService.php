@@ -6,6 +6,7 @@ use App\Models\IikoConnection;
 use App\Models\IikoMenuMapping;
 use App\Models\IikoPaymentMapping;
 use App\Models\Order;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class IikoOrderService
@@ -31,6 +32,12 @@ class IikoOrderService
 
         if (!$connection->iiko_organization_id || !$connection->terminal_group_id) {
             throw new RuntimeException('Не выбраны организация и терминальная группа iiko.');
+        }
+
+        // iiko guarantees duplicate protection only when the same order.id is
+        // supplied on every retry. Never send an order without its stable UUID.
+        if (!Str::isUuid((string) $order->idempotency_key)) {
+            throw new RuntimeException('У заказа отсутствует корректный ключ идемпотентности. Передача в iiko остановлена.');
         }
 
         if (
