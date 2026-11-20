@@ -1951,7 +1951,7 @@
 
             <section class="organization-order-schedule" style="grid-column: 1 / -1; padding: 16px; border: 1px solid rgba(0,229,212,.3); border-radius: 12px; background: rgba(0,229,212,.035);">
                 <h3 style="margin: 0 0 6px; color: #00e5d4;">🕒 График работы заведения</h3>
-                <p style="margin: 0 0 12px; color: #aeb5c4; font-size: .88rem;">Заказы и предзаказы будут доступны только в указанные часы. Можно задать ночной график, например с 18:00 до 02:00.</p>
+                <p style="margin: 0 0 12px; color: #aeb5c4; font-size: .88rem;">Заказы и предзаказы будут доступны только в указанные часы. Можно задать ночной график, например с 18:00 до 02:00. Пока график не сохранён, оформление заказов недоступно.</p>
                 <div style="display:grid; gap:8px;">
                     @foreach($workingDays as $dayNumber => $dayName)
                         @php
