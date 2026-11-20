@@ -1144,6 +1144,20 @@ Route::middleware('auth')
             ->middleware(['organization.manager', 'throttle:10,1'])
             ->name('iiko.select-terminal');
 
+        Route::post(
+            '/{organization}/integrations/iiko/webhook/configure',
+            [OrganizationIikoController::class, 'configureWebhook']
+        )
+            ->middleware(['organization.manager', 'throttle:5,1'])
+            ->name('iiko.webhook.configure');
+
+        Route::post(
+            '/{organization}/integrations/iiko/webhook/check',
+            [OrganizationIikoController::class, 'checkWebhook']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.webhook.check');
+
         Route::delete(
             '/{organization}/integrations/iiko',
             [OrganizationIikoController::class, 'disconnect']
