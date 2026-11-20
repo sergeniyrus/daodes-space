@@ -115,6 +115,28 @@ class OrganizationOrderSetting extends Model
         }
 
         $localTime = $requestedAt->copy()->setTimezone($this->timezoneName());
+        $time = $localTime->format('H:i');
+
+        // Сначала проверяем ночной интервал предыдущего дня.
+        // Например, пятница 01:00 относится к графику четверга 18:00–02:00,
+        // даже если сама пятница является выходным днём.
+        $previousDay = (string) $localTime->copy()->subDay()->dayOfWeekIso;
+        $previous = $this->working_hours[$previousDay] ?? null;
+
+        if (is_array($previous) && !empty($previous['enabled'])) {
+            $previousOpen = (string) ($previous['open'] ?? '');
+            $previousClose = (string) ($previous['close'] ?? '');
+
+            if (
+                preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $previousOpen)
+                && preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $previousClose)
+                && $previousClose < $previousOpen
+                && $time < $previousClose
+            ) {
+                return true;
+            }
+        }
+
         $day = (string) $localTime->dayOfWeekIso;
         $today = $this->working_hours[$day] ?? null;
 
@@ -124,32 +146,20 @@ class OrganizationOrderSetting extends Model
 
         $open = (string) ($today['open'] ?? '');
         $close = (string) ($today['close'] ?? '');
-        if (!preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $open)
-            || !preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $close)) {
+
+        if (
+            !preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $open)
+            || !preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $close)
+        ) {
             return false;
         }
-
-        $time = $localTime->format('H:i');
 
         if ($close > $open) {
             return $time >= $open && $time < $close;
         }
 
-        if ($close < $open) {
-            if ($time >= $open) {
-                return true;
-            }
-
-            $previousDay = (string) ($localTime->copy()->subDay()->dayOfWeekIso);
-            $previous = $this->working_hours[$previousDay] ?? null;
-
-            return is_array($previous)
-                && !empty($previous['enabled'])
-                && (string) ($previous['close'] ?? '') < (string) ($previous['open'] ?? '')
-                && $time < (string) $previous['close'];
-        }
-
-        return false;
+        // Ночной график текущего дня продолжается после времени открытия.
+        return $close < $open && $time >= $open;
     }
 
     public function minimumOrderLeadMinutes(?string $fulfillmentType = null): int
