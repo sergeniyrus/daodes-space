@@ -7,6 +7,7 @@ use App\Models\MenuItem;
 use App\Models\Order;
 use App\Models\OrderReview;
 use App\Models\Organization;
+use App\Services\Iiko\IikoAvailabilityService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -32,7 +33,7 @@ class CustomerCatalogController extends Controller
         ]);
     }
 
-    public function index(Request $request, Organization $organization): View
+    public function index(Request $request, Organization $organization, IikoAvailabilityService $iikoAvailability): View
     {
         abort_unless($organization->isActive(), 404);
 
@@ -100,6 +101,17 @@ class CustomerCatalogController extends Controller
             ->get()
             ->filter(fn ($section) => $section->activeItems->isNotEmpty())
             ->values();
+
+        $iikoStoppedMenuItemIds = $iikoAvailability->stoppedMenuItemIds($organization->id);
+
+        $sections->each(function ($section) use ($iikoStoppedMenuItemIds) {
+            $section->activeItems->each(function ($item) use ($iikoStoppedMenuItemIds) {
+                $item->setAttribute(
+                    'iiko_unavailable',
+                    in_array((int) $item->id, $iikoStoppedMenuItemIds, true)
+                );
+            });
+        });
 
         $cart = session('customer_order_cart', []);
         $cartCount = 0;
