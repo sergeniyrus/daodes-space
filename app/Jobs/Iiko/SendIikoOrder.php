@@ -90,7 +90,21 @@ class SendIikoOrder implements ShouldQueue
             ]);
         }
 
-        if ($mapping->sync_status === 'sent') {
+        // Once iiko has returned a correlationId, the create command is already
+        // accepted for asynchronous processing. Never call deliveries/create again
+        // while its result is pending; resume status polling instead.
+        if (in_array($mapping->sync_status, ['sent', 'processing'], true)) {
+            if ($mapping->sync_status === 'processing' && filled($mapping->correlation_id)) {
+                CheckIikoOrderCommand::dispatch($order->id);
+            }
+
+            return;
+        }
+
+        if (filled($mapping->correlation_id)) {
+            $mapping->update(['sync_status' => 'processing']);
+            CheckIikoOrderCommand::dispatch($order->id);
+
             return;
         }
 
@@ -105,8 +119,11 @@ class SendIikoOrder implements ShouldQueue
                     ?? ($response['orderId'] ?? null)
                     ?? ($response['id'] ?? null),
                 'correlation_id' => $response['correlationId'] ?? null,
-                'sync_status' => 'sent',
-                'last_error' => null,
+                'sync_status' => 'processing',
+                'last_error' => filled($response['correlationId'] ?? null)
+                    ? null
+                    : 'iiko приняла запрос, но не вернула correlationId. Повторная отправка заблокирована до ручной сверки.',
+
                 'sent_at' => now(),
                 'request_hash' => hash('sha256', $order->idempotency_key),
             ]);
@@ -162,8 +179,10 @@ class SendIikoOrder implements ShouldQueue
         }
 
         $mapping->update([
-            'sync_status' => 'failed',
-            'last_error' => mb_substr($this->safeError($exception), 0, 2000),
+            'sync_status' => filled($mapping->correlation_id) ? 'processing' : 'failed',
+            'last_error' => filled($mapping->correlation_id)
+                ? 'Запрос уже принят iiko; проверка результата не завершилась. Повторная отправка заблокирована.'
+                : mb_substr($this->safeError($exception), 0, 2000),
         ]);
 
         $order = Order::query()->with('organization.iikoConnection')->find($this->orderId);
