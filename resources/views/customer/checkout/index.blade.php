@@ -533,7 +533,7 @@
                         maxlength="100"
                         autocomplete="off"
                         placeholder="Введите номер или код карты"
-                        required
+                        @if($selectedFulfillment === 'dine_in') required @endif
                     >
                     @error('guest_card_identifier')
                         <span class="customer-checkout-error">{{ $message }}</span>
