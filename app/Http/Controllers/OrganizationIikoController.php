@@ -67,6 +67,7 @@ class OrganizationIikoController extends Controller
             $connection->external_menu_id = null;
             $connection->price_category_id = null;
             $connection->address_format_type = null;
+            $connection->iiko_currency_iso_name = null;
             $connection->connection_status = 'pending';
             $connection->last_connected_at = null;
             $connection->last_error = null;
@@ -273,6 +274,11 @@ class OrganizationIikoController extends Controller
                     ?? data_get($organizationSettings, 'settings.addressFormatType')
                     ?? $organizationSettingsPayload['addressFormatType']
                     ?? null;
+
+                $iikoCurrency = $organizationSettings['currencyIsoName']
+                    ?? data_get($organizationSettings, 'settings.currencyIsoName')
+                    ?? $organizationSettingsPayload['currencyIsoName']
+                    ?? null;
             } catch (Throwable $settingsException) {
                 report($settingsException);
             }
@@ -297,6 +303,7 @@ class OrganizationIikoController extends Controller
                 'terminal_group_id' => $validated['terminal_group_id'],
                 'terminal_group_name' => (string) ($availableGroup['name'] ?? $validated['terminal_group_name']),
                 'address_format_type' => is_string($addressFormatType) ? $addressFormatType : null,
+                'iiko_currency_iso_name' => is_string($iikoCurrency) ? strtoupper($iikoCurrency) : null,
                 'is_enabled' => true,
                 'connection_status' => 'connected',
                 'last_connected_at' => now(),
@@ -428,6 +435,7 @@ class OrganizationIikoController extends Controller
                 'terminal_group_id' => null,
                 'terminal_group_name' => null,
                 'address_format_type' => null,
+                'iiko_currency_iso_name' => null,
                 'external_menu_id' => null,
                 'price_category_id' => null,
                 'connection_status' => 'disconnected',
