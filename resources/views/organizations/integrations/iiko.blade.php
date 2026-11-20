@@ -227,6 +227,10 @@
                         <small>Передача заказов</small>
                         <strong>{{ $connection->order_sync_enabled ? 'Включена' : 'Пока выключена' }}</strong>
                     </div>
+                    <div>
+                        <small>Синхронизация статусов</small>
+                        <strong>{{ $connection->status_sync_enabled ? 'Включена' : 'Выключена' }}</strong>
+                    </div>
                 </div>
                 <p class="iiko-help">Передачу заказов включим после проверки сопоставления меню, платёжных правил и статусов. Само подключение API не отправляет заказы.</p>
             </section>
