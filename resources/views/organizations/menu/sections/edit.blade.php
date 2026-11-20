@@ -223,12 +223,14 @@
 
 
         <div class="menu-form-group">
-            <label class="menu-form-label" for="tv_screen">Экран TV</label>
-            <select id="tv_screen" name="tv_screen" class="menu-form-input" required>
-                @foreach($tvScreens as $screen)
-                    <option value="{{ $screen }}" @selected(old('tv_screen', $section->tv_screen ?? 1) == $screen)>Экран {{ $screen }}</option>
-                @endforeach
-            </select>
+            @if($canManageTv)
+                <label class="menu-form-label" for="tv_screen">Экран TV</label>
+                <select id="tv_screen" name="tv_screen" class="menu-form-input" required>
+                    @foreach($tvScreens as $screen)
+                        <option value="{{ $screen }}" @selected(old('tv_screen', $section->tv_screen ?? 1) == $screen)>Экран {{ $screen }}</option>
+                    @endforeach
+                </select>
+            @endif
         </div>
 
         <div class="menu-form-group">
