@@ -2283,7 +2283,7 @@ body.customer-menu-image-open { overflow: hidden !important; }
                     </a>
                 @else
                     <span class="customer-order-header-method customer-order-header-method-disabled" tabindex="0">
-                        · 🛍 Самовывоз
+                        🛍 Самовывоз
                         <span class="customer-order-header-tooltip" role="tooltip">Самовывоз пока недоступен</span>
                     </span>
                 @endif
@@ -2299,7 +2299,7 @@ body.customer-menu-image-open { overflow: hidden !important; }
                     </a>
                 @else
                     <span class="customer-order-header-method customer-order-header-method-disabled" tabindex="0">
-                        · 🍽 В заведении
+                        🍽 В заведении
                         <span class="customer-order-header-tooltip" role="tooltip">Заказ в заведении пока недоступен</span>
                     </span>
                 @endif
