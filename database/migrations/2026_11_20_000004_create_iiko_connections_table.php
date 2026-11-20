@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('terminal_group_id', 36)->nullable();
             $table->string('terminal_group_name')->nullable();
             $table->string('external_menu_id', 36)->nullable();
+            $table->string('price_category_id', 36)->nullable();
 
             $table->string('connection_status', 32)->default('pending')->index();
 
