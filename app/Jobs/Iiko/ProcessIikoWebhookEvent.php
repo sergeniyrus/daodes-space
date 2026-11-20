@@ -62,6 +62,7 @@ class ProcessIikoWebhookEvent implements ShouldQueue
             } elseif ($event->event_type === 'DeliveryOrderUpdate') {
                 $mapping = IikoOrderMapping::query()
                     ->where('organization_id', $event->organization_id)
+                    ->where('iiko_organization_id', $connection->iiko_organization_id)
                     ->where('iiko_order_id', $event->iiko_order_id)
                     ->first();
 
@@ -76,6 +77,7 @@ class ProcessIikoWebhookEvent implements ShouldQueue
             } elseif ($event->event_type === 'DeliveryOrderError') {
                 IikoOrderMapping::query()
                     ->where('organization_id', $event->organization_id)
+                    ->where('iiko_organization_id', $connection->iiko_organization_id)
                     ->where('iiko_order_id', $event->iiko_order_id)
                     ->update([
                         'sync_status' => 'failed',
