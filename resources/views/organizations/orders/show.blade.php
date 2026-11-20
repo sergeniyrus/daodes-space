@@ -199,6 +199,12 @@
                     </a>
                 </div>
             </div>
+            @if($order->fulfillment_type === 'pickup')
+                <div class="organization-order-detail__field" style="grid-column: 1 / -1;">
+                    <span class="organization-order-detail__label">Адрес самовывоза</span>
+                    <div class="organization-order-detail__value">{{ $order->pickup_address_snapshot ?: ($organization->orderSettings?->pickup_address ?? 'Адрес не указан') }}</div>
+                </div>
+            @endif
             @if($order->fulfillment_type === 'delivery')
                 <div class="organization-order-detail__field" style="grid-column: 1 / -1;">
                     <span class="organization-order-detail__label">Адрес доставки</span>
