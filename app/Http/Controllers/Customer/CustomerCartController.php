@@ -231,7 +231,8 @@ class CustomerCartController extends Controller
     public function update(
         Request $request,
         MenuItem $menuItem,
-        CustomerCartService $cartService
+        CustomerCartService $cartService,
+        IikoAvailabilityService $iikoAvailability
     ): RedirectResponse {
         $validated = $request->validate([
             'quantity' => ['required', 'integer', 'min:1', 'max:99'],
@@ -273,7 +274,7 @@ class CustomerCartController extends Controller
                 || ($settings?->dine_in_enabled && $menuItem->dine_in_enabled && $section->dine_in_enabled)
             );
 
-        abort_unless($available, 404);
+        abort_unless($available && $iikoAvailability->isMenuItemAvailable($organizationId, $menuItem->id), 404);
 
         $cart['items'][$menuItem->id] = (int) $validated['quantity'];
         $cartService->save($customer, $cart);
