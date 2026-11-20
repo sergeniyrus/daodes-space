@@ -6,6 +6,7 @@ use App\Models\IikoOrderMapping;
 use App\Models\IikoWebhookEvent;
 use App\Services\Iiko\IikoStopListService;
 use App\Services\Iiko\IikoSyncLogger;
+use App\Services\Iiko\IikoOrderStatusSyncService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -33,7 +34,8 @@ class ProcessIikoWebhookEvent implements ShouldQueue
 
     public function handle(
         IikoStopListService $stopListService,
-        IikoSyncLogger $logger
+        IikoSyncLogger $logger,
+        IikoOrderStatusSyncService $statusSyncService
     ): void {
         $event = IikoWebhookEvent::query()
             ->with('connection')
@@ -68,6 +70,8 @@ class ProcessIikoWebhookEvent implements ShouldQueue
                         'iiko_status' => $event->event_status,
                         'last_synced_at' => now(),
                     ]);
+
+                    $statusSyncService->synchronize($mapping, $event->event_status);
                 }
             } elseif ($event->event_type === 'DeliveryOrderError') {
                 IikoOrderMapping::query()
