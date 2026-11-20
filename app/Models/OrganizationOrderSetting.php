@@ -127,9 +127,15 @@ class OrganizationOrderSetting extends Model
         return false;
     }
 
-    public function minimumOrderLeadMinutes(): int
+    public function minimumOrderLeadMinutes(?string $fulfillmentType = null): int
     {
-        return max(30, (int) ($this->order_lead_minutes ?? 30));
+        $minimum = max(30, (int) ($this->order_lead_minutes ?? 30));
+
+        if ($fulfillmentType === Order::FULFILLMENT_PICKUP) {
+            $minimum = max($minimum, (int) ($this->pickup_min_minutes ?? 0));
+        }
+
+        return $minimum;
     }
 
     public function canAcceptOrders(): bool
