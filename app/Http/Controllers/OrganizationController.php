@@ -650,6 +650,12 @@ class OrganizationController extends Controller
         ]);
 
         if ($validated['orders_enabled']) {
+            if (!collect($validated['working_hours'])->contains(fn (array $hours) => !empty($hours['enabled']))) {
+                return back()
+                    ->withErrors(['working_hours' => 'Укажите хотя бы один рабочий день, прежде чем включать онлайн-заказы.'])
+                    ->withInput();
+            }
+
             if (empty($validated['currency'])) {
                 return back()
                     ->withErrors(['currency' => 'Укажите трёхбуквенный код валюты, прежде чем включать заказы.'])
