@@ -28,6 +28,7 @@ class Order extends Model
     public const PAYMENT_ONLINE = 'online';
     public const PAYMENT_CASH_ON_RECEIPT = 'cash_on_receipt';
     public const PAYMENT_CARD_ON_RECEIPT = 'card_on_receipt';
+    public const PAYMENT_GUEST_ACCOUNT = 'guest_account';
 
     public const PAYMENT_PENDING = 'pending';
     public const PAYMENT_SUCCEEDED = 'succeeded';
