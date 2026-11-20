@@ -173,6 +173,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
                     <option value="online" @selected(($filters['payment_method'] ?? '') === 'online')>Онлайн</option>
                     <option value="cash_on_receipt" @selected(($filters['payment_method'] ?? '') === 'cash_on_receipt')>Наличные</option>
                     <option value="card_on_receipt" @selected(($filters['payment_method'] ?? '') === 'card_on_receipt')>Картой при получении</option>
+                    <option value="guest_account" @selected(($filters['payment_method'] ?? '') === 'guest_account')>На счёт гостя — расчёт при выходе</option>
                 </select>
             </div>
             <div class="admin-orders-filter-actions">
