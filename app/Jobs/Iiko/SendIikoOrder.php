@@ -29,8 +29,6 @@ class SendIikoOrder implements ShouldQueue
 
     public int $timeout = 90;
 
-    public bool $afterCommit = true;
-
     public function __construct(
         public readonly int $orderId
     ) {
