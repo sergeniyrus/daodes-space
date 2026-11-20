@@ -166,7 +166,7 @@
             </div>
         </section>
         <p class="customer-order-detail-muted">
-            Создан: {{ $order->created_at?->format('d.m.Y H:i') }}
+            Создан: {{ $order->created_at?->timezone($order->organization?->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
         </p>
         <p class="customer-order-detail-muted">
             Получение:
@@ -249,7 +249,7 @@
             <div class="customer-order-detail-line">
                 <span>{{ $statusLabels[$history->to_status] ?? $history->to_status }}</span>
                 <span class="customer-order-detail-muted">
-                    {{ $history->created_at?->format('d.m.Y H:i') }}
+                    {{ $history->created_at?->timezone($order->organization?->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
                 </span>
             </div>
         @empty
