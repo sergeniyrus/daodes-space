@@ -114,7 +114,7 @@ class EmployeeAdminOrderController extends Controller
             'status' => ['nullable', 'in:new,awaiting_payment,confirmed,preparing,ready,handed_to_courier,in_transit,issued,served,delivered,completed,cancelled'],
             'payment_status' => ['nullable', 'in:pending,succeeded,failed,cancelled,refunded'],
             'fulfillment_type' => ['nullable', 'in:delivery,pickup,dine_in'],
-            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt'],
+            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt,guest_account'],
         ]);
 
         $period = $filters['period'] ?? 'month';
@@ -287,7 +287,7 @@ class EmployeeAdminOrderController extends Controller
         $employee = Auth::guard('employee')->user();
         DB::transaction(function () use ($organization, $order, $employee) {
             $locked = Order::where('organization_id', $organization->id)->whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if ($locked->status === Order::STATUS_CANCELLED || $locked->payment_method === Order::PAYMENT_ONLINE) {
+            if ($locked->status === Order::STATUS_CANCELLED || $locked->payment_method === Order::PAYMENT_ONLINE || $locked->payment_method === Order::PAYMENT_GUEST_ACCOUNT) {
                 throw ValidationException::withMessages(['payment' => 'Для этого заказа нельзя подтвердить оплату вручную.']);
             }
             if ($locked->payment_status === Order::PAYMENT_SUCCEEDED) return;
