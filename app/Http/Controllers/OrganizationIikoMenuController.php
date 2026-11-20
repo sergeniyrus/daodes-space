@@ -206,9 +206,6 @@ class OrganizationIikoMenuController extends Controller
         $validated = $request->validate([
             'menu_item_id' => ['required', 'integer'],
             'iiko_product_id' => ['required', 'uuid'],
-            'iiko_product_name' => ['required', 'string', 'max:255'],
-            'iiko_group_name' => ['nullable', 'string', 'max:255'],
-            'iiko_price' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $connection = $this->connectionOrFail($organization);
@@ -225,14 +222,27 @@ class OrganizationIikoMenuController extends Controller
                 $connection->price_category_id
             );
 
-            $productExists = collect($payload['itemsGroups'] ?? $payload['itemGroups'] ?? [])
-                ->flatMap(fn ($group) => is_array($group) ? ($group['items'] ?? []) : [])
-                ->contains(fn ($item) =>
-                    is_array($item) &&
+            $matchedProduct = collect($payload['itemsGroups'] ?? $payload['itemGroups'] ?? [])
+                ->flatMap(function ($group) {
+                    if (!is_array($group)) {
+                        return [];
+                    }
+
+                    return collect($group['items'] ?? [])
+                        ->filter(fn ($item) => is_array($item))
+                        ->map(function ($item) use ($group) {
+                            $item['_daodes_group_name'] = (string) ($group['name'] ?? 'Без категории');
+
+                            return $item;
+                        });
+                })
+                ->first(fn ($item) =>
                     (string) ($item['productId'] ?? '') === $validated['iiko_product_id']
                 );
 
-            abort_unless($productExists, 422, 'Блюдо iiko не найдено в выбранном внешнем меню.');
+            abort_unless($matchedProduct, 422, 'Блюдо iiko не найдено в выбранном внешнем меню.');
+
+            $matchedPrice = $matchedProduct['price'] ?? ($matchedProduct['sizePrices'][0]['price'] ?? null);
 
             $alreadyMapped = IikoMenuMapping::query()
                 ->where('organization_id', $organization->id)
@@ -249,13 +259,13 @@ class OrganizationIikoMenuController extends Controller
                 ],
                 [
                     'iiko_product_id' => $validated['iiko_product_id'],
-                    'iiko_product_name' => $validated['iiko_product_name'],
+                    'iiko_product_name' => (string) ($matchedProduct['name'] ?? 'Блюдо iiko'),
                     'external_menu_id' => $connection->external_menu_id,
                     'price_category_id' => $connection->price_category_id,
-                    'last_iiko_price' => $validated['iiko_price'] ?? null,
+                    'last_iiko_price' => is_numeric($matchedPrice) ? $matchedPrice : null,
                     'last_checked_at' => now(),
                     'metadata' => [
-                        'iiko_group_name' => $validated['iiko_group_name'] ?? null,
+                        'iiko_group_name' => $matchedProduct['_daodes_group_name'],
                     ],
                 ]
             );
