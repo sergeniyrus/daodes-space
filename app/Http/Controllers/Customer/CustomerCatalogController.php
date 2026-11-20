@@ -37,9 +37,16 @@ class CustomerCatalogController extends Controller
         abort_unless($organization->isActive(), 404);
 
         $settings = $organization->orderSettings;
+        $hasPaymentAtReceipt = $settings
+            && ($settings->cash_payment_enabled || $settings->card_payment_enabled);
+
         $availableFulfillments = [
-            'delivery' => (bool) ($settings?->delivery_enabled && $settings?->hasConfiguredDelivery()),
-            'pickup' => (bool) $settings?->pickup_enabled,
+            'delivery' => (bool) (
+                $settings?->delivery_enabled
+                && $settings->hasConfiguredDelivery()
+                && $hasPaymentAtReceipt
+            ),
+            'pickup' => (bool) ($settings?->pickup_enabled && $hasPaymentAtReceipt),
             'dine_in' => (bool) $settings?->dine_in_enabled,
         ];
 
