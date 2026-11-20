@@ -63,8 +63,13 @@ class IikoOrderService
                 throw new RuntimeException('Не сопоставлено блюдо DAODES: ' . $item->item_name . '.');
             }
 
-            if (!empty($mapping->metadata['has_modifiers']) || !empty($mapping->metadata['has_multiple_sizes'])) {
-                throw new RuntimeException('Для блюда «' . $item->item_name . '» ещё не настроена передача модификаторов или размеров iiko.');
+            if (
+                !empty($mapping->metadata['has_modifiers']) ||
+                !empty($mapping->metadata['has_multiple_sizes']) ||
+                !empty($item->options) ||
+                $item->weight !== null
+            ) {
+                throw new RuntimeException('Для блюда «' . $item->item_name . '» ещё не настроена передача модификаторов, размеров или веса iiko.');
             }
 
             if ($mapping->last_iiko_price === null) {
