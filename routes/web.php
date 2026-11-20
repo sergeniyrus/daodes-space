@@ -1203,6 +1203,13 @@ Route::middleware('auth')
             ->name('iiko.menu.mapping');
 
         Route::post(
+            '/{organization}/integrations/iiko/menu/sync-mappings',
+            [OrganizationIikoMenuController::class, 'syncMappings']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.menu.sync-mappings');
+
+        Route::post(
             '/{organization}/integrations/iiko/payments/discover',
             [OrganizationIikoPaymentController::class, 'discover']
         )
