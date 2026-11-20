@@ -72,7 +72,7 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
         <p class="admin-order-eyebrow">ДЕТАЛИ ЗАКАЗА</p>
         <h1>Заказ №{{ $order->order_number }}</h1>
         <div class="admin-order-facts">
-            <div class="admin-order-fact"><span>Дата создания</span><strong>{{ $order->created_at?->format('d.m.Y H:i:s') }}</strong></div>
+            <div class="admin-order-fact"><span>Дата создания</span><strong>{{ $order->created_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') }}</strong></div>
             <div class="admin-order-fact"><span>Статус заказа</span><strong>{{ $statusLabels[$order->status] ?? $order->status }}</strong></div>
             <div class="admin-order-fact"><span>Способ получения</span><strong>{{ $fulfillmentLabels[$order->fulfillment_type] ?? $order->fulfillment_type }}</strong></div>
             <div class="admin-order-fact"><span>Состояние оплаты</span><strong>{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</strong></div>
