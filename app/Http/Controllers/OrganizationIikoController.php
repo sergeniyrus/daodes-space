@@ -7,9 +7,11 @@ use App\Models\IikoConnection;
 use App\Models\Organization;
 use App\Services\Iiko\IikoCloudClient;
 use App\Services\Iiko\IikoSyncLogger;
+use App\Services\Iiko\IikoWebhookService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
 use Throwable;
 
 class OrganizationIikoController extends Controller
@@ -46,6 +48,10 @@ class OrganizationIikoController extends Controller
         );
 
         $connection->api_key = $validated['api_key'];
+
+        if (!filled($connection->webhook_secret)) {
+            $connection->webhook_secret = Str::random(64);
+        }
 
         if ($keyChanged) {
             $connection->iiko_organization_id = null;
@@ -269,6 +275,90 @@ class OrganizationIikoController extends Controller
             return redirect()
                 ->route('organizations.iiko.index', $organization)
                 ->withErrors(['iiko' => $this->safeErrorMessage($exception)]);
+        }
+    }
+
+
+    public function configureWebhook(
+        Organization $organization,
+        IikoWebhookService $webhookService
+    ): RedirectResponse {
+        $connection = $this->connectionOrFail($organization);
+
+        try {
+            $response = $webhookService->configure($connection);
+
+            $connection->update([
+                'webhook_enabled' => true,
+                'last_error' => null,
+            ]);
+
+            $this->logger->record(
+                $connection,
+                'webhook_setup',
+                'success',
+                'Вебхук iiko настроен.',
+                $response['correlationId'] ?? null,
+                ['endpoint' => '/api/1/webhooks/update_settings']
+            );
+
+            return redirect()
+                ->route('organizations.iiko.index', $organization)
+                ->with('success', 'Вебхук iiko настроен. DAODES будет получать изменения заказов и стоп-листов.');
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $this->logger->record(
+                $connection,
+                'webhook_setup',
+                'failed',
+                'Не удалось настроить вебхук iiko.',
+                null,
+                ['endpoint' => '/api/1/webhooks/update_settings']
+            );
+
+            return redirect()
+                ->route('organizations.iiko.index', $organization)
+                ->withErrors(['iiko' => 'Не удалось настроить вебхук iiko. Проверьте доступ API Key к настройкам вебхуков и публичный HTTPS URL.']);
+        }
+    }
+
+    public function checkWebhook(
+        Organization $organization,
+        IikoWebhookService $webhookService
+    ): RedirectResponse {
+        $connection = $this->connectionOrFail($organization);
+
+        try {
+            $response = $webhookService->settings($connection);
+
+            $this->logger->record(
+                $connection,
+                'webhook_check',
+                'success',
+                'Настройки вебхука iiko проверены.',
+                $response['correlationId'] ?? null,
+                ['endpoint' => '/api/1/webhooks/settings']
+            );
+
+            return redirect()
+                ->route('organizations.iiko.index', $organization)
+                ->with('success', 'Настройки вебхука iiko успешно прочитаны.');
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $this->logger->record(
+                $connection,
+                'webhook_check',
+                'failed',
+                'Не удалось прочитать настройки вебхука iiko.',
+                null,
+                ['endpoint' => '/api/1/webhooks/settings']
+            );
+
+            return redirect()
+                ->route('organizations.iiko.index', $organization)
+                ->withErrors(['iiko' => 'Не удалось проверить настройки вебхука iiko.']);
         }
     }
 
