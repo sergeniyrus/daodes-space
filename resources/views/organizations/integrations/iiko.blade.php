@@ -232,7 +232,25 @@
                         <strong>{{ $connection->status_sync_enabled ? 'Включена' : 'Выключена' }}</strong>
                     </div>
                 </div>
-                <p class="iiko-help">Передачу заказов включим после проверки сопоставления меню, платёжных правил и статусов. Само подключение API не отправляет заказы.</p>
+                <p class="iiko-help">Передача включает только поддерживаемые заказы доставки и самовывоза. Dine-in остаётся выключенным до настройки столов и гостевой карты.</p>
+                @if ($connection->order_sync_enabled)
+                    <form method="POST" action="{{ route('organizations.iiko.orders.disable', $organization) }}">
+                        @csrf
+                        <button class="iiko-button" type="submit">Выключить передачу заказов</button>
+                    </form>
+                @else
+                    <form method="POST" action="{{ route('organizations.iiko.orders.enable', $organization) }}">
+                        @csrf
+                        <button class="iiko-button gold" type="submit">Проверить готовность и включить передачу заказов</button>
+                    </form>
+                @endif
+                @if ($errors->has('iiko_order_sync'))
+                    <ul style="color:#ff9ca4;margin-top:12px">
+                        @foreach ($errors->get('iiko_order_sync') as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                @endif
             </section>
 
             <section class="iiko-card">
