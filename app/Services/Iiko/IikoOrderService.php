@@ -33,6 +33,13 @@ class IikoOrderService
             throw new RuntimeException('Не выбраны организация и терминальная группа iiko.');
         }
 
+        if (
+            !$connection->iiko_currency_iso_name ||
+            strtoupper((string) $order->currency) !== strtoupper($connection->iiko_currency_iso_name)
+        ) {
+            throw new RuntimeException('Валюта заказа DAODES не подтверждена настройками выбранной организации iiko.');
+        }
+
         $stoppedMenuItemIds = $this->availability->stoppedMenuItemIds((int) $order->organization_id);
         $orderMenuItemIds = $order->items->pluck('menu_item_id')->map(fn ($id) => (int) $id)->all();
 
