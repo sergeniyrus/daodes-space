@@ -15,6 +15,8 @@ return new class extends Migration
                 ->constrained('organizations')
                 ->cascadeOnDelete();
 
+            $table->string('iiko_organization_id', 36)->index();
+
             $table->foreignId('menu_item_id')
                 ->constrained('menu_items')
                 ->cascadeOnDelete();
@@ -37,7 +39,7 @@ return new class extends Migration
             );
 
             $table->index(
-                ['organization_id', 'iiko_product_id'],
+                ['organization_id', 'iiko_organization_id', 'iiko_product_id'],
                 'iiko_menu_mappings_org_product_index'
             );
         });
@@ -49,6 +51,7 @@ return new class extends Migration
                 ->constrained('organizations')
                 ->cascadeOnDelete();
 
+            $table->string('iiko_organization_id', 36);
             $table->string('iiko_product_id', 36);
             $table->decimal('balance', 12, 3)->default(0);
             $table->boolean('is_available')->default(false);
