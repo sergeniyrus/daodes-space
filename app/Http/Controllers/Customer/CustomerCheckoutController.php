@@ -351,6 +351,7 @@ class CustomerCheckoutController extends Controller
             'payment_method' => ['required', 'in:cash_on_receipt,card_on_receipt,online,guest_account'],
             'requested_at' => ['required', 'date_format:Y-m-d\\TH:i'],
             'table_number' => ['nullable', 'string', 'max:30'],
+            'guest_card_identifier' => ['required_if:fulfillment_type,dine_in', 'nullable', 'string', 'max:100'],
             'save_address' => ['nullable', 'boolean'],
             'address_label' => ['required_if:save_address,1', 'nullable', 'string', 'max:50'],
             'address_line' => ['required_if:fulfillment_type,delivery', 'nullable', 'string', 'max:500'],
@@ -795,6 +796,9 @@ class CustomerCheckoutController extends Controller
                 'delivery_address' => $deliveryAddress,
                 'table_number' => $validated['fulfillment_type'] === Order::FULFILLMENT_DINE_IN
                     ? ($validated['table_number'] ?? null)
+                    : null,
+                'guest_card_identifier' => $validated['fulfillment_type'] === Order::FULFILLMENT_DINE_IN
+                    ? trim($validated['guest_card_identifier'])
                     : null,
                 'requested_at' => !empty($validated['requested_at'])
                     ? Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at'], $settings->timezoneName())->utc()
