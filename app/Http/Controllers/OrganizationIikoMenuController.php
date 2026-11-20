@@ -292,6 +292,7 @@ class OrganizationIikoMenuController extends Controller
                         ->filter(fn ($item) => is_array($item))
                         ->map(function ($item) use ($group) {
                             $item['_daodes_group_name'] = (string) ($group['name'] ?? 'Без категории');
+                            $item['_daodes_group_id'] = (string) ($group['id'] ?? '');
 
                             return $item;
                         });
@@ -324,12 +325,15 @@ class OrganizationIikoMenuController extends Controller
                 [
                     'iiko_product_id' => $validated['iiko_product_id'],
                     'iiko_product_name' => (string) ($matchedProduct['name'] ?? 'Блюдо iiko'),
+                    'iiko_group_id' => filled($matchedProduct['_daodes_group_id']) ? $matchedProduct['_daodes_group_id'] : null,
                     'external_menu_id' => $connection->external_menu_id,
                     'price_category_id' => $connection->price_category_id,
                     'last_iiko_price' => is_numeric($matchedPrice) ? $matchedPrice : null,
                     'last_checked_at' => now(),
                     'metadata' => [
                         'iiko_group_name' => $matchedProduct['_daodes_group_name'],
+                        'has_modifiers' => !empty($matchedProduct['itemModifierGroups']) || !empty($matchedProduct['modifierGroups']),
+                        'has_multiple_sizes' => count($matchedProduct['sizePrices'] ?? []) > 1,
                     ],
                 ]
             );
