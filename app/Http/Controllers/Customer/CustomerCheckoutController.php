@@ -955,6 +955,7 @@ class CustomerCheckoutController extends Controller
             if (
                 $organization->iikoConnection?->is_enabled
                 && $organization->iikoConnection?->order_sync_enabled
+                && $validated['payment_method'] !== Order::PAYMENT_ONLINE
                 && in_array($validated['fulfillment_type'], [
                     Order::FULFILLMENT_DELIVERY,
                     Order::FULFILLMENT_PICKUP,
