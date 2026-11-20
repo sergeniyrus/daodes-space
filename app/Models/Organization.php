@@ -102,6 +102,14 @@ class Organization extends Model
     }
 
     /**
+     * Подключение iikoCloud организации.
+     */
+    public function iikoConnection(): HasOne
+    {
+        return $this->hasOne(IikoConnection::class);
+    }
+
+    /**
      * Заказы клиентов организации.
      */
     public function orders(): HasMany
