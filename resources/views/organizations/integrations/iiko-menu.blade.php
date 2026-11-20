@@ -124,6 +124,14 @@
                         <div class="iiko-menu-stat">ID меню: {{ $menuPreview['external_menu_id'] }}</div>
                     </div>
                     <p class="iiko-menu-muted">Это безопасный просмотр данных iiko. Никакие блюда, цены или категории DAODES автоматически не изменены.</p>
+                    @if ($connection->external_menu_id)
+                        <form method="POST" action="{{ route('organizations.iiko.menu.sync-mappings', $organization) }}" style="margin:12px 0">
+                            @csrf
+                            <button class="iiko-menu-button" type="submit">Обновить цены и данные сопоставленных блюд из iiko</button>
+                            <p class="iiko-menu-muted">Обновляется только информация сопоставлений. Цены и названия меню DAODES не перезаписываются. Если блюдо исчезло из меню iiko, его цена помечается неподтверждённой и передача такого заказа блокируется.</p>
+                        </form>
+                    @endif
+
                     @if ($previewItems->isNotEmpty())
                         <div class="iiko-menu-table-wrap">
                             <table class="iiko-menu-table">
