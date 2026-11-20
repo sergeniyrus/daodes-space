@@ -26,12 +26,12 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(
-                ['organization_id', 'terminal_group_id', 'daodes_table_number'],
+                ['organization_id', 'iiko_organization_id', 'terminal_group_id', 'daodes_table_number'],
                 'iiko_table_mappings_org_daodes_table_unique'
             );
 
             $table->unique(
-                ['organization_id', 'terminal_group_id', 'iiko_table_id'],
+                ['organization_id', 'iiko_organization_id', 'terminal_group_id', 'iiko_table_id'],
                 'iiko_table_mappings_org_iiko_table_unique'
             );
         });
