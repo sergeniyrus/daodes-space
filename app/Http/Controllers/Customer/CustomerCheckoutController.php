@@ -653,7 +653,7 @@ class CustomerCheckoutController extends Controller
             // Повторная серверная проверка стоп-листа внутри транзакции заказа.
             // Проверка GET checkout не заменяет эту защиту: стоп-лист мог измениться.
             if ($organization->iikoConnection?->stop_list_sync_enabled) {
-                $stoppedMenuItemIds = $this->iikoStoppedMenuItemIds($organizationId);
+                $stoppedMenuItemIds = $iikoAvailability->stoppedMenuItemIds($organizationId);
                 $stoppedItems = $items->whereIn('id', $stoppedMenuItemIds);
 
                 if ($stoppedItems->isNotEmpty()) {
