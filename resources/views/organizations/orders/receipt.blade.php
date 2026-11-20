@@ -191,7 +191,7 @@
         </div>
         <div class="receipt__row">
             <span>Статус оплаты</span>
-            <strong>{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</strong>
+            <strong>{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</strong>
         </div>
 
         @if($order->customer_comment)
