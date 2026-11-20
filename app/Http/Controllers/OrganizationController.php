@@ -545,6 +545,7 @@ class OrganizationController extends Controller
             'online_payment_enabled',
             'cash_payment_enabled',
             'card_payment_enabled',
+            'preorders_enabled',
         ];
 
         foreach ($booleanFields as $field) {
@@ -552,6 +553,21 @@ class OrganizationController extends Controller
                 $field => $request->boolean($field),
             ]);
         }
+
+        $workingHours = $request->input('working_hours', []);
+        if (!is_array($workingHours)) {
+            $workingHours = [];
+        }
+        foreach (range(1, 7) as $day) {
+            $workingHours[$day] = is_array($workingHours[$day] ?? null)
+                ? $workingHours[$day]
+                : [];
+            $workingHours[$day]['enabled'] = filter_var(
+                $workingHours[$day]['enabled'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+        $request->merge(['working_hours' => $workingHours]);
 
         $currency = strtoupper(trim((string) $request->input('currency')));
 
@@ -579,6 +595,21 @@ class OrganizationController extends Controller
                 'min:0',
                 'max:1440',
             ],
+            'working_hours' => ['required', 'array'],
+            'working_hours.1' => ['required', 'array'],
+            'working_hours.2' => ['required', 'array'],
+            'working_hours.3' => ['required', 'array'],
+            'working_hours.4' => ['required', 'array'],
+            'working_hours.5' => ['required', 'array'],
+            'working_hours.6' => ['required', 'array'],
+            'working_hours.7' => ['required', 'array'],
+            'working_hours.*.enabled' => ['required', 'boolean'],
+            'working_hours.*.open' => ['required', 'date_format:H:i'],
+            'working_hours.*.close' => ['required', 'date_format:H:i'],
+            'timezone' => ['required', 'timezone'],
+            'preorders_enabled' => ['required', 'boolean'],
+            'order_lead_minutes' => ['required', 'integer', 'min:30', 'max:1440'],
+            'time_slot_minutes' => ['required', 'integer', 'in:5,10,15,20,30,60'],
             'delivery_city' => ['nullable', 'string', 'max:255'],
             'pickup_address' => [
                 $request->boolean('delivery_enabled') ? 'required' : 'nullable',
@@ -687,6 +718,11 @@ class OrganizationController extends Controller
                 'cash_payment_enabled',
                 'card_payment_enabled',
                 'pickup_min_minutes',
+                'working_hours',
+                'timezone',
+                'preorders_enabled',
+                'order_lead_minutes',
+                'time_slot_minutes',
                 'delivery_city',
                 'pickup_address',
                 'delivery_origin_latitude',
@@ -730,6 +766,11 @@ class OrganizationController extends Controller
                 'cash_payment_enabled',
                 'card_payment_enabled',
                 'pickup_min_minutes',
+                'working_hours',
+                'timezone',
+                'preorders_enabled',
+                'order_lead_minutes',
+                'time_slot_minutes',
                 'delivery_city',
                 'pickup_address',
                 'delivery_origin_latitude',
