@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('terminal_group_id', 36)->nullable();
             $table->string('terminal_group_name')->nullable();
             $table->string('address_format_type', 32)->nullable();
+            $table->string('iiko_currency_iso_name', 3)->nullable();
             $table->string('external_menu_id', 36)->nullable();
             $table->string('price_category_id', 36)->nullable();
 
