@@ -202,7 +202,7 @@
         @endif
         @if($order->requested_at)
             <p class="customer-order-detail-muted">
-                Желаемое время: {{ $order->requested_at->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
+                Желаемое время: {{ $order->requested_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
             </p>
         @endif
     </div>
@@ -297,7 +297,10 @@
             </p>
         @endif
         @if($order->table_number)
-            <p>Номер браслета: {{ $order->table_number }}</p>
+            <p>Номер столика: {{ $order->table_number }}</p>
+        @endif
+        @if($order->guest_card_identifier)
+            <p>Браслет / карта сотрудника: {{ $order->guest_card_identifier }}</p>
         @endif
         @if($order->customer_comment)
             <p>Комментарий: {{ $order->customer_comment }}</p>
