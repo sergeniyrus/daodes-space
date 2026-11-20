@@ -63,7 +63,7 @@
     </style>
 
     <nav class="organization-tabs" aria-label="Разделы администратора" data-organization-tabs>
-        <a href="{{ route('employee.organization.admin.overview', $organization) }}" class="organization-tab {{ request()->routeIs('employee.organization.admin.overview') ? 'is-active' : '' }}" aria-current="page">
+        <a href="{{ route('employee.organization.admin.overview', $organization) }}" class="organization-tab {{ request()->routeIs('employee.organization.admin.overview') ? 'is-active' : '' }}" @if(request()->routeIs('employee.organization.admin.overview')) aria-current="page" @endif>
             <span>⌂</span> Обзор
         </a>
         <a href="{{ route('employee.organization.admin.team', $organization) }}" class="organization-tab {{ request()->routeIs('employee.organization.admin.team') ? 'is-active' : '' }}" @if(request()->routeIs('employee.organization.admin.team')) aria-current="page" @endif>
