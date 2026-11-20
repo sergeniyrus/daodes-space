@@ -31,7 +31,8 @@ class OrganizationOrderController extends Controller
         ]);
 
         $period = $filters['period'] ?? 'month';
-        $now = now();
+        $timezone = $organization->orderSettings?->timezoneName() ?? config('app.timezone', 'UTC');
+        $now = Carbon::now($timezone);
         $dateFrom = null;
         $dateTo = $now->copy()->endOfDay();
 
@@ -60,8 +61,8 @@ class OrganizationOrderController extends Controller
                 $dateTo = null;
                 break;
             case 'custom':
-                $dateFrom = !empty($filters['date_from']) ? Carbon::parse($filters['date_from'])->startOfDay() : $now->copy()->startOfMonth();
-                $dateTo = !empty($filters['date_to']) ? Carbon::parse($filters['date_to'])->endOfDay() : $now->copy()->endOfDay();
+                $dateFrom = !empty($filters['date_from']) ? Carbon::parse($filters['date_from'], $timezone)->startOfDay() : $now->copy()->startOfMonth();
+                $dateTo = !empty($filters['date_to']) ? Carbon::parse($filters['date_to'], $timezone)->endOfDay() : $now->copy()->endOfDay();
                 break;
             case 'month':
             default:
@@ -69,9 +70,14 @@ class OrganizationOrderController extends Controller
                 break;
         }
 
+        // Интервалы считаются по локальному календарю организации,
+        // а в БД сравниваются с UTC timestamps.
+        $queryDateFrom = $dateFrom?->copy()->utc();
+        $queryDateTo = $dateTo?->copy()->utc();
+
         $periodQuery = $organization->orders()
-            ->when($dateFrom, fn ($q) => $q->where('created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->where('created_at', '<=', $dateTo));
+            ->when($queryDateFrom, fn ($q) => $q->where('created_at', '>=', $queryDateFrom))
+            ->when($queryDateTo, fn ($q) => $q->where('created_at', '<=', $queryDateTo));
 
         $summary = [
             'count' => (clone $periodQuery)->count(),
@@ -296,7 +302,8 @@ class OrganizationOrderController extends Controller
         ]);
 
         $period = $filters['period'] ?? 'month';
-        $now = now();
+        $timezone = $organization->orderSettings?->timezoneName() ?? config('app.timezone', 'UTC');
+        $now = Carbon::now($timezone);
         $dateFrom = null;
         $dateTo = $now->copy()->endOfDay();
 
@@ -338,10 +345,13 @@ class OrganizationOrderController extends Controller
                 break;
         }
 
+        $queryDateFrom = $dateFrom?->copy()->utc();
+        $queryDateTo = $dateTo?->copy()->utc();
+
         $query = $organization->orders()
             ->with(['items'])
-            ->when($dateFrom, fn ($builder) => $builder->where('created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($builder) => $builder->where('created_at', '<=', $dateTo));
+            ->when($queryDateFrom, fn ($builder) => $builder->where('created_at', '>=', $queryDateFrom))
+            ->when($queryDateTo, fn ($builder) => $builder->where('created_at', '<=', $queryDateTo));
 
         if (!empty($filters['q'])) {
             $search = trim($filters['q']);
