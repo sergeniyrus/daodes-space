@@ -109,6 +109,33 @@
             </form>
         </section>
 
+        @if ($connection?->iiko_organization_id)
+            <section class="iiko-card">
+                <h2>Вебхуки iiko</h2>
+                <p>Вебхук позволяет получать изменения заказов и уведомления об обновлении стоп-листа без постоянного опроса API. Для одной организации iiko используется единый URL DAODES.</p>
+                <div class="iiko-selected">
+                    <div>
+                        <small>Состояние</small>
+                        <strong>{{ $connection->webhook_enabled ? 'Настроен' : 'Не настроен' }}</strong>
+                    </div>
+                    <div>
+                        <small>Адрес приёма</small>
+                        <strong style="font-size:.82rem">/api/integrations/iiko/webhook</strong>
+                    </div>
+                </div>
+                <div class="iiko-actions">
+                    <form method="POST" action="{{ route('organizations.iiko.webhook.configure', $organization) }}">
+                        @csrf
+                        <button class="iiko-button gold" type="submit">Настроить вебхук в iiko</button>
+                    </form>
+                    <form method="POST" action="{{ route('organizations.iiko.webhook.check', $organization) }}">
+                        @csrf
+                        <button class="iiko-button" type="submit">Проверить настройки вебхука</button>
+                    </form>
+                </div>
+            </section>
+        @endif
+
         @if ($connection)
             <section class="iiko-card">
                 <h2>2. Проверка доступа iikoCloud</h2>
