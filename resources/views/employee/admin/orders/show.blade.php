@@ -105,7 +105,7 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
             <div class="admin-order-info">
                 <p><strong>{{ $order->payment_method === 'guest_account' ? 'На счёт гостя — расчёт при выходе' : ($methodLabels[$order->payment_method] ?? $order->payment_method) }}</strong></p>
                 <p class="admin-order-muted">{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</p>
-                @if($order->payment_method === 'guest_account')
+                @if($order->payment_method === 'guest_account' && $order->payment_status === 'pending')
                     <div class="admin-order-note">Расчёт будет произведён на кассе при выходе. Передача заказа и подтверждение оплаты через iiko подключаются отдельно; статус вручную не меняйте.</div>
                 @endif
                 @if($order->payment_status === 'pending' && $order->payment_method !== 'online'
