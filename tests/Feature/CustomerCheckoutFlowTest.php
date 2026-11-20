@@ -184,7 +184,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 'customer_name' => 'Test customer',
                 'fulfillment_type' => Order::FULFILLMENT_PICKUP,
                 'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\\TH:i'),
+                'requested_at' => now('Asia/Krasnoyarsk')->addDay()->setTime(12, 0)->format('Y-m-d\\TH:i'),
             ])
             ->assertRedirect(route('customer.checkout'))
             ->assertSessionHasErrors('requested_at');
