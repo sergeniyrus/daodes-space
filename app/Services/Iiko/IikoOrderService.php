@@ -1,0 +1,138 @@
+<?php
+
+namespace App\Services\Iiko;
+
+use App\Models\IikoConnection;
+use App\Models\IikoMenuMapping;
+use App\Models\Order;
+use RuntimeException;
+
+class IikoOrderService
+{
+    public function __construct(
+        private readonly IikoCloudClient $client,
+        private readonly IikoAvailabilityService $availability,
+        private readonly IikoSyncLogger $logger
+    ) {
+    }
+
+    /**
+     * Send a DAODES pickup or delivery order to iiko.
+     *
+     * Dine-in is intentionally rejected until DAODES table numbers and guest
+     * card identifiers are explicitly mapped to iiko table/guest entities.
+     */
+    public function send(Order $order, IikoConnection $connection): array
+    {
+        if (!in_array($order->fulfillment_type, [Order::FULFILLMENT_DELIVERY, Order::FULFILLMENT_PICKUP], true)) {
+            throw new RuntimeException('Передача заказов в заведении требует отдельного сопоставления столов iiko.');
+        }
+
+        if (!$connection->iiko_organization_id || !$connection->terminal_group_id) {
+            throw new RuntimeException('Не выбраны организация и терминальная группа iiko.');
+        }
+
+        $stoppedMenuItemIds = $this->availability->stoppedMenuItemIds((int) $order->organization_id);
+        $orderMenuItemIds = $order->items->pluck('menu_item_id')->map(fn ($id) => (int) $id)->all();
+
+        if (array_intersect($stoppedMenuItemIds, $orderMenuItemIds) !== []) {
+            throw new RuntimeException('В заказе есть блюдо, которое попало в актуальный стоп-лист iiko.');
+        }
+
+        $mappings = IikoMenuMapping::query()
+            ->where('organization_id', $order->organization_id)
+            ->whereIn('menu_item_id', $orderMenuItemIds)
+            ->get()
+            ->keyBy('menu_item_id');
+
+        $iikoItems = [];
+
+        foreach ($order->items as $item) {
+            $mapping = $mappings->get((int) $item->menu_item_id);
+
+            if (!$mapping) {
+                throw new RuntimeException('Не сопоставлено блюдо DAODES: ' . $item->item_name . '.');
+            }
+
+            $iikoItems[] = [
+                'type' => 'Product',
+                'productId' => $mapping->iiko_product_id,
+                'amount' => (float) $item->quantity,
+            ];
+        }
+
+        $orderPayload = [
+            'id' => $order->idempotency_key,
+            'phone' => $order->customer_phone,
+            'customer' => [
+                'type' => 'one-time',
+                'name' => $order->customer_name,
+            ],
+            'orderServiceType' => $order->fulfillment_type === Order::FULFILLMENT_DELIVERY
+                ? 'DeliveryByCourier'
+                : 'DeliveryByClient',
+            'items' => $iikoItems,
+        ];
+
+        if (filled($order->customer_comment)) {
+            $orderPayload['comment'] = $order->customer_comment;
+        }
+
+        if ($order->fulfillment_type === Order::FULFILLMENT_DELIVERY) {
+            $address = is_array($order->delivery_address) ? $order->delivery_address : [];
+            $addressLine = trim((string) ($address['address_line'] ?? ''));
+
+            if ($addressLine === '') {
+                throw new RuntimeException('Для заказа доставки не указан адрес.');
+            }
+
+            $deliveryComment = collect([
+                $address['entrance'] ?? null ? 'Подъезд: ' . $address['entrance'] : null,
+                $address['floor'] ?? null ? 'Этаж: ' . $address['floor'] : null,
+                $address['apartment'] ?? null ? 'Квартира: ' . $address['apartment'] : null,
+                $address['intercom'] ?? null ? 'Домофон: ' . $address['intercom'] : null,
+                $address['delivery_comment'] ?? null,
+            ])->filter()->implode('; ');
+
+            $orderPayload['deliveryPoint'] = [
+                'address' => [
+                    'type' => 'city',
+                    'line1' => mb_substr($addressLine, 0, 250),
+                ],
+                'comment' => $deliveryComment,
+            ];
+        }
+
+        $request = [
+            'organizationId' => $connection->iiko_organization_id,
+            'terminalGroupId' => $connection->terminal_group_id,
+            'order' => $orderPayload,
+        ];
+
+        $response = $this->client->request(
+            $connection,
+            'POST',
+            '/api/1/deliveries/create',
+            $request
+        );
+
+        $this->logger->record(
+            $connection,
+            'order_send',
+            'success',
+            'Заказ DAODES передан в iiko.',
+            $response['correlationId'] ?? null,
+            ['order_id' => $order->id, 'endpoint' => '/api/1/deliveries/create']
+        );
+
+        return $response;
+    }
+
+    public function commandStatus(IikoConnection $connection, string $correlationId): array
+    {
+        return $this->client->request($connection, 'POST', '/api/1/commands/status', [
+            'organizationId' => $connection->iiko_organization_id,
+            'correlationId' => $correlationId,
+        ]);
+    }
+}
