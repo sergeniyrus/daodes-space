@@ -109,6 +109,24 @@ class IikoLoyaltyService
         );
     }
 
+
+    public function guestCounters(IikoConnection $connection, array $guestIds): array
+    {
+        if ($guestIds === []) {
+            throw new InvalidArgumentException('Не переданы идентификаторы гостей iiko.');
+        }
+
+        return $this->client->request(
+            $connection,
+            'POST',
+            '/api/1/loyalty/iiko/get_counters',
+            [
+                'organizationId' => $this->organizationId($connection),
+                'guestIds' => array_values($guestIds),
+            ]
+        );
+    }
+
     private function organizationId(IikoConnection $connection): string
     {
         if (!filled($connection->iiko_organization_id)) {
