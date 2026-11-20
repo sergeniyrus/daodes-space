@@ -146,8 +146,9 @@ class OrganizationController extends Controller
          * Все выборки ограничены текущей организацией.
          */
         $organizationTimezone = $organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk';
-        $todayStart = Carbon::now($organizationTimezone)->startOfDay()->utc();
-        $tomorrowStart = $todayStart->copy()->addDay();
+        $todayLocal = Carbon::now($organizationTimezone)->startOfDay();
+        $todayStart = $todayLocal->copy()->utc();
+        $tomorrowStart = $todayLocal->copy()->addDay()->utc();
 
         $orderStats = $organization->orders()
             ->selectRaw(
