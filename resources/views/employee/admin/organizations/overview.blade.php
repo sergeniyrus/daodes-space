@@ -66,10 +66,6 @@
                 <small>Отменены сегодня</small>
                 <strong>{{ number_format((int) $overviewStats['cancelled_today'], 0, ',', ' ') }}</strong>
             </div>
-            <div class="admin-overview-stat gold">
-                <small>Сотрудников</small>
-                <strong>{{ $staffCount }}</strong>
-            </div>
         </div>
 
         <div class="admin-overview-money">
@@ -89,7 +85,7 @@
                             <div class="admin-team-name">{{ $activity->description }}</div>
                             <div class="admin-team-phone">
                                 {{ $activity->actor?->name ?? 'Система' }}
-                                · {{ $activity->created_at?->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
+                                · {{ $activity->created_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
                             </div>
                             @if($activity->before_values || $activity->after_values)
                                 <details style="margin-top:9px;color:#9eacbd">
