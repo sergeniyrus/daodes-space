@@ -148,9 +148,6 @@
                                                     <form method="POST" action="{{ route('organizations.iiko.menu.mapping', $organization) }}">
                                                         @csrf
                                                         <input type="hidden" name="iiko_product_id" value="{{ $item['id'] }}">
-                                                        <input type="hidden" name="iiko_product_name" value="{{ $item['name'] }}">
-                                                        <input type="hidden" name="iiko_group_name" value="{{ $item['group'] }}">
-                                                        <input type="hidden" name="iiko_price" value="{{ is_numeric($item['price']) ? $item['price'] : '' }}">
                                                         <select name="menu_item_id" required style="margin-bottom:7px;min-height:36px;padding:6px;font-size:.8rem">
                                                             <option value="">Выберите блюдо DAODES</option>
                                                             @foreach ($localMenuItems as $localItem)
