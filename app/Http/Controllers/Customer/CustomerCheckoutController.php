@@ -884,6 +884,9 @@ class CustomerCheckoutController extends Controller
                 'guest_card_identifier' => $validated['fulfillment_type'] === Order::FULFILLMENT_DINE_IN
                     ? trim($validated['guest_card_identifier'])
                     : null,
+                'pickup_address_snapshot' => $validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP
+                    ? trim((string) $settings->pickup_address)
+                    : null,
                 'requested_at' => !empty($validated['requested_at'])
                     ? Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at'], $settings->timezoneName())->utc()
                     : null,
