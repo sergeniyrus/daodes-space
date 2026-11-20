@@ -143,6 +143,7 @@ class OrganizationIikoTableController extends Controller
                     'daodes_table_number' => trim($validated['daodes_table_number']),
                 ],
                 [
+                    'iiko_organization_id' => $connection->iiko_organization_id,
                     'iiko_table_id' => $selected['id'],
                     'iiko_table_name' => $selected['name'],
                     'restaurant_section_id' => $selected['section_id'] ?: null,
