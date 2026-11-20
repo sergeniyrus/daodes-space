@@ -68,7 +68,7 @@
             </div>
             <div class="admin-overview-stat gold">
                 <small>Сотрудников</small>
-                <strong>{{ $staffMemberships->count() }}</strong>
+                <strong>{{ $staffCount }}</strong>
             </div>
         </div>
 
@@ -118,59 +118,7 @@
         </section>
     </section>
 
-    <section class="admin-overview-section" id="team">
-        <h2 class="admin-overview-title">Команда организации</h2>
-        <p class="admin-overview-subtitle">Список сотрудников и их текущий статус. Управление ролями, активацией и удалением доступно только менеджеру.</p>
 
-        <div class="admin-team-list">
-            @forelse($staffMemberships as $staffMembership)
-                @if($staffMembership->employee)
-                    <article class="admin-team-member">
-                        <div class="admin-team-main">
-                            <div class="admin-team-name">{{ $staffMembership->employee->name }}</div>
-                            <div class="admin-team-phone">{{ $staffMembership->employee->phone }}</div>
-                        </div>
-                        <div class="admin-team-meta">
-                            <span class="admin-team-badge">
-                                @switch($staffMembership->role)
-                                    @case('admin') Администратор @break
-                                    @case('cook') Повар @break
-                                    @case('courier') Курьер @break
-                                    @default Сотрудник
-                                @endswitch
-                            </span>
-                            <span class="admin-team-badge {{ $staffMembership->status === 'active' ? 'gold' : '' }}">
-                                @switch($staffMembership->status)
-                                    @case('active') Активен @break
-                                    @case('pending') Ожидает активации @break
-                                    @case('blocked') Заблокирован @break
-                                    @default {{ $staffMembership->status }}
-                                @endswitch
-                            </span>
-                            <span class="admin-team-badge {{ $staffMembership->employee->phone_verified_at ? 'gold' : '' }}">
-                                {{ $staffMembership->employee->phone_verified_at ? 'Телефон подтверждён' : 'Телефон не подтверждён' }}
-                            </span>
-                        </div>
-                    </article>
-                @endif
-            @empty
-                <div class="admin-team-empty">Сотрудники пока не добавлены.</div>
-            @endforelse
-        </div>
-    </section>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const tabs = document.querySelectorAll('[data-admin-tab]');
-    const syncActiveTab = function () {
-        const activeTab = window.location.hash === '#team' ? 'team' : 'overview';
-        tabs.forEach(function (tab) {
-            tab.classList.toggle('is-active', tab.dataset.adminTab === activeTab);
-        });
-    };
-    syncActiveTab();
-    window.addEventListener('hashchange', syncActiveTab);
-});
-</script>
 
 @endsection
