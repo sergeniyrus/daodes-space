@@ -277,6 +277,17 @@ class OrganizationIikoController extends Controller
                 report($settingsException);
             }
 
+            $alreadyConnected = IikoConnection::query()
+                ->where('iiko_organization_id', $validated['iiko_organization_id'])
+                ->where('organization_id', '!=', $organization->id)
+                ->exists();
+
+            if ($alreadyConnected) {
+                return redirect()
+                    ->route('organizations.iiko.index', $organization)
+                    ->withErrors(['iiko' => 'Эта организация iiko уже подключена к другой организации DAODES.']);
+            }
+
             $targetChanged = (string) $connection->iiko_organization_id !== $validated['iiko_organization_id']
                 || (string) $connection->terminal_group_id !== $validated['terminal_group_id'];
 
