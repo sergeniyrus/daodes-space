@@ -37,7 +37,7 @@
             <div class="title">{{ $order->organization->name }}</div>
             <div class="muted">Электронный чек онлайн-заказа</div>
             <h1>Заказ №{{ $order->order_number }}</h1>
-            <div>{{ $order->created_at?->format('d.m.Y H:i') ?? '—' }}</div>
+            <div>{{ $order->created_at?->timezone($order->organization?->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') ?? '—' }}</div>
         </header>
         <hr class="rule">
         <div class="row"><span>Клиент</span><strong>{{ $order->customer_name }}</strong></div>
