@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Services\\Iiko;
+namespace App\Services\Iiko;
 
-use App\\Models\\IikoOrderMapping;
-use App\\Models\\Order;
-use App\\Support\\OrderNotificationService;
-use Illuminate\\Support\\Facades\\DB;
+use App\Models\IikoOrderMapping;
+use App\Models\Order;
+use App\Support\OrderNotificationService;
+use Illuminate\Support\Facades\DB;
 
 class IikoOrderStatusSyncService
 {
