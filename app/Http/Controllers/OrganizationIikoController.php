@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\IikoApiException;
+use App\Jobs\Iiko\CheckIikoOrderCommand;
 use App\Models\IikoConnection;
 use App\Models\IikoMenuMapping;
 use App\Models\IikoOrderMapping;
@@ -491,6 +492,38 @@ class OrganizationIikoController extends Controller
         return redirect()
             ->route('organizations.iiko.index', $organization)
             ->with('success', 'Передача поддерживаемых заказов iiko включена. Dine-in заказы пока остаются в DAODES.');
+    }
+
+    public function recheckOrder(Organization $organization, int $orderId): RedirectResponse
+    {
+        $mapping = IikoOrderMapping::query()
+            ->where('organization_id', $organization->id)
+            ->where('order_id', $orderId)
+            ->firstOrFail();
+
+        if ($mapping->sync_status !== 'processing' || !filled($mapping->correlation_id)) {
+            return redirect()
+                ->route('organizations.iiko.index', $organization)
+                ->withErrors(['iiko' => 'Для этого заказа нет сохранённой команды iiko, которую можно безопасно проверить.']);
+        }
+
+        $connection = $organization->iikoConnection;
+
+        if (
+            !$connection ||
+            !$connection->is_enabled ||
+            (string) $mapping->iiko_organization_id !== (string) $connection->iiko_organization_id
+        ) {
+            return redirect()
+                ->route('organizations.iiko.index', $organization)
+                ->withErrors(['iiko' => 'Подключение отличается от исходной организации заказа. Сверка остановлена во избежание запроса не в ту организацию iiko.']);
+        }
+
+        CheckIikoOrderCommand::dispatch($orderId);
+
+        return redirect()
+            ->route('organizations.iiko.index', $organization)
+            ->with('success', 'Проверка результата команды iiko поставлена в очередь. Повторная отправка заказа не выполняется.');
     }
 
     public function disableOrderSync(Organization $organization): RedirectResponse
