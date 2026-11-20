@@ -167,12 +167,22 @@ class OrganizationIikoMenuController extends Controller
                     ]);
             })->take(250)->values();
 
-            $connection->update([
+            $menuSelectionChanged = (string) $connection->external_menu_id !== $validated['external_menu_id']
+                || (string) $connection->price_category_id !== (string) ($validated['price_category_id'] ?? '');
+
+            $connectionUpdates = [
                 'external_menu_id' => $validated['external_menu_id'],
                 'price_category_id' => $validated['price_category_id'] ?? null,
                 'last_menu_sync_at' => now(),
                 'last_error' => null,
-            ]);
+            ];
+
+            if ($menuSelectionChanged) {
+                $connectionUpdates['order_sync_enabled'] = false;
+                $connectionUpdates['menu_sync_enabled'] = false;
+            }
+
+            $connection->update($connectionUpdates);
 
             $this->logger->record(
                 $connection,
