@@ -82,11 +82,36 @@ class OrganizationOrderSetting extends Model
             : 'Asia/Krasnoyarsk';
     }
 
+    public function hasConfiguredWorkingHours(): bool
+    {
+        if (!is_array($this->working_hours) || $this->working_hours === []) {
+            return false;
+        }
+
+        $hasOpenDay = false;
+
+        foreach (range(1, 7) as $day) {
+            $hours = $this->working_hours[$day] ?? null;
+
+            if (!is_array($hours)
+                || !array_key_exists('enabled', $hours)
+                || !preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', (string) ($hours['open'] ?? ''))
+                || !preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', (string) ($hours['close'] ?? ''))) {
+                return false;
+            }
+
+            if (!empty($hours['enabled'])) {
+                $hasOpenDay = true;
+            }
+        }
+
+        return $hasOpenDay;
+    }
+
     public function isWithinWorkingHours(Carbon $requestedAt): bool
     {
-        // До заполнения графика сохраняем прежнее поведение организации.
-        if (!is_array($this->working_hours) || $this->working_hours === []) {
-            return true;
+        if (!$this->hasConfiguredWorkingHours()) {
+            return false;
         }
 
         $localTime = $requestedAt->copy()->setTimezone($this->timezoneName());
@@ -141,6 +166,7 @@ class OrganizationOrderSetting extends Model
     public function canAcceptOrders(): bool
     {
         return $this->orders_enabled
+            && $this->hasConfiguredWorkingHours()
             && filled($this->currency)
             && (
                 $this->pickup_enabled
