@@ -39,7 +39,7 @@ return new class extends Migration
             );
 
             $table->index(
-                ['organization_id', 'iiko_organization_id', 'terminal_group_id', 'iiko_product_id'],
+                ['organization_id', 'iiko_organization_id', 'iiko_product_id'],
                 'iiko_menu_mappings_org_product_index'
             );
         });
@@ -52,7 +52,6 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->string('iiko_organization_id', 36);
-            $table->string('iiko_organization_id', 36);
             $table->string('terminal_group_id', 36);
             $table->string('iiko_product_id', 36);
             $table->decimal('balance', 12, 3)->default(0);
@@ -62,7 +61,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(
-                ['organization_id', 'iiko_product_id'],
+                ['organization_id', 'iiko_organization_id', 'terminal_group_id', 'iiko_product_id'],
                 'iiko_stop_list_items_org_product_unique'
             );
         });
