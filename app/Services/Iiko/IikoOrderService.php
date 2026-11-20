@@ -78,6 +78,18 @@ class IikoOrderService
             'items' => $iikoItems,
         ];
 
+        // iiko expects local terminal time without a timezone offset.
+        // DAODES already stores the organization's timezone in order settings.
+        if ($order->requested_at) {
+            $timezone = $order->organization?->orderSettings?->timezoneName()
+                ?? (string) config('app.timezone', 'UTC');
+
+            $orderPayload['completeBefore'] = $order->requested_at
+                ->copy()
+                ->setTimezone($timezone)
+                ->format('Y-m-d H:i:s.v');
+        }
+
         if (filled($order->customer_comment)) {
             $orderPayload['comment'] = $order->customer_comment;
         }
