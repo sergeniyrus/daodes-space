@@ -50,7 +50,7 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->string('iiko_product_id', 36);
-            $table->integer('balance')->default(0);
+            $table->decimal('balance', 12, 3)->default(0);
             $table->boolean('is_available')->default(false);
             $table->timestamp('synced_at')->nullable();
 
