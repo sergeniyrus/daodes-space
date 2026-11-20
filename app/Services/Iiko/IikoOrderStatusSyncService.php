@@ -1,42 +1,20 @@
 <?php
 
-namespace App\Services\Iiko;
+namespace App\\Services\\Iiko;
 
-use App\Models\IikoOrderMapping;
-use App\Models\Order;
-use App\Support\OrderNotificationService;
-use Illuminate\Support\Facades\DB;
+use App\\Models\\IikoOrderMapping;
+use App\\Models\\Order;
+use App\\Support\\OrderNotificationService;
+use Illuminate\\Support\\Facades\\DB;
 
 class IikoOrderStatusSyncService
 {
     public function synchronize(IikoOrderMapping $mapping, ?string $iikoStatus): ?string
     {
         $status = mb_strtolower(trim((string) $iikoStatus));
+        $orderId = (int) $mapping->order_id;
 
-        $order = $mapping->order;
-
-        if (!$order || $status === '') {
-            return null;
-        }
-
-        $target = match ($status) {
-            'waitcooking' => Order::STATUS_CONFIRMED,
-            'cookingstarted' => Order::STATUS_PREPARING,
-            'cookingcompleted' => Order::STATUS_READY,
-            'onway', 'on_the_way' => Order::STATUS_IN_TRANSIT,
-            'delivered' => $order->fulfillment_type === Order::FULFILLMENT_PICKUP
-                ? Order::STATUS_ISSUED
-                : Order::STATUS_DELIVERED,
-            'closed' => $order->payment_status === Order::PAYMENT_SUCCEEDED
-                ? Order::STATUS_COMPLETED
-                : null,
-            'cancelled', 'canceled' => $order->payment_status !== Order::PAYMENT_SUCCEEDED
-                ? Order::STATUS_CANCELLED
-                : null,
-            default => null,
-        };
-
-        if (!$target) {
+        if ($orderId <= 0 || $status === '') {
             return null;
         }
 
@@ -55,9 +33,12 @@ class IikoOrderStatusSyncService
             Order::STATUS_CANCELLED => 8,
         ];
 
-        return DB::transaction(function () use ($order, $target, $ranks, $iikoStatus) {
+        return DB::transaction(function () use ($orderId, $status, $ranks, $iikoStatus) {
+            // Always make the decision using the latest locked order state.
+            // Webhooks can arrive while a payment callback or another status
+            // transition is updating the same order.
             $lockedOrder = Order::query()
-                ->whereKey($order->id)
+                ->whereKey($orderId)
                 ->lockForUpdate()
                 ->first();
 
@@ -68,26 +49,32 @@ class IikoOrderStatusSyncService
                 return null;
             }
 
-            if (
-                $target === Order::STATUS_COMPLETED &&
-                $lockedOrder->payment_status !== Order::PAYMENT_SUCCEEDED
-            ) {
+            $target = match ($status) {
+                'waitcooking' => Order::STATUS_CONFIRMED,
+                'cookingstarted' => Order::STATUS_PREPARING,
+                'cookingcompleted' => Order::STATUS_READY,
+                'onway', 'on_the_way' => Order::STATUS_IN_TRANSIT,
+                'delivered' => $lockedOrder->fulfillment_type === Order::FULFILLMENT_PICKUP
+                    ? Order::STATUS_ISSUED
+                    : Order::STATUS_DELIVERED,
+                'closed' => $lockedOrder->payment_status === Order::PAYMENT_SUCCEEDED
+                    ? Order::STATUS_COMPLETED
+                    : null,
+                'cancelled', 'canceled' => $lockedOrder->payment_status !== Order::PAYMENT_SUCCEEDED
+                    ? Order::STATUS_CANCELLED
+                    : null,
+                default => null,
+            };
+
+            if (!$target) {
                 return null;
             }
 
-            if (
-                $target === Order::STATUS_CANCELLED &&
-                $lockedOrder->payment_status === Order::PAYMENT_SUCCEEDED
-            ) {
+            if (($ranks[$target] ?? -1) <= ($ranks[$lockedOrder->status] ?? -1)) {
                 return null;
             }
 
             $from = $lockedOrder->status;
-
-            if (($ranks[$target] ?? -1) <= ($ranks[$from] ?? -1)) {
-                return null;
-            }
-
             $updates = ['status' => $target];
 
             if ($target === Order::STATUS_CONFIRMED) {
@@ -95,9 +82,9 @@ class IikoOrderStatusSyncService
             } elseif ($target === Order::STATUS_READY) {
                 $updates['ready_at'] = $lockedOrder->ready_at ?? now();
             } elseif ($target === Order::STATUS_COMPLETED) {
-                $updates['completed_at'] = now();
+                $updates['completed_at'] = $lockedOrder->completed_at ?? now();
             } elseif ($target === Order::STATUS_CANCELLED) {
-                $updates['cancelled_at'] = now();
+                $updates['cancelled_at'] = $lockedOrder->cancelled_at ?? now();
                 $updates['payment_status'] = Order::PAYMENT_CANCELLED;
 
                 $lockedOrder->payments()
