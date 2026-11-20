@@ -57,6 +57,12 @@ class CheckIikoOrderCommand implements ShouldQueue
         ]);
 
         if (in_array(mb_strtolower($state), ['completed', 'success', 'succeeded'], true)) {
+            $mapping->update([
+                'sync_status' => 'sent',
+                'last_error' => null,
+                'sent_at' => $mapping->sent_at ?? now(),
+            ]);
+
             return;
         }
 
@@ -72,8 +78,8 @@ class CheckIikoOrderCommand implements ShouldQueue
         // Unknown or in-progress states are checked again using queue backoff.
         if ($this->pollCount >= 8) {
             $mapping->update([
-                'sync_status' => 'failed',
-                'last_error' => 'iiko не подтвердила результат создания заказа за отведённое время.',
+                'sync_status' => 'processing',
+                'last_error' => 'iiko ещё не подтвердила результат создания заказа. Повторная отправка заблокирована; требуется продолжить сверку.',
             ]);
         } else {
             self::dispatch($this->orderId, $this->pollCount + 1)
@@ -85,9 +91,10 @@ class CheckIikoOrderCommand implements ShouldQueue
     {
         IikoOrderMapping::query()
             ->where('order_id', $this->orderId)
+            ->whereNotNull('correlation_id')
             ->update([
-                'sync_status' => 'failed',
-                'last_error' => 'Не удалось проверить результат команды iiko.',
+                'sync_status' => 'processing',
+                'last_error' => 'iiko приняла запрос, но автоматическая проверка результата завершилась ошибкой. Повторная отправка заблокирована.',
             ]);
     }
 }
