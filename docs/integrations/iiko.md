@@ -21,6 +21,7 @@
     IIKO_TIMEOUT=20
     IIKO_CONNECT_TIMEOUT=5
     IIKO_TOKEN_CACHE_MINUTES=55
+    IIKO_SOURCE_KEY=
     IIKO_WEBHOOK_URL=https://daodes.space/api/integrations/iiko/webhook
 
 Не помещать реальные секреты в GitHub, миграции, логи или Blade.
@@ -78,7 +79,7 @@
 - стоимость доставки или скидка, если они меняют итог DAODES относительно сопоставленных позиций;
 - доставка при неподтверждённом формате адреса.
 
-Заказ сначала сохраняется в DAODES. Передача выполняется фоновой задачей после commit транзакции. Идемпотентный ключ DAODES передаётся в iiko order.id.
+Заказ сначала сохраняется в DAODES. Передача выполняется фоновой задачей после commit транзакции. Идемпотентный ключ DAODES передаётся в iiko order.id. Необязательный IIKO_SOURCE_KEY позволяет помечать заказы DAODES в отчётах iiko, если такой sourceKey заранее настроен у ресторана.
 
 ## 5. Вебхуки
 
