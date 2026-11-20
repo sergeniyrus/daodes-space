@@ -73,6 +73,9 @@ return new class extends Migration
                 ->constrained('iiko_connections')
                 ->cascadeOnDelete();
 
+            $table->string('iiko_organization_id', 36);
+            $table->string('terminal_group_id', 36)->nullable();
+
             // Stable deduplication key. Do not store the complete webhook body:
             // it may contain customer phone numbers and delivery addresses.
             $table->char('event_key', 64)->unique();
