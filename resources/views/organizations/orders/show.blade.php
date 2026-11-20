@@ -153,7 +153,7 @@
         <div class="organization-order-detail__grid">
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Создан</span>
-                <div class="organization-order-detail__value">{{ $order->created_at?->format('d.m.Y H:i:s') ?? '—' }}</div>
+                <div class="organization-order-detail__value">{{ $order->created_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') ?? '—' }}</div>
             </div>
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Статус заказа</span>
@@ -335,16 +335,16 @@
                         <div class="organization-order-detail__value">{{ $payment->provider ?: 'Без провайдера' }} · {{ $payment->method }}</div>
                         <div class="organization-order-detail__subtitle">
                             {{ $paymentLabels[$payment->status] ?? $payment->status }}
-                            @if($payment->created_at) · {{ $payment->created_at->format('d.m.Y H:i:s') }} @endif
+                            @if($payment->created_at) · {{ $payment->created_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') }} @endif
                         </div>
                         @if($payment->paid_at)
-                            <div class="organization-order-detail__subtitle">Оплачено: {{ $payment->paid_at->format('d.m.Y H:i:s') }}</div>
+                            <div class="organization-order-detail__subtitle">Оплачено: {{ $payment->paid_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') }}</div>
                         @endif
                         @if($payment->failed_at)
-                            <div class="organization-order-detail__subtitle">Ошибка: {{ $payment->failed_at->format('d.m.Y H:i:s') }}</div>
+                            <div class="organization-order-detail__subtitle">Ошибка: {{ $payment->failed_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') }}</div>
                         @endif
                         @if($payment->refunded_at)
-                            <div class="organization-order-detail__subtitle">Возврат: {{ $payment->refunded_at->format('d.m.Y H:i:s') }}</div>
+                            <div class="organization-order-detail__subtitle">Возврат: {{ $payment->refunded_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') }}</div>
                         @endif
                     </div>
                     <div class="organization-order-detail__value" style="text-align: right;">
