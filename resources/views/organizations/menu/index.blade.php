@@ -1203,14 +1203,21 @@
                                 >
                             </label>
 
-                            <label class="menu-section-setting">
-                                <span>TV экран</span>
-                                <select name="tv_screen" class="menu-section-select" aria-label="TV экран">
-                                    @foreach($tvScreens as $screen)
-                                        <option value="{{ $screen }}" {{ (int) $section->tv_screen === (int) $screen ? 'selected' : '' }}>TV {{ $screen }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
+                            @if($canManageTv)
+                                <label class="menu-section-setting">
+                                    <span>TV экран</span>
+                                    <select name="tv_screen" class="menu-section-select" aria-label="TV экран">
+                                        @foreach($tvScreens as $screen)
+                                            <option value="{{ $screen }}" {{ (int) $section->tv_screen === (int) $screen ? 'selected' : '' }}>TV {{ $screen }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            @else
+                                <div class="menu-section-setting">
+                                    <span>TV экран</span>
+                                    <strong>TV {{ $section->tv_screen }}</strong>
+                                </div>
+                            @endif
 
                             <label class="menu-section-check">
                                 <input type="hidden" name="delivery_enabled" value="0">
