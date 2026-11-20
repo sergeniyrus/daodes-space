@@ -390,17 +390,21 @@ class OrganizationIikoController extends Controller
         }
 
         if ($settings?->online_payment_enabled) {
-            $onlinePaymentMapping = IikoPaymentMapping::query()
-                ->where('organization_id', $organization->id)
-                ->where('iiko_organization_id', $connection->iiko_organization_id)
-                ->where('daodes_payment_method', 'online')
-                ->where('is_enabled', true)
-                ->whereNotNull('payment_type_kind')
-                ->where('payment_type_kind', '!=', '')
-                ->exists();
+            if (!config('iiko.allow_online_payment_orders')) {
+                $errors[] = 'Онлайн-оплата для iiko пока выключена до настройки безопасного сценария возврата при отказе iiko.';
+            } else {
+                $onlinePaymentMapping = IikoPaymentMapping::query()
+                    ->where('organization_id', $organization->id)
+                    ->where('iiko_organization_id', $connection->iiko_organization_id)
+                    ->where('daodes_payment_method', 'online')
+                    ->where('is_enabled', true)
+                    ->whereNotNull('payment_type_kind')
+                    ->where('payment_type_kind', '!=', '')
+                    ->exists();
 
-            if (!$onlinePaymentMapping) {
-                $errors[] = 'Для включённой онлайн-оплаты сопоставьте платёжный тип iiko.';
+                if (!$onlinePaymentMapping) {
+                    $errors[] = 'Для включённой онлайн-оплаты сопоставьте платёжный тип iiko.';
+                }
             }
         }
 
