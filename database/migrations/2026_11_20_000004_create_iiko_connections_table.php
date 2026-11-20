@@ -19,7 +19,7 @@ return new class extends Migration
             // Encrypted by the IikoConnection model cast.
             $table->text('api_key');
 
-            $table->string('iiko_organization_id', 36)->nullable()->index();
+            $table->string('iiko_organization_id', 36)->nullable()->unique();
             $table->string('iiko_organization_name')->nullable();
             $table->string('terminal_group_id', 36)->nullable();
             $table->string('terminal_group_name')->nullable();
