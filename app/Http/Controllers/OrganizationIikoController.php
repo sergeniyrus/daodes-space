@@ -383,6 +383,8 @@ class OrganizationIikoController extends Controller
                 ->where('iiko_organization_id', $connection->iiko_organization_id)
                 ->where('daodes_payment_method', 'online')
                 ->where('is_enabled', true)
+                ->whereNotNull('payment_type_kind')
+                ->where('payment_type_kind', '!=', '')
                 ->exists();
 
             if (!$onlinePaymentMapping) {
