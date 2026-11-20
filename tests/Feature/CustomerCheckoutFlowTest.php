@@ -170,9 +170,9 @@ class CustomerCheckoutFlowTest extends TestCase
         [$organization, $item] = $this->createOrderableMenu('Closed schedule cafe');
         $organization->orderSettings->update([
             'working_hours' => array_fill_keys(range(1, 7), [
-                'enabled' => false,
-                'open' => '09:00',
-                'close' => '22:00',
+                'enabled' => true,
+                'open' => '00:00',
+                'close' => '00:01',
             ]),
         ]);
 
