@@ -81,7 +81,6 @@ class EmployeeAdminOrderController extends Controller
             'organization',
             'overviewStats',
             'paidToday',
-            'staffCount',
             'activityLogs',
             'orderSettings'
         ));
