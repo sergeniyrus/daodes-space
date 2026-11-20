@@ -438,7 +438,7 @@ class OrganizationIikoController extends Controller
                     !empty($mapping->metadata['has_modifiers']) ||
                     !empty($mapping->metadata['has_multiple_sizes']) ||
                     !empty($mapping->metadata['missing_from_menu']) ||
-                    $item->weight !== null
+                    (float) $item->weight > 0
                 ) {
                     $errors[] = 'Требует отдельной настройки модификаторов, размеров или веса: ' . $item->name . '.';
                 }
