@@ -171,7 +171,7 @@
             </div>
             @if($order->table_number)
                 <div class="organization-order-detail__field">
-                    <span class="organization-order-detail__label">Номер столика</span>
+                    <span class="organization-order-detail__label">Номер браслета</span>
                     <div class="organization-order-detail__value">{{ $order->table_number }}</div>
                 </div>
             @endif
