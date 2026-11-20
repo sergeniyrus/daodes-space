@@ -67,6 +67,7 @@ class IikoStopListService
 
             $connection->update([
                 'last_stop_list_sync_at' => $syncedAt,
+                'stop_list_sync_enabled' => true,
                 'last_error' => null,
             ]);
         });
