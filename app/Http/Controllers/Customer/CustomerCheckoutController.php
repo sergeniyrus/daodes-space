@@ -666,7 +666,7 @@ class CustomerCheckoutController extends Controller
                     'requested_at' => 'Выберите время с шагом ' . $settings->time_slot_minutes . ' минут.',
                 ]);
             }
-        if (!$settings->isWithinWorkingHours($requestedAt)) {
+            if (!$settings->isWithinWorkingHours($requestedAt)) {
                 throw ValidationException::withMessages([
                     'requested_at' => 'Выбранное время находится за пределами графика работы заведения.',
                 ]);
