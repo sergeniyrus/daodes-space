@@ -10,7 +10,8 @@ use RuntimeException;
 class IikoStopListService
 {
     public function __construct(
-        private readonly IikoCloudClient $client
+        private readonly IikoCloudClient $client,
+        private readonly IikoSyncLogger $logger
     ) {
     }
 
@@ -23,6 +24,8 @@ class IikoStopListService
         if (!$connection->iiko_organization_id) {
             throw new RuntimeException('Сначала выберите организацию iiko.');
         }
+
+        $startedAt = now();
 
         $payload = $this->client->request($connection, 'POST', '/api/1/stop_lists', [
             'organizationIds' => [$connection->iiko_organization_id],
@@ -71,6 +74,16 @@ class IikoStopListService
                 'last_error' => null,
             ]);
         });
+
+        $this->logger->record(
+            $connection,
+            'stop_list',
+            'success',
+            'Стоп-лист iiko обновлён.',
+            $payload['correlationId'] ?? null,
+            ['items_count' => $rows->count(), 'endpoint' => '/api/1/stop_lists'],
+            $startedAt
+        );
 
         return $rows->count();
     }
