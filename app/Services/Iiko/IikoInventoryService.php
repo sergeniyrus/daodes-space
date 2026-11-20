@@ -73,4 +73,110 @@ class IikoInventoryService
             ]
         );
     }
+
+    public function outgoingInvoices(
+        IikoConnection $connection,
+        string $dateFrom,
+        string $dateTo,
+        bool $returnFullDetails = false
+    ): array {
+        return $this->documentList($connection, '/api/inventory/v1/outgoing_invoice/list', $dateFrom, $dateTo, $returnFullDetails);
+    }
+
+    public function writeoffDocuments(
+        IikoConnection $connection,
+        string $dateFrom,
+        string $dateTo,
+        bool $returnFullDetails = false
+    ): array {
+        return $this->documentList($connection, '/api/inventory/v2/writeoff_document/list', $dateFrom, $dateTo, $returnFullDetails);
+    }
+
+    public function productionDocuments(
+        IikoConnection $connection,
+        string $dateFrom,
+        string $dateTo,
+        bool $returnFullDetails = false
+    ): array {
+        return $this->documentList($connection, '/api/inventory/v2/production_document/list', $dateFrom, $dateTo, $returnFullDetails);
+    }
+
+    public function disassemblyDocuments(
+        IikoConnection $connection,
+        string $dateFrom,
+        string $dateTo,
+        bool $returnFullDetails = false
+    ): array {
+        return $this->documentList($connection, '/api/inventory/v2/disassemble_document/list', $dateFrom, $dateTo, $returnFullDetails);
+    }
+
+    public function internalTransfers(
+        IikoConnection $connection,
+        string $dateFrom,
+        string $dateTo,
+        bool $returnFullDetails = false
+    ): array {
+        return $this->documentList($connection, '/api/inventory/v2/internal_transfer/list', $dateFrom, $dateTo, $returnFullDetails);
+    }
+
+    public function transformations(
+        IikoConnection $connection,
+        string $dateFrom,
+        string $dateTo,
+        bool $returnFullDetails = false
+    ): array {
+        return $this->documentList($connection, '/api/inventory/v1/transformation_document/list', $dateFrom, $dateTo, $returnFullDetails);
+    }
+
+    public function counteragents(IikoConnection $connection, int $limit = 100, int $offset = 0): array
+    {
+        return $this->referenceList($connection, '/api/inventory/v1/counteragents/list', $limit, $offset);
+    }
+
+    public function measureUnits(IikoConnection $connection, int $limit = 100, int $offset = 0): array
+    {
+        return $this->referenceList($connection, '/api/inventory/v1/measure_units/list', $limit, $offset);
+    }
+
+    private function documentList(
+        IikoConnection $connection,
+        string $path,
+        string $dateFrom,
+        string $dateTo,
+        bool $returnFullDetails
+    ): array {
+        if (!filled($connection->iiko_organization_id)) {
+            throw new RuntimeException('Сначала выберите организацию iiko.');
+        }
+
+        return $this->client->request(
+            $connection,
+            'POST',
+            $path,
+            [
+                'organizationId' => $connection->iiko_organization_id,
+                'from' => $dateFrom,
+                'to' => $dateTo,
+                'returnFullDetails' => $returnFullDetails,
+            ]
+        );
+    }
+
+    private function referenceList(
+        IikoConnection $connection,
+        string $path,
+        int $limit,
+        int $offset
+    ): array {
+        return $this->client->request(
+            $connection,
+            'POST',
+            $path,
+            [
+                'limit' => min(500, max(1, $limit)),
+                'offset' => max(0, $offset),
+            ]
+        );
+    }
+
 }
