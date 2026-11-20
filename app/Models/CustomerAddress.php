@@ -15,14 +15,17 @@ class CustomerAddress extends Model
         'recipient_name',
         'recipient_phone',
         'address_line',
+        'house_number',
         'entrance',
         'floor',
         'apartment',
         'intercom',
+        'gate_code',
         'delivery_comment',
         'latitude',
         'longitude',
         'is_default',
+        'is_favorite',
     ];
 
     protected function casts(): array
@@ -32,6 +35,7 @@ class CustomerAddress extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'is_default' => 'boolean',
+            'is_favorite' => 'boolean',
         ];
     }
 

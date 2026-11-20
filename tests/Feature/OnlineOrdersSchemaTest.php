@@ -88,6 +88,20 @@ class OnlineOrdersSchemaTest extends TestCase
         ]));
     }
 
+    public function test_ordering_schedule_and_guest_card_fields_are_migrated(): void
+    {
+        $this->assertTrue(Schema::hasColumns('organization_order_settings', [
+            'working_hours',
+            'timezone',
+            'preorders_enabled',
+            'order_lead_minutes',
+            'time_slot_minutes',
+        ]));
+
+        $this->assertTrue(Schema::hasColumn('orders', 'guest_card_identifier'));
+        $this->assertTrue(Schema::hasColumn('orders', 'pickup_address_snapshot'));
+    }
+
     public function test_customer_otp_and_order_history_are_persisted_separately(): void
     {
         $this->assertTrue(Schema::hasColumns('customers', [

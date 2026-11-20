@@ -1,14 +1,13 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page') Заказы — {{ $organization->name }} @endsection
 
-@section('main')
+@section('management-content')
 @include('components.order-notifications', [
     'notificationsUrl' => route('employee.organization.admin.orders.notifications', $organization),
     'notificationReadUrlTemplate' => route('employee.organization.admin.orders.notifications.read', [$organization, '__ID__']),
 ])
 
-@include('employee.admin.partials.navigation', ['organization' => $organization])
 
 @php
 $statusLabels = ['new'=>'Новый','awaiting_payment'=>'Ожидает оплаты','confirmed'=>'Подтверждён','preparing'=>'Готовится','ready'=>'Готов','handed_to_courier'=>'У курьера','in_transit'=>'В пути','issued'=>'Выдан','served'=>'Подан','delivered'=>'Доставлен','completed'=>'Завершён','cancelled'=>'Отменён'];
@@ -18,7 +17,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
 @endphp
 
 <style>
-.admin-orders-page{--gold:#ffd700;--cyan:#00e5d4;--muted:#aeb5c4;--line:rgba(0,229,212,.2);width:min(1180px,calc(100% - 28px));margin:28px auto 50px;color:#f4f5fa}
+.admin-orders-page{--gold:#ffd700;--cyan:#00e5d4;--muted:#aeb5c4;--line:rgba(0,229,212,.2);width:100%;max-width:none;margin:0;color:#f4f5fa}
 .admin-orders-page *{box-sizing:border-box}
 .admin-orders-shell{padding:clamp(16px,2.5vw,28px);background:radial-gradient(circle at 100% 0,rgba(255,215,0,.075),transparent 30%),radial-gradient(circle at 0 100%,rgba(0,229,212,.045),transparent 32%),linear-gradient(145deg,#0b0c18,#111626 55%,#0b0c18);border:1px solid rgba(255,215,0,.42);border-radius:22px;box-shadow:0 16px 48px rgba(0,0,0,.38);margin-bottom:16px}
 .admin-orders-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid rgba(255,215,0,.2)}
@@ -103,12 +102,13 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
 @media(max-width:900px){.admin-orders-field,.admin-orders-field.search,.admin-orders-field.period{grid-column:span 6}.admin-orders-breakdowns{grid-template-columns:1fr 1fr}.admin-orders-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.admin-orders-page{width:calc(100% - 16px);margin:14px auto 30px}.admin-orders-shell{padding:15px;border-radius:16px}.admin-orders-heading{flex-direction:column}.admin-orders-actions{width:100%}.admin-orders-actions>*{flex:1}.admin-orders-field,.admin-orders-field.search,.admin-orders-field.period{grid-column:span 12}.admin-orders-period-dates{grid-template-columns:1fr}.admin-orders-summary-grid{gap:8px}.admin-orders-stat{padding:13px}.admin-orders-stat small{font-size:.76rem}.admin-orders-breakdowns{grid-template-columns:1fr}.admin-order-bottom>*{width:100%}.admin-order-bottom .admin-orders-link{width:100%}}
 </style>
+<style>@media(max-width:560px){.admin-orders-page{width:100%;margin:0}}</style>
 
 <div class="admin-orders-page">
     <section class="admin-orders-shell">
         <header class="admin-orders-heading">
             <div>
-                <p class="admin-orders-eyebrow">{{ $organization->name }} · Панель администратора</p>
+                <p class="admin-orders-eyebrow">АНАЛИТИКА ЗАКАЗОВ</p>
                 <h1>Заказы организации</h1>
                 <p class="admin-orders-subtitle">Контроль заказов, оплат и показателей работы</p>
             </div>
@@ -173,6 +173,7 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
                     <option value="online" @selected(($filters['payment_method'] ?? '') === 'online')>Онлайн</option>
                     <option value="cash_on_receipt" @selected(($filters['payment_method'] ?? '') === 'cash_on_receipt')>Наличные</option>
                     <option value="card_on_receipt" @selected(($filters['payment_method'] ?? '') === 'card_on_receipt')>Картой при получении</option>
+                    <option value="guest_account" @selected(($filters['payment_method'] ?? '') === 'guest_account')>На счёт гостя — расчёт при выходе</option>
                 </select>
             </div>
             <div class="admin-orders-filter-actions">
@@ -316,12 +317,12 @@ $paymentMethodLabels = ['online'=>'Онлайн','cash_on_receipt'=>'Налич�
                     <span class="admin-order-number">Заказ №{{ $order->order_number }}</span>
                     <div class="admin-order-badges">
                         <span class="admin-order-badge">{{ $statusLabels[$order->status] ?? $order->status }}</span>
-                        <span class="admin-order-badge payment">{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</span>
+                        <span class="admin-order-badge payment">{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</span>
                     </div>
                 </div>
                 <div class="admin-order-customer">{{ $order->customer_name }} · {{ $order->customer_phone }}</div>
                 <div class="admin-order-meta">
-                    <span>◷ {{ $order->created_at?->format('d.m.Y H:i') }}</span>
+                    <span>◷ {{ $order->created_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</span>
                     <span>{{ $fulfillmentLabels[$order->fulfillment_type] ?? $order->fulfillment_type }}</span>
                     <span>{{ $paymentMethodLabels[$order->payment_method] ?? $order->payment_method }}</span>
                 </div>

@@ -46,6 +46,21 @@ Route::prefix('staff')->name('employee.')->group(function () {
                     ->name('orders.payment');
             });
 
+        // Администратору доступны обзор организации и список команды без управления персоналом.
+        Route::get('/organizations/{organization}/admin/overview', [
+            \App\Http\Controllers\Employee\EmployeeAdminOrderController::class,
+            'overview',
+        ])
+            ->middleware(['employee.organization', 'employee.role:admin'])
+            ->name('organization.admin.overview');
+
+        Route::get('/organizations/{organization}/admin/team', [
+            \App\Http\Controllers\Employee\EmployeeAdminOrderController::class,
+            'team',
+        ])
+            ->middleware(['employee.organization', 'employee.role:admin'])
+            ->name('organization.admin.team');
+
         // Полный операционный доступ администратора к заказам организации.
         Route::middleware(['employee.organization', 'employee.role:admin'])
             ->prefix('organizations/{organization}/admin/orders')
@@ -58,6 +73,20 @@ Route::prefix('staff')->name('employee.')->group(function () {
                 Route::get('/{order}', [\App\Http\Controllers\Employee\EmployeeAdminOrderController::class, 'show'])->whereNumber('order')->name('show');
                 Route::patch('/{order}/status', [\App\Http\Controllers\Employee\EmployeeAdminOrderController::class, 'updateStatus'])->whereNumber('order')->name('status');
                 Route::patch('/{order}/payment', [\App\Http\Controllers\Employee\EmployeeAdminOrderController::class, 'markPaid'])->whereNumber('order')->name('payment');
+            });
+
+        // Администратор может просматривать отзывы и обращения и отвечать клиентам.
+        Route::middleware(['employee.organization', 'employee.role:admin'])
+            ->prefix('organizations/{organization}/admin/feedback')
+            ->name('organization.admin.feedback.')
+            ->group(function () {
+                Route::get('/', [\App\Http\Controllers\Employee\EmployeeOrganizationFeedbackController::class, 'index'])->name('index');
+                Route::post('/{feedback}/reply', [\App\Http\Controllers\Employee\EmployeeOrganizationFeedbackController::class, 'reply'])
+                    ->whereNumber('feedback')
+                    ->name('reply');
+                Route::patch('/reviews/{review}/visibility', [\App\Http\Controllers\Employee\EmployeeOrganizationFeedbackController::class, 'moderateReview'])
+                    ->whereNumber('review')
+                    ->name('visibility');
             });
 
         // Администратор управляет меню и заказами.

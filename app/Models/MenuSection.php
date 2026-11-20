@@ -19,6 +19,7 @@ class MenuSection extends Model
         'is_active',
         'delivery_enabled',
         'pickup_enabled',
+        'dine_in_enabled',
     ];
 
     protected $casts = [
@@ -28,6 +29,7 @@ class MenuSection extends Model
         'is_active' => 'boolean',
         'delivery_enabled' => 'boolean',
         'pickup_enabled' => 'boolean',
+        'dine_in_enabled' => 'boolean',
     ];
 
     /**

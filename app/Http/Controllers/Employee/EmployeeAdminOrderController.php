@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Organization;
+use App\Models\OrganizationActivityLog;
 use App\Models\OrganizationEmployeeMembership;
 use App\Support\OrderNotificationService;
 use App\Support\OrderTransitionPolicy;
@@ -29,6 +30,96 @@ class EmployeeAdminOrderController extends Controller
             ->firstOrFail();
     }
 
+    public function overview(Organization $organization): View
+    {
+        $this->assertAdmin($organization);
+
+        $organizationTimezone = $organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk';
+        $todayLocal = now($organizationTimezone)->startOfDay();
+        $todayStart = $todayLocal->copy()->utc();
+        $tomorrowStart = $todayLocal->copy()->addDay()->utc();
+
+        $todayOrders = $organization->orders()
+            ->where('created_at', '>=', $todayStart)
+            ->where('created_at', '<', $tomorrowStart);
+
+        $currentOrders = $organization->orders()
+            ->whereIn('status', [
+                Order::STATUS_NEW,
+                Order::STATUS_CONFIRMED,
+                Order::STATUS_PREPARING,
+                Order::STATUS_READY,
+                Order::STATUS_HANDED_TO_COURIER,
+                Order::STATUS_IN_TRANSIT,
+            ]);
+
+        $overviewStats = [
+            'orders_today' => (clone $todayOrders)->count(),
+            'new_orders' => (clone $currentOrders)->where('status', Order::STATUS_NEW)->count(),
+            'kitchen_orders' => (clone $currentOrders)->whereIn('status', [
+                Order::STATUS_CONFIRMED,
+                Order::STATUS_PREPARING,
+            ])->count(),
+            'ready_orders' => (clone $currentOrders)->where('status', Order::STATUS_READY)->count(),
+            'delivery_orders' => (clone $currentOrders)->whereIn('status', [
+                Order::STATUS_HANDED_TO_COURIER,
+                Order::STATUS_IN_TRANSIT,
+            ])->count(),
+            'completed_today' => $organization->orders()
+                ->where('status', Order::STATUS_COMPLETED)
+                ->where('completed_at', '>=', $todayStart)
+                ->where('completed_at', '<', $tomorrowStart)
+                ->count(),
+            'cancelled_today' => $organization->orders()
+                ->where('status', Order::STATUS_CANCELLED)
+                ->where('cancelled_at', '>=', $todayStart)
+                ->where('cancelled_at', '<', $tomorrowStart)
+                ->count(),
+        ];
+
+        $paidToday = DB::table('payments')
+            ->join('orders', 'orders.id', '=', 'payments.order_id')
+            ->where('orders.organization_id', $organization->id)
+            ->where('payments.status', Order::PAYMENT_SUCCEEDED)
+            ->whereNotNull('payments.paid_at')
+            ->where('payments.paid_at', '>=', $todayStart)
+            ->where('payments.paid_at', '<', $tomorrowStart)
+            ->sum('payments.amount');
+
+        $activityLogs = OrganizationActivityLog::query()
+            ->with('actor:id,name')
+            ->where('organization_id', $organization->id)
+            ->latest('id')
+            ->limit(30)
+            ->get();
+
+        $orderSettings = $organization->orderSettings;
+
+        return view('employee.admin.organizations.overview', compact(
+            'organization',
+            'overviewStats',
+            'paidToday',
+            'activityLogs',
+            'orderSettings'
+        ));
+    }
+
+    public function team(Organization $organization): View
+    {
+        $this->assertAdmin($organization);
+
+        $staffMemberships = $organization->employeeMemberships()
+            ->with('employee')
+            ->orderByRaw("CASE status WHEN 'active' THEN 0 WHEN 'pending' THEN 1 WHEN 'blocked' THEN 2 ELSE 3 END")
+            ->orderBy('id')
+            ->get();
+
+        return view('employee.admin.organizations.team', compact(
+            'organization',
+            'staffMemberships'
+        ));
+    }
+
     public function index(Request $request, Organization $organization): View
     {
         $this->assertAdmin($organization);
@@ -40,11 +131,12 @@ class EmployeeAdminOrderController extends Controller
             'status' => ['nullable', 'in:new,awaiting_payment,confirmed,preparing,ready,handed_to_courier,in_transit,issued,served,delivered,completed,cancelled'],
             'payment_status' => ['nullable', 'in:pending,succeeded,failed,cancelled,refunded'],
             'fulfillment_type' => ['nullable', 'in:delivery,pickup,dine_in'],
-            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt'],
+            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt,guest_account'],
         ]);
 
         $period = $filters['period'] ?? 'month';
-        $now = now();
+        $timezone = $organization->orderSettings?->timezoneName() ?? config('app.timezone', 'UTC');
+        $now = now($timezone);
         $dateFrom = null;
         $dateTo = $now->copy()->endOfDay();
 
@@ -73,8 +165,8 @@ class EmployeeAdminOrderController extends Controller
                 $dateTo = null;
                 break;
             case 'custom':
-                $dateFrom = !empty($filters['date_from']) ? \Illuminate\Support\Carbon::parse($filters['date_from'])->startOfDay() : $now->copy()->startOfMonth();
-                $dateTo = !empty($filters['date_to']) ? \Illuminate\Support\Carbon::parse($filters['date_to'])->endOfDay() : $now->copy()->endOfDay();
+                $dateFrom = !empty($filters['date_from']) ? \Illuminate\Support\Carbon::parse($filters['date_from'], $timezone)->startOfDay() : $now->copy()->startOfMonth();
+                $dateTo = !empty($filters['date_to']) ? \Illuminate\Support\Carbon::parse($filters['date_to'], $timezone)->endOfDay() : $now->copy()->endOfDay();
                 break;
             case 'month':
             default:
@@ -82,9 +174,12 @@ class EmployeeAdminOrderController extends Controller
                 break;
         }
 
+        $queryDateFrom = $dateFrom?->copy()->utc();
+        $queryDateTo = $dateTo?->copy()->utc();
+
         $periodQuery = $organization->orders()
-            ->when($dateFrom, fn ($q) => $q->where('created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->where('created_at', '<=', $dateTo));
+            ->when($queryDateFrom, fn ($q) => $q->where('created_at', '>=', $queryDateFrom))
+            ->when($queryDateTo, fn ($q) => $q->where('created_at', '<=', $queryDateTo));
 
         $summary = [
             'count' => (clone $periodQuery)->count(),
@@ -114,8 +209,8 @@ class EmployeeAdminOrderController extends Controller
             ->where('orders.organization_id', $organization->id)
             ->where('orders.payment_status', Order::PAYMENT_SUCCEEDED)
             ->where('orders.status', '<>', Order::STATUS_CANCELLED)
-            ->when($dateFrom, fn ($q) => $q->where('orders.created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->where('orders.created_at', '<=', $dateTo))
+            ->when($queryDateFrom, fn ($q) => $q->where('orders.created_at', '>=', $queryDateFrom))
+            ->when($queryDateTo, fn ($q) => $q->where('orders.created_at', '<=', $queryDateTo))
             ->select('order_items.menu_item_id')
             ->selectRaw('SUM(order_items.quantity) as sold_quantity')
             ->selectRaw('COUNT(DISTINCT orders.id) as orders_count')
@@ -213,7 +308,7 @@ class EmployeeAdminOrderController extends Controller
         $employee = Auth::guard('employee')->user();
         DB::transaction(function () use ($organization, $order, $employee) {
             $locked = Order::where('organization_id', $organization->id)->whereKey($order->id)->lockForUpdate()->firstOrFail();
-            if ($locked->status === Order::STATUS_CANCELLED || $locked->payment_method === Order::PAYMENT_ONLINE) {
+            if ($locked->status === Order::STATUS_CANCELLED || $locked->payment_method === Order::PAYMENT_ONLINE || $locked->payment_method === Order::PAYMENT_GUEST_ACCOUNT) {
                 throw ValidationException::withMessages(['payment' => 'Для этого заказа нельзя подтвердить оплату вручную.']);
             }
             if ($locked->payment_status === Order::PAYMENT_SUCCEEDED) return;

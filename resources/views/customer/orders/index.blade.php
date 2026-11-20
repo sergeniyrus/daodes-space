@@ -57,9 +57,9 @@
 </style>
 
 <div class="customer-orders-page">
-    @include('components.customer-push-subscription')
     <div class="customer-orders-panel">
         <h1 class="customer-orders-title">Мои заказы</h1>
+        <p style="margin:-8px 0 16px"><a class="customer-orders-link" href="{{ route('customer.feedback.index') }}">☆ Книга отзывов и предложений / Мои оценки →</a></p>
 
         @forelse($orders as $order)
             <div class="customer-orders-card">
@@ -68,7 +68,7 @@
                         №{{ $order->order_number }} · {{ $order->organization?->name }}
                     </div>
                     <div class="customer-orders-muted">
-                        {{ $order->created_at?->format('d.m.Y H:i') }}
+                        {{ $order->created_at?->timezone($order->organization?->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
                     </div>
                     <div class="customer-orders-status">
                         Статус: {{ $statusLabels[$order->status] ?? $order->status }}

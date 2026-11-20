@@ -28,6 +28,7 @@ class Order extends Model
     public const PAYMENT_ONLINE = 'online';
     public const PAYMENT_CASH_ON_RECEIPT = 'cash_on_receipt';
     public const PAYMENT_CARD_ON_RECEIPT = 'card_on_receipt';
+    public const PAYMENT_GUEST_ACCOUNT = 'guest_account';
 
     public const PAYMENT_PENDING = 'pending';
     public const PAYMENT_SUCCEEDED = 'succeeded';
@@ -49,6 +50,8 @@ class Order extends Model
         'customer_comment',
         'delivery_address',
         'table_number',
+        'guest_card_identifier',
+        'pickup_address_snapshot',
         'requested_at',
         'subtotal',
         'delivery_fee',
@@ -88,6 +91,11 @@ class Order extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function review(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(OrderReview::class);
     }
 
     public function items(): HasMany

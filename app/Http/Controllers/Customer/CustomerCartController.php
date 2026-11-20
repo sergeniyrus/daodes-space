@@ -69,13 +69,19 @@ class CustomerCartController extends Controller
             $item = $items->get((int) $itemId);
             $section = $item?->section;
             $settings = $organization->orderSettings;
+            $hasPaymentAtReceipt = $settings
+                && ($settings->cash_payment_enabled || $settings->card_payment_enabled);
 
             $deliveryAvailable = $item !== null && $item->is_active && $section !== null
-                && $settings?->delivery_enabled && $item->delivery_enabled && $section->delivery_enabled;
+                && $settings?->hasConfiguredDelivery() && $hasPaymentAtReceipt
+                && $item->delivery_enabled && $section->delivery_enabled;
             $pickupAvailable = $item !== null && $item->is_active && $section !== null
-                && $settings?->pickup_enabled && $item->pickup_enabled && $section->pickup_enabled;
+                && $settings?->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt
+                && $item->pickup_enabled && $section->pickup_enabled;
             $dineInAvailable = $item !== null && $item->is_active && $section !== null
-                && (bool) ($settings?->dine_in_enabled);
+                && (bool) ($settings?->dine_in_enabled)
+                && $item->dine_in_enabled
+                && $section->dine_in_enabled;
             $available = $deliveryAvailable || $pickupAvailable || $dineInAvailable;
 
             return [
@@ -115,6 +121,11 @@ class CustomerCartController extends Controller
                 ->with('error', 'Организация пока не принимает онлайн-заказы.');
         }
 
+        $hasPaymentAtReceipt = $settings->cash_payment_enabled || $settings->card_payment_enabled;
+        $canAddDelivery = $settings->hasConfiguredDelivery() && $hasPaymentAtReceipt;
+        $canAddPickup = $settings->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt;
+        $canAddDineIn = $settings->dine_in_enabled;
+
         $validated = $request->validate([
             'item_id' => ['required', 'integer'],
             'quantity' => ['nullable', 'integer', 'min:1', 'max:99'],
@@ -127,25 +138,28 @@ class CustomerCartController extends Controller
                 $query->where('organization_id', $organization->id)
                     ->where('is_active', true);
             })
-            ->where(function ($availabilityQuery) use ($settings) {
+            ->where(function ($availabilityQuery) use ($canAddDelivery, $canAddPickup, $canAddDineIn) {
                 $availabilityQuery->whereRaw('1 = 0');
 
-                if ($settings->delivery_enabled) {
+                if ($canAddDelivery) {
                     $availabilityQuery->orWhere(function ($methodQuery) {
                         $methodQuery->where('delivery_enabled', true)
                             ->whereHas('section', fn ($sectionQuery) => $sectionQuery->where('delivery_enabled', true));
                     });
                 }
 
-                if ($settings->pickup_enabled) {
+                if ($canAddPickup) {
                     $availabilityQuery->orWhere(function ($methodQuery) {
                         $methodQuery->where('pickup_enabled', true)
                             ->whereHas('section', fn ($sectionQuery) => $sectionQuery->where('pickup_enabled', true));
                     });
                 }
 
-                if ($settings->dine_in_enabled) {
-                    $availabilityQuery->orWhereRaw('1 = 1');
+                if ($canAddDineIn) {
+                    $availabilityQuery->orWhere(function ($methodQuery) {
+                        $methodQuery->where('dine_in_enabled', true)
+                            ->whereHas('section', fn ($sectionQuery) => $sectionQuery->where('dine_in_enabled', true));
+                    });
                 }
             })
             ->firstOrFail();
@@ -233,15 +247,18 @@ class CustomerCartController extends Controller
             ->first();
 
         $settings = $organization?->orderSettings;
+        $hasPaymentAtReceipt = $settings
+            && ($settings->cash_payment_enabled || $settings->card_payment_enabled);
 
         $available = $organizationId > 0
+            && $organization?->isActive()
             && isset($cart['items'][$menuItem->id])
             && $menuItem->is_active
             && $section !== null
             && (
-                ($settings?->delivery_enabled && $menuItem->delivery_enabled && $section->delivery_enabled)
-                || ($settings?->pickup_enabled && $menuItem->pickup_enabled && $section->pickup_enabled)
-                || $settings?->dine_in_enabled
+                ($settings?->hasConfiguredDelivery() && $hasPaymentAtReceipt && $menuItem->delivery_enabled && $section->delivery_enabled)
+                || ($settings?->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt && $menuItem->pickup_enabled && $section->pickup_enabled)
+                || ($settings?->dine_in_enabled && $menuItem->dine_in_enabled && $section->dine_in_enabled)
             );
 
         abort_unless($available, 404);

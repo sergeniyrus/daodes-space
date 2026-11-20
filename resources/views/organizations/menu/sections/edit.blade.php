@@ -1,17 +1,16 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page')
     Редактирование раздела — {{ $section->name }}
 @endsection
 
-@section('main')
+@section('management-content')
 @php
     $menuRoutePrefix = auth('employee')->check()
         ? 'employee.organization.menu.'
         : 'organizations.menu.';
 @endphp
 
-@include('employee.admin.partials.navigation', ['organization' => $organization])
 
 <style>
 
@@ -147,6 +146,9 @@
 }
 
 </style>
+<style>
+.menu-form-container{width:100%;max-width:760px;box-sizing:border-box;margin:0 auto;padding:0;background:transparent;border:0;border-radius:0;color:#fff}
+</style>
 
 
 <div class="menu-form-container">
@@ -221,16 +223,19 @@
 
 
         <div class="menu-form-group">
-            <label class="menu-form-label" for="tv_screen">Экран TV</label>
-            <select id="tv_screen" name="tv_screen" class="menu-form-input" required>
-                @foreach($tvScreens as $screen)
-                    <option value="{{ $screen }}" @selected(old('tv_screen', $section->tv_screen ?? 1) == $screen)>Экран {{ $screen }}</option>
-                @endforeach
-            </select>
+            @if($canManageTv)
+                <label class="menu-form-label" for="tv_screen">Экран TV</label>
+                <select id="tv_screen" name="tv_screen" class="menu-form-input" required>
+                    @foreach($tvScreens as $screen)
+                        <option value="{{ $screen }}" @selected(old('tv_screen', $section->tv_screen ?? 1) == $screen)>Экран {{ $screen }}</option>
+                    @endforeach
+                </select>
+            @endif
         </div>
 
         <div class="menu-form-group">
             <label class="menu-form-checkbox">
+                <input type="hidden" name="delivery_enabled" value="0">
                 <input type="checkbox" name="delivery_enabled" value="1" @checked(old('delivery_enabled', $section->delivery_enabled ?? true))>
                 Доставка разрешена для всех блюд раздела
             </label>
@@ -238,8 +243,16 @@
 
         <div class="menu-form-group">
             <label class="menu-form-checkbox">
+                <input type="hidden" name="pickup_enabled" value="0">
                 <input type="checkbox" name="pickup_enabled" value="1" @checked(old('pickup_enabled', $section->pickup_enabled ?? true))>
                 Самовывоз разрешён для всех блюд раздела
+            </label>
+        </div>
+        <div class="menu-form-group">
+            <label class="menu-form-checkbox">
+                <input type="hidden" name="dine_in_enabled" value="0">
+                <input type="checkbox" name="dine_in_enabled" value="1" @checked(old('dine_in_enabled', $section->dine_in_enabled ?? true))>
+                Заказ в заведении разрешён для всех блюд раздела
             </label>
         </div>
 

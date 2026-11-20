@@ -98,8 +98,9 @@ class OrderNotificationController extends Controller
             ->where('recipient_type', 'customer')
             ->where('recipient_id', $customer->id)
             ->whereNull('read_at')
-            ->whereHas('order', function ($orderQuery) use ($customer) {
-                $orderQuery->where('customer_id', $customer->id);
+            ->where(function ($owned) use ($customer) {
+                $owned->whereHas('order', fn ($orderQuery) => $orderQuery->where('customer_id', $customer->id))
+                    ->orWhereHas('feedback', fn ($feedbackQuery) => $feedbackQuery->where('customer_id', $customer->id));
             });
 
         $unreadCount = (clone $query)->count();
@@ -113,7 +114,9 @@ class OrderNotificationController extends Controller
                 'title' => $notification->title,
                 'message' => $notification->message,
                 'created_at' => $notification->created_at?->toIso8601String(),
-                'url' => route('customer.orders.show', $notification->order_id),
+                'url' => $notification->feedback_id
+                    ? route('customer.feedback.index')
+                    : route('customer.orders.show', $notification->order_id),
             ])
             ->values();
 
@@ -122,6 +125,28 @@ class OrderNotificationController extends Controller
                 'unread_count' => $unreadCount,
                 'notifications' => $notifications,
             ])
+            ->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
+    public function markAllCustomerRead(): JsonResponse
+    {
+        $customer = Auth::guard('customer')->user();
+
+        abort_unless($customer, 401);
+
+        $query = OrderNotification::query()
+            ->where('recipient_type', 'customer')
+            ->where('recipient_id', $customer->id)
+            ->whereNull('read_at')
+            ->where(function ($owned) use ($customer) {
+                $owned->whereHas('order', fn ($orderQuery) => $orderQuery->where('customer_id', $customer->id))
+                    ->orWhereHas('feedback', fn ($feedbackQuery) => $feedbackQuery->where('customer_id', $customer->id));
+            });
+
+        $updated = $query->update(['read_at' => now()]);
+
+        return response()
+            ->json(['marked_read' => true, 'updated' => $updated, 'unread_count' => 0])
             ->header('Cache-Control', 'private, no-store, max-age=0');
     }
 
@@ -135,8 +160,9 @@ class OrderNotificationController extends Controller
             ->whereKey($notification->id)
             ->where('recipient_type', 'customer')
             ->where('recipient_id', $customer->id)
-            ->whereHas('order', function ($orderQuery) use ($customer) {
-                $orderQuery->where('customer_id', $customer->id);
+            ->where(function ($owned) use ($customer) {
+                $owned->whereHas('order', fn ($orderQuery) => $orderQuery->where('customer_id', $customer->id))
+                    ->orWhereHas('feedback', fn ($feedbackQuery) => $feedbackQuery->where('customer_id', $customer->id));
             })
             ->firstOrFail();
 
@@ -174,7 +200,11 @@ class OrderNotificationController extends Controller
                 'title' => $notification->title,
                 'message' => $notification->message,
                 'created_at' => $notification->created_at?->toIso8601String(),
-                'url' => $targetUrl,
+                'url' => $notification->feedback_id
+                    ? ($recipientType === 'employee'
+                        ? route('employee.organization.admin.feedback.index', $organization)
+                        : route('organizations.feedback.index', $organization))
+                    : $targetUrl,
             ])
             ->values();
 

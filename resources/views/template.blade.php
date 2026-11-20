@@ -126,8 +126,10 @@
         </script>
     @endif
 
-    {{-- Проверка ключей --}}
-    @if (auth()->check())
+    {{-- Проверка ключей только для основного аккаунта DAODES.
+         Клиентский кабинет и портал сотрудников используют отдельные guards
+         и не должны требовать локальный ключ чата DAODES. --}}
+    @if (auth()->check() && !request()->routeIs('customer.*', 'employee.*'))
         <script>
             if (document.getElementById('setup-keys-page')) {
                 console.log("[KEYCHECK] На странице setup-keys — пропуск.");

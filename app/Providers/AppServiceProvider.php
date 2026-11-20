@@ -93,14 +93,60 @@ class AppServiceProvider extends ServiceProvider
             }
 
             $settings = $organization->orderSettings;
-            $sections = $organization->menuSections()
-                ->where('is_active', true)
-                ->with('activeItems')
+            $hasPaymentAtReceipt = $settings
+                && ($settings->cash_payment_enabled || $settings->card_payment_enabled);
+
+            $availableFulfillments = [
+                'delivery' => (bool) (
+                    $settings?->hasConfiguredDelivery()
+                    && $hasPaymentAtReceipt
+                ),
+                'pickup' => (bool) ($settings?->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt),
+                'dine_in' => (bool) $settings?->dine_in_enabled,
+            ];
+            $defaultFulfillment = $availableFulfillments['pickup']
+                ? 'pickup'
+                : ($availableFulfillments['dine_in']
+                    ? 'dine_in'
+                    : ($availableFulfillments['delivery'] ? 'delivery' : null));
+            $fulfillmentSessionKey = 'customer_order_fulfillment_' . $organization->id;
+            $selectedFulfillment = session($fulfillmentSessionKey, $defaultFulfillment);
+            if (!($availableFulfillments[$selectedFulfillment] ?? false)) {
+                $selectedFulfillment = $defaultFulfillment;
+            }
+            if ($selectedFulfillment) {
+                session([$fulfillmentSessionKey => $selectedFulfillment]);
+            }
+
+            $sectionsQuery = $organization->menuSections()
+                ->where('is_active', true);
+
+            if ($selectedFulfillment === 'delivery') {
+                $sectionsQuery->where('delivery_enabled', true);
+            } elseif ($selectedFulfillment === 'pickup') {
+                $sectionsQuery->where('pickup_enabled', true);
+            } elseif ($selectedFulfillment === 'dine_in') {
+                $sectionsQuery->where('dine_in_enabled', true);
+            }
+
+            $sections = $sectionsQuery
+                ->with(['activeItems' => function ($itemQuery) use ($selectedFulfillment) {
+                    if ($selectedFulfillment === 'delivery') {
+                        $itemQuery->where('delivery_enabled', true);
+                    } elseif ($selectedFulfillment === 'pickup') {
+                        $itemQuery->where('pickup_enabled', true);
+                    } elseif ($selectedFulfillment === 'dine_in') {
+                        $itemQuery->where('dine_in_enabled', true);
+                    }
+                }])
                 ->orderBy('sort_order')
-                ->get();
+                ->get()
+                ->filter(fn ($section) => $section->activeItems->isNotEmpty())
+                ->values();
 
             $cartCount = 0;
             $cartSubtotalCents = 0;
+            $cartUnavailableCount = 0;
             if (
                 (int) ($cart['organization_id'] ?? 0) === (int) $organization->id
                 && is_array($cart['items'] ?? null)
@@ -108,27 +154,36 @@ class AppServiceProvider extends ServiceProvider
                 $quantities = $cart['items'];
                 $cartCount = array_sum(array_map('intval', $quantities));
                 if ($quantities !== []) {
-                    $cartItems = \App\Models\MenuItem::query()
+                    $cartItemsQuery = \App\Models\MenuItem::query()
                         ->whereIn('id', array_map('intval', array_keys($quantities)))
-                        ->where('is_active', true)
-                        ->where(function ($query) {
-                            $query->where('delivery_enabled', true)
-                                ->orWhere('pickup_enabled', true);
-                        })
-                        ->whereHas('section', function ($query) use ($organization) {
+                        ->where('is_active', true);
+
+                    if ($selectedFulfillment === 'delivery') {
+                        $cartItemsQuery->where('delivery_enabled', true);
+                    } elseif ($selectedFulfillment === 'pickup') {
+                        $cartItemsQuery->where('pickup_enabled', true);
+                    } elseif ($selectedFulfillment === 'dine_in') {
+                        $cartItemsQuery->where('dine_in_enabled', true);
+                    } elseif (!$selectedFulfillment) {
+                        $cartItemsQuery->whereRaw('1 = 0');
+                    }
+
+                    $cartItems = $cartItemsQuery
+                        ->whereHas('section', function ($query) use ($organization, $selectedFulfillment) {
                             $query->where('organization_id', $organization->id)
-                                ->where('is_active', true)
-                                ->where(function ($availabilityQuery) {
-                                    $availabilityQuery->where(function ($methodQuery) {
-                                        $methodQuery->where('menu_sections.delivery_enabled', true)
-                                            ->where('menu_items.delivery_enabled', true);
-                                    })->orWhere(function ($methodQuery) {
-                                        $methodQuery->where('menu_sections.pickup_enabled', true)
-                                            ->where('menu_items.pickup_enabled', true);
-                                    });
-                                });
+                                ->where('is_active', true);
+
+                            if ($selectedFulfillment === 'delivery') {
+                                $query->where('delivery_enabled', true);
+                            } elseif ($selectedFulfillment === 'pickup') {
+                                $query->where('pickup_enabled', true);
+                            } elseif ($selectedFulfillment === 'dine_in') {
+                                $query->where('dine_in_enabled', true);
+                            }
                         })
                         ->get()->keyBy('id');
+
+                    $cartUnavailableCount = count($quantities) - $cartItems->count();
 
                     foreach ($quantities as $itemId => $quantity) {
                         $item = $cartItems->get((int) $itemId);
@@ -154,6 +209,9 @@ class AppServiceProvider extends ServiceProvider
                 'settings' => $settings,
                 'sections' => $sections,
                 'canOrder' => $settings?->canAcceptOrders() ?? false,
+                'fulfillment' => $selectedFulfillment,
+                'availableFulfillments' => $availableFulfillments,
+                'cartUnavailableCount' => $cartUnavailableCount,
                 'cartCount' => $cartCount,
                 'cartSubtotal' => $cartSubtotalCents / 100,
                 'ordersHistoryCount' => $ordersCount - $ordersInProgressCount,

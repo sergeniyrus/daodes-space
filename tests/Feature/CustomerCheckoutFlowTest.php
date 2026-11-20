@@ -70,6 +70,24 @@ class CustomerCheckoutFlowTest extends TestCase
             });
     }
 
+    public function test_customer_catalog_filters_dine_in_items_by_item_availability(): void
+    {
+        [$organization, $item] = $this->createOrderableMenu('Dine-in filtering cafe');
+        $item->update([
+            'delivery_enabled' => false,
+            'pickup_enabled' => false,
+            'dine_in_enabled' => false,
+        ]);
+
+        $this->get(route('customer.catalog', [
+            'organization' => $organization->id,
+            'fulfillment' => 'dine_in',
+        ]))
+            ->assertOk()
+            ->assertDontSee('Test dish')
+            ->assertSee('В заведении');
+    }
+
     public function test_dine_in_only_items_remain_available_in_cart_and_checkout_disables_other_methods(): void
     {
         $customer = $this->createVerifiedCustomer();
@@ -109,6 +127,143 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertViewHas('canUsePickup', false)
             ->assertViewHas('canUseDineIn', true)
             ->assertViewHas('selectedFulfillment', Order::FULFILLMENT_DINE_IN);
+    }
+
+    public function test_dine_in_order_uses_guest_account_and_requires_bracelet_or_employee_card(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Guest account cafe');
+
+        $organization->orderSettings->update([
+            'cash_payment_enabled' => false,
+            'card_payment_enabled' => false,
+        ]);
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $response = $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_DINE_IN,
+            'payment_method' => Order::PAYMENT_GUEST_ACCOUNT,
+            'guest_card_identifier' => 'BRACELET-125',
+            'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\\TH:i'),
+        ]);
+
+        $order = Order::query()->firstOrFail();
+
+        $response->assertRedirect(route('customer.orders.show', $order));
+        $this->assertSame('BRACELET-125', $order->guest_card_identifier);
+        $this->assertSame(Order::PAYMENT_GUEST_ACCOUNT, $order->payment_method);
+        $this->assertSame(Order::PAYMENT_PENDING, $order->payment_status);
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'method' => Order::PAYMENT_GUEST_ACCOUNT,
+            'status' => Order::PAYMENT_PENDING,
+        ]);
+    }
+
+    public function test_checkout_rejects_requested_time_outside_organization_working_hours(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Closed schedule cafe');
+        $organization->orderSettings->update([
+            'working_hours' => array_fill_keys(range(1, 7), [
+                'enabled' => true,
+                'open' => '00:00',
+                'close' => '00:01',
+            ]),
+        ]);
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'requested_at' => now('Asia/Krasnoyarsk')->addDay()->setTime(12, 0)->format('Y-m-d\\TH:i'),
+            ])
+            ->assertRedirect(route('customer.checkout'))
+            ->assertSessionHasErrors('requested_at');
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_manager_can_save_delivery_zones_and_origin_coordinates(): void
+    {
+        [$organization] = $this->createOrderableMenu('Delivery zones cafe');
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->put(route('organizations.order-settings.update', $organization), [
+                'currency' => 'EUR',
+                'orders_enabled' => '1',
+                'delivery_enabled' => '1',
+                'pickup_enabled' => '1',
+                'dine_in_enabled' => '1',
+                'online_payment_enabled' => '0',
+                'cash_payment_enabled' => '1',
+                'card_payment_enabled' => '1',
+                'pickup_min_minutes' => '30',
+                'working_hours' => array_fill_keys(range(1, 7), [
+                    'enabled' => true,
+                    'open' => '09:00',
+                    'close' => '22:00',
+                ]),
+                'timezone' => 'Asia/Krasnoyarsk',
+                'preorders_enabled' => '1',
+                'order_lead_minutes' => '30',
+                'time_slot_minutes' => '15',
+                'delivery_city' => 'Test city',
+                'pickup_address' => 'Test street 1',
+                'delivery_origin_latitude' => '55.0000000',
+                'delivery_origin_longitude' => '90.0000000',
+                'delivery_zones' => [
+                    ['max_distance_km' => '2', 'minimum_order_amount' => '15'],
+                    ['max_distance_km' => '5', 'minimum_order_amount' => '25'],
+                    ['max_distance_km' => '7', 'minimum_order_amount' => '30'],
+                    ['max_distance_km' => '10', 'minimum_order_amount' => '40'],
+                ],
+            ])
+            ->assertRedirect(route('organizations.manage', $organization));
+
+        $settings = $organization->orderSettings()->firstOrFail();
+        $this->assertTrue($settings->hasConfiguredDelivery());
+        $this->assertSame('55.0000000', $settings->delivery_origin_latitude);
+        $this->assertDatabaseHas('organization_delivery_zones', [
+            'organization_id' => $organization->id,
+            'max_distance_km' => '5.00',
+            'minimum_order_amount' => '25.00',
+        ]);
+        // Legacy columns remain for backward compatibility; delivery zones are now authoritative.
+        $this->assertTrue(Schema::hasColumn('organization_order_settings', 'delivery_fee'));
+        $this->assertTrue(Schema::hasColumn('organization_order_settings', 'minimum_order'));
+    }
+
+    public function test_delivery_outside_ten_kilometres_is_rejected(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $response = $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+                'delivery_latitude' => '55.0000000',
+                'delivery_longitude' => '90.2000000',
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'address_line' => 'Far street 10',
+            ]);
+
+        $response->assertRedirect(route('customer.checkout'));
+        $response->assertSessionHasErrors('address_line');
+        $this->assertDatabaseCount('orders', 0);
     }
 
     public function test_manager_can_save_tv_screen_settings_and_public_tv_uses_them(): void
@@ -164,6 +319,9 @@ class CustomerCheckoutFlowTest extends TestCase
             'idempotency_key' => $idempotencyKey,
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+            'delivery_latitude' => '55.0000000',
+            'delivery_longitude' => '90.0000000',
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
             'address_line' => 'Test street 10',
             'entrance' => '2',
@@ -218,31 +376,32 @@ class CustomerCheckoutFlowTest extends TestCase
         $this->assertSame('99.00', $item->fresh()->price);
     }
 
-    public function test_delivery_below_free_delivery_threshold_is_allowed_with_delivery_fee(): void
+    public function test_delivery_below_zone_minimum_is_rejected_without_a_delivery_fee(): void
     {
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu();
 
-        $organization->orderSettings->update([
-            'minimum_order' => '25.00',
+        $organization->orderSettings->deliveryZones()->update([
+            'minimum_order_amount' => '25.00',
         ]);
 
         $checkout = $this->openCheckout($customer, $organization, $item);
 
-        $response = $this->post(route('customer.checkout.store'), [
-            'idempotency_key' => $checkout->viewData('idempotencyKey'),
-            'customer_name' => 'Test customer',
-            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
-            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-            'address_line' => 'Test street 10',
-        ]);
+        $response = $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+                'delivery_latitude' => '55.0000000',
+                'delivery_longitude' => '90.0000000',
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'address_line' => 'Test street 10',
+            ]);
 
-        $order = Order::query()->firstOrFail();
-
-        $response->assertRedirect(route('customer.orders.show', $order));
-        $this->assertSame('20.00', $order->subtotal);
-        $this->assertSame('5.00', $order->delivery_fee);
-        $this->assertSame('25.00', $order->total);
+        $response->assertRedirect(route('customer.checkout'));
+        $response->assertSessionHasErrors('cart');
+        $this->assertDatabaseCount('orders', 0);
     }
 
     public function test_minimum_delivery_order_does_not_restrict_pickup(): void
@@ -250,8 +409,8 @@ class CustomerCheckoutFlowTest extends TestCase
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu();
 
-        $organization->orderSettings->update([
-            'minimum_order' => '25.00',
+        $organization->orderSettings->deliveryZones()->update([
+            'minimum_order_amount' => '25.00',
         ]);
 
         $checkout = $this->openCheckout($customer, $organization, $item);
@@ -261,7 +420,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_PICKUP,
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-            'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\\TH:i'),
+            'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\\TH:i'),
         ]);
 
         $order = Order::query()->firstOrFail();
@@ -301,6 +460,9 @@ class CustomerCheckoutFlowTest extends TestCase
             'idempotency_key' => $checkout->viewData('idempotencyKey'),
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+            'delivery_latitude' => '55.0000000',
+            'delivery_longitude' => '90.0000000',
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
             'address_line' => 'Main street',
             'house_number' => '15 корпус 2',
@@ -322,6 +484,9 @@ class CustomerCheckoutFlowTest extends TestCase
             'idempotency_key' => $checkout->viewData('idempotencyKey'),
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+            'delivery_latitude' => '55.0000000',
+            'delivery_longitude' => '90.0000000',
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
             'address_line' => 'Test street 25',
             'save_address' => '1',
@@ -350,7 +515,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_PICKUP,
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-            'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
+            'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
         ];
 
         $firstResponse = $this->post(route('customer.checkout.store'), $payload);
@@ -382,7 +547,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 'customer_name' => 'Test customer',
                 'fulfillment_type' => Order::FULFILLMENT_PICKUP,
                 'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
             ]);
 
         $response->assertRedirect(route('customer.checkout'));
@@ -426,6 +591,9 @@ class CustomerCheckoutFlowTest extends TestCase
             'idempotency_key' => $checkout->viewData('idempotencyKey'),
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+            'delivery_latitude' => '55.0000000',
+            'delivery_longitude' => '90.0000000',
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
             'address_line' => 'Test street 10',
         ])->assertRedirect();
@@ -914,7 +1082,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 'customer_name' => 'Test customer',
                 'fulfillment_type' => Order::FULFILLMENT_PICKUP,
                 'payment_method' => Order::PAYMENT_ONLINE,
-                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\\TH:i'),
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\\TH:i'),
             ])
             ->assertRedirect(route('customer.checkout'))
             ->assertSessionHasErrors('payment_method');
@@ -1780,11 +1948,9 @@ class CustomerCheckoutFlowTest extends TestCase
             'status' => 'active',
         ]);
 
-        OrganizationOrderSetting::query()->create([
+        $settings = OrganizationOrderSetting::query()->create([
             'organization_id' => $organization->id,
             'currency' => 'EUR',
-            'delivery_fee' => '5.00',
-            'minimum_order' => '10.00',
             'orders_enabled' => true,
             'delivery_enabled' => true,
             'pickup_enabled' => true,
@@ -1793,7 +1959,27 @@ class CustomerCheckoutFlowTest extends TestCase
             'card_payment_enabled' => true,
             'online_payment_enabled' => false,
             'pickup_min_minutes' => null,
+            'working_hours' => array_fill_keys(range(1, 7), [
+                'enabled' => true,
+                'open' => '00:00',
+                'close' => '23:59',
+            ]),
+            'timezone' => 'Asia/Krasnoyarsk',
+            'preorders_enabled' => true,
+            'order_lead_minutes' => 30,
+            'time_slot_minutes' => 15,
+            'pickup_address' => 'Test street 1',
+            'delivery_origin_latitude' => '55.0000000',
+            'delivery_origin_longitude' => '90.0000000',
         ]);
+
+        foreach ([2, 5, 7, 10] as $index => $distance) {
+            $settings->deliveryZones()->create([
+                'max_distance_km' => $distance,
+                'minimum_order_amount' => '0.00',
+                'sort_order' => $index,
+            ]);
+        }
 
         $section = MenuSection::query()->create([
             'organization_id' => $organization->id,
@@ -1829,10 +2015,13 @@ class CustomerCheckoutFlowTest extends TestCase
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_PICKUP,
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
-            'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\\TH:i'),
+            'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\\TH:i'),
         ])->assertRedirect();
 
-        return Order::query()->latest('id')->firstOrFail();
+        $order = Order::query()->latest('id')->firstOrFail();
+        $this->assertSame('Test street 1', $order->pickup_address_snapshot);
+
+        return $order;
     }
 
     private function openCheckout(
@@ -1944,6 +2133,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 $table->boolean('is_active')->default(true);
                 $table->boolean('delivery_enabled')->default(true);
                 $table->boolean('pickup_enabled')->default(true);
+                $table->boolean('dine_in_enabled')->default(true);
                 $table->timestamps();
 
                 $table->unique(
@@ -1978,6 +2168,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 $table->boolean('is_active')->default(true);
                 $table->boolean('delivery_enabled')->default(true);
                 $table->boolean('pickup_enabled')->default(true);
+                $table->boolean('dine_in_enabled')->default(true);
                 $table->timestamps();
 
                 $table->unique(

@@ -1,10 +1,10 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page')
     Заказ №{{ $order->order_number }} — {{ $organization->name }}
 @endsection
 
-@section('main')
+@section('management-content')
 @php
     $statusLabels = [
         'new' => 'Новый',
@@ -44,8 +44,9 @@
 
 <style>
 .organization-order-detail {
-    width: min(1050px, calc(100% - 24px));
-    margin: 28px auto 55px;
+    width: 100%;
+    max-width: none;
+    margin: 0;
     color: #f4f4f4;
 }
 .organization-order-detail__panel {
@@ -152,7 +153,7 @@
         <div class="organization-order-detail__grid">
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Создан</span>
-                <div class="organization-order-detail__value">{{ $order->created_at?->format('d.m.Y H:i:s') ?? '—' }}</div>
+                <div class="organization-order-detail__value">{{ $order->created_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') ?? '—' }}</div>
             </div>
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Статус заказа</span>
@@ -166,12 +167,18 @@
             </div>
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Желаемое время</span>
-                <div class="organization-order-detail__value">{{ $order->requested_at?->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') ?? 'Не указано' }}</div>
+                <div class="organization-order-detail__value">{{ $order->requested_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') ?? 'Не указано' }}</div>
             </div>
             @if($order->table_number)
                 <div class="organization-order-detail__field">
                     <span class="organization-order-detail__label">Номер браслета</span>
                     <div class="organization-order-detail__value">{{ $order->table_number }}</div>
+                </div>
+            @endif
+            @if($order->guest_card_identifier)
+                <div class="organization-order-detail__field">
+                    <span class="organization-order-detail__label">Браслет / карта сотрудника</span>
+                    <div class="organization-order-detail__value">{{ $order->guest_card_identifier }}</div>
                 </div>
             @endif
         </div>
@@ -192,6 +199,12 @@
                     </a>
                 </div>
             </div>
+            @if($order->fulfillment_type === 'pickup')
+                <div class="organization-order-detail__field" style="grid-column: 1 / -1;">
+                    <span class="organization-order-detail__label">Адрес самовывоза</span>
+                    <div class="organization-order-detail__value">{{ $order->pickup_address_snapshot ?: ($organization->orderSettings?->pickup_address ?? 'Адрес не указан') }}</div>
+                </div>
+            @endif
             @if($order->fulfillment_type === 'delivery')
                 <div class="organization-order-detail__field" style="grid-column: 1 / -1;">
                     <span class="organization-order-detail__label">Адрес доставки</span>
@@ -239,10 +252,18 @@
                 <span class="organization-order-detail__label">Товары</span>
                 <div class="organization-order-detail__value">{{ number_format((float) $order->subtotal, 2, ',', ' ') }} {{ $order->currency }}</div>
             </div>
-            <div class="organization-order-detail__field">
-                <span class="organization-order-detail__label">Доставка</span>
-                <div class="organization-order-detail__value">{{ number_format((float) $order->delivery_fee, 2, ',', ' ') }} {{ $order->currency }}</div>
-            </div>
+            @if($order->fulfillment_type === 'delivery' || (float) $order->delivery_fee > 0)
+                <div class="organization-order-detail__field">
+                    <span class="organization-order-detail__label">Доставка</span>
+                    <div class="organization-order-detail__value">
+                        @if((float) $order->delivery_fee > 0)
+                            {{ number_format((float) $order->delivery_fee, 2, ',', ' ') }} {{ $order->currency }}
+                        @else
+                            Без отдельной платы
+                        @endif
+                    </div>
+                </div>
+            @endif
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Скидка</span>
                 <div class="organization-order-detail__value">{{ number_format((float) $order->discount_total, 2, ',', ' ') }} {{ $order->currency }}</div>
@@ -259,19 +280,26 @@
         <div class="organization-order-detail__grid">
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Способ оплаты</span>
-                <div class="organization-order-detail__value">{{ $methodLabels[$order->payment_method] ?? $order->payment_method }}</div>
+                <div class="organization-order-detail__value">{{ $order->payment_method === 'guest_account' ? 'На счёт гостя — расчёт при выходе' : ($methodLabels[$order->payment_method] ?? $order->payment_method) }}</div>
             </div>
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Состояние оплаты</span>
-                <div class="organization-order-detail__value organization-order-detail__accent">{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</div>
+                <div class="organization-order-detail__value organization-order-detail__accent">{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</div>
             </div>
         
         </div>
+
+        @if($order->payment_method === 'guest_account')
+            <p class="organization-order-detail__subtitle" style="margin-top:12px;">
+                Расчёт предполагается на кассе при выходе. Номер браслета или карты сохранён в заказе DAODES; автоматическая передача и подтверждение оплаты через iiko будут подключены отдельно. Статус оплаты вручную не меняйте.
+            </p>
+        @endif
 
         @php
             $canMarkPaid =
                 $order->payment_status === 'pending'
                 && $order->payment_method !== 'online'
+                && $order->payment_method !== 'guest_account'
                 && (
                     ($order->fulfillment_type === 'pickup' && $order->status === 'issued')
                     || ($order->fulfillment_type === 'delivery' && $order->status === 'delivered')
@@ -298,7 +326,7 @@
                     </button>
                 </form>
             </div>
-        @elseif($order->payment_status === 'pending' && $order->payment_method !== 'online')
+        @elseif($order->payment_status === 'pending' && $order->payment_method !== 'online' && $order->payment_method !== 'guest_account')
             <div class="organization-order-detail__subtitle" style="margin-top: 12px;">
                 Подтверждение оплаты станет доступно после фактической передачи заказа клиенту.
             </div>
@@ -313,16 +341,16 @@
                         <div class="organization-order-detail__value">{{ $payment->provider ?: 'Без провайдера' }} · {{ $payment->method }}</div>
                         <div class="organization-order-detail__subtitle">
                             {{ $paymentLabels[$payment->status] ?? $payment->status }}
-                            @if($payment->created_at) · {{ $payment->created_at->format('d.m.Y H:i:s') }} @endif
+                            @if($payment->created_at) · {{ $payment->created_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') }} @endif
                         </div>
                         @if($payment->paid_at)
-                            <div class="organization-order-detail__subtitle">Оплачено: {{ $payment->paid_at->format('d.m.Y H:i:s') }}</div>
+                            <div class="organization-order-detail__subtitle">Оплачено: {{ $payment->paid_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') }}</div>
                         @endif
                         @if($payment->failed_at)
-                            <div class="organization-order-detail__subtitle">Ошибка: {{ $payment->failed_at->format('d.m.Y H:i:s') }}</div>
+                            <div class="organization-order-detail__subtitle">Ошибка: {{ $payment->failed_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') }}</div>
                         @endif
                         @if($payment->refunded_at)
-                            <div class="organization-order-detail__subtitle">Возврат: {{ $payment->refunded_at->format('d.m.Y H:i:s') }}</div>
+                            <div class="organization-order-detail__subtitle">Возврат: {{ $payment->refunded_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') }}</div>
                         @endif
                     </div>
                     <div class="organization-order-detail__value" style="text-align: right;">
@@ -333,6 +361,41 @@
         @empty
             <div class="organization-order-detail__empty">Платёжные попытки отсутствуют.</div>
         @endforelse
+    </section>
+
+    <section class="organization-order-detail__panel">
+        <h2 class="organization-order-detail__title">Управление заказом</h2>
+
+        @if(in_array($order->status, ['ready', 'delivered', 'issued', 'served', 'new', 'confirmed', 'preparing'], true))
+            <form
+                method="POST"
+                action="{{ route('organizations.orders.status', [$organization, $order]) }}"
+                class="organization-order-detail__actions"
+                onsubmit="return confirm('Применить изменение статуса заказа №{{ $order->order_number }}?');"
+            >
+                @csrf
+                @method('PATCH')
+
+                <select
+                    name="status"
+                    required
+                    style="min-height: 40px; min-width: 230px; padding: 8px 12px; color: #f4f4f4; background: #090c16; border: 1px solid rgba(0, 229, 212, .45); border-radius: 10px;"
+                >
+                    <option value="">Выберите действие</option>
+                    <option value="served">Отметить как поданный (для зала)</option>
+                    <option value="completed">Завершить заказ (после оплаты)</option>
+                    <option value="cancelled">Отменить заказ</option>
+                </select>
+
+                <button type="submit" class="organization-order-detail__button">
+                    Применить
+                </button>
+            </form>
+        @else
+            <div class="organization-order-detail__empty">
+                Для текущего состояния дополнительных действий нет.
+            </div>
+        @endif
     </section>
 
     <section class="organization-order-detail__panel">

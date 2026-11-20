@@ -99,7 +99,7 @@
             <div class="receipt__organization">{{ $organization->name }}</div>
             <div class="receipt__muted">Заказ онлайн</div>
             <div class="receipt__heading">ЧЕК №{{ $order->order_number }}</div>
-            <div>{{ $order->created_at?->format('d.m.Y H:i') ?? '—' }}</div>
+            <div>{{ $order->created_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') ?? '—' }}</div>
         </header>
 
         <hr class="receipt__rule">
@@ -115,7 +115,7 @@
         @if($order->requested_at)
             <div class="receipt__row">
                 <span>Время</span>
-                <strong>{{ $order->requested_at->format('d.m.Y H:i') }}</strong>
+                <strong>{{ $order->requested_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</strong>
             </div>
         @endif
         @if($order->table_number)
@@ -124,9 +124,20 @@
                 <strong>{{ $order->table_number }}</strong>
             </div>
         @endif
+        @if($order->guest_card_identifier)
+            <div class="receipt__row">
+                <span>Браслет / карта сотрудника</span>
+                <strong>{{ $order->guest_card_identifier }}</strong>
+            </div>
+        @endif
         <div>Клиент: <strong>{{ $order->customer_name }}</strong></div>
         <div>Телефон: {{ $order->customer_phone }}</div>
 
+        @if($order->fulfillment_type === 'pickup')
+            <div style="margin-top: 2mm;">
+                Адрес самовывоза: <strong>{{ $order->pickup_address_snapshot ?: ($organization->orderSettings?->pickup_address ?? 'Не указан') }}</strong>
+            </div>
+        @endif
         @if($order->fulfillment_type === 'delivery')
             <div style="margin-top: 2mm;">
                 Адрес: {{ $order->delivery_address['address_line'] ?? 'Не указан' }}
@@ -181,11 +192,11 @@
         <hr class="receipt__rule">
         <div class="receipt__row">
             <span>Оплата</span>
-            <span>{{ $methodLabels[$order->payment_method] ?? $order->payment_method }}</span>
+            <span>{{ $order->payment_method === 'guest_account' ? 'На счёт гостя — расчёт при выходе' : ($methodLabels[$order->payment_method] ?? $order->payment_method) }}</span>
         </div>
         <div class="receipt__row">
             <span>Статус оплаты</span>
-            <strong>{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</strong>
+            <strong>{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</strong>
         </div>
 
         @if($order->customer_comment)

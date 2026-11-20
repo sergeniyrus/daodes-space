@@ -1,10 +1,10 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page')
     {{ __('organizations.management') }} — {{ $organization->name }}
 @endsection
 
-@section('main')
+@section('management-content')
 
 <style>
 
@@ -1223,110 +1223,11 @@
 </style>
 
 
-<div class="organization-container">
-
-    {{-- =====================================================
-         ЗАГОЛОВОК ОРГАНИЗАЦИИ
-         ===================================================== --}}
-
-    <div class="organization-header">
-
-    <div class="organization-header-main">
-
-        <div class="organization-management-title">
-            {{ __('organizations.management') }}
-        </div>
-
-        <div class="organization-name">
-            {{ $organization->name }}
-        </div>
-
-    </div>
-
-
-    <div style="
-        display:flex;
-        align-items:center;
-        gap:10px;
-        flex-wrap:wrap;
-        justify-content:flex-end;
-    ">
-
-        
-
-
-        <div class="organization-header-status">
-
-            <span class="organization-status-indicator"></span>
-
-            <span>
-                {{ __('organizations.status') }}:
-                {{ __('organizations.statuses.' . $organization->status) }}
-            </span>
-
-        </div>
-
-    </div>
-
-</div>
-
-    {{-- =====================================================
-         УВЕДОМЛЕНИЯ
-         ===================================================== --}}
-
-    @if(session('success'))
-
-        <div class="organization-alert success">
-            {{ session('success') }}
-        </div>
-
-    @endif
-
-
-    @if(session('error'))
-
-        <div class="organization-alert error">
-            {{ session('error') }}
-        </div>
-
-    @endif
-
-
-    @if($errors->any())
-
-        <div class="organization-alert error">
-
-            @foreach($errors->all() as $error)
-
-                <div>
-                    {{ $error }}
-                </div>
-
-            @endforeach
-
-        </div>
-
-    @endif
-
-
-    
-
-<nav class="organization-tabs" aria-label="Разделы управления организацией" data-organization-tabs>
-<button type="button" class="organization-tab is-active" data-tab="overview"><span>⌂</span> Обзор</button>
-<button type="button" class="organization-tab" data-tab="team"><span>♙</span> Команда</button>
-<button type="button" class="organization-tab" data-tab="orders"><span>▤</span> Заказы</button>
-<button type="button" class="organization-tab" data-tab="menu"><span>☷</span> Меню</button>
-<button type="button" class="organization-tab" data-tab="tv"><span>▣</span> TV-экраны</button>
-<button type="button" class="organization-tab" data-tab="settings"><span>⚙</span> Настройки</button>
-</nav>{{-- =====================================================
-         АНАЛИТИКА ОНЛАЙН-ЗАКАЗОВ
-         ===================================================== --}}
-
     <section class="organization-tab-panel is-active" data-tab-panel="overview">
 <section class="organization-order-dashboard">
         <h2 class="organization-order-dashboard-title">📊 Заказы и выручка</h2>
         <div class="organization-order-dashboard-subtitle">
-            Операционная сводка за {{ now()->format('d.m.Y') }} и текущая загрузка
+            Операционная сводка за {{ now($orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y') }} и текущая загрузка
         </div>
 
         <div class="organization-order-stats">
@@ -1402,7 +1303,7 @@
                         <strong>{{ $activity->description }}</strong>
                         <div class="organization-activity-meta">
                             <span>{{ $activity->actor?->name ?? 'Система' }}</span>
-                            <span>{{ $activity->created_at?->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</span>
+                            <span>{{ $activity->created_at?->timezone($orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</span>
                         </div>
                         @if($activity->before_values || $activity->after_values)
                             <details>
@@ -1909,25 +1810,33 @@
 <style>
 .organization-order-settings {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-    gap: 14px;
-    margin-top: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+    gap: 10px 14px;
+    margin-top: 12px;
+    align-items: end;
 }
 .organization-order-field {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 5px;
     color: #d8dce8;
+    font-size: .86rem;
+    font-weight: 650;
+}
+.organization-order-field--compact {
+    width: min(100%, 220px);
+    min-width: 0;
+    white-space: nowrap;
 }
 .organization-order-input {
     box-sizing: border-box;
     width: 100%;
-    min-height: 42px;
-    padding: 9px 12px;
+    min-height: 38px;
+    padding: 7px 10px;
     color: #fff;
     background: #090c16;
     border: 1px solid rgba(0, 229, 212, .45);
-    border-radius: 9px;
+    border-radius: 8px;
 }
 .organization-order-input:focus {
     border-color: gold;
@@ -1950,15 +1859,49 @@
     accent-color: #00e5d4;
 }
 .organization-order-hint {
-    margin-top: 14px;
+    margin-top: 10px;
     color: #9da7b8;
-    font-size: .88rem;
-    line-height: 1.5;
+    font-size: .82rem;
+    line-height: 1.4;
 }
+.organization-order-hint ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 20px;
+    margin: 7px 0 0;
+    padding-left: 18px;
+}
+.organization-order-options {
+    gap: 8px 14px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(0,229,212,.035);
+    border: 1px solid rgba(0,229,212,.13);
+    border-radius: 11px;
+}
+.organization-order-options label {font-size:.88rem}
 .organization-order-error {
     color: #ff8585;
     font-size: .85rem;
 }
+
+.organization-delivery-zones{margin:18px 0 8px;padding:18px;background:linear-gradient(145deg,rgba(0,229,212,.075),rgba(255,215,0,.035));border:1px solid rgba(0,229,212,.34);border-radius:16px}
+.organization-delivery-zones[hidden]{display:none!important}
+.organization-delivery-zones-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.organization-delivery-zones-heading h3{margin:0;color:#ffd700;font-size:1.12rem}
+.organization-delivery-zones-heading p{margin:5px 0 0;color:#aeb5c4;font-size:.88rem}
+.organization-delivery-limit{flex:0 0 auto;padding:6px 10px;color:#00e5d4;border:1px solid rgba(0,229,212,.35);border-radius:20px;font-size:.8rem;font-weight:700}
+.organization-delivery-origin-map{height:430px;min-height:360px;margin:10px 0 14px;border:1px solid rgba(0,229,212,.4);border-radius:12px;overflow:hidden;background:#101522}
+.organization-delivery-map-tools{display:flex;align-items:center;flex-wrap:wrap;gap:10px;color:#aeb5c4;font-size:.86rem}
+.organization-delivery-map-button,.organization-delivery-zone-add{min-height:36px;padding:7px 13px;color:#00e5d4;background:rgba(0,229,212,.07);border:1px solid rgba(0,229,212,.45);border-radius:20px;font-weight:700;cursor:pointer}
+.organization-delivery-zones-list{display:grid;gap:8px;margin-top:14px}
+.organization-delivery-zone-row{display:grid;grid-template-columns:34px minmax(100px,.8fr) minmax(150px,1.2fr) 36px;align-items:end;gap:10px;padding:10px;background:rgba(5,10,20,.58);border:1px solid rgba(255,215,0,.18);border-radius:11px}
+.organization-delivery-zone-number{align-self:center;color:#ffd700;font-weight:800;text-align:center}
+.organization-delivery-zone-row label{display:grid;gap:5px;color:#aeb5c4;font-size:.78rem}
+.organization-delivery-zone-row input{width:100%;min-height:38px;box-sizing:border-box;padding:7px 9px;color:#fff;background:#090c16;border:1px solid rgba(0,229,212,.4);border-radius:8px}
+.organization-delivery-zone-remove{width:34px;height:36px;color:#ff8d8d;background:rgba(255,90,90,.08);border:1px solid rgba(255,90,90,.3);border-radius:9px;font-size:1.35rem;cursor:pointer}
+.organization-delivery-zones-note{margin-top:12px;color:#9da7b8;font-size:.84rem;line-height:1.45}
+@media(max-width:600px){.organization-delivery-origin-map{height:360px;min-height:320px}.organization-delivery-zones{padding:12px}.organization-delivery-zones-heading{flex-direction:column}.organization-delivery-zone-row{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 32px;gap:6px;padding:7px}.organization-delivery-zone-row label{font-size:.7rem}.organization-delivery-zone-row input{min-height:36px;padding:5px}.organization-delivery-zone-remove{width:30px}}
 </style>
 
 <section class="organization-tab-panel" data-tab-panel="settings">
@@ -1975,7 +1918,7 @@
         @method('PUT')
 
         <div class="organization-order-settings">
-            <label class="organization-order-field">
+            <label class="organization-order-field organization-order-field--compact">
                 Валюта (ISO 4217)
                 <input
                     type="text"
@@ -1993,38 +1936,81 @@
                 @enderror
             </label>
 
-            <label class="organization-order-field">
-                Стоимость доставки
-                <input
-                    type="number"
-                    name="delivery_fee"
-                    class="organization-order-input"
-                    value="{{ old('delivery_fee', $orderSettings?->delivery_fee ?? '0.00') }}"
-                    min="0"
-                    max="9999999999.99"
-                    step="0.01"
-                    required
-                >
-                @error('delivery_fee')
-                    <span class="organization-order-error">{{ $message }}</span>
+            @php
+                $workingHoursValues = old('working_hours', $orderSettings?->working_hours ?? []);
+                $workingDays = [
+                    1 => 'Понедельник',
+                    2 => 'Вторник',
+                    3 => 'Среда',
+                    4 => 'Четверг',
+                    5 => 'Пятница',
+                    6 => 'Суббота',
+                    7 => 'Воскресенье',
+                ];
+            @endphp
+
+            <section class="organization-order-schedule" style="grid-column: 1 / -1; padding: 16px; border: 1px solid rgba(0,229,212,.3); border-radius: 12px; background: rgba(0,229,212,.035);">
+                <h3 style="margin: 0 0 6px; color: #00e5d4;">🕒 График работы заведения</h3>
+                <p style="margin: 0 0 12px; color: #aeb5c4; font-size: .88rem;">Заказы и предзаказы будут доступны только в указанные часы. Можно задать ночной график, например с 18:00 до 02:00. Пока график не сохранён, оформление заказов недоступно.</p>
+                <div style="display:grid; gap:8px;">
+                    @foreach($workingDays as $dayNumber => $dayName)
+                        @php
+                            $dayHours = $workingHoursValues[$dayNumber] ?? [];
+                            $dayEnabled = old("working_hours.$dayNumber.enabled", $dayHours['enabled'] ?? ($orderSettings?->working_hours === null));
+                        @endphp
+                        <div style="display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:9px; padding:8px 10px; border:1px solid rgba(255,215,0,.12); border-radius:9px;">
+                            <strong style="color:#e8eaf0;">{{ $dayName }}</strong>
+                            <label style="display:flex; align-items:center; gap:6px; color:#00e5d4; white-space:nowrap;">
+                                <input type="checkbox" name="working_hours[{{ $dayNumber }}][enabled]" value="1" @checked($dayEnabled)>
+                                Работает
+                            </label>
+                            <label style="color:#aeb5c4; font-size:.82rem;">Открытие
+                                <input type="time" name="working_hours[{{ $dayNumber }}][open]" value="{{ old("working_hours.$dayNumber.open", $dayHours['open'] ?? '09:00') }}" class="organization-order-input">
+                            </label>
+                            <label style="color:#aeb5c4; font-size:.82rem;">Закрытие
+                                <input type="time" name="working_hours[{{ $dayNumber }}][close]" value="{{ old("working_hours.$dayNumber.close", $dayHours['close'] ?? '22:00') }}" class="organization-order-input">
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                @error('working_hours')
+                    <div class="organization-order-error">{{ $message }}</div>
                 @enderror
+                @foreach(range(1, 7) as $dayNumber)
+                    @error("working_hours.$dayNumber.open")<div class="organization-order-error">{{ $message }}</div>@enderror
+                    @error("working_hours.$dayNumber.close")<div class="organization-order-error">{{ $message }}</div>@enderror
+                @endforeach
+            </section>
+
+            <label class="organization-order-field">
+                Часовой пояс заведения (IANA)
+                <input type="text" name="timezone" class="organization-order-input"
+                    value="{{ old('timezone', $orderSettings?->timezone ?: 'Asia/Krasnoyarsk') }}"
+                    placeholder="Europe/Sofia" required>
+                <small style="color:#9ca3af;">Например: Europe/Sofia, Europe/Moscow, Asia/Krasnoyarsk.</small>
+                @error('timezone')<span class="organization-order-error">{{ $message }}</span>@enderror
             </label>
 
             <label class="organization-order-field">
-                Бесплатная доставка от суммы товаров
-                <input
-                    type="number"
-                    name="minimum_order"
-                    class="organization-order-input"
-                    value="{{ old('minimum_order', $orderSettings?->minimum_order) }}"
-                    min="0"
-                    max="9999999999.99"
-                    step="0.01"
-                    placeholder="Без порога"
-                >
-                @error('minimum_order')
-                    <span class="organization-order-error">{{ $message }}</span>
-                @enderror
+                Минимум до заказа (минут)
+                <input type="number" name="order_lead_minutes" class="organization-order-input"
+                    value="{{ old('order_lead_minutes', $orderSettings?->order_lead_minutes ?? 30) }}"
+                    min="30" max="1440" step="1" required>
+                @error('order_lead_minutes')<span class="organization-order-error">{{ $message }}</span>@enderror
+            </label>
+
+            <label class="organization-order-field">
+                Шаг времени предзаказа (минут)
+                <select name="time_slot_minutes" class="organization-order-input">
+                    @foreach([5, 10, 15, 20, 30, 60] as $slot)
+                        <option value="{{ $slot }}" @selected((int) old('time_slot_minutes', $orderSettings?->time_slot_minutes ?? 15) === $slot)>{{ $slot }} минут</option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label class="organization-order-field" style="display:flex; flex-direction:row; align-items:center; gap:9px;">
+                <input type="checkbox" name="preorders_enabled" value="1" @checked(old('preorders_enabled', $orderSettings?->preorders_enabled ?? true))>
+                <span>Разрешить предзаказ на дату и время</span>
             </label>
 
             <label class="organization-order-field">
@@ -2043,7 +2029,84 @@
                     <span class="organization-order-error">{{ $message }}</span>
                 @enderror
             </label>
+
+            <label class="organization-order-field">
+                Город и регион доставки по умолчанию
+                <input type="text" name="delivery_city" class="organization-order-input"
+                    value="{{ old('delivery_city', $orderSettings?->delivery_city) }}"
+                    maxlength="255" placeholder="Зеленогорск, Красноярский край, Россия">
+                @error('delivery_city')<span class="organization-order-error">{{ $message }}</span>@enderror
+            </label>
+
+            <label class="organization-order-field">
+                Адрес заведения (самовывоз / центр доставки)
+                <input type="text" name="pickup_address" id="organization-pickup-address" class="organization-order-input"
+                    value="{{ old('pickup_address', $orderSettings?->pickup_address) }}"
+                    maxlength="500" placeholder="Улица, дом, город">
+                <small style="color:#9ca3af;">Укажите адрес, если включены самовывоз или доставка. От этой точки рассчитываются зоны доставки.</small>
+                @error('pickup_address')<span class="organization-order-error">{{ $message }}</span>@enderror
+            </label>
         </div>
+
+        <section class="organization-delivery-zones" id="organization-delivery-zones" @if(!old('delivery_enabled', $orderSettings?->delivery_enabled ?? false)) hidden @endif>
+            <div class="organization-delivery-zones-heading">
+                <div>
+                    <h3>🚚 Зоны доставки</h3>
+                    <p>Расстояние считается от адреса самовывоза. До 10 км включительно; дальше доставка недоступна.</p>
+                </div>
+                <span class="organization-delivery-limit">Максимум 10 км</span>
+            </div>
+            <input type="hidden" name="delivery_origin_latitude" id="organization-delivery-origin-latitude" value="{{ old('delivery_origin_latitude', $orderSettings?->delivery_origin_latitude) }}">
+            <input type="hidden" name="delivery_origin_longitude" id="organization-delivery-origin-longitude" value="{{ old('delivery_origin_longitude', $orderSettings?->delivery_origin_longitude) }}">
+            <div class="organization-delivery-map-tools">
+                <button type="button" class="organization-delivery-map-button" id="organization-delivery-find-address">Найти адрес на карте</button>
+                <span id="organization-delivery-origin-status">
+                    @if($orderSettings?->delivery_origin_latitude !== null && $orderSettings?->delivery_origin_longitude !== null)
+                        Точка центра доставки сохранена
+                    @else
+                        Укажите точку заведения на карте
+                    @endif
+                </span>
+            </div>
+            <div id="organization-delivery-origin-map" class="organization-delivery-origin-map"></div>
+            @error('delivery_origin_latitude')<div class="organization-order-error">{{ $message }}</div>@enderror
+            @error('delivery_origin_longitude')<div class="organization-order-error">{{ $message }}</div>@enderror
+
+            <div class="organization-delivery-zones-list" id="organization-delivery-zones-list">
+                @php
+                    $deliveryZoneRows = old('delivery_zones');
+                    if (!is_array($deliveryZoneRows)) {
+                        $deliveryZoneRows = $orderSettings?->deliveryZones?->map(fn ($zone) => [
+                            'max_distance_km' => $zone->max_distance_km,
+                            'minimum_order_amount' => $zone->minimum_order_amount,
+                        ])->all() ?? [];
+                    }
+                    if ($deliveryZoneRows === []) {
+                        $deliveryZoneRows = [
+                            ['max_distance_km' => '2.00', 'minimum_order_amount' => '0.00'],
+                            ['max_distance_km' => '5.00', 'minimum_order_amount' => '0.00'],
+                            ['max_distance_km' => '7.00', 'minimum_order_amount' => '0.00'],
+                            ['max_distance_km' => '10.00', 'minimum_order_amount' => '0.00'],
+                        ];
+                    }
+                @endphp
+                @foreach($deliveryZoneRows as $zoneIndex => $zone)
+                    <div class="organization-delivery-zone-row" data-zone-row>
+                        <span class="organization-delivery-zone-number">{{ $loop->iteration }}</span>
+                        <label><span>До, км</span>
+                            <input type="number" name="delivery_zones[{{ $zoneIndex }}][max_distance_km]" value="{{ $zone['max_distance_km'] ?? '' }}" min="0.01" max="10" step="0.01" required>
+                        </label>
+                        <label><span>Минимум корзины</span>
+                            <input type="number" name="delivery_zones[{{ $zoneIndex }}][minimum_order_amount]" value="{{ $zone['minimum_order_amount'] ?? '0.00' }}" min="0" max="9999999999.99" step="0.01" required>
+                        </label>
+                        <button type="button" class="organization-delivery-zone-remove" aria-label="Удалить зону" title="Удалить зону">×</button>
+                    </div>
+                @endforeach
+            </div>
+            <button type="button" class="organization-delivery-zone-add" id="organization-delivery-zone-add">＋ Добавить зону</button>
+            @error('delivery_zones')<div class="organization-order-error">{{ $message }}</div>@enderror
+            <div class="organization-delivery-zones-note">Сумма в каждой зоне — минимальная стоимость блюд в корзине. Отдельной платы за доставку нет. Последняя зона должна заканчиваться на 10 км.</div>
+        </section>
 
         <div class="organization-order-options">
             <label>
@@ -2078,14 +2141,9 @@
         </div>
 
         <div class="organization-order-options">
-            <label>
-                <input
-                    type="checkbox"
-                    name="online_payment_enabled"
-                    value="1"
-                    @checked(old('online_payment_enabled', $orderSettings?->online_payment_enabled ?? false))
-                >
-                💳 Онлайн-оплата
+            <label style="opacity:.58; cursor:not-allowed;">
+                <input type="checkbox" disabled>
+                💳 Онлайн-оплата — после подключения провайдера
             </label>
 
             <label>
@@ -2129,14 +2187,11 @@
         @enderror
 
         <div class="organization-order-hint">
-            Для включения заказов укажите валюту, выберите хотя бы один способ получения
-            и включите наличные или оплату терминалом при получении. Флажок онлайн-оплаты
-            сохраняет настройку на будущее, но сама онлайн-оплата станет доступна только
-            после подключения провайдера и серверного подтверждения webhook.
+            Для доставки и самовывоза нужна оплата наличными или терминалом при получении. Для заказа в заведении используется гостевой счёт — расчёт на кассе при выходе. Онлайн-оплата станет доступна после подключения платёжного провайдера.
         </div>
 
         <div class="organization-order-hint">
-            <strong style="color: #f5d76e;">Проверка готовности корзины:</strong>
+            <strong style="color: #f5d76e;">Проверка готовности онлайн-заказов:</strong>
             <ul style="margin: 8px 0 0; padding-left: 20px;">
                 <li>
                     @if(filled($orderSettings?->currency))
@@ -2146,30 +2201,58 @@
                     @endif
                 </li>
                 <li>
+                    @if($orderSettings?->hasConfiguredWorkingHours())
+                        <span style="color: #00e5a8;">✓ График работы настроен</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Настройте рабочие дни и часы</span>
+                    @endif
+                </li>
+                <li>
                     @if($orderSettings?->orders_enabled)
                         <span style="color: #00e5a8;">✓ Приём онлайн-заказов включён</span>
                     @else
                         <span style="color: #ffb74d;">○ Включите «Принимать онлайн-заказы»</span>
                     @endif
                 </li>
-                <li>
-                    @if($orderSettings?->delivery_enabled || $orderSettings?->pickup_enabled || $orderSettings?->dine_in_enabled)
-                        <span style="color: #00e5a8;">✓ Способ получения выбран</span>
-                    @else
-                        <span style="color: #ffb74d;">○ Выберите доставку, самовывоз или заказ в заведении</span>
-                    @endif
-                </li>
-                <li>
-                    @if($orderSettings?->cash_payment_enabled || $orderSettings?->card_payment_enabled)
-                        <span style="color: #00e5a8;">✓ Оплата при получении включена</span>
-                    @else
-                        <span style="color: #ffb74d;">○ Включите наличные или терминал при получении</span>
-                    @endif
-                </li>
+                @php
+                    $hasReceiptPayment = $orderSettings
+                        && ($orderSettings->cash_payment_enabled || $orderSettings->card_payment_enabled);
+                    $hasValidDelivery = $orderSettings?->hasConfiguredDelivery() && $hasReceiptPayment;
+                    $hasValidPickup = $orderSettings?->pickup_enabled
+                        && $orderSettings->hasPickupAddress()
+                        && $hasReceiptPayment;
+                    $hasValidDineIn = (bool) $orderSettings?->dine_in_enabled;
+                @endphp
+                @if($orderSettings?->delivery_enabled)
+                    <li>
+                        @if($hasValidDelivery)
+                            <span style="color: #00e5a8;">✓ Доставка: точка, зоны и оплата настроены</span>
+                        @else
+                            <span style="color: #ffb74d;">○ Для доставки настройте точку, зоны и наличные/терминал</span>
+                        @endif
+                    </li>
+                @endif
+                @if($orderSettings?->pickup_enabled)
+                    <li>
+                        @if($hasValidPickup)
+                            <span style="color: #00e5a8;">✓ Самовывоз: адрес и оплата настроены</span>
+                        @else
+                            <span style="color: #ffb74d;">○ Для самовывоза укажите адрес и включите наличные/терминал</span>
+                        @endif
+                    </li>
+                @endif
+                @if($hasValidDineIn)
+                    <li>
+                        <span style="color: #00e5a8;">✓ Заказ в заведении: гостевой счёт, расчёт при выходе</span>
+                    </li>
+                @endif
+                @if(!$hasValidDelivery && !$hasValidPickup && !$hasValidDineIn)
+                    <li><span style="color: #ffb74d;">○ Настройте хотя бы один доступный способ получения заказа</span></li>
+                @endif
             </ul>
             @if(!$orderSettings?->canAcceptOrders())
                 <div style="margin-top: 8px; color: #ffb74d;">
-                    Пока все четыре условия не выполнены, клиент не сможет добавлять блюда в корзину.
+                    Пока все условия не выполнены, клиент не сможет оформить заказ.
                 </div>
             @endif
         </div>
@@ -2195,48 +2278,14 @@
         📋 Управление заказами
     </a>
 
-    <a
-        href="{{ route('customer.catalog', $organization) }}"
-        class="organization-button"
-        style="display: inline-flex; margin-top: 14px; text-decoration: none;"
-        target="_blank"
-        rel="noopener"
-    >
-        Открыть клиентский каталог
-    </a>
-</div></section>
-
-
-
-{{-- =====================================================
-     УПРАВЛЕНИЕ МЕНЮ
-     ===================================================== --}}
-
-<section class="organization-tab-panel" data-tab-panel="menu">
-<div class="organization-section">
-
-    <h2 class="organization-section-title">
-        Управление меню
-    </h2>
-
-    <a
-        href="{{ route('organizations.menu.index', $organization) }}"
-        class="organization-button"
-        style="display: inline-flex; align-items: center; justify-content: center; text-decoration: none;"
-    >
-        🍽 Управление меню
-    </a>
-
-</div></section>
-
-
-
     
+</div></section>
+
+
+
 <section class="organization-tab-panel" data-tab-panel="orders"><div class="organization-section">
 <h2 class="organization-section-title">📋 Управление заказами</h2><div class="organization-quick-links">
 <a class="organization-quick-link" href="{{ route('organizations.orders.index', $organization) }}"><strong>Все заказы</strong><small>Просмотр заказов, статусов и деталей выполнения</small></a>
-<a class="organization-quick-link" href="{{ route('organizations.orders.notifications', $organization) }}"><strong>Уведомления</strong><small>События и уведомления по заказам организации</small></a>
-<a class="organization-quick-link" href="{{ route('customer.catalog', $organization) }}" target="_blank" rel="noopener"><strong>Клиентский каталог</strong><small>Открыть меню так, как его видят посетители</small></a>
 </div></div></section>
 <section class="organization-tab-panel" data-tab-panel="tv">
 <div class="organization-section" id="tv-screens">
@@ -2355,7 +2404,6 @@
         ← {{ __('organizations.back_to_organization') }}
     </a>
 
-</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -2365,15 +2413,17 @@ document.addEventListener('DOMContentLoaded', function () {
  const storageKey='organization-management-tab-{{ $organization->id }}';
  function activateTab(name,persist=true){
   if(!panels.some(panel=>panel.dataset.tabPanel===name))name='overview';
-  tabs.forEach(tab=>{const active=tab.dataset.tab===name;tab.classList.toggle('is-active',active);tab.setAttribute('aria-selected',active?'true':'false');tab.setAttribute('tabindex',active?'0':'-1');});
+  tabs.forEach(tab=>{const active=tab.dataset.tab===name;tab.classList.toggle('is-active',active);if(active)tab.setAttribute('aria-current','page');else tab.removeAttribute('aria-current');});
   panels.forEach(panel=>{const active=panel.dataset.tabPanel===name;panel.classList.toggle('is-active',active);panel.hidden=!active;});
   if(persist){try{sessionStorage.setItem(storageKey,name);}catch(error){}}
  }
  tabs.forEach(tab=>tab.addEventListener('click',()=>activateTab(tab.dataset.tab)));
  let initialTab='overview';try{initialTab=sessionStorage.getItem(storageKey)||'overview';}catch(error){}
+ const hashTab=window.location.hash.replace(/^#/, '');
+ if(panels.some(panel=>panel.dataset.tabPanel===hashTab))initialTab=hashTab;
  @if($errors->has('screen_name') || $errors->has('background_fit') || $errors->has('rotation_seconds'))
  initialTab='tv';
- @elseif($errors->has('currency') || $errors->has('delivery_fee') || $errors->has('minimum_order') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled'))
+ @elseif($errors->has('currency') || $errors->has('pickup_min_minutes') || $errors->has('delivery_enabled') || $errors->has('cash_payment_enabled') || $errors->has('delivery_zones') || $errors->has('delivery_origin_latitude') || $errors->has('delivery_origin_longitude') || $errors->has('working_hours') || $errors->has('timezone') || $errors->has('order_lead_minutes') || $errors->has('time_slot_minutes') || $errors->has('preorders_enabled'))
  initialTab='settings';
  @elseif($errors->has('name') || $errors->has('phone') || $errors->has('role') || $errors->has('user_id'))
  initialTab='team';
@@ -2381,6 +2431,130 @@ document.addEventListener('DOMContentLoaded', function () {
  activateTab(initialTab,false);
  root.querySelectorAll('form').forEach(form=>form.addEventListener('submit',function(){const active=root.querySelector('[data-tab-panel].is-active');if(active){try{sessionStorage.setItem(storageKey,active.dataset.tabPanel);}catch(error){}}}));
 });
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(() => {
+    const deliveryToggle = document.querySelector('input[name="delivery_enabled"]');
+    const zonePanel = document.getElementById('organization-delivery-zones');
+    const zoneList = document.getElementById('organization-delivery-zones-list');
+    const addZoneButton = document.getElementById('organization-delivery-zone-add');
+    const mapElement = document.getElementById('organization-delivery-origin-map');
+    if (!deliveryToggle || !zonePanel || !zoneList || !addZoneButton || !mapElement) return;
+
+    const updatePanel = () => {
+        zonePanel.hidden = !deliveryToggle.checked;
+        if (!zonePanel.hidden && window.deliveryOriginMap) {
+            setTimeout(() => window.deliveryOriginMap.invalidateSize(), 150);
+        }
+    };
+    deliveryToggle.addEventListener('change', updatePanel);
+    updatePanel();
+
+    const renumberZones = () => {
+        [...zoneList.querySelectorAll('[data-zone-row]')].forEach((row, index) => {
+            row.querySelector('.organization-delivery-zone-number').textContent = String(index + 1);
+            row.querySelectorAll('input').forEach((input) => {
+                const field = input.name.match(/\[(max_distance_km|minimum_order_amount)\]$/)?.[1];
+                if (field) input.name = 'delivery_zones[' + index + '][' + field + ']';
+            });
+        });
+    };
+    addZoneButton.addEventListener('click', () => {
+        const index = zoneList.querySelectorAll('[data-zone-row]').length;
+        if (index >= 100) return;
+        const row = document.createElement('div');
+        row.className = 'organization-delivery-zone-row';
+        row.setAttribute('data-zone-row', '');
+        row.innerHTML = '<span class="organization-delivery-zone-number"></span>' +
+            '<label><span>До, км</span><input type="number" name="delivery_zones[' + index + '][max_distance_km]" min="0.01" max="10" step="0.01" required></label>' +
+            '<label><span>Минимум корзины</span><input type="number" name="delivery_zones[' + index + '][minimum_order_amount]" value="0.00" min="0" max="9999999999.99" step="0.01" required></label>' +
+            '<button type="button" class="organization-delivery-zone-remove" aria-label="Удалить зону" title="Удалить зону">×</button>';
+        zoneList.appendChild(row);
+        renumberZones();
+    });
+    zoneList.addEventListener('click', (event) => {
+        const button = event.target.closest('.organization-delivery-zone-remove');
+        if (!button) return;
+        button.closest('[data-zone-row]')?.remove();
+        renumberZones();
+    });
+
+    if (!window.L) return;
+    const latInput = document.getElementById('organization-delivery-origin-latitude');
+    const lngInput = document.getElementById('organization-delivery-origin-longitude');
+    const addressInput = document.getElementById('organization-pickup-address');
+    const status = document.getElementById('organization-delivery-origin-status');
+    const findButton = document.getElementById('organization-delivery-find-address');
+    const normalizeLongitude = value => {
+        const longitude = Number(value);
+        if (!Number.isFinite(longitude)) return NaN;
+        return ((longitude + 180) % 360 + 360) % 360 - 180;
+    };
+    const hasPoint = latInput.value !== '' && lngInput.value !== ''
+        && Number.isFinite(Number(latInput.value))
+        && Number(latInput.value) >= -90 && Number(latInput.value) <= 90;
+    const initialLat = hasPoint ? Number(latInput.value) : 0;
+    const initialLng = hasPoint ? normalizeLongitude(lngInput.value) : 0;
+    if (hasPoint) lngInput.value = initialLng.toFixed(7);
+    const map = L.map(mapElement).setView([initialLat, initialLng], hasPoint ? 16 : 2);
+    window.deliveryOriginMap = map;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    let marker = null;
+    const setPoint = (lat, lng) => {
+        lat = Number(lat);
+        lng = normalizeLongitude(lng);
+        if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng)) {
+            status.textContent = 'Не удалось определить корректные координаты. Выберите точку на карте.';
+            return;
+        }
+        latInput.value = lat.toFixed(7);
+        lngInput.value = lng.toFixed(7);
+        if (marker) marker.setLatLng([lat, lng]);
+        else marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+        marker.off('dragend');
+        marker.on('dragend', () => {
+            const point = marker.getLatLng();
+            const normalizedLng = normalizeLongitude(point.lng);
+            latInput.value = point.lat.toFixed(7);
+            lngInput.value = normalizedLng.toFixed(7);
+            marker.setLatLng([point.lat, normalizedLng]);
+            status.textContent = 'Центр доставки выбран: ' + point.lat.toFixed(5) + ', ' + normalizedLng.toFixed(5);
+        });
+        status.textContent = 'Центр доставки выбран: ' + lat.toFixed(5) + ', ' + lng.toFixed(5);
+    };
+    if (hasPoint) setPoint(Number(latInput.value), Number(lngInput.value));
+    map.on('click', event => setPoint(event.latlng.lat, event.latlng.lng));
+    addressInput?.addEventListener('input', () => {
+        latInput.value = '';
+        lngInput.value = '';
+        if (marker) {
+            map.removeLayer(marker);
+            marker = null;
+        }
+        status.textContent = 'Адрес изменён. Найдите его на карте и подтвердите точку.';
+    });
+    findButton?.addEventListener('click', async () => {
+        const query = addressInput?.value.trim();
+        if (!query) { status.textContent = 'Сначала укажите адрес самовывоза.'; return; }
+        status.textContent = 'Ищем адрес…';
+        try {
+            const response = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(query), {headers: {'Accept-Language': 'ru'}});
+            const results = await response.json();
+            if (!results.length) { status.textContent = 'Адрес не найден. Выберите точку вручную на карте.'; return; }
+            const lat = Number(results[0].lat), lng = Number(results[0].lon);
+            map.setView([lat, lng], 17);
+            setPoint(lat, lng);
+        } catch (error) {
+            status.textContent = 'Не удалось найти адрес. Выберите точку вручную на карте.';
+        }
+    });
+    setTimeout(() => map.invalidateSize(), 250);
+})();
+
 </script>
 
 @endsection

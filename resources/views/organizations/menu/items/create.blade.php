@@ -1,18 +1,17 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page')
     Новое блюдо — {{ $section->name }}
 
 @endsection
 
-@section('main')
+@section('management-content')
 @php
     $menuRoutePrefix = auth('employee')->check()
         ? 'employee.organization.menu.'
         : 'organizations.menu.';
 @endphp
 
-@include('employee.admin.partials.navigation', ['organization' => $organization])
 
 <style>
 
@@ -208,20 +207,14 @@
 .menu-availability-list .menu-form-checkbox { padding:5px 0; }
 
 </style>
+<style>
+.menu-form-container{width:100%;max-width:760px;box-sizing:border-box;margin:0 auto;padding:0;background:transparent;border:0;border-radius:0;color:#fff}
+</style>
 
 
 <div class="menu-form-container">
 
-    @if($errors->any())
-        <div class="menu-form-errors" role="alert" style="margin-bottom:18px;padding:13px 16px;border:1px solid #ff6b6b;border-radius:12px;background:rgba(255,107,107,.08);color:#ff9b9b;">
-            <strong style="display:block;margin-bottom:8px;color:#ff6b6b;">Не удалось сохранить блюдо:</strong>
-            <ul style="margin:0;padding-left:20px;">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+
 
     <div class="menu-form-title">
         Новое блюдо
@@ -364,8 +357,12 @@
 
         <div class="menu-form-group menu-availability-list">
             <label class="menu-form-checkbox"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', true))> Блюдо активно в меню</label>
-            <label class="menu-form-checkbox"><input type="checkbox" name="delivery_enabled" value="1" @checked(old('delivery_enabled', true))> Доступно для доставки</label>
-            <label class="menu-form-checkbox"><input type="checkbox" name="pickup_enabled" value="1" @checked(old('pickup_enabled', true))> Доступно для самовывоза</label>
+            <label class="menu-form-checkbox"><input type="hidden" name="delivery_enabled" value="0">
+                <input type="checkbox" name="delivery_enabled" value="1" @checked(old('delivery_enabled', true))> Доступно для доставки</label>
+            <label class="menu-form-checkbox"><input type="hidden" name="pickup_enabled" value="0">
+                <input type="checkbox" name="pickup_enabled" value="1" @checked(old('pickup_enabled', true))> Доступно для самовывоза</label>
+            <label class="menu-form-checkbox"><input type="hidden" name="dine_in_enabled" value="0">
+                <input type="checkbox" name="dine_in_enabled" value="1" @checked(old('dine_in_enabled', true))> Доступно для заказа в заведении</label>
         </div>
 
 

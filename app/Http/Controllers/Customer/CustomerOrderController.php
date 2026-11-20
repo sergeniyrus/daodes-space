@@ -147,6 +147,7 @@ class CustomerOrderController extends Controller
             'items',
             'statusHistory',
             'payments',
+            'review',
         ]);
 
         return view('customer.orders.show', [

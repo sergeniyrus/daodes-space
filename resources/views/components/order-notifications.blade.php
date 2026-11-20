@@ -1,19 +1,24 @@
 @php
     $notificationReadUrlTemplate = $notificationReadUrlTemplate ?? '';
+    $notificationReadAllUrl = $notificationReadAllUrl ?? '';
 @endphp
 
 <section
     class="order-notifications"
+    hidden
     data-notifications-url="{{ $notificationsUrl }}"
     data-read-url-template="{{ $notificationReadUrlTemplate }}"
+    data-read-all-url="{{ $notificationReadAllUrl }}"
     aria-live="polite"
 >
     <div class="order-notifications-heading">
-        <strong>Уведомления по заказам</strong>
+        <strong>Уведомления</strong>
         <div class="order-notifications-controls">
             <span class="order-notifications-count" id="order-notifications-count">0</span>
-            <button type="button" class="order-notifications-sound" id="order-notifications-sound" aria-pressed="false">🔇 Звук выключен</button>
-        </div>
+            @if($notificationReadAllUrl)
+            <button type="button" class="order-notifications-read-all" id="order-notifications-read-all">Прочитать все</button>
+            @endif
+                    </div>
     </div>
     <div class="order-notifications-list" id="order-notifications-list">
         <span class="order-notifications-muted">Загрузка уведомлений…</span>
@@ -21,6 +26,7 @@
 </section>
 
 <style>
+.order-notifications[hidden] { display: none !important; }
 .order-notifications {
     margin: 0 0 16px;
     padding: 15px 18px;
@@ -38,12 +44,14 @@
     color: #ffd700;
 }
 .order-notifications-controls { display:flex; align-items:center; gap:9px; }
-.order-notifications-sound {
+.order-notifications-read-all {
     min-height:30px; padding:4px 10px; color:#00e5d4;
     background:transparent; border:1px solid rgba(0,229,212,.5);
     border-radius:16px; cursor:pointer; font-size:.78rem;
 }
-.order-notifications-sound:hover { color:#081016; background:#00e5d4; }
+.order-notifications-read-all { color:#ffd700; border-color:rgba(255,215,0,.45); }
+.order-notifications-read-all:disabled { opacity:.4; cursor:default; }
+.order-notifications-read-all:hover:not(:disabled) { color:#081016; background:#ffd700; }
 .order-notifications-count {
     min-width: 25px;
     padding: 3px 8px;
@@ -91,27 +99,18 @@
 
     const list = root.querySelector('#order-notifications-list');
     const count = root.querySelector('#order-notifications-count');
-    const soundButton = root.querySelector('#order-notifications-sound');
-    const soundStorageKey = 'daodes_order_notification_sound';
-    let soundEnabled = false;
+    const readAllButton = root.querySelector('#order-notifications-read-all');
     let knownNotificationIds = null;
     let requestInProgress = false;
-
-    try {
-        soundEnabled = localStorage.getItem(soundStorageKey) === '1';
-    } catch (error) {
-        soundEnabled = false;
-    }
-
-    const updateSoundButton = () => {
-        soundButton.textContent = soundEnabled ? '🔊 Звук включён' : '🔇 Звук выключен';
-        soundButton.setAttribute('aria-pressed', soundEnabled ? 'true' : 'false');
-    };
 
     const notificationAudio = new Audio('/sounds/notification.mp3');
     notificationAudio.preload = 'auto';
 
     const playNotificationSound = () => {
+        let soundEnabled = false;
+        try {
+            soundEnabled = localStorage.getItem('daodes_order_notification_sound') === '1';
+        } catch (error) {}
         if (!soundEnabled) return;
 
         if (typeof window.playCustomerOrderNotificationSound === 'function') {
@@ -129,22 +128,6 @@
             console.warn('Order notification sound:', error);
         }
     };
-
-    soundButton.addEventListener('click', async () => {
-        soundEnabled = !soundEnabled;
-
-        try {
-            localStorage.setItem(soundStorageKey, soundEnabled ? '1' : '0');
-        } catch (error) {}
-
-        updateSoundButton();
-
-        if (soundEnabled) {
-            playNotificationSound();
-        }
-    });
-
-    updateSoundButton();
 
     const refresh = async () => {
         if (requestInProgress || document.hidden) return;
@@ -175,15 +158,16 @@
             knownNotificationIds = currentIds;
 
             count.textContent = String(data.unread_count ?? 0);
+            const unreadCount = Number(data.unread_count ?? 0);
+            if (readAllButton) readAllButton.disabled = unreadCount === 0;
+            document.querySelectorAll('[data-header-notifications-count]').forEach(badge => {
+                badge.textContent = unreadCount > 0 ? String(unreadCount) : '';
+                badge.hidden = unreadCount === 0;
+            });
             list.replaceChildren();
 
-            if (notifications.length === 0) {
-                const empty = document.createElement('span');
-                empty.className = 'order-notifications-muted';
-                empty.textContent = 'Новых уведомлений нет.';
-                list.appendChild(empty);
-                return;
-            }
+            root.hidden = notifications.length === 0;
+            if (notifications.length === 0) return;
 
             notifications.forEach(notification => {
                 const item = document.createElement('div');
@@ -205,7 +189,7 @@
                 const link = document.createElement('a');
                 link.className = 'order-notifications-link';
                 link.href = notification.url;
-                link.textContent = 'Открыть заказы';
+                link.textContent = 'Открыть';
                 link.addEventListener('click', async event => {
                     event.preventDefault();
 
@@ -238,6 +222,32 @@
             requestInProgress = false;
         }
     };
+
+    if (readAllButton) {
+        readAllButton.addEventListener('click', async () => {
+            const url = root.dataset.readAllUrl;
+            if (!url || readAllButton.disabled) return;
+
+            readAllButton.disabled = true;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? ''
+                    }
+                });
+                if (!response.ok) throw new Error('Не удалось отметить уведомления прочитанными.');
+                knownNotificationIds = new Set();
+                await refresh();
+            } catch (error) {
+                console.warn('Mark all notifications read:', error);
+                readAllButton.disabled = false;
+            }
+        });
+    }
 
     refresh();
     window.setInterval(refresh, 15000);

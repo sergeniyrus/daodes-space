@@ -37,7 +37,7 @@
             <div class="title">{{ $order->organization->name }}</div>
             <div class="muted">Электронный чек онлайн-заказа</div>
             <h1>Заказ №{{ $order->order_number }}</h1>
-            <div>{{ $order->created_at?->format('d.m.Y H:i') ?? '—' }}</div>
+            <div>{{ $order->created_at?->timezone($order->organization?->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') ?? '—' }}</div>
         </header>
         <hr class="rule">
         <div class="row"><span>Клиент</span><strong>{{ $order->customer_name }}</strong></div>
@@ -46,6 +46,11 @@
             <span>Получение</span>
             <strong>{{ ['delivery' => 'Доставка', 'pickup' => 'Самовывоз', 'dine_in' => 'В заведении'][$order->fulfillment_type] ?? $order->fulfillment_type }}</strong>
         </div>
+        @if($order->fulfillment_type === 'pickup')
+            <div style="margin-top: 10px;">
+                <strong>Адрес самовывоза:</strong> {{ $order->pickup_address_snapshot ?: ($order->organization?->orderSettings?->pickup_address ?? 'Уточните адрес у заведения') }}
+            </div>
+        @endif
         @if($order->fulfillment_type === 'delivery')
             <div style="margin-top: 10px;">
                 <strong>Адрес:</strong> {{ $order->delivery_address['address_line'] ?? 'Не указан' }}
@@ -77,12 +82,15 @@
         <hr class="rule">
         <div class="row">
             <span>Способ оплаты</span>
-            <span>{{ ['online' => 'Онлайн', 'cash_on_receipt' => 'Наличные при получении', 'card_on_receipt' => 'Картой при получении'][$order->payment_method] ?? $order->payment_method }}</span>
+            <span>{{ ['online' => 'Онлайн', 'cash_on_receipt' => 'Наличные при получении', 'card_on_receipt' => 'Картой при получении', 'guest_account' => 'На счёт гостя — расчёт при выходе'][$order->payment_method] ?? $order->payment_method }}</span>
         </div>
         <div class="row">
             <span>Статус оплаты</span>
-            <strong>{{ ['pending' => 'Ожидает оплаты', 'succeeded' => 'Оплачен', 'failed' => 'Ошибка оплаты', 'cancelled' => 'Отменён', 'refunded' => 'Возвращён'][$order->payment_status] ?? $order->payment_status }}</strong>
+            <strong>{{ ['pending' => ($order->payment_method === 'guest_account' ? 'Ожидает расчёта на кассе при выходе' : 'Ожидает оплаты'), 'succeeded' => 'Оплачен', 'failed' => 'Ошибка оплаты', 'cancelled' => 'Отменён', 'refunded' => 'Возвращён'][$order->payment_status] ?? $order->payment_status }}</strong>
         </div>
+        @if($order->guest_card_identifier)
+            <div class="row"><span>Браслет / карта сотрудника</span><strong>{{ $order->guest_card_identifier }}</strong></div>
+        @endif
         @if($order->customer_comment)
             <hr class="rule">
             <div><strong>Комментарий:</strong> {{ $order->customer_comment }}</div>

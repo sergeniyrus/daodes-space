@@ -644,7 +644,7 @@
 }
 .customer-order-header {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: minmax(220px, 1.35fr) repeat(4, minmax(0, 1fr)) !important;
     gap: 14px;
     flex: 0 0 auto;
     margin-bottom: 16px;
@@ -666,6 +666,7 @@
     box-sizing: border-box;
 }
 .customer-order-header-info {
+    position: relative;
     border-color: rgba(255, 215, 0, .52);
     height: 190px;
     min-height: 190px;
@@ -675,6 +676,32 @@
     justify-content: stretch;
     gap: 0;
     padding: 10px 18px;
+}
+.customer-order-header-settings-link {
+    position: absolute !important;
+    top: 9px;
+    right: 10px;
+    z-index: 6;
+    width: 36px !important;
+    height: 36px;
+    min-height: 36px;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    color: #00e5d4;
+    background: rgba(5, 13, 25, .82);
+    border: 1px solid rgba(0, 229, 212, .55);
+    border-radius: 50%;
+    font-size: 20px;
+    line-height: 1;
+    text-decoration: none;
+    box-shadow: 0 3px 12px rgba(0,0,0,.3);
+}
+.customer-order-header-settings-link:hover,
+.customer-order-header-settings-link:focus-visible {
+    color: #081016;
+    background: #00e5d4;
 }
 .customer-order-header-info > * {
     min-width: 0;
@@ -700,30 +727,51 @@
     width: 100%;
     color: #ffd700;
     font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
-    font-size: clamp(1.8rem, 3vw, 3.1rem);
+    font-size: clamp(1.25rem, 2vw, 2rem);
     font-weight: 900;
     letter-spacing: clamp(.12em, .42vw, .28em);
     line-height: 1;
     text-align: center;    
     white-space: nowrap;
     text-shadow: 0 0 16px rgba(255, 215, 0, .32);
-    transform: scaleX(1.22);
+    transform: none;
     margin-top: 0;
     /* padding: 10px 15px; */
 }
 .customer-order-header-methods {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 6px;
     color: #00e5d4;
-    font-size: clamp(1rem, 1.35vw, 1.4rem);
-    /* line-height: 1.2; */
+    font-size: clamp(.78rem, .95vw, 1rem);
     font-weight: 700;
     margin-top: 0;
 }
 .customer-order-header-method {
     position: relative;
-    display: inline-block;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 9px;
+    white-space: nowrap;
     cursor: help;
     outline: none;
+    border: 1px solid rgba(0, 229, 212, .42);
+    border-radius: 9px;
+    background: rgba(0, 229, 212, .055);
+    font-size: .86em;
+    line-height: 1.15;
+    box-sizing: border-box;
 }
+.customer-order-header-method-link{color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted rgba(0,229,212,.45);transition:color .18s ease}
+.customer-order-header-method-link:hover,.customer-order-header-method-link.is-selected{color:#ffd700;border-color:rgba(255,215,0,.8);background:rgba(255,215,0,.09)}
+.customer-order-header-method-disabled{color:#788493;cursor:help}
 .customer-order-header-method:focus-visible {
     color: #ffd700;
     text-shadow: 0 0 10px rgba(255, 215, 0, .45);
@@ -863,6 +911,24 @@
     line-height: 1;
     box-shadow: inset 0 0 10px rgba(0, 229, 212, .06);
 }
+.customer-order-header-notification-badge {
+    position: absolute;
+    top: 8px;
+    right: 9px;
+    min-width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    color: #081016;
+    background: #ffcf4a;
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 20px;
+    font: 900 .75rem/1 Arial, sans-serif;
+    box-shadow: 0 0 12px rgba(255,207,74,.35);
+}
+.customer-order-header-notification-badge[hidden] { display:none !important; }
 .customer-order-header-cart-total {
     color: #00e5d4;
     font-size: .95rem;
@@ -916,8 +982,8 @@
 }
 @media (max-width: 1000px) {
     .customer-order-header {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        gap: 10px;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        gap: 8px;
     }
     .customer-order-header-card {
         padding: 10px 8px;
@@ -967,7 +1033,7 @@
     /* Mobile header: organization/menu full width, actions side by side. */
     .customer-order-header {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 9px;
+        gap: 7px;
     }
     .customer-order-header-info {
         grid-column: 1 / -1;
@@ -997,11 +1063,14 @@
     .customer-order-header-menu-title {
         font-size: clamp(1.35rem, 6vw, 2rem);
         letter-spacing: clamp(.1em, 1.2vw, .2em);
-        transform: scaleX(1.08);
+        transform: none;
     }
-    .customer-order-header-methods { font-size: clamp(.9rem, 3.5vw, 1.05rem); }
+    .customer-order-header-methods { font-size: clamp(.72rem, 2.6vw, .9rem); gap: 5px; }
+    .customer-order-header-method { flex: 1 1 0; padding: 7px 4px; gap: 3px; font-size: .95em; }
     .customer-order-header-delivery { font-size: clamp(.88rem, 3.3vw, 1rem); }
     .customer-order-header-action { min-height: 78px; }
+    .customer-order-header-card:not(.customer-order-header-info) { min-height: 78px; }
+    .customer-order-header-action-title { font-size: clamp(.82rem, 3.3vw, 1rem); }
     .customer-order-page { height: auto; overflow: visible; }
 }
 
@@ -2096,6 +2165,20 @@ body.customer-menu-image-open { overflow: hidden !important; }
 {{-- Каталог уже получает эти данные от контроллера. Используем их как fallback,
      если общий composer не смог определить организацию для шапки. --}}
 @php
+    $customerUnreadNotificationsCount = 0;
+    $workspaceCustomer = auth('customer')->user();
+    if ($workspaceCustomer) {
+        $customerUnreadNotificationsCount = \App\Models\OrderNotification::query()
+            ->where('recipient_type', 'customer')
+            ->where('recipient_id', $workspaceCustomer->id)
+            ->whereNull('read_at')
+            ->where(function ($owned) use ($workspaceCustomer) {
+                $owned->whereHas('order', fn ($orderQuery) => $orderQuery->where('customer_id', $workspaceCustomer->id))
+                    ->orWhereHas('feedback', fn ($feedbackQuery) => $feedbackQuery->where('customer_id', $workspaceCustomer->id));
+            })
+            ->count();
+    }
+
     if (!isset($customerWorkspace) && isset($organization)) {
         $customerWorkspace = [
             'organization' => $organization,
@@ -2109,12 +2192,25 @@ body.customer-menu-image-open { overflow: hidden !important; }
             'currencySymbol' => $currencySymbol ?? '',
         ];
     }
+
+    $customerHeaderPublicRating = null;
+    if (isset($customerWorkspace['organization'])) {
+        $customerHeaderPublicRating = \App\Models\OrderReview::query()
+            ->where('organization_id', $customerWorkspace['organization']->id)
+            ->where('is_public', true)
+            ->whereNotNull('published_at')
+            ->whereNotNull('rating')
+            ->selectRaw('COUNT(DISTINCT order_id) as total, AVG(rating) as average')
+            ->first();
+    }
 @endphp
 
 @if(isset($customerWorkspace))
 <div class="customer-order-page {{ request()->routeIs('customer.catalog') ? 'customer-workspace-catalog' : 'customer-workspace-other' }}">
     @if(session('success') || session('error'))
-        @php($toastIsError = session()->has('error'))
+        @php
+            $toastIsError = session()->has('error');
+        @endphp
         <div
             class="customer-order-toast{{ $toastIsError ? ' error' : '' }}"
             role="{{ $toastIsError ? 'alert' : 'status' }}"
@@ -2136,35 +2232,75 @@ body.customer-menu-image-open { overflow: hidden !important; }
             <h1 class="customer-order-header-organization">{{ $customerWorkspace['organization']->name }}</h1>
             <div class="customer-order-header-menu-title">НАШЕ МЕНЮ</div>
             <div class="customer-order-header-methods">
-                @if($customerWorkspace['settings']?->delivery_enabled)
-                    <span class="customer-order-header-method customer-order-header-method-delivery" tabindex="0" aria-describedby="customer-order-delivery-tooltip">
-                        Доставка
+                @php
+                    $headerOrganization = $customerWorkspace['organization'];
+                    $headerSettings = $customerWorkspace['settings'];
+                    $headerFulfillment = $customerWorkspace['fulfillment'] ?? null;
+                    $headerAvailable = $customerWorkspace['availableFulfillments'] ?? [
+                        'delivery' => (bool) ($headerSettings?->delivery_enabled && $headerSettings?->hasConfiguredDelivery()),
+                        'pickup' => (bool) $headerSettings?->pickup_enabled,
+                        'dine_in' => (bool) $headerSettings?->dine_in_enabled,
+                    ];
+                @endphp
+
+                @if($headerAvailable['delivery'] ?? false)
+                    <a class="customer-order-header-method customer-order-header-method-link customer-order-header-method-delivery {{ $headerFulfillment === 'delivery' ? 'is-selected' : '' }}"
+                        href="{{ route('customer.catalog', ['organization' => $headerOrganization->id, 'fulfillment' => 'delivery']) }}"
+                        aria-describedby="customer-order-delivery-tooltip">
+                        🚚 Доставка
+                        <span class="customer-order-header-tooltip" id="customer-order-delivery-tooltip" role="tooltip">
+                            <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Выбрана доставка до вашего адреса</span>
+                            <span class="customer-order-header-tooltip-line">Минимальная сумма зависит от расстояния до заведения</span>
+                            <span class="customer-order-header-tooltip-line">Доставка включена в сумму заказа</span>
+                        </span>
+                    </a>
+                @else
+                    <span class="customer-order-header-method customer-order-header-method-disabled customer-order-header-method-delivery" tabindex="0" aria-describedby="customer-order-delivery-tooltip">
+                        🚚 Доставка
                         <span class="customer-order-header-tooltip" id="customer-order-delivery-tooltip" role="tooltip">
                             <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">
-                                Доставка: {{ number_format((float) $customerWorkspace['settings']->delivery_fee, 2, ',', ' ') }} {{ $customerWorkspace['currencySymbol'] }}
+                                @if($headerSettings?->delivery_enabled)
+                                    Доставка временно недоступна: организация ещё не настроила зоны доставки
+                                @elseif($headerSettings?->pickup_enabled)
+                                    Доставка появится в ближайшее время
+                                @else
+                                    Доставка пока недоступна
+                                @endif
                             </span>
-                            @if($customerWorkspace['settings']->minimum_order !== null)
-                                <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">
-                                    Бесплатно от {{ number_format((float) $customerWorkspace['settings']->minimum_order, 2, ',', ' ') }} {{ $customerWorkspace['currencySymbol'] }}
-                                </span>
-                            @endif
                         </span>
                     </span>
                 @endif
-                @if($customerWorkspace['settings']?->pickup_enabled)
-                    <span class="customer-order-header-method" tabindex="0" aria-describedby="customer-order-pickup-tooltip">
-                        · Самовывоз
+
+                @if($headerAvailable['pickup'] ?? false)
+                    <a class="customer-order-header-method customer-order-header-method-link {{ $headerFulfillment === 'pickup' ? 'is-selected' : '' }}"
+                        href="{{ route('customer.catalog', ['organization' => $headerOrganization->id, 'fulfillment' => 'pickup']) }}"
+                        aria-describedby="customer-order-pickup-tooltip">
+                        🛍 Самовывоз
                         <span class="customer-order-header-tooltip" id="customer-order-pickup-tooltip" role="tooltip">
-                            <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Термбург, Парковая, 23</span>
+                            <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Забрать заказ самостоятельно</span>
+                            <span class="customer-order-header-tooltip-line">{{ $headerSettings?->pickup_address ?: 'Адрес уточняется у организации' }}</span>
                         </span>
+                    </a>
+                @else
+                    <span class="customer-order-header-method customer-order-header-method-disabled" tabindex="0">
+                        🛍 Самовывоз
+                        <span class="customer-order-header-tooltip" role="tooltip">Самовывоз пока недоступен</span>
                     </span>
                 @endif
-                @if($customerWorkspace['settings']?->dine_in_enabled)
-                    <span class="customer-order-header-method" tabindex="0" aria-describedby="customer-order-cafe-tooltip">
-                        · В Ёлках термбурга
+
+                @if($headerAvailable['dine_in'] ?? false)
+                    <a class="customer-order-header-method customer-order-header-method-link {{ $headerFulfillment === 'dine_in' ? 'is-selected' : '' }}"
+                        href="{{ route('customer.catalog', ['organization' => $headerOrganization->id, 'fulfillment' => 'dine_in']) }}"
+                        aria-describedby="customer-order-cafe-tooltip">
+                        🍽 В заведении
                         <span class="customer-order-header-tooltip" id="customer-order-cafe-tooltip" role="tooltip">
-                            <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Заказать в нашем кафе в Термбурге</span>
+                            <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Заказать или предзаказать к посещению</span>
                         </span>
+                    </a>
+                @else
+                    <span class="customer-order-header-method customer-order-header-method-disabled" tabindex="0">
+                        🍽 В заведении
+                        <span class="customer-order-header-tooltip" role="tooltip">Заказ в заведении пока недоступен</span>
                     </span>
                 @endif
             </div>
@@ -2183,6 +2319,33 @@ body.customer-menu-image-open { overflow: hidden !important; }
             </a>
         </section>
 
+        @if(auth('customer')->check())
+            <section class="customer-order-header-card {{ request()->routeIs('customer.feedback.*') ? 'is-active' : '' }}">
+                <a class="customer-order-header-action" href="{{ route('customer.feedback.index', ['organization' => $customerWorkspace['organization']->id]) }}">
+                    <span class="customer-order-header-action-title">Отзывы и предложения</span>
+                    <span class="customer-order-header-action-stats">
+                        @if($customerHeaderPublicRating && (int) $customerHeaderPublicRating->total > 0)
+                            <span class="customer-order-header-action-stat">
+                                <span style="color:#ffd700;">★ {{ number_format((float) $customerHeaderPublicRating->average, 1, ',', ' ') }}</span> / 5
+                            </span>
+                            <span class="customer-order-header-action-stat">{{ $customerHeaderPublicRating->total }} отзыв(ов)</span>
+                        @else
+                            <span class="customer-order-header-action-stat">Оставить отзыв или обращение</span>
+                        @endif
+                    </span>
+                </a>
+            </section>
+        @else
+            <section class="customer-order-header-card">
+                <a class="customer-order-header-action" href="{{ route('customer.login') }}">
+                    <span class="customer-order-header-action-title">Отзывы и предложения</span>
+                    <span class="customer-order-header-action-stats">
+                        <span class="customer-order-header-action-stat">Войти для обращения</span>
+                    </span>
+                </a>
+            </section>
+        @endif
+
         <section class="customer-order-header-card {{ request()->routeIs('customer.cart') || request()->routeIs('customer.checkout') ? 'is-active' : '' }}">
             <a class="customer-order-header-action" href="{{ route('customer.cart') }}">
                 <span class="customer-order-header-action-title">Корзина</span>
@@ -2192,6 +2355,17 @@ body.customer-menu-image-open { overflow: hidden !important; }
                 </span>
             </a>
         </section>
+
+        <section class="customer-order-header-card {{ request()->routeIs('customer.settings.*') ? 'is-active' : '' }}">
+            <a class="customer-order-header-action customer-order-header-settings-action" href="{{ route('customer.settings.index', ['organization' => $customerWorkspace['organization']->id]) }}" aria-label="Настройки">
+                <span class="customer-order-header-action-title">⚙ Настройки</span>
+                <span class="customer-order-header-action-stats">
+                    <span class="customer-order-header-action-stat">Профиль и уведомления</span>
+                </span>
+                <span class="customer-order-header-notification-badge" data-header-notifications-count {{ ($customerUnreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}>{{ ($customerUnreadNotificationsCount ?? 0) > 0 ? $customerUnreadNotificationsCount : '' }}</span>
+            </a>
+        </section>
+
     </div>
 
     @if(request()->routeIs('customer.catalog'))

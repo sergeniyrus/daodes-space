@@ -5,6 +5,7 @@
 @endsection
 
 @section('customer-content')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 .customer-checkout-page {
     width: min(980px, calc(100% - 24px));
@@ -46,6 +47,10 @@
     border-radius: 9px;
 }
 .customer-checkout-field textarea { min-height: 85px; resize: vertical; }
+
+.customer-checkout-address-map{height:240px;margin:10px 0;border:1px solid rgba(0,229,212,.4);border-radius:12px;overflow:hidden;background:#101522}
+.customer-checkout-address-map-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;color:#aeb5c4;font-size:.88rem}
+.customer-checkout-address-map-tools button{min-height:36px;padding:7px 13px;color:#00e5d4;background:rgba(0,229,212,.07);border:1px solid rgba(0,229,212,.45);border-radius:20px;font-weight:700;cursor:pointer}
 .customer-checkout-field input:focus,
 .customer-checkout-field select:focus,
 .customer-checkout-field textarea:focus {
@@ -413,26 +418,12 @@
             <strong>{{ number_format((float) $subtotal, 2, ',', ' ') }} {{ $currencySymbol }}</strong>
         </div>
         <div id="customer-delivery-summary" @if($selectedFulfillment !== 'delivery') hidden @endif>
-        <div class="customer-checkout-delivery-info">
-            @if($minimumOrder !== null)
-                <div class="customer-checkout-delivery-row customer-checkout-delivery-minimum">
-                    <span>🎁 Бесплатная доставка от суммы товаров</span>
-                    <strong>{{ number_format((float) $minimumOrder, 2, ',', ' ') }} {{ $currencySymbol }}</strong>
+            <div class="customer-checkout-delivery-info">
+                <div class="customer-checkout-delivery-row">
+                    <span>🚚 Доставка</span>
+                    <strong style="color:#39d98a;">Включена в минимальную сумму заказа для вашей зоны</strong>
                 </div>
-            @endif
-            <div class="customer-checkout-delivery-row">
-                <span>🚚 Стоимость доставки</span>
-                @if((float) $deliveryFee <= 0)
-                    <strong style="color: #39d98a;">Бесплатно</strong>
-                @else
-                    <strong>{{ number_format((float) $deliveryBaseFee, 2, ',', ' ') }} {{ $currencySymbol }}</strong>
-                @endif
             </div>
-        </div>
-        <div class="customer-checkout-delivery-total">
-            <span>Итого при доставке</span>
-            <strong>{{ number_format((float) $deliveryTotal, 2, ',', ' ') }} {{ $currencySymbol }}</strong>
-        </div>
         </div>
 
     </div>
@@ -509,16 +500,23 @@
             @enderror
 
             <div class="customer-checkout-grid">
-                <label class="customer-checkout-field" id="customer-pickup-time-field" @if($selectedFulfillment !== 'pickup') hidden @endif>
-                    Время самовывоза
+                <div class="customer-checkout-field" id="customer-pickup-address-field" @if($selectedFulfillment !== 'pickup') hidden @endif>
+                    Адрес самовывоза
+                    <strong>{{ $settings->pickup_address ?: 'Адрес уточняется у организации' }}</strong>
+                </div>
+                <label class="customer-checkout-field" id="customer-order-time-field">
+                    Дата и время заказа
                     <input
                         type="datetime-local"
                         name="requested_at"
-                        value="{{ old('requested_at', now('Asia/Krasnoyarsk')->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->ceilUnit('minute')->format('Y-m-d\TH:i')) }}"
-                        min="{{ now('Asia/Krasnoyarsk')->addMinutes(max(30, (int) ($settings->pickup_min_minutes ?? 0)))->ceilUnit('minute')->format('Y-m-d\TH:i') }}"
+                        value="{{ old('requested_at', $requestedAtDefault) }}"
+                        min="{{ $requestedAtMinimum }}"
+                        @if(!$settings->preorders_enabled) max="{{ $requestedAtMaximum }}" @endif
+                        step="{{ max(5, (int) ($settings->time_slot_minutes ?? 15)) * 60 }}"
+                        required
                     >
                     <span class="customer-checkout-muted">
-                        Минимальное время приготовления — 30 минут. Время указано по Красноярску (UTC+7).
+                        Ближайшее время — не раньше чем через {{ $minimumLeadMinutes }} минут. Время указано по {{ $settings->timezoneName() }}. Выбрать можно только время работы заведения.
                     </span>
                     @error('requested_at')
                         <span class="customer-checkout-error">{{ $message }}</span>
@@ -526,14 +524,20 @@
                 </label>
 
                 <label class="customer-checkout-field" id="customer-dine-in-field" @if($selectedFulfillment !== 'dine_in') hidden @endif>
-                    Номер браслета
+                    Номер браслета или карты сотрудника
                     <input
                         type="text"
-                        name="table_number"
-                        value="{{ old('table_number') }}"
-                        maxlength="30"
-                        placeholder="Например, 125"
+                        id="customer-guest-card-identifier"
+                        name="guest_card_identifier"
+                        value="{{ old('guest_card_identifier') }}"
+                        maxlength="100"
+                        autocomplete="off"
+                        placeholder="Введите номер или код карты"
+                        @if($selectedFulfillment === 'dine_in') required @endif
                     >
+                    @error('guest_card_identifier')
+                        <span class="customer-checkout-error">{{ $message }}</span>
+                    @enderror
                 </label>
             </div>
         </div>
@@ -586,13 +590,16 @@
                         @foreach($savedAddresses as $savedAddress)
                             <option value="{{ $savedAddress->id }}"
                                 data-address-line="{{ $savedAddress->address_line }}"
+                                data-house-number="{{ $savedAddress->house_number }}"
                                 data-entrance="{{ $savedAddress->entrance }}"
                                 data-floor="{{ $savedAddress->floor }}"
                                 data-apartment="{{ $savedAddress->apartment }}"
                                 data-intercom="{{ $savedAddress->intercom }}"
                                 data-delivery-comment="{{ $savedAddress->delivery_comment }}"
-                                @selected($loop->first && old('address_line', $defaultAddress?->address_line) === $savedAddress->address_line)
-                            >{{ $savedAddress->label ?: 'Сохранённый адрес' }} — {{ $savedAddress->address_line }}</option>
+                                data-latitude="{{ $savedAddress->latitude }}"
+                                data-longitude="{{ $savedAddress->longitude }}"
+                                @selected($defaultAddress?->id === $savedAddress->id)
+                            >{{ $savedAddress->is_favorite ? '★ ' : '' }}{{ $savedAddress->label ?: 'Сохранённый адрес' }} — {{ $savedAddress->address_line }}{{ $savedAddress->house_number ? ', дом ' . $savedAddress->house_number : '' }}</option>
                         @endforeach
                     </select>
                     <span class="customer-checkout-muted">Выберите адрес — поля заполнятся автоматически.</span>
@@ -610,11 +617,35 @@
                 <label class="customer-checkout-field">
                     Номер дома
                     <input type="text" name="house_number" id="customer-address-house-number"
-                        value="{{ old('house_number') }}"
+                        value="{{ old('house_number', $defaultAddress?->house_number) }}"
                         maxlength="30" placeholder="Например, 15 корпус 2">
                     @error('house_number') <span class="customer-checkout-error">{{ $message }}</span> @enderror
                 </label>
             </div>
+
+            <input type="hidden" name="delivery_latitude" id="customer-delivery-latitude"
+                value="{{ old('delivery_latitude', $defaultAddress?->latitude) }}">
+            <input type="hidden" name="delivery_longitude" id="customer-delivery-longitude"
+                value="{{ old('delivery_longitude', $defaultAddress?->longitude) }}">
+            <div class="customer-checkout-address-map-tools">
+                <button type="button" id="customer-delivery-find-address">Найти адрес на карте</button>
+                <span id="customer-delivery-map-status">
+                    @if($defaultAddress?->latitude !== null && $defaultAddress?->longitude !== null)
+                        Координаты сохранённого адреса загружены
+                    @else
+                        Выберите точку доставки на карте
+                    @endif
+                </span>
+            </div>
+            <div id="customer-delivery-map"
+                data-origin-latitude="{{ $deliveryOrigin['latitude'] ?? '' }}"
+                data-origin-longitude="{{ $deliveryOrigin['longitude'] ?? '' }}"
+                data-city="{{ $settings->delivery_city }}"
+                data-zones="{{ e(json_encode($deliveryZones->map(fn ($zone) => ['max_distance_km' => (float) $zone->max_distance_km, 'minimum_order_amount' => (float) $zone->minimum_order_amount])->values()->all(), JSON_UNESCAPED_UNICODE)) }}"
+                class="customer-checkout-address-map"></div>
+            <div id="customer-delivery-zone-feedback" class="customer-checkout-note">Расстояние и минимальная сумма будут рассчитаны после выбора точки на карте.</div>
+            @error('delivery_latitude') <span class="customer-checkout-error">{{ $message }}</span> @enderror
+            @error('delivery_longitude') <span class="customer-checkout-error">{{ $message }}</span> @enderror
 
             <div class="customer-checkout-grid customer-checkout-address-details">
                 <label class="customer-checkout-field">Подъезд
@@ -656,36 +687,33 @@
             <div class="customer-checkout-panel customer-checkout-section-panel">
             <h2 class="customer-checkout-title">Способ оплаты</h2>
 
-            <div class="customer-checkout-options customer-checkout-payment-options">
+            <div id="customer-payment-options" class="customer-checkout-options customer-checkout-payment-options" @if($selectedFulfillment === 'dine_in') hidden @endif>
                 @if($settings->cash_payment_enabled)
                     <label>
-                        <input
-                            type="radio"
-                            name="payment_method"
-                            value="cash_on_receipt"
-                            @checked(old('payment_method', $settings->cash_payment_enabled ? 'cash_on_receipt' : 'card_on_receipt') === 'cash_on_receipt')
-                        >
+                        <input type="radio" name="payment_method" value="cash_on_receipt"
+                            @checked(old('payment_method', $settings->cash_payment_enabled ? 'cash_on_receipt' : 'card_on_receipt') === 'cash_on_receipt')>
                         💵 Наличные при получении
                     </label>
                 @endif
-
                 @if($settings->card_payment_enabled)
                     <label>
-                        <input
-                            type="radio"
-                            name="payment_method"
-                            value="card_on_receipt"
-                            @checked(old('payment_method', $settings->cash_payment_enabled ? 'cash_on_receipt' : 'card_on_receipt') === 'card_on_receipt')
-                        >
+                        <input type="radio" name="payment_method" value="card_on_receipt"
+                            @checked(old('payment_method', $settings->cash_payment_enabled ? 'cash_on_receipt' : 'card_on_receipt') === 'card_on_receipt')>
                         💳 Терминал при получении
                     </label>
                 @endif
             </div>
 
+            <input type="hidden" name="payment_method" id="customer-guest-account-payment"
+                value="guest_account" @if($selectedFulfillment !== 'dine_in') disabled @endif>
+
+            <div id="customer-guest-account-note" class="customer-checkout-note" @if($selectedFulfillment !== 'dine_in') hidden @endif>
+                Наличные и банковский терминал при оформлении не используются. DAODES сохранит номер браслета или карты в заказе; передачу заказа в iiko и подтверждение фактической оплаты подключим отдельно. Расчёт в заведении предполагается на кассе при выходе.
+            </div>
+
             @if($settings->online_payment_enabled)
                 <div class="customer-checkout-note">
-                    Онлайн-оплата пока не активна: платёжный провайдер ещё не подключён.
-                    Заказ можно оформить с оплатой при получении.
+                    Онлайн-оплата пока не активна: платёжный провайдер ещё не подключён. Для доставки и самовывоза используйте включённые способы оплаты при получении; в заведении — расчёт на кассе при выходе.
                 </div>
             @endif
 
@@ -708,13 +736,21 @@
     </form>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (() => {
     const addressPanel = document.getElementById('customer-delivery-address-panel');
     const deliverySummary = document.getElementById('customer-delivery-summary');
-    const pickupTimeField = document.getElementById('customer-pickup-time-field');
+    const orderTimeField = document.getElementById('customer-order-time-field');
+    const pickupAddressField = document.getElementById('customer-pickup-address-field');
     const requestedAt = document.querySelector('input[name="requested_at"]');
+    const requestedAtLimits = @json($requestedAtLimits);
+    const preordersEnabled = @json((bool) $settings->preorders_enabled);
+    const paymentOptions = document.getElementById('customer-payment-options');
+    const guestAccountPayment = document.getElementById('customer-guest-account-payment');
+    const guestAccountNote = document.getElementById('customer-guest-account-note');
     const dineInField = document.getElementById('customer-dine-in-field');
+    const guestCardIdentifier = document.getElementById('customer-guest-card-identifier');
     const fulfillmentInputs = document.querySelectorAll('input[name="fulfillment_type"]');
     const saveAddress = document.getElementById('customer-save-address');
     const addressLabelWrap = document.getElementById('customer-address-label-wrap');
@@ -729,6 +765,92 @@
         intercom: document.getElementById('customer-address-intercom'),
         delivery_comment: document.getElementById('customer-address-comment')
     };
+    const latitudeInput = document.getElementById('customer-delivery-latitude');
+    const longitudeInput = document.getElementById('customer-delivery-longitude');
+    const deliveryMapElement = document.getElementById('customer-delivery-map');
+    const mapStatus = document.getElementById('customer-delivery-map-status');
+    const zoneFeedback = document.getElementById('customer-delivery-zone-feedback');
+    let deliveryMap = null;
+    let deliveryMarker = null;
+    let deliveryOrigin = null;
+    let deliveryZones = [];
+
+    if (deliveryMapElement && window.L) {
+        const originLat = Number(deliveryMapElement.dataset.originLatitude);
+        const originLng = Number(deliveryMapElement.dataset.originLongitude);
+        if (Number.isFinite(originLat) && Number.isFinite(originLng) && deliveryMapElement.dataset.originLatitude !== '' && deliveryMapElement.dataset.originLongitude !== '') {
+            deliveryOrigin = {lat: originLat, lng: originLng};
+        }
+        try { deliveryZones = JSON.parse(deliveryMapElement.dataset.zones || '[]'); } catch (error) {}
+        const currentLat = Number(latitudeInput?.value);
+        const currentLng = Number(longitudeInput?.value);
+        const hasCurrent = latitudeInput?.value !== '' && longitudeInput?.value !== '';
+        const center = hasCurrent ? [currentLat, currentLng] : (deliveryOrigin ? [deliveryOrigin.lat, deliveryOrigin.lng] : [0, 0]);
+        deliveryMap = L.map(deliveryMapElement).setView(center, hasCurrent || deliveryOrigin ? 14 : 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:19, attribution:'&copy; OpenStreetMap'}).addTo(deliveryMap);
+        if (deliveryOrigin) L.circleMarker([deliveryOrigin.lat, deliveryOrigin.lng], {radius:8,color:'#ffd700',fillColor:'#ffd700',fillOpacity:.9}).addTo(deliveryMap).bindTooltip('Заведение — центр расчёта');
+        const setDeliveryPoint = (lat, lng) => {
+            latitudeInput.value = Number(lat).toFixed(7);
+            longitudeInput.value = Number(lng).toFixed(7);
+            if (deliveryMarker) deliveryMarker.setLatLng([lat,lng]);
+            else deliveryMarker = L.marker([lat,lng], {draggable:true}).addTo(deliveryMap);
+            deliveryMarker.off('dragend');
+            deliveryMarker.on('dragend', () => {
+                const point = deliveryMarker.getLatLng();
+                setDeliveryPoint(point.lat, point.lng);
+            });
+            mapStatus.textContent = 'Точка доставки выбрана';
+            updateZonePreview();
+        };
+        window.customerSetDeliveryPoint = setDeliveryPoint;
+        if (hasCurrent) setDeliveryPoint(currentLat,currentLng);
+        deliveryMap.on('click', event => setDeliveryPoint(event.latlng.lat,event.latlng.lng));
+        document.getElementById('customer-delivery-find-address')?.addEventListener('click', async () => {
+            const query = [addressFields.address_line?.value, addressFields.house_number?.value, deliveryMapElement.dataset.city].filter(Boolean).join(', ');
+            if (!query) { mapStatus.textContent = 'Сначала укажите улицу и номер дома.'; return; }
+            mapStatus.textContent = 'Ищем адрес…';
+            try {
+                const response = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(query), {headers:{'Accept-Language':'ru'}});
+                const results = await response.json();
+                if (!results.length) { mapStatus.textContent = 'Адрес не найден. Выберите точку вручную на карте.'; return; }
+                const lat = Number(results[0].lat), lng = Number(results[0].lon);
+                deliveryMap.setView([lat,lng],17);
+                setDeliveryPoint(lat,lng);
+            } catch(error) { mapStatus.textContent = 'Не удалось найти адрес. Выберите точку вручную на карте.'; }
+        });
+        const distanceKm = (a,b) => {
+            const rad = value => value * Math.PI / 180;
+            const dLat = rad(b.lat-a.lat), dLng = rad(b.lng-a.lng);
+            const value = Math.sin(dLat/2)**2 + Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;
+            return 6371.0088 * 2 * Math.atan2(Math.sqrt(value),Math.sqrt(1-value));
+        };
+        window.customerDeliveryDistanceKm = distanceKm;
+        window.customerUpdateDeliveryZonePreview = () => updateZonePreview();
+        function updateZonePreview() {
+            if (!zoneFeedback) return;
+            if (!deliveryOrigin || !latitudeInput.value || !longitudeInput.value) {
+                zoneFeedback.textContent = 'Выберите точку доставки на карте — без координат нельзя проверить зону.';
+                return;
+            }
+            const distance = distanceKm(deliveryOrigin,{lat:Number(latitudeInput.value),lng:Number(longitudeInput.value)});
+            const zone = deliveryZones.find(item => Number(item.max_distance_km) >= distance);
+            if (!zone || distance > 10) {
+                zoneFeedback.textContent = 'Расстояние ' + distance.toFixed(2).replace('.',',') + ' км. Адрес за пределами доставки (максимум 10 км).';
+                return;
+            }
+            const minimum = Number(zone.minimum_order_amount);
+            const basket = Number(@json((float) $subtotal));
+            const shortage = Math.max(0, minimum - basket);
+            const minimumText = minimum.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+            if (shortage > 0) {
+                zoneFeedback.textContent = 'Расстояние ' + distance.toFixed(2).replace('.',',') + ' км · минимум зоны: ' + minimumText + ' {{ $currencySymbol }}. Добавьте ещё ' + shortage.toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' {{ $currencySymbol }}.';
+            } else {
+                zoneFeedback.textContent = 'Расстояние ' + distance.toFixed(2).replace('.',',') + ' км · минимальная сумма зоны ' + minimumText + ' {{ $currencySymbol }} соблюдена.';
+            }
+        }
+        if (hasCurrent) updateZonePreview();
+        setTimeout(() => deliveryMap.invalidateSize(),250);
+    }
     function updateFulfillmentFields() {
         const selected = document.querySelector('input[name="fulfillment_type"]:checked');
         const fulfillmentType = selected?.value;
@@ -737,10 +859,31 @@
         const isDineIn = fulfillmentType === 'dine_in';
         if (addressPanel) addressPanel.hidden = !isDelivery;
         if (deliverySummary) deliverySummary.hidden = !isDelivery;
-        if (pickupTimeField) pickupTimeField.hidden = !isPickup;
-        if (requestedAt) requestedAt.required = isPickup;
+        if (orderTimeField) orderTimeField.hidden = false;
+        if (pickupAddressField) pickupAddressField.hidden = !isPickup;
+        if (requestedAt) {
+            requestedAt.required = true;
+            const limits = requestedAtLimits[fulfillmentType] || requestedAtLimits.pickup;
+            if (limits) {
+                requestedAt.min = limits.min;
+                if (preordersEnabled) requestedAt.removeAttribute('max');
+                else requestedAt.max = limits.max;
+                if (!requestedAt.value || requestedAt.value < limits.min || (!preordersEnabled && requestedAt.value > limits.max)) {
+                    requestedAt.value = limits.min;
+                }
+            }
+        }
+        if (paymentOptions) paymentOptions.hidden = isDineIn;
+        if (guestAccountPayment) guestAccountPayment.disabled = !isDineIn;
+        if (guestAccountNote) guestAccountNote.hidden = !isDineIn;
+        paymentOptions?.querySelectorAll('input[name="payment_method"]').forEach(input => { input.disabled = isDineIn; });
         if (dineInField) dineInField.hidden = !isDineIn;
+        if (guestCardIdentifier) guestCardIdentifier.required = isDineIn;
         if (addressFields.address_line) addressFields.address_line.required = isDelivery;
+        if (isDelivery && deliveryMap) {
+            setTimeout(() => deliveryMap.invalidateSize(), 180);
+            window.customerUpdateDeliveryZonePreview?.();
+        }
 
         if (!isDelivery && saveAddress) {
             saveAddress.checked = false;
@@ -752,14 +895,38 @@
         if (addressLabelWrap) addressLabelWrap.hidden = !enabled;
         if (addressLabel) addressLabel.required = enabled;
     }
+    [addressFields.address_line, addressFields.house_number].forEach((field) => {
+        field?.addEventListener('input', () => {
+            latitudeInput.value = '';
+            longitudeInput.value = '';
+            if (deliveryMarker && deliveryMap) {
+                deliveryMap.removeLayer(deliveryMarker);
+                deliveryMarker = null;
+            }
+            if (mapStatus) mapStatus.textContent = 'Адрес изменён. Выберите новую точку на карте.';
+            window.customerUpdateDeliveryZonePreview?.();
+        });
+    });
     fulfillmentInputs.forEach((input) => input.addEventListener('change', updateFulfillmentFields));
     saveAddress?.addEventListener('change', updateSaveAddressFields);
     savedAddressSelect?.addEventListener('change', () => {
         const option = savedAddressSelect.selectedOptions[0];
-        if (!option || !option.value) return;
+        if (!option) return;
+        if (!option.value) {
+            Object.values(addressFields).forEach((field) => { if (field) field.value = ''; });
+            latitudeInput.value = '';
+            longitudeInput.value = '';
+            if (deliveryMarker && deliveryMap) {
+                deliveryMap.removeLayer(deliveryMarker);
+                deliveryMarker = null;
+            }
+            if (mapStatus) mapStatus.textContent = 'Введите адрес и выберите точку на карте.';
+            window.customerUpdateDeliveryZonePreview?.();
+            return;
+        }
         const values = {
             address_line: option.dataset.addressLine,
-            house_number: '',
+            house_number: option.dataset.houseNumber,
             entrance: option.dataset.entrance,
             floor: option.dataset.floor,
             apartment: option.dataset.apartment,
@@ -769,6 +936,17 @@
         Object.entries(values).forEach(([key, value]) => {
             if (addressFields[key]) addressFields[key].value = value ?? '';
         });
+        latitudeInput.value = option.dataset.latitude || '';
+        longitudeInput.value = option.dataset.longitude || '';
+        if (latitudeInput.value && longitudeInput.value && deliveryMap) {
+            const lat = Number(latitudeInput.value), lng = Number(longitudeInput.value);
+            deliveryMap.setView([lat,lng],16);
+            window.customerSetDeliveryPoint?.(lat,lng);
+            mapStatus.textContent = 'Координаты сохранённого адреса загружены';
+        } else {
+            mapStatus.textContent = 'У этого адреса нет координат. Выберите дом на карте.';
+            window.customerUpdateDeliveryZonePreview?.();
+        }
     });
     updateFulfillmentFields();
     updateSaveAddressFields();

@@ -166,7 +166,7 @@
             </div>
         </section>
         <p class="customer-order-detail-muted">
-            Создан: {{ $order->created_at?->format('d.m.Y H:i') }}
+            Создан: {{ $order->created_at?->timezone($order->organization?->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
         </p>
         <p class="customer-order-detail-muted">
             Получение:
@@ -177,16 +177,22 @@
                 @default {{ $order->fulfillment_type }}
             @endswitch
         </p>
+        @if($order->fulfillment_type === 'pickup')
+            <p class="customer-order-detail-muted">
+                Адрес самовывоза: {{ $order->pickup_address_snapshot ?: ($order->organization?->orderSettings?->pickup_address ?? 'Уточните адрес у заведения') }}
+            </p>
+        @endif
         <p class="customer-order-detail-muted">
             Оплата:
             @switch($order->payment_method)
                 @case('cash_on_receipt') Наличные при получении @break
                 @case('card_on_receipt') Терминал при получении @break
+                @case('guest_account') На счёт гостя — расчёт при выходе @break
                 @default {{ $order->payment_method }}
             @endswitch
         </p>
         <p id="customer-order-payment-status" class="customer-order-detail-muted">
-            Состояние оплаты: {{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}
+            Состояние оплаты: {{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}
         </p>
         @if($order->fulfillment_type === 'pickup')
             <div id="customer-pickup-action" style="margin-top: 15px;" @if($order->status !== 'ready') hidden @endif>
@@ -201,7 +207,7 @@
         @endif
         @if($order->requested_at)
             <p class="customer-order-detail-muted">
-                Желаемое время: {{ $order->requested_at->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
+                Желаемое время: {{ $order->requested_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
             </p>
         @endif
     </div>
@@ -248,7 +254,7 @@
             <div class="customer-order-detail-line">
                 <span>{{ $statusLabels[$history->to_status] ?? $history->to_status }}</span>
                 <span class="customer-order-detail-muted">
-                    {{ $history->created_at?->format('d.m.Y H:i') }}
+                    {{ $history->created_at?->timezone($order->organization?->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
                 </span>
             </div>
         @empty
@@ -257,6 +263,30 @@
         </div>
         <p id="customer-order-update-error" class="customer-order-detail-muted" hidden>Не удалось обновить статус. Повторяем попытку…</p>
     </div>
+
+    @if(in_array($order->status, ['issued', 'served', 'delivered', 'completed'], true))
+        <div class="customer-order-detail-panel">
+            <h2>Оценка заказа</h2>
+            @if($order->review)
+                <p style="color:#ffd700;font-size:1.25rem">{{ str_repeat('★', $order->review->rating) }}{{ str_repeat('☆', 5 - $order->review->rating) }}</p>
+                <p class="customer-order-detail-muted">Вы уже оценили этот заказ. Оценку можно изменить.</p>
+            @else
+                <p class="customer-order-detail-muted">Расскажите, как прошёл заказ. Оценить его можно только после получения.</p>
+            @endif
+            <form method="POST" action="{{ route('customer.orders.review.store', $order) }}">
+                @csrf
+                <label for="order-review-rating" style="display:block;margin:12px 0 6px;color:#00e5d4">Ваша оценка</label>
+                <select id="order-review-rating" name="rating" required style="width:100%;padding:11px;color:#fff;background:#0b1422;border:1px solid rgba(0,229,212,.4);border-radius:9px">
+                    @for($rating = 5; $rating >= 1; $rating--)
+                        <option value="{{ $rating }}" @selected((int) old('rating', $order->review?->rating ?? 5) === $rating)>{{ $rating }} из 5 {{ str_repeat('★', $rating) }}</option>
+                    @endfor
+                </select>
+                <label for="order-review-comment" style="display:block;margin:12px 0 6px;color:#00e5d4">Комментарий</label>
+                <textarea id="order-review-comment" name="comment" rows="4" maxlength="3000" style="width:100%;padding:11px;color:#fff;background:#0b1422;border:1px solid rgba(0,229,212,.4);border-radius:9px">{{ old('comment', $order->review?->comment) }}</textarea>
+                <button type="submit" style="margin-top:12px;padding:11px 18px;color:#071416;background:#00e5d4;border:0;border-radius:9px;font-weight:800;cursor:pointer">Сохранить оценку</button>
+            </form>
+        </div>
+    @endif
 
     <div class="customer-order-detail-panel">
         <h2>Контактные данные</h2>
@@ -272,7 +302,10 @@
             </p>
         @endif
         @if($order->table_number)
-            <p>Номер браслета: {{ $order->table_number }}</p>
+            <p>Номер столика: {{ $order->table_number }}</p>
+        @endif
+        @if($order->guest_card_identifier)
+            <p>Браслет / карта сотрудника: {{ $order->guest_card_identifier }}</p>
         @endif
         @if($order->customer_comment)
             <p>Комментарий: {{ $order->customer_comment }}</p>

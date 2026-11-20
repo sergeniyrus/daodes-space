@@ -16,8 +16,7 @@
         <p id="customer-push-status">Разрешите push-уведомления, чтобы узнавать об изменении статуса заказа.</p>
     </div>
     <div class="customer-push-settings__actions">
-        <button type="button" id="customer-sound-toggle" class="customer-push-settings__button" aria-pressed="false">🔇 Звук выключен</button>
-        <button type="button" id="customer-push-toggle" class="customer-push-settings__button">Включить уведомления</button>
+                <button type="button" id="customer-push-toggle" class="customer-push-settings__button">Включить уведомления</button>
     </div>
 </section>
 <style>
@@ -38,7 +37,6 @@
     'use strict';
     const button=document.getElementById('customer-push-toggle');
     const status=document.getElementById('customer-push-status');
-    const soundButton=document.getElementById('customer-sound-toggle');
     if(!button||!status)return;
     const firebaseConfig=@json($firebaseClientConfig);
     const vapidKey=@json(config('services.firebase.web.vapid_key'));
@@ -52,11 +50,6 @@
     const notificationAudio=new Audio('/sounds/notification.mp3');
     notificationAudio.preload='auto';
     try{soundEnabled=localStorage.getItem(soundStorageKey)==='1';}catch(error){}
-    function updateSoundButton(){
-        if(!soundButton)return;
-        soundButton.textContent=soundEnabled?'🔊 Звук включён':'🔇 Звук выключен';
-        soundButton.setAttribute('aria-pressed',soundEnabled?'true':'false');
-    }
     function playCustomerOrderSound(){
         try{soundEnabled=localStorage.getItem(soundStorageKey)==='1';}catch(error){}
         if(!soundEnabled)return;
@@ -70,15 +63,6 @@
         }catch(error){console.warn('Customer order sound:',error);}
     }
     window.playCustomerOrderNotificationSound=playCustomerOrderSound;
-    if(soundButton){
-        soundButton.addEventListener('click',function(){
-            soundEnabled=!soundEnabled;
-            try{localStorage.setItem(soundStorageKey,soundEnabled?'1':'0');}catch(error){}
-            updateSoundButton();
-            if(soundEnabled)playCustomerOrderSound();
-        });
-    }
-    updateSoundButton();
     function setStatus(message){status.textContent=message;}
 
     // Единый обработчик для Firebase, списка уведомлений и обновления статуса заказа.

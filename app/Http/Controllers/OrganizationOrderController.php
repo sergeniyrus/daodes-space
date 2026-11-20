@@ -8,6 +8,7 @@ use App\Support\OrderNotificationService;
 use App\Support\OrderTransitionPolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -18,28 +19,147 @@ class OrganizationOrderController extends Controller
 {
     public function index(Request $request, Organization $organization): View
     {
-        $orders = $this->filteredOrdersQuery($request, $organization)
-            ->paginate(20)
-            ->appends($request->query());
-
-        return view('organizations.orders.index', [
-            'organization' => $organization,
-            'orders' => $orders,
+        $filters = $request->validate([
+            'period' => ['nullable', 'in:day,yesterday,last7,last30,week,month,year,all,custom'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'q' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:new,awaiting_payment,confirmed,preparing,ready,handed_to_courier,in_transit,issued,served,delivered,completed,cancelled'],
+            'payment_status' => ['nullable', 'in:pending,succeeded,failed,cancelled,refunded'],
+            'fulfillment_type' => ['nullable', 'in:delivery,pickup,dine_in'],
+            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt,guest_account'],
         ]);
+
+        $period = $filters['period'] ?? 'month';
+        $timezone = $organization->orderSettings?->timezoneName() ?? config('app.timezone', 'UTC');
+        $now = Carbon::now($timezone);
+        $dateFrom = null;
+        $dateTo = $now->copy()->endOfDay();
+
+        switch ($period) {
+            case 'day':
+                $dateFrom = $now->copy()->startOfDay();
+                break;
+            case 'yesterday':
+                $dateFrom = $now->copy()->subDay()->startOfDay();
+                $dateTo = $now->copy()->subDay()->endOfDay();
+                break;
+            case 'last7':
+                $dateFrom = $now->copy()->subDays(6)->startOfDay();
+                break;
+            case 'last30':
+                $dateFrom = $now->copy()->subDays(29)->startOfDay();
+                break;
+            case 'week':
+                $dateFrom = $now->copy()->startOfWeek();
+                break;
+            case 'year':
+                $dateFrom = $now->copy()->startOfYear();
+                break;
+            case 'all':
+                $dateFrom = null;
+                $dateTo = null;
+                break;
+            case 'custom':
+                $dateFrom = !empty($filters['date_from']) ? Carbon::parse($filters['date_from'], $timezone)->startOfDay() : $now->copy()->startOfMonth();
+                $dateTo = !empty($filters['date_to']) ? Carbon::parse($filters['date_to'], $timezone)->endOfDay() : $now->copy()->endOfDay();
+                break;
+            case 'month':
+            default:
+                $dateFrom = $now->copy()->startOfMonth();
+                break;
+        }
+
+        // Интервалы считаются по локальному календарю организации,
+        // а в БД сравниваются с UTC timestamps.
+        $queryDateFrom = $dateFrom?->copy()->utc();
+        $queryDateTo = $dateTo?->copy()->utc();
+
+        $periodQuery = $organization->orders()
+            ->when($queryDateFrom, fn ($q) => $q->where('created_at', '>=', $queryDateFrom))
+            ->when($queryDateTo, fn ($q) => $q->where('created_at', '<=', $queryDateTo));
+
+        $summary = [
+            'count' => (clone $periodQuery)->count(),
+            'paid_count' => (clone $periodQuery)->where('payment_status', Order::PAYMENT_SUCCEEDED)->count(),
+            'pending_count' => (clone $periodQuery)->where('payment_status', Order::PAYMENT_PENDING)->count(),
+            'cancelled_count' => (clone $periodQuery)->where('status', Order::STATUS_CANCELLED)->count(),
+            'amounts' => (clone $periodQuery)->select('currency')
+                ->selectRaw('COUNT(*) as orders_count')
+                ->selectRaw('SUM(total) as total_amount')
+                ->selectRaw('AVG(total) as average_amount')
+                ->selectRaw('SUM(CASE WHEN payment_status = ? THEN total ELSE 0 END) as paid_amount', [Order::PAYMENT_SUCCEEDED])
+                ->selectRaw('SUM(CASE WHEN payment_status = ? THEN total ELSE 0 END) as pending_amount', [Order::PAYMENT_PENDING])
+                ->groupBy('currency')->get(),
+            'statuses' => (clone $periodQuery)->select('status')
+                ->selectRaw('COUNT(*) as orders_count')->groupBy('status')->get(),
+            'fulfillment' => (clone $periodQuery)->select('fulfillment_type')
+                ->selectRaw('COUNT(*) as orders_count')->groupBy('fulfillment_type')->get(),
+            'payment_methods' => (clone $periodQuery)->select('payment_method')
+                ->selectRaw('COUNT(*) as orders_count')->groupBy('payment_method')->get(),
+        ];
+
+        // Аналитика блюд строится только по фактически оплаченным и неотменённым заказам.
+        // В выборке остаются все позиции меню организации, включая временно отключённые,
+        // чтобы видеть товары без продаж за выбранный период.
+        $productSalesQuery = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.organization_id', $organization->id)
+            ->where('orders.payment_status', Order::PAYMENT_SUCCEEDED)
+            ->where('orders.status', '<>', Order::STATUS_CANCELLED)
+            ->when($queryDateFrom, fn ($q) => $q->where('orders.created_at', '>=', $queryDateFrom))
+            ->when($queryDateTo, fn ($q) => $q->where('orders.created_at', '<=', $queryDateTo))
+            ->select('order_items.menu_item_id')
+            ->selectRaw('SUM(order_items.quantity) as sold_quantity')
+            ->selectRaw('COUNT(DISTINCT orders.id) as orders_count')
+            ->groupBy('order_items.menu_item_id');
+
+        $productAnalyticsQuery = DB::table('menu_items')
+            ->join('menu_sections', 'menu_sections.id', '=', 'menu_items.menu_section_id')
+            ->leftJoinSub($productSalesQuery, 'product_sales', function ($join) {
+                $join->on('product_sales.menu_item_id', '=', 'menu_items.id');
+            })
+            ->where('menu_sections.organization_id', $organization->id)
+            ->select(
+                'menu_items.id',
+                'menu_items.name',
+                'menu_items.is_active'
+            )
+            ->selectRaw('COALESCE(product_sales.sold_quantity, 0) as sold_quantity')
+            ->selectRaw('COALESCE(product_sales.orders_count, 0) as orders_count');
+
+        $bestSellingProducts = (clone $productAnalyticsQuery)
+            ->orderByDesc('sold_quantity')
+            ->orderBy('menu_items.name')
+            ->limit(10)
+            ->get();
+
+        $leastSellingProducts = (clone $productAnalyticsQuery)
+            ->orderBy('sold_quantity')
+            ->orderBy('menu_items.name')
+            ->limit(10)
+            ->get();
+
+        $orders = (clone $periodQuery)->with('items')
+            ->when($filters['q'] ?? null, function ($q, $v) {
+                $q->where(function ($w) use ($v) {
+                    $w->where('order_number', 'like', "%{$v}%")
+                        ->orWhere('customer_name', 'like', "%{$v}%")
+                        ->orWhere('customer_phone', 'like', "%{$v}%");
+                });
+            })
+            ->when($filters['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
+            ->when($filters['payment_status'] ?? null, fn ($q, $v) => $q->where('payment_status', $v))
+            ->when($filters['fulfillment_type'] ?? null, fn ($q, $v) => $q->where('fulfillment_type', $v))
+            ->when($filters['payment_method'] ?? null, fn ($q, $v) => $q->where('payment_method', $v))
+            ->latest()->paginate(25)->withQueryString();
+
+        return view('organizations.orders.index', compact(
+            'organization', 'orders', 'filters', 'summary', 'period', 'dateFrom', 'dateTo',
+            'bestSellingProducts', 'leastSellingProducts'
+        ));
     }
 
-    public function updates(Request $request, Organization $organization): Response
-    {
-        $view = $this->index($request, $organization);
-
-        return response()
-            ->view('organizations.orders.index', $view->getData())
-            ->header('Cache-Control', 'private, no-store, max-age=0');
-    }
-
-    /**
-     * Карточка заказа доступна только менеджеру организации-владельца.
-     */
     public function show(Organization $organization, int $order): View
     {
         $order = $organization->orders()
@@ -97,8 +217,9 @@ class OrganizationOrderController extends Controller
     public function export(Request $request, Organization $organization): StreamedResponse
     {
         $ordersQuery = $this->filteredOrdersQuery($request, $organization);
+        $timezone = $organization->orderSettings?->timezoneName() ?? config('app.timezone', 'UTC');
 
-        return response()->streamDownload(function () use ($ordersQuery) {
+        return response()->streamDownload(function () use ($ordersQuery, $timezone) {
             $output = fopen('php://output', 'w');
 
             if ($output === false) {
@@ -115,6 +236,9 @@ class OrganizationOrderController extends Controller
                 'Телефон',
                 'Статус',
                 'Получение',
+                'Адрес получения',
+                'Столик',
+                'Браслет / карта',
                 'Способ оплаты',
                 'Статус оплаты',
                 'Состав заказа',
@@ -134,19 +258,28 @@ class OrganizationOrderController extends Controller
                 return $value;
             };
 
-            $ordersQuery->chunk(500, function ($orders) use ($output, $safeCsvValue) {
+            $ordersQuery->chunk(500, function ($orders) use ($output, $safeCsvValue, $timezone) {
                 foreach ($orders as $order) {
+                    $fulfillmentAddress = match ($order->fulfillment_type) {
+                        Order::FULFILLMENT_PICKUP => $order->pickup_address_snapshot,
+                        Order::FULFILLMENT_DELIVERY => $order->delivery_address['address_line'] ?? '',
+                        default => '',
+                    };
+
                     $items = $order->items
                         ->map(fn ($item) => $item->item_name . ' × ' . $item->quantity)
                         ->implode(' | ');
 
                     fputcsv($output, [
                         $safeCsvValue($order->order_number),
-                        $order->created_at?->format('Y-m-d H:i:s'),
+                        $order->created_at?->timezone($timezone)->format('Y-m-d H:i:s'),
                         $safeCsvValue($order->customer_name),
                         $safeCsvValue($order->customer_phone),
                         $safeCsvValue($order->status),
                         $safeCsvValue($order->fulfillment_type),
+                        $safeCsvValue($fulfillmentAddress),
+                        $safeCsvValue($order->table_number),
+                        $safeCsvValue($order->guest_card_identifier),
                         $safeCsvValue($order->payment_method),
                         $safeCsvValue($order->payment_status),
                         $safeCsvValue($items),
@@ -171,32 +304,67 @@ class OrganizationOrderController extends Controller
     private function filteredOrdersQuery(Request $request, Organization $organization)
     {
         $filters = $request->validate([
+            'period' => ['nullable', 'in:day,yesterday,last7,last30,week,month,year,all,custom'],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
             'q' => ['nullable', 'string', 'max:100'],
             'status' => ['nullable', 'in:new,awaiting_payment,confirmed,preparing,ready,handed_to_courier,in_transit,issued,served,delivered,completed,cancelled'],
             'fulfillment_type' => ['nullable', 'in:delivery,pickup,dine_in'],
-            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt'],
+            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt,guest_account'],
             'payment_status' => ['nullable', 'in:pending,succeeded,failed,cancelled,refunded'],
-            'date_from' => ['nullable', 'date_format:Y-m-d'],
-            'date_to' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        if (
-            !empty($filters['date_from'])
-            && !empty($filters['date_to'])
-            && $filters['date_to'] < $filters['date_from']
-        ) {
-            throw ValidationException::withMessages([
-                'date_to' => 'Конечная дата не может быть раньше начальной.',
-            ]);
+        $period = $filters['period'] ?? 'month';
+        $timezone = $organization->orderSettings?->timezoneName() ?? config('app.timezone', 'UTC');
+        $now = Carbon::now($timezone);
+        $dateFrom = null;
+        $dateTo = $now->copy()->endOfDay();
+
+        switch ($period) {
+            case 'day':
+                $dateFrom = $now->copy()->startOfDay();
+                break;
+            case 'yesterday':
+                $dateFrom = $now->copy()->subDay()->startOfDay();
+                $dateTo = $now->copy()->subDay()->endOfDay();
+                break;
+            case 'last7':
+                $dateFrom = $now->copy()->subDays(6)->startOfDay();
+                break;
+            case 'last30':
+                $dateFrom = $now->copy()->subDays(29)->startOfDay();
+                break;
+            case 'week':
+                $dateFrom = $now->copy()->startOfWeek();
+                break;
+            case 'year':
+                $dateFrom = $now->copy()->startOfYear();
+                break;
+            case 'all':
+                $dateFrom = null;
+                $dateTo = null;
+                break;
+            case 'custom':
+                $dateFrom = !empty($filters['date_from'])
+                    ? Carbon::parse($filters['date_from'], $timezone)->startOfDay()
+                    : $now->copy()->startOfMonth();
+                $dateTo = !empty($filters['date_to'])
+                    ? Carbon::parse($filters['date_to'], $timezone)->endOfDay()
+                    : $now->copy()->endOfDay();
+                break;
+            case 'month':
+            default:
+                $dateFrom = $now->copy()->startOfMonth();
+                break;
         }
 
+        $queryDateFrom = $dateFrom?->copy()->utc();
+        $queryDateTo = $dateTo?->copy()->utc();
+
         $query = $organization->orders()
-            ->with([
-                'customer',
-                'items',
-                'assignments.employee',
-                'statusHistory',
-            ]);
+            ->with(['items'])
+            ->when($queryDateFrom, fn ($builder) => $builder->where('created_at', '>=', $queryDateFrom))
+            ->when($queryDateTo, fn ($builder) => $builder->where('created_at', '<=', $queryDateTo));
 
         if (!empty($filters['q'])) {
             $search = trim($filters['q']);
@@ -209,18 +377,10 @@ class OrganizationOrderController extends Controller
             });
         }
 
-        foreach (['status', 'fulfillment_type', 'payment_method', 'payment_status'] as $field) {
+        foreach ((['status', 'fulfillment_type', 'payment_method', 'payment_status']) as $field) {
             if (!empty($filters[$field])) {
                 $query->where($field, $filters[$field]);
             }
-        }
-
-        if (!empty($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
-        }
-
-        if (!empty($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
         }
 
         return $query
@@ -341,6 +501,7 @@ class OrganizationOrderController extends Controller
             if (
                 $lockedOrder->status === Order::STATUS_CANCELLED
                 || $lockedOrder->payment_method === Order::PAYMENT_ONLINE
+                || $lockedOrder->payment_method === Order::PAYMENT_GUEST_ACCOUNT
             ) {
                 throw ValidationException::withMessages([
                     'payment' => 'Для этого заказа нельзя отметить оплату вручную.',
@@ -370,16 +531,29 @@ class OrganizationOrderController extends Controller
                 ]);
             }
 
-            $updatedPayments = $lockedOrder->payments()
+            $payments = $lockedOrder->payments()
                 ->where('status', Order::PAYMENT_PENDING)
-                ->update([
-                    'status' => Order::PAYMENT_SUCCEEDED,
-                    'paid_at' => now(),
-                ]);
+                ->lockForUpdate()
+                ->get();
 
-            if ($updatedPayments < 1) {
+            if ($payments->isEmpty()) {
                 throw ValidationException::withMessages([
                     'payment' => 'Не найдена ожидающая оплаты попытка платежа.',
+                ]);
+            }
+
+            $paidAt = now();
+
+            foreach ($payments as $payment) {
+                $metadata = $payment->metadata ?? [];
+                $metadata['received_by_user_id'] = auth()->id();
+                $metadata['received_by_role'] = 'manager';
+                $metadata['received_at'] = $paidAt->toIso8601String();
+
+                $payment->update([
+                    'status' => Order::PAYMENT_SUCCEEDED,
+                    'paid_at' => $paidAt,
+                    'metadata' => $metadata,
                 ]);
             }
 

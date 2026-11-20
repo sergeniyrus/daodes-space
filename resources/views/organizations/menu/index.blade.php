@@ -1,17 +1,16 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page')
     Управление меню — {{ $organization->name }}
 @endsection
 
-@section('main')
+@section('management-content')
 @php
     $menuRoutePrefix = auth('employee')->check()
         ? 'employee.organization.menu.'
         : 'organizations.menu.';
 @endphp
 
-@include('employee.admin.partials.navigation', ['organization' => $organization])
 
 <style>
 
@@ -1077,6 +1076,9 @@
 }
 
 </style>
+<style>
+.menu-admin-container{width:100%;max-width:none;box-sizing:border-box;margin:0;padding:0;background:transparent;border:0;border-radius:0;box-shadow:none}
+</style>
 
 
 <div class="menu-admin-container">
@@ -1090,11 +1092,11 @@
         <div class="menu-admin-header-title">
 
             <div class="menu-admin-title-small">
-                Управление меню
+                РАЗДЕЛЫ И БЛЮДА
             </div>
 
             <div class="menu-admin-title">
-                {{ $organization->name }}
+                Управление меню
             </div>
 
         </div>
@@ -1123,39 +1125,13 @@
          УВЕДОМЛЕНИЯ
          ===================================================== --}}
 
-    @if(session('success'))
-
-        <div class="menu-admin-alert success">
-            {{ session('success') }}
-        </div>
-
-    @endif
 
 
-    @if(session('error'))
-
-        <div class="menu-admin-alert error">
-            {{ session('error') }}
-        </div>
-
-    @endif
 
 
-    @if($errors->any())
 
-        <div class="menu-admin-alert error">
 
-            @foreach($errors->all() as $error)
 
-                <div>
-                    {{ $error }}
-                </div>
-
-            @endforeach
-
-        </div>
-
-    @endif
 
 
     {{-- =====================================================
@@ -1227,14 +1203,21 @@
                                 >
                             </label>
 
-                            <label class="menu-section-setting">
-                                <span>TV экран</span>
-                                <select name="tv_screen" class="menu-section-select" aria-label="TV экран">
-                                    @foreach($tvScreens as $screen)
-                                        <option value="{{ $screen }}" {{ (int) $section->tv_screen === (int) $screen ? 'selected' : '' }}>TV {{ $screen }}</option>
-                                    @endforeach
-                                </select>
-                            </label>
+                            @if($canManageTv)
+                                <label class="menu-section-setting">
+                                    <span>TV экран</span>
+                                    <select name="tv_screen" class="menu-section-select" aria-label="TV экран">
+                                        @foreach($tvScreens as $screen)
+                                            <option value="{{ $screen }}" {{ (int) $section->tv_screen === (int) $screen ? 'selected' : '' }}>TV {{ $screen }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            @else
+                                <div class="menu-section-setting">
+                                    <span>TV экран</span>
+                                    <strong>TV {{ $section->tv_screen }}</strong>
+                                </div>
+                            @endif
 
                             <label class="menu-section-check">
                                 <input type="hidden" name="delivery_enabled" value="0">
@@ -1246,6 +1229,11 @@
                                 <input type="hidden" name="pickup_enabled" value="0">
                                 <input type="checkbox" name="pickup_enabled" value="1" {{ $section->pickup_enabled ? 'checked' : '' }}>
                                 <span>Самовывоз</span>
+                            </label>
+                            <label class="menu-section-check">
+                                <input type="hidden" name="dine_in_enabled" value="0">
+                                <input type="checkbox" name="dine_in_enabled" value="1" {{ $section->dine_in_enabled ? 'checked' : '' }}>
+                                <span>В заведении</span>
                             </label>
 
                             <button type="submit" class="menu-admin-button menu-quick-button">Сохранить настройки</button>

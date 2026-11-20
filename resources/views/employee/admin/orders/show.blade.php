@@ -1,14 +1,13 @@
-@extends('template')
+@extends('organizations.layouts.management')
 
 @section('title_page') Заказ №{{ $order->order_number }} — {{ $organization->name }} @endsection
 
-@section('main')
+@section('management-content')
 @include('components.order-notifications', [
     'notificationsUrl' => route('employee.organization.admin.orders.notifications', $organization),
     'notificationReadUrlTemplate' => route('employee.organization.admin.orders.notifications.read', [$organization, '__ID__']),
 ])
 
-@include('employee.admin.partials.navigation', ['organization' => $organization])
 
 @php
 $statusLabels=['new'=>'Новый','awaiting_payment'=>'Ожидает оплаты','confirmed'=>'Подтверждён','preparing'=>'Готовится','ready'=>'Готов','handed_to_courier'=>'Передан курьеру','in_transit'=>'В пути','issued'=>'Выдан','served'=>'Подан','delivered'=>'Доставлен','completed'=>'Завершён','cancelled'=>'Отменён'];
@@ -19,7 +18,7 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
 @endphp
 
 <style>
-.admin-order-page{--gold:#ffd700;--cyan:#00e5d4;--muted:#aeb5c4;--line:rgba(0,229,212,.2);width:min(1080px,calc(100% - 28px));margin:28px auto 50px;color:#f4f5fa}
+.admin-order-page{--gold:#ffd700;--cyan:#00e5d4;--muted:#aeb5c4;--line:rgba(0,229,212,.2);width:100%;max-width:none;margin:0;color:#f4f5fa}
 .admin-order-page *{box-sizing:border-box}
 .admin-order-shell{padding:clamp(16px,2.5vw,27px);margin-bottom:15px;background:radial-gradient(circle at 100% 0,rgba(255,215,0,.065),transparent 32%),linear-gradient(145deg,#0b0c18,#111626 58%,#0b0c18);border:1px solid rgba(255,215,0,.38);border-radius:20px;box-shadow:0 14px 42px rgba(0,0,0,.32)}
 .admin-order-top{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid rgba(255,215,0,.2)}
@@ -58,6 +57,7 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
 @media(max-width:760px){.admin-order-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-order-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.admin-order-page{width:calc(100% - 16px);margin:14px auto 30px}.admin-order-shell{padding:15px;border-radius:16px}.admin-order-facts{gap:8px}.admin-order-fact{padding:11px}.admin-order-total{font-size:1.05rem}}
 </style>
+<style>@media(max-width:520px){.admin-order-page{width:100%;margin:0}}</style>
 
 <div class="admin-order-page">
     <section class="admin-order-shell">
@@ -69,13 +69,13 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
             </div>
             <span class="admin-order-state">Панель администратора</span>
         </div>
-        <p class="admin-order-eyebrow">{{ $organization->name }}</p>
+        <p class="admin-order-eyebrow">ДЕТАЛИ ЗАКАЗА</p>
         <h1>Заказ №{{ $order->order_number }}</h1>
         <div class="admin-order-facts">
-            <div class="admin-order-fact"><span>Дата создания</span><strong>{{ $order->created_at?->format('d.m.Y H:i:s') }}</strong></div>
+            <div class="admin-order-fact"><span>Дата создания</span><strong>{{ $order->created_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i:s') }}</strong></div>
             <div class="admin-order-fact"><span>Статус заказа</span><strong>{{ $statusLabels[$order->status] ?? $order->status }}</strong></div>
             <div class="admin-order-fact"><span>Способ получения</span><strong>{{ $fulfillmentLabels[$order->fulfillment_type] ?? $order->fulfillment_type }}</strong></div>
-            <div class="admin-order-fact"><span>Состояние оплаты</span><strong>{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</strong></div>
+            <div class="admin-order-fact"><span>Состояние оплаты</span><strong>{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</strong></div>
         </div>
     </section>
 
@@ -85,6 +85,15 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
             <div class="admin-order-info">
                 <h3>{{ $order->customer_name }}</h3>
                 <p>Телефон: <a href="tel:{{ preg_replace('/[^0-9+]/','',$order->customer_phone) }}">{{ $order->customer_phone }}</a></p>
+                @if($order->guest_card_identifier)
+                    <p>Браслет / карта сотрудника: <strong>{{ $order->guest_card_identifier }}</strong></p>
+                @endif
+                @if($order->requested_at)
+                    <p>Желаемое время: {{ $order->requested_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</p>
+                @endif
+                @if($order->fulfillment_type === 'pickup')
+                    <p>Адрес самовывоза: <strong>{{ $order->pickup_address_snapshot ?: ($organization->orderSettings?->pickup_address ?? '—') }}</strong></p>
+                @endif
                 @if($order->fulfillment_type === 'delivery')
                     <p>Адрес доставки: {{ $order->delivery_address['address_line'] ?? '—' }}</p>
                 @endif
@@ -97,15 +106,19 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
         <section class="admin-order-shell">
             <h2>Оплата</h2>
             <div class="admin-order-info">
-                <p><strong>{{ $methodLabels[$order->payment_method] ?? $order->payment_method }}</strong></p>
-                <p class="admin-order-muted">{{ $paymentLabels[$order->payment_status] ?? $order->payment_status }}</p>
-                @if($order->payment_status === 'pending' && $order->payment_method !== 'online' && $collectable)
+                <p><strong>{{ $order->payment_method === 'guest_account' ? 'На счёт гостя — расчёт при выходе' : ($methodLabels[$order->payment_method] ?? $order->payment_method) }}</strong></p>
+                <p class="admin-order-muted">{{ $order->payment_method === 'guest_account' && $order->payment_status === 'pending' ? 'Ожидает расчёта на кассе при выходе' : ($paymentLabels[$order->payment_status] ?? $order->payment_status) }}</p>
+                @if($order->payment_method === 'guest_account' && $order->payment_status === 'pending')
+                    <div class="admin-order-note">Расчёт будет произведён на кассе при выходе. Передача заказа и подтверждение оплаты через iiko подключаются отдельно; статус вручную не меняйте.</div>
+                @endif
+                @if($order->payment_status === 'pending' && $order->payment_method !== 'online'
+                && $order->payment_method !== 'guest_account' && $collectable)
                     <form method="POST" action="{{ route('employee.organization.admin.orders.payment',[$organization,$order]) }}" onsubmit="return confirm('Подтвердить фактическое получение оплаты?')">
                         @csrf
                         @method('PATCH')
                         <button class="admin-order-button gold" type="submit">✓ Подтвердить получение оплаты</button>
                     </form>
-                @elseif($order->payment_status === 'pending' && $order->payment_method !== 'online')
+                @elseif($order->payment_status === 'pending' && $order->payment_method !== 'online' && $order->payment_method !== 'guest_account')
                     <div class="admin-order-note">Подтверждение станет доступно после фактической передачи заказа клиенту.</div>
                 @endif
                 @foreach($order->payments as $payment)
