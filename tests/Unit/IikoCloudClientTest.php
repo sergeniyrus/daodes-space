@@ -18,6 +18,7 @@ class IikoCloudClientTest extends TestCase
         parent::setUp();
 
         config([
+            'cache.default' => 'array',
             'iiko.base_url' => 'https://api-ru.iiko.services',
             'iiko.app_id' => 'daodes-app',
             'iiko.client_secret' => 'daodes-secret',
@@ -26,7 +27,7 @@ class IikoCloudClientTest extends TestCase
             'iiko.token_cache_minutes' => 55,
         ]);
 
-        Cache::flush();
+        Cache::store('array')->flush();
     }
 
     public function test_authentication_uses_application_credentials_and_organization_api_key(): void
