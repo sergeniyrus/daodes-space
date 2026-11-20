@@ -4,6 +4,7 @@ namespace App\Services\Iiko;
 
 use App\Models\IikoConnection;
 use App\Models\IikoMenuMapping;
+use App\Models\IikoPaymentMapping;
 use App\Models\Order;
 use RuntimeException;
 
@@ -53,6 +54,7 @@ class IikoOrderService
             ->keyBy('menu_item_id');
 
         $iikoItems = [];
+        $mappedItemsTotal = 0.0;
 
         foreach ($order->items as $item) {
             $mapping = $mappings->get((int) $item->menu_item_id);
@@ -61,11 +63,29 @@ class IikoOrderService
                 throw new RuntimeException('Не сопоставлено блюдо DAODES: ' . $item->item_name . '.');
             }
 
+            if ($mapping->last_iiko_price === null) {
+                throw new RuntimeException('Для блюда «' . $item->item_name . '» не подтверждена цена iiko.');
+            }
+
+            if (abs((float) $item->unit_price - (float) $mapping->last_iiko_price) > 0.01) {
+                throw new RuntimeException('Цена блюда «' . $item->item_name . '» в DAODES отличается от цены iiko. Сначала обновите сопоставление.');
+            }
+
+            $mappedItemsTotal += (float) $mapping->last_iiko_price * (int) $item->quantity;
+
             $iikoItems[] = [
                 'type' => 'Product',
                 'productId' => $mapping->iiko_product_id,
                 'amount' => (float) $item->quantity,
             ];
+        }
+
+        if (
+            abs($mappedItemsTotal - (float) $order->subtotal) > 0.01 ||
+            (float) $order->delivery_fee > 0.01 ||
+            (float) $order->discount_total > 0.01
+        ) {
+            throw new RuntimeException('Сумма заказа DAODES отличается от суммы сопоставленных позиций iiko. Сначала настройте стоимость доставки и скидки.');
         }
 
         $orderPayload = [
@@ -95,6 +115,32 @@ class IikoOrderService
 
         if (filled($order->customer_comment)) {
             $orderPayload['comment'] = $order->customer_comment;
+        }
+
+        // Online payments are sent to iiko only after a verified provider webhook
+        // has marked the DAODES order as paid.
+        if (
+            $order->payment_method === Order::PAYMENT_ONLINE &&
+            $order->payment_status === Order::PAYMENT_SUCCEEDED
+        ) {
+            $paymentMapping = IikoPaymentMapping::query()
+                ->where('organization_id', $order->organization_id)
+                ->where('iiko_organization_id', $connection->iiko_organization_id)
+                ->where('daodes_payment_method', Order::PAYMENT_ONLINE)
+                ->where('is_enabled', true)
+                ->first();
+
+            if (!$paymentMapping || !$paymentMapping->payment_type_kind) {
+                throw new RuntimeException('Для онлайн-оплаты не настроено сопоставление платёжного типа iiko.');
+            }
+
+            $orderPayload['payments'] = [[
+                'paymentTypeId' => $paymentMapping->iiko_payment_type_id,
+                'paymentTypeKind' => $paymentMapping->payment_type_kind,
+                'sum' => (float) $order->total,
+                'isProcessedExternally' => true,
+                'isFiscalizedExternally' => false,
+            ]];
         }
 
         if ($order->fulfillment_type === Order::FULFILLMENT_DELIVERY) {
