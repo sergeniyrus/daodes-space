@@ -54,6 +54,7 @@ class OrganizationIikoPaymentController extends Controller
                 'paymentTypes' => $paymentTypes,
                 'paymentMappings' => IikoPaymentMapping::query()
                     ->where('organization_id', $organization->id)
+                    ->where('iiko_organization_id', $connection->iiko_organization_id)
                     ->get()
                     ->keyBy('daodes_payment_method'),
             ]);
