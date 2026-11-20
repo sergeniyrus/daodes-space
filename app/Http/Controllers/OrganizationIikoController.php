@@ -399,11 +399,34 @@ class OrganizationIikoController extends Controller
 
     public function disconnect(Organization $organization): RedirectResponse
     {
-        $organization->iikoConnection()->delete();
+        $connection = $organization->iikoConnection;
+
+        if ($connection) {
+            // Keep the connection row and audit logs, but remove the API key
+            // and disable every integration path. Existing DAODES orders remain untouched.
+            $connection->update([
+                'api_key' => '',
+                'iiko_organization_id' => null,
+                'iiko_organization_name' => null,
+                'terminal_group_id' => null,
+                'terminal_group_name' => null,
+                'address_format_type' => null,
+                'external_menu_id' => null,
+                'price_category_id' => null,
+                'connection_status' => 'disconnected',
+                'is_enabled' => false,
+                'menu_sync_enabled' => false,
+                'stop_list_sync_enabled' => false,
+                'order_sync_enabled' => false,
+                'status_sync_enabled' => false,
+                'webhook_enabled' => false,
+                'last_error' => null,
+            ]);
+        }
 
         return redirect()
             ->route('organizations.iiko.index', $organization)
-            ->with('success', 'Подключение iiko удалено. Заказы и меню DAODES не затронуты.');
+            ->with('success', 'Подключение iiko отключено. API Key удалён из DAODES, история и существующие заказы сохранены.');
     }
 
     private function connectionOrFail(Organization $organization): IikoConnection
