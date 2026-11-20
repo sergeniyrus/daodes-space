@@ -94,6 +94,13 @@ class IikoOrderService
                 $address['delivery_comment'] ?? null,
             ])->filter()->implode('; ');
 
+            if (mb_strtolower((string) $connection->address_format_type) !== 'city') {
+                throw new RuntimeException(
+                    'Формат адреса iiko (' . ($connection->address_format_type ?: 'не определён')
+                    . ') пока не сопоставлен. Передача доставки остановлена во избежание некорректного адреса.'
+                );
+            }
+
             $orderPayload['deliveryPoint'] = [
                 'address' => [
                     'type' => 'city',
