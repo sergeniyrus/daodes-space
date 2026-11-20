@@ -194,13 +194,31 @@ class CustomerCheckoutController extends Controller
         }
 
         $timezone = $settings->timezoneName();
-        $minimumLeadMinutes = $settings->minimumOrderLeadMinutes($selectedFulfillment);
-        $minimumOrderAt = Carbon::now($timezone)->addMinutes($minimumLeadMinutes)->ceilUnit('minute');
         $slotMinutes = max(5, (int) ($settings->time_slot_minutes ?? 15));
-        $roundingMinutes = ($slotMinutes - ($minimumOrderAt->minute % $slotMinutes)) % $slotMinutes;
-        $minimumOrderAt->addMinutes($roundingMinutes)->second(0);
-        $requestedAtMinimum = $minimumOrderAt->format('Y-m-d\\TH:i');
-        $requestedAtMaximum = $minimumOrderAt->copy()->addMinutes($slotMinutes)->format('Y-m-d\\TH:i');
+        $requestedAtLimits = [];
+
+        foreach ([
+            Order::FULFILLMENT_DELIVERY,
+            Order::FULFILLMENT_PICKUP,
+            Order::FULFILLMENT_DINE_IN,
+        ] as $fulfillmentType) {
+            $minimumLeadMinutes = $settings->minimumOrderLeadMinutes($fulfillmentType);
+            $minimumOrderAt = Carbon::now($timezone)
+                ->addMinutes($minimumLeadMinutes)
+                ->ceilUnit('minute');
+            $roundingMinutes = ($slotMinutes - ($minimumOrderAt->minute % $slotMinutes)) % $slotMinutes;
+            $minimumOrderAt->addMinutes($roundingMinutes)->second(0);
+
+            $requestedAtLimits[$fulfillmentType] = [
+                'min' => $minimumOrderAt->format('Y-m-d\\TH:i'),
+                'max' => $minimumOrderAt->copy()->addMinutes($slotMinutes)->format('Y-m-d\\TH:i'),
+                'lead' => $minimumLeadMinutes,
+            ];
+        }
+
+        $requestedAtMinimum = $requestedAtLimits[$selectedFulfillment]['min'] ?? $requestedAtLimits[Order::FULFILLMENT_PICKUP]['min'];
+        $requestedAtMaximum = $requestedAtLimits[$selectedFulfillment]['max'] ?? $requestedAtLimits[Order::FULFILLMENT_PICKUP]['max'];
+        $minimumLeadMinutes = $requestedAtLimits[$selectedFulfillment]['lead'] ?? 30;
 
         $savedAddresses = $customer->addresses()
             ->orderByDesc('is_favorite')
@@ -280,6 +298,7 @@ class CustomerCheckoutController extends Controller
             'requestedAtDefault' => $requestedAtMinimum,
             'requestedAtMaximum' => $requestedAtMaximum,
             'minimumLeadMinutes' => $minimumLeadMinutes,
+            'requestedAtLimits' => $requestedAtLimits,
         ]);
     }
 
