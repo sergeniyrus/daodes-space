@@ -320,7 +320,7 @@
                     </button>
                 </form>
             </div>
-        @elseif($order->payment_status === 'pending' && $order->payment_method !== 'online')
+        @elseif($order->payment_status === 'pending' && $order->payment_method !== 'online' && $order->payment_method !== 'guest_account')
             <div class="organization-order-detail__subtitle" style="margin-top: 12px;">
                 Подтверждение оплаты станет доступно после фактической передачи заказа клиенту.
             </div>
