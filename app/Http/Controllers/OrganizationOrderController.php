@@ -27,7 +27,7 @@ class OrganizationOrderController extends Controller
             'status' => ['nullable', 'in:new,awaiting_payment,confirmed,preparing,ready,handed_to_courier,in_transit,issued,served,delivered,completed,cancelled'],
             'payment_status' => ['nullable', 'in:pending,succeeded,failed,cancelled,refunded'],
             'fulfillment_type' => ['nullable', 'in:delivery,pickup,dine_in'],
-            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt'],
+            'payment_method' => ['nullable', 'in:online,cash_on_receipt,card_on_receipt,guest_account'],
         ]);
 
         $period = $filters['period'] ?? 'month';
@@ -478,6 +478,7 @@ class OrganizationOrderController extends Controller
             if (
                 $lockedOrder->status === Order::STATUS_CANCELLED
                 || $lockedOrder->payment_method === Order::PAYMENT_ONLINE
+                || $lockedOrder->payment_method === Order::PAYMENT_GUEST_ACCOUNT
             ) {
                 throw ValidationException::withMessages([
                     'payment' => 'Для этого заказа нельзя отметить оплату вручную.',
