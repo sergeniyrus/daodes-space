@@ -9,10 +9,16 @@
 .feedback-page h1,.feedback-page h2{color:#ffd700;margin-top:0}
 .feedback-muted{color:#aeb5c4}.feedback-row{padding:15px 0;border-bottom:1px solid rgba(0,229,212,.18)}
 .feedback-form{display:grid;gap:12px}.feedback-form label{display:block;color:#00e5d4;margin-bottom:5px}
-.feedback-form input,.feedback-form select,.feedback-form textarea{width:100%;padding:11px 12px;color:#fff;background:#0c1422;border:1px solid rgba(0,229,212,.35);border-radius:10px}
-.feedback-form button{width:min(260px,100%);justify-self:center;padding:12px 18px;color:#081416;background:#00e5d4;border:0;border-radius:10px;font-weight:800;cursor:pointer}
+.feedback-form input,.feedback-form select,.feedback-form textarea{box-sizing:border-box;width:100%;min-width:0;padding:11px 12px;color:#fff;background:#0c1422;border:1px solid rgba(0,229,212,.35);border-radius:10px}
+.feedback-form button{box-sizing:border-box;width:min(260px,100%);justify-self:center;padding:12px 18px;color:#081416;background:#00e5d4;border:0;border-radius:10px;font-weight:800;cursor:pointer}
 .feedback-link{color:#00e5d4;text-decoration:none}
 .feedback-stars{color:#ffd700;letter-spacing:2px}
+.feedback-row,.feedback-panel{overflow-wrap:anywhere}
+@media(max-width:600px){
+    .feedback-page{margin:12px auto 28px}
+    .feedback-panel{padding:16px;border-radius:14px}
+    .feedback-form button{width:100%;justify-self:stretch}
+}
 </style>
 <div class="feedback-page">
     @include('components.order-notifications', [
