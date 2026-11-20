@@ -35,7 +35,7 @@
 <div class="admin-overview">
     <section class="admin-overview-section" id="overview">
         <h1 class="admin-overview-title">Обзор организации</h1>
-        <p class="admin-overview-subtitle">Операционная сводка за сегодня. Доступ только для просмотра.</p>
+        <p class="admin-overview-subtitle">Операционная сводка за сегодня и текущая загрузка. Доступ только для просмотра.</p>
 
         <div class="admin-overview-grid">
             <div class="admin-overview-stat gold">
