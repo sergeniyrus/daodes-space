@@ -217,8 +217,9 @@ class OrganizationOrderController extends Controller
     public function export(Request $request, Organization $organization): StreamedResponse
     {
         $ordersQuery = $this->filteredOrdersQuery($request, $organization);
+        $timezone = $organization->orderSettings?->timezoneName() ?? config('app.timezone', 'UTC');
 
-        return response()->streamDownload(function () use ($ordersQuery) {
+        return response()->streamDownload(function () use ($ordersQuery, $timezone) {
             $output = fopen('php://output', 'w');
 
             if ($output === false) {
@@ -235,6 +236,9 @@ class OrganizationOrderController extends Controller
                 'Телефон',
                 'Статус',
                 'Получение',
+                'Адрес получения',
+                'Столик',
+                'Браслет / карта',
                 'Способ оплаты',
                 'Статус оплаты',
                 'Состав заказа',
@@ -254,19 +258,28 @@ class OrganizationOrderController extends Controller
                 return $value;
             };
 
-            $ordersQuery->chunk(500, function ($orders) use ($output, $safeCsvValue) {
+            $ordersQuery->chunk(500, function ($orders) use ($output, $safeCsvValue, $timezone) {
                 foreach ($orders as $order) {
+                    $fulfillmentAddress = match ($order->fulfillment_type) {
+                        Order::FULFILLMENT_PICKUP => $order->pickup_address_snapshot,
+                        Order::FULFILLMENT_DELIVERY => $order->delivery_address['address_line'] ?? '',
+                        default => '',
+                    };
+
                     $items = $order->items
                         ->map(fn ($item) => $item->item_name . ' × ' . $item->quantity)
                         ->implode(' | ');
 
                     fputcsv($output, [
                         $safeCsvValue($order->order_number),
-                        $order->created_at?->format('Y-m-d H:i:s'),
+                        $order->created_at?->timezone($timezone)->format('Y-m-d H:i:s'),
                         $safeCsvValue($order->customer_name),
                         $safeCsvValue($order->customer_phone),
                         $safeCsvValue($order->status),
                         $safeCsvValue($order->fulfillment_type),
+                        $safeCsvValue($fulfillmentAddress),
+                        $safeCsvValue($order->table_number),
+                        $safeCsvValue($order->guest_card_identifier),
                         $safeCsvValue($order->payment_method),
                         $safeCsvValue($order->payment_status),
                         $safeCsvValue($items),
