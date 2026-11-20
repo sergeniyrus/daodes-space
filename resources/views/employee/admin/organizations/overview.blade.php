@@ -120,4 +120,18 @@
         </div>
     </section>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const tabs = document.querySelectorAll('[data-admin-tab]');
+    const syncActiveTab = function () {
+        const activeTab = window.location.hash === '#team' ? 'team' : 'overview';
+        tabs.forEach(function (tab) {
+            tab.classList.toggle('is-active', tab.dataset.adminTab === activeTab);
+        });
+    };
+    syncActiveTab();
+    window.addEventListener('hashchange', syncActiveTab);
+});
+</script>
+
 @endsection
