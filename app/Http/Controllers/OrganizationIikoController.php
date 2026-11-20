@@ -373,6 +373,18 @@ class OrganizationIikoController extends Controller
             $errors[] = 'Включите онлайн-заказы, доставку или самовывоз в настройках DAODES.';
         }
 
+        if ($settings?->delivery_enabled && !$settings->hasConfiguredDelivery()) {
+            $errors[] = 'Сначала завершите настройку зон и точки отправления доставки в DAODES.';
+        }
+
+        if ($settings?->pickup_enabled && !$settings->hasPickupAddress()) {
+            $errors[] = 'Сначала укажите адрес самовывоза в настройках DAODES.';
+        }
+
+        if ($settings && !$settings->hasConfiguredWorkingHours()) {
+            $errors[] = 'Сначала настройте часы работы онлайн-заказов DAODES.';
+        }
+
         if ($settings?->delivery_enabled && mb_strtolower((string) $connection->address_format_type) !== 'city') {
             $errors[] = 'Для доставки требуется подтверждённый формат адреса iiko City.';
         }
