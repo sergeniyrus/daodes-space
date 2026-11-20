@@ -63,10 +63,10 @@
     </style>
 
     <nav class="organization-tabs" aria-label="Разделы администратора" data-organization-tabs>
-        <a href="{{ route('employee.organization.admin.overview', $organization) }}#overview" class="organization-tab {{ request()->routeIs('employee.organization.admin.overview') ? 'is-active' : '' }}" data-admin-tab="overview">
+        <a href="{{ route('employee.organization.admin.overview', $organization) }}" class="organization-tab {{ request()->routeIs('employee.organization.admin.overview') ? 'is-active' : '' }}" aria-current="page">
             <span>⌂</span> Обзор
         </a>
-        <a href="{{ route('employee.organization.admin.overview', $organization) }}#team" class="organization-tab" data-admin-tab="team">
+        <a href="{{ route('employee.organization.admin.team', $organization) }}" class="organization-tab {{ request()->routeIs('employee.organization.admin.team') ? 'is-active' : '' }}" @if(request()->routeIs('employee.organization.admin.team')) aria-current="page" @endif>
             <span>♙</span> Команда
         </a>
         <a href="{{ route('employee.organization.admin.orders.index', $organization) }}" class="organization-tab {{ $adminNavigationOrdersActive ? 'is-active' : '' }}" @if($adminNavigationOrdersActive) aria-current="page" @endif>
