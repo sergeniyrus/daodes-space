@@ -46,6 +46,11 @@
             <span>Получение</span>
             <strong>{{ ['delivery' => 'Доставка', 'pickup' => 'Самовывоз', 'dine_in' => 'В заведении'][$order->fulfillment_type] ?? $order->fulfillment_type }}</strong>
         </div>
+        @if($order->fulfillment_type === 'pickup')
+            <div style="margin-top: 10px;">
+                <strong>Адрес самовывоза:</strong> {{ $order->pickup_address_snapshot ?: ($order->organization?->orderSettings?->pickup_address ?? 'Уточните адрес у заведения') }}
+            </div>
+        @endif
         @if($order->fulfillment_type === 'delivery')
             <div style="margin-top: 10px;">
                 <strong>Адрес:</strong> {{ $order->delivery_address['address_line'] ?? 'Не указан' }}
