@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\IikoApiException;
 use App\Models\IikoConnection;
 use App\Models\IikoMenuMapping;
+use App\Models\IikoOrderMapping;
 use App\Models\IikoPaymentMapping;
 use App\Models\MenuItem;
 use App\Models\Organization;
@@ -33,6 +34,12 @@ class OrganizationIikoController extends Controller
             'organization' => $organization,
             'connection' => $connection,
             'syncLogs' => $organization->iikoSyncLogs()->latest('id')->limit(10)->get(),
+            'iikoOrderMappings' => IikoOrderMapping::query()
+                ->with(['order:id,order_number,status,fulfillment_type,total,currency,created_at'])
+                ->where('organization_id', $organization->id)
+                ->latest('updated_at')
+                ->limit(15)
+                ->get(),
             'iikoOrganizations' => [],
             'terminalGroups' => [],
         ]);
