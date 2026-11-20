@@ -46,7 +46,7 @@ class CustomerCatalogController extends Controller
                 && $settings->hasConfiguredDelivery()
                 && $hasPaymentAtReceipt
             ),
-            'pickup' => (bool) ($settings?->pickup_enabled && $hasPaymentAtReceipt),
+            'pickup' => (bool) ($settings?->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt),
             'dine_in' => (bool) $settings?->dine_in_enabled,
         ];
 
