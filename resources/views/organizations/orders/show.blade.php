@@ -268,7 +268,7 @@
         <div class="organization-order-detail__grid">
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Способ оплаты</span>
-                <div class="organization-order-detail__value">{{ $methodLabels[$order->payment_method] ?? $order->payment_method }}</div>
+                <div class="organization-order-detail__value">{{ $order->payment_method === 'guest_account' ? 'На счёт гостя — расчёт при выходе' : ($methodLabels[$order->payment_method] ?? $order->payment_method) }}</div>
             </div>
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Состояние оплаты</span>
@@ -281,6 +281,7 @@
             $canMarkPaid =
                 $order->payment_status === 'pending'
                 && $order->payment_method !== 'online'
+                && $order->payment_method !== 'guest_account'
                 && (
                     ($order->fulfillment_type === 'pickup' && $order->status === 'issued')
                     || ($order->fulfillment_type === 'delivery' && $order->status === 'delivered')
