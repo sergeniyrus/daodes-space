@@ -194,7 +194,7 @@ class CustomerCheckoutController extends Controller
         }
 
         $timezone = $settings->timezoneName();
-        $minimumOrderAt = Carbon::now($timezone)->addMinutes($settings->minimumOrderLeadMinutes())->ceilUnit('minute');
+        $minimumOrderAt = Carbon::now($timezone)->addMinutes($settings->minimumOrderLeadMinutes($selectedFulfillment))->ceilUnit('minute');
         $slotMinutes = max(5, (int) ($settings->time_slot_minutes ?? 15));
         $roundingMinutes = ($slotMinutes - ($minimumOrderAt->minute % $slotMinutes)) % $slotMinutes;
         $minimumOrderAt->addMinutes($roundingMinutes)->second(0);
@@ -420,9 +420,9 @@ class CustomerCheckoutController extends Controller
         }
 
         $requestedAt = Carbon::createFromFormat('Y-m-d\\TH:i', $validated['requested_at'], $settings->timezoneName());
-        if ($requestedAt->lt(Carbon::now($settings->timezoneName())->addMinutes($settings->minimumOrderLeadMinutes()))) {
+        if ($requestedAt->lt(Carbon::now($settings->timezoneName())->addMinutes($settings->minimumOrderLeadMinutes($validated['fulfillment_type'])))) {
             throw ValidationException::withMessages([
-                'requested_at' => 'Заказ можно запланировать не раньше чем через ' . $settings->minimumOrderLeadMinutes() . ' минут от текущего времени.',
+                'requested_at' => 'Заказ можно запланировать не раньше чем через ' . $settings->minimumOrderLeadMinutes($validated['fulfillment_type']) . ' минут от текущего времени.',
             ]);
         }
         if (((int) $requestedAt->format('i')) % max(5, (int) ($settings->time_slot_minutes ?? 15)) !== 0) {
@@ -430,14 +430,14 @@ class CustomerCheckoutController extends Controller
                 'requested_at' => 'Выберите время с шагом ' . $settings->time_slot_minutes . ' минут.',
             ]);
         }
-        if (!$settings->isWithinWorkingHours($requestedAt)) {
+            if (!$settings->isWithinWorkingHours($requestedAt)) {
             throw ValidationException::withMessages([
                 'requested_at' => 'Выбранное время находится за пределами графика работы заведения.',
             ]);
         }
         $slotMinutes = max(5, (int) ($settings->time_slot_minutes ?? 15));
         $minimumSlotTime = Carbon::now($settings->timezoneName())
-            ->addMinutes($settings->minimumOrderLeadMinutes())
+            ->addMinutes($settings->minimumOrderLeadMinutes($validated['fulfillment_type']))
             ->ceilUnit('minute');
         $minimumSlotTime->addMinutes(($slotMinutes - ($minimumSlotTime->minute % $slotMinutes)) % $slotMinutes)->second(0);
         if (!$settings->preorders_enabled && $requestedAt->gt($minimumSlotTime->copy()->addMinutes($slotMinutes))) {
@@ -635,12 +635,12 @@ class CustomerCheckoutController extends Controller
             }
 
             $requestedAt = Carbon::createFromFormat('Y-m-d\\TH:i', $validated['requested_at'], $settings->timezoneName());
-            if ($requestedAt->lt(Carbon::now($settings->timezoneName())->addMinutes($settings->minimumOrderLeadMinutes()))) {
+            if ($requestedAt->lt(Carbon::now($settings->timezoneName())->addMinutes($settings->minimumOrderLeadMinutes($validated['fulfillment_type'])))) {
                 throw ValidationException::withMessages([
                     'requested_at' => 'Заказ можно запланировать не раньше чем через ' . $settings->minimumOrderLeadMinutes() . ' минут от текущего времени.',
                 ]);
             }
-                if (((int) $requestedAt->format('i')) % max(5, (int) ($settings->time_slot_minutes ?? 15)) !== 0) {
+            if (((int) $requestedAt->format('i')) % max(5, (int) ($settings->time_slot_minutes ?? 15)) !== 0) {
                 throw ValidationException::withMessages([
                     'requested_at' => 'Выберите время с шагом ' . $settings->time_slot_minutes . ' минут.',
                 ]);
