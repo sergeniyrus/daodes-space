@@ -253,6 +253,52 @@
                 @endif
             </section>
 
+            @if (($iikoOrderMappings ?? collect())->isNotEmpty())
+                <section class="iiko-card">
+                    <h2>Последние заказы и синхронизация iiko</h2>
+                    <p>Операционный список последних заказов DAODES, для которых запускалась интеграция. Здесь видны ошибки передачи и текущий результат без показа персональных данных клиента.</p>
+                    <div style="display:grid;gap:9px">
+                        @foreach ($iikoOrderMappings as $mapping)
+                            @php
+                                $syncLabels = [
+                                    'pending' => 'Ожидает обработки',
+                                    'sent' => 'Передан в iiko',
+                                    'failed' => 'Требует проверки',
+                                ];
+                                $syncLabel = $syncLabels[$mapping->sync_status] ?? $mapping->sync_status;
+                                $isSyncFailed = $mapping->sync_status === 'failed';
+                            @endphp
+                            <div style="padding:12px 14px;border:1px solid {{ $isSyncFailed ? 'rgba(255,100,100,.35)' : 'rgba(0,229,212,.2)' }};border-radius:11px;background:rgba(5,10,20,.35)">
+                                <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+                                    <strong style="color:#f4d982">
+                                        Заказ #{{ $mapping->order?->order_number ?? $mapping->order_id }}
+                                    </strong>
+                                    <span style="color:{{ $isSyncFailed ? '#ff9ca4' : '#00e5d4' }};font-size:.85rem;font-weight:700">
+                                        {{ $syncLabel }}
+                                    </span>
+                                </div>
+                                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:7px;color:#aeb8c8;font-size:.82rem">
+                                    <span>{{ $mapping->order?->fulfillment_type === 'delivery' ? 'Доставка' : 'Самовывоз' }}</span>
+                                    @if ($mapping->order)
+                                        <span>Заказ: {{ $mapping->order->status }}</span>
+                                        <span>{{ number_format((float) $mapping->order->total, 2, ',', ' ') }} {{ $mapping->order->currency }}</span>
+                                    @endif
+                                    @if ($mapping->iiko_status)
+                                        <span>Статус iiko: {{ $mapping->iiko_status }}</span>
+                                    @endif
+                                    <span>Обновлён: {{ $mapping->updated_at?->format('d.m.Y H:i') }}</span>
+                                </div>
+                                @if ($isSyncFailed && $mapping->last_error)
+                                    <div style="margin-top:8px;color:#ff9ca4;font-size:.84rem;line-height:1.45">
+                                        {{ $mapping->last_error }}
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+
             <section class="iiko-card">
                 <h2>Внешнее меню iiko</h2>
                 <p>Следующий этап — загрузка меню, цен, фотографий и модификаторов из iiko с предварительным просмотром без изменения текущего каталога DAODES.</p>
