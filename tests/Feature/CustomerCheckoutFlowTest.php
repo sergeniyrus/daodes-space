@@ -2018,7 +2018,10 @@ class CustomerCheckoutFlowTest extends TestCase
             'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\\TH:i'),
         ])->assertRedirect();
 
-        return Order::query()->latest('id')->firstOrFail();
+        $order = Order::query()->latest('id')->firstOrFail();
+        $this->assertSame('Test street 1', $order->pickup_address_snapshot);
+
+        return $order;
     }
 
     private function openCheckout(
