@@ -644,7 +644,7 @@
 }
 .customer-order-header {
     display: grid;
-    grid-template-columns: minmax(220px, 1.35fr) repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: minmax(220px, 1.35fr) repeat(4, minmax(0, 1fr)) !important;
     gap: 14px;
     flex: 0 0 auto;
     margin-bottom: 16px;
@@ -727,32 +727,50 @@
     width: 100%;
     color: #ffd700;
     font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
-    font-size: clamp(1.8rem, 3vw, 3.1rem);
+    font-size: clamp(1.25rem, 2vw, 2rem);
     font-weight: 900;
     letter-spacing: clamp(.12em, .42vw, .28em);
     line-height: 1;
     text-align: center;    
     white-space: nowrap;
     text-shadow: 0 0 16px rgba(255, 215, 0, .32);
-    transform: scaleX(1.22);
+    transform: none;
     margin-top: 0;
     /* padding: 10px 15px; */
 }
 .customer-order-header-methods {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: 6px;
     color: #00e5d4;
-    font-size: clamp(1rem, 1.35vw, 1.4rem);
-    /* line-height: 1.2; */
+    font-size: clamp(.78rem, .95vw, 1rem);
     font-weight: 700;
     margin-top: 0;
 }
 .customer-order-header-method {
     position: relative;
-    display: inline-block;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 9px;
+    white-space: nowrap;
     cursor: help;
     outline: none;
+    border: 1px solid rgba(0, 229, 212, .42);
+    border-radius: 9px;
+    background: rgba(0, 229, 212, .055);
+    font-size: .86em;
+    line-height: 1.15;
+    box-sizing: border-box;
 }
 .customer-order-header-method-link{color:inherit;text-decoration:none;cursor:pointer;border-bottom:1px dotted rgba(0,229,212,.45);transition:color .18s ease}
-.customer-order-header-method-link:hover,.customer-order-header-method-link.is-selected{color:#ffd700;border-bottom-color:#ffd700}
+.customer-order-header-method-link:hover,.customer-order-header-method-link.is-selected{color:#ffd700;border-color:rgba(255,215,0,.8);background:rgba(255,215,0,.09)}
 .customer-order-header-method-disabled{color:#788493;cursor:help}
 .customer-order-header-method:focus-visible {
     color: #ffd700;
@@ -964,7 +982,7 @@
 }
 @media (max-width: 1000px) {
     .customer-order-header {
-        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
         gap: 8px;
     }
     .customer-order-header-card {
@@ -1014,7 +1032,7 @@
 @media (max-width: 700px) {
     /* Mobile header: organization/menu full width, actions side by side. */
     .customer-order-header {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         gap: 7px;
     }
     .customer-order-header-info {
@@ -1045,11 +1063,14 @@
     .customer-order-header-menu-title {
         font-size: clamp(1.35rem, 6vw, 2rem);
         letter-spacing: clamp(.1em, 1.2vw, .2em);
-        transform: scaleX(1.08);
+        transform: none;
     }
-    .customer-order-header-methods { font-size: clamp(.9rem, 3.5vw, 1.05rem); }
+    .customer-order-header-methods { font-size: clamp(.72rem, 2.6vw, .9rem); gap: 5px; }
+    .customer-order-header-method { flex: 1 1 0; padding: 7px 4px; gap: 3px; font-size: .95em; }
     .customer-order-header-delivery { font-size: clamp(.88rem, 3.3vw, 1rem); }
     .customer-order-header-action { min-height: 78px; }
+    .customer-order-header-card:not(.customer-order-header-info) { min-height: 78px; }
+    .customer-order-header-action-title { font-size: clamp(.82rem, 3.3vw, 1rem); }
     .customer-order-page { height: auto; overflow: visible; }
 }
 
@@ -2208,7 +2229,6 @@ body.customer-menu-image-open { overflow: hidden !important; }
 
     <div class="customer-order-header">
         <section class="customer-order-header-card customer-order-header-info">
-            <a class="customer-order-header-settings-link" href="{{ route('customer.settings.index', ['organization' => $customerWorkspace['organization']->id]) }}" aria-label="Настройки" title="Настройки">⚙</a>
             <h1 class="customer-order-header-organization">{{ $customerWorkspace['organization']->name }}</h1>
             <div class="customer-order-header-menu-title">НАШЕ МЕНЮ</div>
             <div class="customer-order-header-methods">
@@ -2255,7 +2275,7 @@ body.customer-menu-image-open { overflow: hidden !important; }
                     <a class="customer-order-header-method customer-order-header-method-link {{ $headerFulfillment === 'pickup' ? 'is-selected' : '' }}"
                         href="{{ route('customer.catalog', ['organization' => $headerOrganization->id, 'fulfillment' => 'pickup']) }}"
                         aria-describedby="customer-order-pickup-tooltip">
-                        · 🛍 Самовывоз
+                        🛍 Самовывоз
                         <span class="customer-order-header-tooltip" id="customer-order-pickup-tooltip" role="tooltip">
                             <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Забрать заказ самостоятельно</span>
                             <span class="customer-order-header-tooltip-line">{{ $headerSettings?->pickup_address ?: 'Адрес уточняется у организации' }}</span>
@@ -2272,7 +2292,7 @@ body.customer-menu-image-open { overflow: hidden !important; }
                     <a class="customer-order-header-method customer-order-header-method-link {{ $headerFulfillment === 'dine_in' ? 'is-selected' : '' }}"
                         href="{{ route('customer.catalog', ['organization' => $headerOrganization->id, 'fulfillment' => 'dine_in']) }}"
                         aria-describedby="customer-order-cafe-tooltip">
-                        · 🍽 В заведении
+                        🍽 В заведении
                         <span class="customer-order-header-tooltip" id="customer-order-cafe-tooltip" role="tooltip">
                             <span class="customer-order-header-tooltip-line customer-order-header-tooltip-accent">Заказать или предзаказать к посещению</span>
                         </span>
@@ -2313,7 +2333,6 @@ body.customer-menu-image-open { overflow: hidden !important; }
                             <span class="customer-order-header-action-stat">Оставить отзыв или обращение</span>
                         @endif
                     </span>
-                    <span class="customer-order-header-notification-badge" data-header-notifications-count {{ ($customerUnreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}>{{ ($customerUnreadNotificationsCount ?? 0) > 0 ? $customerUnreadNotificationsCount : '' }}</span>
                 </a>
             </section>
         @else
@@ -2334,6 +2353,16 @@ body.customer-menu-image-open { overflow: hidden !important; }
                     <span class="customer-order-header-action-stat">Выбрано <span class="customer-order-header-action-count">{{ $customerWorkspace['cartCount'] }}</span></span>
                     <span class="customer-order-header-action-stat customer-order-header-cart-total">Начислено <strong>{{ number_format((float) $customerWorkspace['cartSubtotal'], 2, ',', ' ') }} {{ $customerWorkspace['currencySymbol'] }}</strong></span>
                 </span>
+            </a>
+        </section>
+
+        <section class="customer-order-header-card {{ request()->routeIs('customer.settings.*') ? 'is-active' : '' }}">
+            <a class="customer-order-header-action customer-order-header-settings-action" href="{{ route('customer.settings.index', ['organization' => $customerWorkspace['organization']->id]) }}" aria-label="Настройки">
+                <span class="customer-order-header-action-title">⚙ Настройки</span>
+                <span class="customer-order-header-action-stats">
+                    <span class="customer-order-header-action-stat">Профиль и уведомления</span>
+                </span>
+                <span class="customer-order-header-notification-badge" data-header-notifications-count {{ ($customerUnreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}>{{ ($customerUnreadNotificationsCount ?? 0) > 0 ? $customerUnreadNotificationsCount : '' }}</span>
             </a>
         </section>
 
