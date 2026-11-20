@@ -21,13 +21,6 @@ return new class extends Migration
                     $table->string('pickup_address', 500)->nullable();
                 });
             }
-
-            DB::table('organization_order_settings')
-                ->where('organization_id', 2)
-                ->update([
-                    'delivery_city' => 'Зеленогорск, Красноярский край, Россия',
-                    'pickup_address' => 'Парковая улица, 23, Термбург',
-                ]);
         }
 
         if (Schema::hasTable('customer_addresses') && !Schema::hasColumn('customer_addresses', 'house_number')) {
