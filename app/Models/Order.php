@@ -50,6 +50,7 @@ class Order extends Model
         'customer_comment',
         'delivery_address',
         'table_number',
+        'guest_card_identifier',
         'requested_at',
         'subtotal',
         'delivery_fee',
