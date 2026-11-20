@@ -62,6 +62,20 @@ class IikoReservationService
         );
     }
 
+
+    public function commandStatus(IikoConnection $connection, string $correlationId): array
+    {
+        return $this->client->request(
+            $connection,
+            'POST',
+            '/api/1/commands/status',
+            [
+                'organizationId' => $this->organizationId($connection),
+                'correlationId' => $correlationId,
+            ]
+        );
+    }
+
     public function statusById(IikoConnection $connection, array $reserveIds): array
     {
         if ($reserveIds === []) {
