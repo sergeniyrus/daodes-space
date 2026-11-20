@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\IikoConnection;
 use App\Services\Iiko\IikoAnalyticsService;
 use App\Services\Iiko\IikoInventoryService;
+use App\Services\Iiko\IikoFinanceService;
 use App\Services\Iiko\IikoLoyaltyService;
 use App\Services\Iiko\IikoReservationService;
 use Illuminate\Http\Client\Request;
@@ -115,6 +116,25 @@ class IikoAdvancedServiceTest extends TestCase
             str_ends_with($request->url(), '/api/inventory/v1/stock_balance/list')
             && $request['organizationId'] === '11111111-1111-4111-8111-111111111111'
             && $request['storeIds'] === ['77777777-7777-4777-8777-777777777777']
+        );
+    }
+
+
+    public function test_finance_service_requests_accounts_without_mutating_financial_data(): void
+    {
+        Http::fakeSequence()
+            ->push(['token' => 'test-jwt'], 200)
+            ->push(['accounts' => []], 200);
+
+        $result = app(IikoFinanceService::class)->accounts($this->connection());
+
+        $this->assertArrayHasKey('accounts', $result);
+
+        Http::assertSent(fn (Request $request): bool =>
+            str_ends_with($request->url(), '/api/finance/v1/account/list')
+            && $request['filters'] === []
+            && $request['limit'] === 100
+            && $request['offset'] === 0
         );
     }
 
