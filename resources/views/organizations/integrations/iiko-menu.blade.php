@@ -45,6 +45,9 @@
             <a class="iiko-menu-button" href="{{ route('organizations.iiko.index', $organization) }}">← Настройки iiko</a>
         </div>
 
+        @if (session('success'))
+            <div style="padding:12px 14px;border:1px solid rgba(90,210,145,.35);border-radius:10px;color:#76e1ad;background:rgba(50,180,110,.07);margin-bottom:12px">{{ session('success') }}</div>
+        @endif
         @if ($errors->has('iiko_menu'))
             <div class="iiko-menu-alert">{{ $errors->first('iiko_menu') }}</div>
         @endif
@@ -56,6 +59,19 @@
                 <a class="iiko-menu-button gold" href="{{ route('organizations.iiko.index', $organization) }}">Перейти к подключению</a>
             </div>
         @else
+            <div class="iiko-menu-card">
+                <h2>Стоп-лист iiko</h2>
+                <p>Загружаем актуальный список временно недоступных блюд для выбранной терминальной группы. Старый снимок заменяется только после успешного ответа iiko.</p>
+                <div class="iiko-menu-stats">
+                    <div class="iiko-menu-stat">Недоступных позиций в последнем снимке: {{ $stopListCount ?? 0 }}</div>
+                    <div class="iiko-menu-stat">Последняя синхронизация: {{ $connection->last_stop_list_sync_at?->format('d.m.Y H:i') ?? 'Ещё не выполнялась' }}</div>
+                </div>
+                <form method="POST" action="{{ route('organizations.iiko.menu.stop-list-sync', $organization) }}">
+                    @csrf
+                    <button class="iiko-menu-button" type="submit">Обновить стоп-лист</button>
+                </form>
+            </div>
+
             <div class="iiko-menu-card">
                 <h2>1. Получить доступные внешние меню</h2>
                 <p>iiko возвращает только те внешние меню, которые настроены для выбранной организации. Если список пустой, администратору ресторана нужно настроить внешнее меню в iikoWeb.</p>
