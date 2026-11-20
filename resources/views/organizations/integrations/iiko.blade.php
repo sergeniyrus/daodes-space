@@ -262,18 +262,24 @@
                             @php
                                 $syncLabels = [
                                     'pending' => 'Ожидает обработки',
+                                    'processing' => 'Ожидает подтверждения iiko',
                                     'sent' => 'Передан в iiko',
                                     'failed' => 'Требует проверки',
                                 ];
                                 $syncLabel = $syncLabels[$mapping->sync_status] ?? $mapping->sync_status;
                                 $isSyncFailed = $mapping->sync_status === 'failed';
+                                $isSyncProcessing = $mapping->sync_status === 'processing';
+                                $syncColor = $isSyncFailed ? '#ff9ca4' : ($isSyncProcessing ? '#f4d982' : '#00e5d4');
+                                $syncBorder = $isSyncFailed
+                                    ? 'rgba(255,100,100,.35)'
+                                    : ($isSyncProcessing ? 'rgba(255,215,0,.35)' : 'rgba(0,229,212,.2)');
                             @endphp
-                            <div style="padding:12px 14px;border:1px solid {{ $isSyncFailed ? 'rgba(255,100,100,.35)' : 'rgba(0,229,212,.2)' }};border-radius:11px;background:rgba(5,10,20,.35)">
+                            <div style="padding:12px 14px;border:1px solid {{ $syncBorder }};border-radius:11px;background:rgba(5,10,20,.35)">
                                 <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
                                     <strong style="color:#f4d982">
                                         Заказ #{{ $mapping->order?->order_number ?? $mapping->order_id }}
                                     </strong>
-                                    <span style="color:{{ $isSyncFailed ? '#ff9ca4' : '#00e5d4' }};font-size:.85rem;font-weight:700">
+                                    <span style="color:{{ $syncColor }};font-size:.85rem;font-weight:700">
                                         {{ $syncLabel }}
                                     </span>
                                 </div>
@@ -288,8 +294,8 @@
                                     @endif
                                     <span>Обновлён: {{ $mapping->updated_at?->format('d.m.Y H:i') }}</span>
                                 </div>
-                                @if ($isSyncFailed && $mapping->last_error)
-                                    <div style="margin-top:8px;color:#ff9ca4;font-size:.84rem;line-height:1.45">
+                                @if (($isSyncFailed || $isSyncProcessing) && $mapping->last_error)
+                                    <div style="margin-top:8px;color:{{ $isSyncFailed ? '#ff9ca4' : '#f4d982' }};font-size:.84rem;line-height:1.45">
                                         {{ $mapping->last_error }}
                                     </div>
                                 @endif
@@ -344,7 +350,7 @@
                         @foreach ($syncLogs as $log)
                             <div style="padding:11px 13px;border:1px solid {{ $log->status === 'success' ? 'rgba(90,210,145,.25)' : 'rgba(255,100,100,.25)' }};border-radius:10px;background:rgba(5,10,20,.35)">
                                 <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
-                                    <strong style="color:{{ $log->status === 'success' ? '#76e1ad' : '#ff9ca4' }}">{{ $log->sync_type }} · {{ $log->status === 'success' ? 'Успешно' : 'Ошибка' }}</strong>
+                                    <strong style="color:{{ $log->status === 'success' ? '#76e1ad' : ($log->status === 'warning' ? '#f4d982' : '#ff9ca4') }}">{{ $log->sync_type }} · {{ $log->status === 'success' ? 'Успешно' : ($log->status === 'warning' ? 'Требует сверки' : 'Ошибка') }}</strong>
                                     <span class="iiko-help">{{ $log->created_at?->format('d.m.Y H:i:s') }}</span>
                                 </div>
                                 <div style="color:#c1c9d7;font-size:.86rem;margin-top:5px">{{ $log->message }}</div>
