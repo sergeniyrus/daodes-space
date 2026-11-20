@@ -59,6 +59,11 @@ class OrganizationOrderSettingTest extends TestCase
             'delivery_enabled' => true,
             'pickup_enabled' => true,
             'cash_payment_enabled' => true,
+            'working_hours' => array_fill_keys(range(1, 7), [
+                'enabled' => true,
+                'open' => '09:00',
+                'close' => '22:00',
+            ]),
         ]);
 
         $this->assertTrue($settings->canAcceptOrders());
