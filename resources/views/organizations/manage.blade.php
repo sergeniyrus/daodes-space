@@ -1227,7 +1227,7 @@
 <section class="organization-order-dashboard">
         <h2 class="organization-order-dashboard-title">📊 Заказы и выручка</h2>
         <div class="organization-order-dashboard-subtitle">
-            Операционная сводка за {{ now()->format('d.m.Y') }} и текущая загрузка
+            Операционная сводка за {{ now($orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y') }} и текущая загрузка
         </div>
 
         <div class="organization-order-stats">
@@ -1303,7 +1303,7 @@
                         <strong>{{ $activity->description }}</strong>
                         <div class="organization-activity-meta">
                             <span>{{ $activity->actor?->name ?? 'Система' }}</span>
-                            <span>{{ $activity->created_at?->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</span>
+                            <span>{{ $activity->created_at?->timezone($orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</span>
                         </div>
                         @if($activity->before_values || $activity->after_values)
                             <details>
