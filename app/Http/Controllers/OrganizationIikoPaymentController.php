@@ -101,6 +101,7 @@ class OrganizationIikoPaymentController extends Controller
                     'daodes_payment_method' => $validated['daodes_payment_method'],
                 ],
                 [
+                    'iiko_organization_id' => $connection->iiko_organization_id,
                     'iiko_payment_type_id' => $validated['iiko_payment_type_id'],
                     'iiko_payment_type_name' => (string) ($selected['name'] ?? 'Способ оплаты iiko'),
                     'payment_type_kind' => (string) ($selected['kind'] ?? $selected['paymentTypeKind'] ?? ''),
