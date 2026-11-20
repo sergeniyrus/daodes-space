@@ -31,6 +31,7 @@ class IikoAvailabilityService
                 ->select('iiko_product_id')
                 ->where('organization_id', $organizationId)
                 ->where('iiko_organization_id', $connection->iiko_organization_id)
+                ->where('terminal_group_id', $connection->terminal_group_id)
                 ->where('is_available', false))
             ->pluck('menu_item_id')
             ->map(fn ($id) => (int) $id)
