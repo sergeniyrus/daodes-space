@@ -58,6 +58,24 @@ class SendIikoOrder implements ShouldQueue
             ]
         );
 
+        if (
+            filled($mapping->iiko_organization_id) &&
+            $mapping->iiko_organization_id !== $connection->iiko_organization_id
+        ) {
+            $mapping->update([
+                'sync_status' => 'failed',
+                'last_error' => 'Подключение iiko изменилось после создания этого заказа. Требуется ручная сверка; автоматическая повторная отправка запрещена.',
+            ]);
+
+            return;
+        }
+
+        if (!$mapping->iiko_organization_id) {
+            $mapping->update([
+                'iiko_organization_id' => $connection->iiko_organization_id,
+            ]);
+        }
+
         if ($mapping->sync_status === 'sent') {
             return;
         }
