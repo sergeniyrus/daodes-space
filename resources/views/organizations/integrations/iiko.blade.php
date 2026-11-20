@@ -196,6 +196,17 @@
             </section>
         @endif
 
+        @if ($connection?->iiko_organization_id)
+            <section class="iiko-card">
+                <h2>Способы оплаты</h2>
+                <p>Получите платёжные типы ресторана и сопоставьте их с методами оплаты DAODES. Это подготовка финансовой синхронизации, а не автоматическое проведение платежей.</p>
+                <form method="POST" action="{{ route('organizations.iiko.payments.discover', $organization) }}">
+                    @csrf
+                    <button class="iiko-button" type="submit">Загрузить способы оплаты iiko</button>
+                </form>
+            </section>
+        @endif
+
         @if ($connection?->iiko_organization_id && $connection?->terminal_group_id)
             <section class="iiko-card">
                 <h2>Состояние интеграции</h2>
