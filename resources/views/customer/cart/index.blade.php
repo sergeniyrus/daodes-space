@@ -140,7 +140,13 @@
                             </div>
                         @endif
                         @if(!$line['available'])
-                            <div class="customer-cart-unavailable">Позиция временно недоступна.</div>
+                            <div class="customer-cart-unavailable">
+                                @if($line['iiko_unavailable'] ?? false)
+                                    Временно отсутствует в ресторане (стоп-лист iiko).
+                                @else
+                                    Позиция временно недоступна.
+                                @endif
+                            </div>
                         @else
                             <div class="customer-cart-availability" aria-label="Доступные способы получения">
                                 @if($line['delivery_available']) <span class="is-available">Доставка</span> @endif
