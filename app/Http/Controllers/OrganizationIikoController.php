@@ -6,6 +6,7 @@ use App\Exceptions\IikoApiException;
 use App\Models\IikoConnection;
 use App\Models\Organization;
 use App\Services\Iiko\IikoCloudClient;
+use App\Services\Iiko\IikoSyncLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,7 +15,8 @@ use Throwable;
 class OrganizationIikoController extends Controller
 {
     public function __construct(
-        private readonly IikoCloudClient $iiko
+        private readonly IikoCloudClient $iiko,
+        private readonly IikoSyncLogger $logger
     ) {
     }
 
@@ -66,6 +68,8 @@ class OrganizationIikoController extends Controller
     {
         $connection = $this->connectionOrFail($organization);
 
+        $startedAt = now();
+
         try {
             $payload = $this->iiko->request($connection, 'POST', '/api/1/organizations');
             $organizations = collect($payload['organizations'] ?? [])
@@ -93,6 +97,16 @@ class OrganizationIikoController extends Controller
                 'last_error' => null,
             ]);
 
+            $this->logger->record(
+                $connection,
+                'connection',
+                'success',
+                'Подключение iiko проверено.',
+                $payload['correlationId'] ?? null,
+                ['organizations_count' => $organizations->count(), 'endpoint' => '/api/1/organizations'],
+                $startedAt
+            );
+
             return view('organizations.integrations.iiko', [
                 'organization' => $organization,
                 'connection' => $connection->fresh(),
@@ -101,6 +115,15 @@ class OrganizationIikoController extends Controller
             ]);
         } catch (Throwable $exception) {
             report($exception);
+            $this->logger->record(
+                $connection,
+                'connection',
+                'failed',
+                $this->safeErrorMessage($exception),
+                null,
+                ['endpoint' => '/api/1/organizations'],
+                $startedAt
+            );
 
             $connection->update([
                 'connection_status' => 'error',
