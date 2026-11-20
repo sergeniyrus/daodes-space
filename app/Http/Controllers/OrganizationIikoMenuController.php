@@ -25,9 +25,11 @@ class OrganizationIikoMenuController extends Controller
 
     public function index(Organization $organization): View
     {
+        $connection = $organization->iikoConnection;
+
         return view('organizations.integrations.iiko-menu', [
             'organization' => $organization,
-            'connection' => $organization->iikoConnection,
+            'connection' => $connection,
             'externalMenus' => collect(),
             'priceCategories' => collect(),
             'previewItems' => collect(),
