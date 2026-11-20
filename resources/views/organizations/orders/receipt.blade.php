@@ -115,13 +115,19 @@
         @if($order->requested_at)
             <div class="receipt__row">
                 <span>Время</span>
-                <strong>{{ $order->requested_at->format('d.m.Y H:i') }}</strong>
+                <strong>{{ $order->requested_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</strong>
             </div>
         @endif
         @if($order->table_number)
             <div class="receipt__row">
                 <span>Столик</span>
                 <strong>{{ $order->table_number }}</strong>
+            </div>
+        @endif
+        @if($order->guest_card_identifier)
+            <div class="receipt__row">
+                <span>Браслет / карта сотрудника</span>
+                <strong>{{ $order->guest_card_identifier }}</strong>
             </div>
         @endif
         <div>Клиент: <strong>{{ $order->customer_name }}</strong></div>
@@ -181,7 +187,7 @@
         <hr class="receipt__rule">
         <div class="receipt__row">
             <span>Оплата</span>
-            <span>{{ $methodLabels[$order->payment_method] ?? $order->payment_method }}</span>
+            <span>{{ $order->payment_method === 'guest_account' ? 'На счёт гостя — расчёт при выходе' : ($methodLabels[$order->payment_method] ?? $order->payment_method) }}</span>
         </div>
         <div class="receipt__row">
             <span>Статус оплаты</span>
