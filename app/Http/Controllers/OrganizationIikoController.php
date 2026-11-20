@@ -269,6 +269,7 @@ class OrganizationIikoController extends Controller
                 'terminal_group_id' => $validated['terminal_group_id'],
                 'terminal_group_name' => (string) ($availableGroup['name'] ?? $validated['terminal_group_name']),
                 'address_format_type' => is_string($addressFormatType) ? $addressFormatType : null,
+                'is_enabled' => true,
                 'connection_status' => 'connected',
                 'last_connected_at' => now(),
                 'last_error' => null,
