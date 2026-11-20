@@ -35,8 +35,9 @@ class EmployeeAdminOrderController extends Controller
         $this->assertAdmin($organization);
 
         $organizationTimezone = $organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk';
-        $todayStart = now($organizationTimezone)->startOfDay()->utc();
-        $tomorrowStart = $todayStart->copy()->addDay();
+        $todayLocal = now($organizationTimezone)->startOfDay();
+        $todayStart = $todayLocal->copy()->utc();
+        $tomorrowStart = $todayLocal->copy()->addDay()->utc();
 
         $todayOrders = $organization->orders()
             ->where('created_at', '>=', $todayStart)
