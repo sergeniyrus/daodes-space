@@ -149,8 +149,8 @@ class EmployeeAdminOrderController extends Controller
                 $dateTo = null;
                 break;
             case 'custom':
-                $dateFrom = !empty($filters['date_from']) ? \Illuminate\Support\Carbon::parse($filters['date_from'])->startOfDay() : $now->copy()->startOfMonth();
-                $dateTo = !empty($filters['date_to']) ? \Illuminate\Support\Carbon::parse($filters['date_to'])->endOfDay() : $now->copy()->endOfDay();
+                $dateFrom = !empty($filters['date_from']) ? \Illuminate\Support\Carbon::parse($filters['date_from'], $timezone)->startOfDay() : $now->copy()->startOfMonth();
+                $dateTo = !empty($filters['date_to']) ? \Illuminate\Support\Carbon::parse($filters['date_to'], $timezone)->endOfDay() : $now->copy()->endOfDay();
                 break;
             case 'month':
             default:
@@ -193,8 +193,8 @@ class EmployeeAdminOrderController extends Controller
             ->where('orders.organization_id', $organization->id)
             ->where('orders.payment_status', Order::PAYMENT_SUCCEEDED)
             ->where('orders.status', '<>', Order::STATUS_CANCELLED)
-            ->when($dateFrom, fn ($q) => $q->where('orders.created_at', '>=', $dateFrom))
-            ->when($dateTo, fn ($q) => $q->where('orders.created_at', '<=', $dateTo))
+            ->when($queryDateFrom, fn ($q) => $q->where('orders.created_at', '>=', $queryDateFrom))
+            ->when($queryDateTo, fn ($q) => $q->where('orders.created_at', '<=', $queryDateTo))
             ->select('order_items.menu_item_id')
             ->selectRaw('SUM(order_items.quantity) as sold_quantity')
             ->selectRaw('COUNT(DISTINCT orders.id) as orders_count')
