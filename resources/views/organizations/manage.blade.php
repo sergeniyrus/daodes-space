@@ -1936,6 +1936,83 @@
                 @enderror
             </label>
 
+            @php
+                $workingHoursValues = old('working_hours', $orderSettings?->working_hours ?? []);
+                $workingDays = [
+                    1 => 'Понедельник',
+                    2 => 'Вторник',
+                    3 => 'Среда',
+                    4 => 'Четверг',
+                    5 => 'Пятница',
+                    6 => 'Суббота',
+                    7 => 'Воскресенье',
+                ];
+            @endphp
+
+            <section class="organization-order-schedule" style="grid-column: 1 / -1; padding: 16px; border: 1px solid rgba(0,229,212,.3); border-radius: 12px; background: rgba(0,229,212,.035);">
+                <h3 style="margin: 0 0 6px; color: #00e5d4;">🕒 График работы заведения</h3>
+                <p style="margin: 0 0 12px; color: #aeb5c4; font-size: .88rem;">Заказы и предзаказы будут доступны только в указанные часы. Можно задать ночной график, например с 18:00 до 02:00.</p>
+                <div style="display:grid; gap:8px;">
+                    @foreach($workingDays as $dayNumber => $dayName)
+                        @php
+                            $dayHours = $workingHoursValues[$dayNumber] ?? [];
+                            $dayEnabled = old("working_hours.$dayNumber.enabled", $dayHours['enabled'] ?? ($orderSettings?->working_hours === null));
+                        @endphp
+                        <div style="display:grid; grid-template-columns:minmax(120px,1fr) auto minmax(105px,130px) minmax(105px,130px); align-items:center; gap:9px; padding:8px 10px; border:1px solid rgba(255,215,0,.12); border-radius:9px;">
+                            <strong style="color:#e8eaf0;">{{ $dayName }}</strong>
+                            <label style="display:flex; align-items:center; gap:6px; color:#00e5d4; white-space:nowrap;">
+                                <input type="checkbox" name="working_hours[{{ $dayNumber }}][enabled]" value="1" @checked($dayEnabled)>
+                                Работает
+                            </label>
+                            <label style="color:#aeb5c4; font-size:.82rem;">Открытие
+                                <input type="time" name="working_hours[{{ $dayNumber }}][open]" value="{{ old("working_hours.$dayNumber.open", $dayHours['open'] ?? '09:00') }}" class="organization-order-input">
+                            </label>
+                            <label style="color:#aeb5c4; font-size:.82rem;">Закрытие
+                                <input type="time" name="working_hours[{{ $dayNumber }}][close]" value="{{ old("working_hours.$dayNumber.close", $dayHours['close'] ?? '22:00') }}" class="organization-order-input">
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                @error('working_hours')
+                    <div class="organization-order-error">{{ $message }}</div>
+                @enderror
+                @foreach(range(1, 7) as $dayNumber)
+                    @error("working_hours.$dayNumber.open")<div class="organization-order-error">{{ $message }}</div>@enderror
+                    @error("working_hours.$dayNumber.close")<div class="organization-order-error">{{ $message }}</div>@enderror
+                @endforeach
+            </section>
+
+            <label class="organization-order-field">
+                Часовой пояс заведения (IANA)
+                <input type="text" name="timezone" class="organization-order-input"
+                    value="{{ old('timezone', $orderSettings?->timezone ?: 'Asia/Krasnoyarsk') }}"
+                    placeholder="Europe/Sofia" required>
+                <small style="color:#9ca3af;">Например: Europe/Sofia, Europe/Moscow, Asia/Krasnoyarsk.</small>
+                @error('timezone')<span class="organization-order-error">{{ $message }}</span>@enderror
+            </label>
+
+            <label class="organization-order-field">
+                Минимум до заказа (минут)
+                <input type="number" name="order_lead_minutes" class="organization-order-input"
+                    value="{{ old('order_lead_minutes', $orderSettings?->order_lead_minutes ?? 30) }}"
+                    min="30" max="1440" step="1" required>
+                @error('order_lead_minutes')<span class="organization-order-error">{{ $message }}</span>@enderror
+            </label>
+
+            <label class="organization-order-field">
+                Шаг времени предзаказа (минут)
+                <select name="time_slot_minutes" class="organization-order-input">
+                    @foreach([5, 10, 15, 20, 30, 60] as $slot)
+                        <option value="{{ $slot }}" @selected((int) old('time_slot_minutes', $orderSettings?->time_slot_minutes ?? 15) === $slot)>{{ $slot }} минут</option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label class="organization-order-field" style="display:flex; flex-direction:row; align-items:center; gap:9px;">
+                <input type="checkbox" name="preorders_enabled" value="1" @checked(old('preorders_enabled', $orderSettings?->preorders_enabled ?? true))>
+                <span>Разрешить предзаказ на дату и время</span>
+            </label>
+
             <label class="organization-order-field">
                 Минимальное время самовывоза (мин.)
                 <input
