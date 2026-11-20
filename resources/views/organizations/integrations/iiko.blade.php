@@ -170,6 +170,12 @@
         @endif
 
         @if ($connection?->iiko_organization_id && $connection?->terminal_group_id)
+            <section class="iiko-card">
+                <h2>Внешнее меню iiko</h2>
+                <p>Следующий этап — загрузка меню, цен, фотографий и модификаторов из iiko с предварительным просмотром без изменения текущего каталога DAODES.</p>
+                <a class="iiko-button" href="{{ route('organizations.iiko.menu.index', $organization) }}">Открыть синхронизацию меню</a>
+            </section>
+
             <section class="iiko-card gold">
                 <h2>Выбранная конфигурация</h2>
                 <div class="iiko-selected">
