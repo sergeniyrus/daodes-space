@@ -112,7 +112,7 @@
         @if ($connection?->iiko_organization_id)
             <section class="iiko-card">
                 <h2>Вебхуки iiko</h2>
-                <p>Вебхук позволяет получать изменения заказов и уведомления об обновлении стоп-листа без постоянного опроса API. Для одной организации iiko используется единый URL DAODES. После настройки проверьте в iikoWeb фильтры событий: DeliveryOrderUpdate, DeliveryOrderError, StopListUpdate, TableOrderUpdate и TableOrderError.</p>
+                <p>Вебхук позволяет получать изменения заказов и уведомления об обновлении стоп-листа без постоянного опроса API. Для одной организации iiko используется единый URL DAODES. После настройки проверьте в iikoWeb фильтры событий: DeliveryOrderUpdate, DeliveryOrderError и StopListUpdate. TableOrderUpdate подключим после завершения сценария заказов в зале.</p>
                 <div class="iiko-selected">
                     <div>
                         <small>Состояние</small>
