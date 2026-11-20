@@ -143,6 +143,10 @@ class IikoOrderService
             $order->payment_method === Order::PAYMENT_ONLINE &&
             $order->payment_status === Order::PAYMENT_SUCCEEDED
         ) {
+            if (!config('iiko.allow_online_payment_orders')) {
+                throw new RuntimeException('Передача онлайн-оплаты в iiko выключена до настройки безопасного возврата при отказе iiko.');
+            }
+
             $paymentMapping = IikoPaymentMapping::query()
                 ->where('organization_id', $order->organization_id)
                 ->where('iiko_organization_id', $connection->iiko_organization_id)
