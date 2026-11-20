@@ -54,6 +54,13 @@ Route::prefix('staff')->name('employee.')->group(function () {
             ->middleware(['employee.organization', 'employee.role:admin'])
             ->name('organization.admin.overview');
 
+        Route::get('/organizations/{organization}/admin/team', [
+            \\App\\Http\\Controllers\\Employee\\EmployeeAdminOrderController::class,
+            'team',
+        ])
+            ->middleware(['employee.organization', 'employee.role:admin'])
+            ->name('organization.admin.team');
+
         // Полный операционный доступ администратора к заказам организации.
         Route::middleware(['employee.organization', 'employee.role:admin'])
             ->prefix('organizations/{organization}/admin/orders')
