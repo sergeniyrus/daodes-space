@@ -209,6 +209,9 @@ class OrganizationIikoMenuController extends Controller
                 'menuMappings' => IikoMenuMapping::query()
                     ->with('menuItem')
                     ->where('organization_id', $organization->id)
+                    ->where('iiko_organization_id', $connection->iiko_organization_id)
+                    ->where('external_menu_id', $connection->external_menu_id)
+                    ->where('price_category_id', $connection->price_category_id)
                     ->get()
                     ->keyBy('iiko_product_id'),
             ]);
@@ -303,6 +306,9 @@ class OrganizationIikoMenuController extends Controller
 
             $alreadyMapped = IikoMenuMapping::query()
                 ->where('organization_id', $organization->id)
+                ->where('iiko_organization_id', $connection->iiko_organization_id)
+                ->where('external_menu_id', $connection->external_menu_id)
+                ->where('price_category_id', $connection->price_category_id)
                 ->where('iiko_product_id', $validated['iiko_product_id'])
                 ->where('menu_item_id', '!=', $menuItem->id)
                 ->exists();
