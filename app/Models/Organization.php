@@ -110,6 +110,22 @@ class Organization extends Model
     }
 
     /**
+     * Сопоставления блюд DAODES с номенклатурой iiko.
+     */
+    public function iikoMenuMappings(): HasMany
+    {
+        return $this->hasMany(IikoMenuMapping::class);
+    }
+
+    /**
+     * Последний снимок стоп-листа iiko.
+     */
+    public function iikoStopListItems(): HasMany
+    {
+        return $this->hasMany(IikoStopListItem::class);
+    }
+
+    /**
      * Заказы клиентов организации.
      */
     public function orders(): HasMany
