@@ -53,6 +53,7 @@ use App\Http\Controllers\Admin\ReleaseAdminController;
 
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationIikoController;
+use App\Http\Controllers\OrganizationIikoMenuController;
 use App\Http\Controllers\OrganizationMenuController;
 use App\Http\Controllers\OrganizationTVController;
 use App\Http\Controllers\OrganizationStaffController;
@@ -1149,6 +1150,27 @@ Route::middleware('auth')
         )
             ->middleware('organization.manager')
             ->name('iiko.disconnect');
+
+        Route::get(
+            '/{organization}/integrations/iiko/menu',
+            [OrganizationIikoMenuController::class, 'index']
+        )
+            ->middleware('organization.manager')
+            ->name('iiko.menu.index');
+
+        Route::post(
+            '/{organization}/integrations/iiko/menu/discover',
+            [OrganizationIikoMenuController::class, 'discover']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.menu.discover');
+
+        Route::post(
+            '/{organization}/integrations/iiko/menu/preview',
+            [OrganizationIikoMenuController::class, 'preview']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.menu.preview');
 
         // Управление количеством TV-экранов организации
         Route::post(
