@@ -201,6 +201,27 @@
 
         @if ($connection)
             <section class="iiko-card">
+                <h2>История проверок и синхронизации</h2>
+                @if (($syncLogs ?? collect())->isNotEmpty())
+                    <div style="display:grid;gap:8px">
+                        @foreach ($syncLogs as $log)
+                            <div style="padding:11px 13px;border:1px solid {{ $log->status === 'success' ? 'rgba(90,210,145,.25)' : 'rgba(255,100,100,.25)' }};border-radius:10px;background:rgba(5,10,20,.35)">
+                                <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                                    <strong style="color:{{ $log->status === 'success' ? '#76e1ad' : '#ff9ca4' }}">{{ $log->sync_type }} · {{ $log->status === 'success' ? 'Успешно' : 'Ошибка' }}</strong>
+                                    <span class="iiko-help">{{ $log->created_at?->format('d.m.Y H:i:s') }}</span>
+                                </div>
+                                <div style="color:#c1c9d7;font-size:.86rem;margin-top:5px">{{ $log->message }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p>Записей пока нет. После проверки подключения и синхронизации здесь появится история операций.</p>
+                @endif
+            </section>
+        @endif
+
+        @if ($connection)
+            <section class="iiko-card">
                 <h2>Управление подключением</h2>
                 <p>Удаление отключит интеграцию этой организации. Существующие заказы, меню и данные DAODES останутся без изменений.</p>
                 <form method="POST" action="{{ route('organizations.iiko.disconnect', $organization) }}" onsubmit="return confirm('Удалить подключение iiko для этой организации?');">
