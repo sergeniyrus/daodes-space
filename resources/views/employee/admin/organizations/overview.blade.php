@@ -72,11 +72,50 @@
             </div>
         </div>
 
+        @if($courierMemberships->isNotEmpty())
+            <div class="admin-overview-money">
+                <strong style="float:none;color:#00e5d4">Загрузка курьеров</strong>
+                <div style="margin-top:10px;display:grid;gap:8px">
+                    @foreach($courierMemberships as $membership)
+                        <div style="display:flex;justify-content:space-between;gap:12px;color:#c5d0dc">
+                            <span>{{ $membership->employee->name }}</span>
+                            <b>{{ $membership->employee->active_delivery_orders_count }} в доставке</b>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="admin-overview-money">
             Получено оплат сегодня
-            <strong>{{ number_format((float) $paidToday, 2, '.', ' ') }}</strong>
+            <strong>{{ number_format((float) $paidToday, 2, ',', ' ') }} {{ $orderSettings?->currency ?? 'EUR' }}</strong>
             <div style="clear:both"></div>
         </div>
+
+        <section style="margin-top:18px">
+            <h2 class="admin-overview-title">История действий</h2>
+            @if($activityLogs->isEmpty())
+                <div class="admin-team-empty">Пока нет записей об изменениях организации.</div>
+            @else
+                <div class="admin-team-list">
+                    @foreach($activityLogs as $activity)
+                        <article class="admin-team-member" style="display:block">
+                            <div class="admin-team-name">{{ $activity->description }}</div>
+                            <div class="admin-team-phone">
+                                {{ $activity->actor?->name ?? 'Система' }}
+                                · {{ $activity->created_at?->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') }}
+                            </div>
+                            @if($activity->before_values || $activity->after_values)
+                                <details style="margin-top:9px;color:#9eacbd">
+                                    <summary>Посмотреть изменения</summary>
+                                    <pre style="white-space:pre-wrap;overflow:auto">{{ json_encode(['до' => $activity->before_values, 'после' => $activity->after_values], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                                </details>
+                            @endif
+                        </article>
+                    @endforeach
+                </div>
+            @endif
+        </section>
     </section>
 
     <section class="admin-overview-section" id="team">
