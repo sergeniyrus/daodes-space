@@ -16,6 +16,7 @@ class IikoMenuServiceTest extends TestCase
         parent::setUp();
 
         config([
+            'cache.default' => 'array',
             'iiko.base_url' => 'https://api-ru.iiko.services',
             'iiko.app_id' => 'daodes-app',
             'iiko.client_secret' => 'daodes-secret',
@@ -24,7 +25,7 @@ class IikoMenuServiceTest extends TestCase
             'iiko.token_cache_minutes' => 55,
         ]);
 
-        Cache::flush();
+        Cache::store('array')->flush();
     }
 
     public function test_external_menus_are_requested_for_the_selected_organization(): void
