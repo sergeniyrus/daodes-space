@@ -21,7 +21,7 @@ class IikoStopListItem extends Model
     {
         return [
             'organization_id' => 'integer',
-            'balance' => 'integer',
+            'balance' => 'decimal:3',
             'is_available' => 'boolean',
             'synced_at' => 'datetime',
         ];
