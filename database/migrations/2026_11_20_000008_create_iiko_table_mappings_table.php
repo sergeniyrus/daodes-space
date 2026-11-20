@@ -15,6 +15,7 @@ return new class extends Migration
                 ->constrained('organizations')
                 ->cascadeOnDelete();
 
+            $table->string('iiko_organization_id', 36)->index();
             $table->string('daodes_table_number', 64);
             $table->string('iiko_table_id', 36);
             $table->string('iiko_table_name', 120);
