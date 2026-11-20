@@ -237,23 +237,31 @@ class OrganizationIikoController extends Controller
 
             abort_unless($availableGroup, 422, 'Терминальная группа больше недоступна для выбранной организации.');
 
-            $organizationSettingsPayload = $this->iiko->request(
-                $connection,
-                'POST',
-                '/api/1/organizations/settings',
-                [
-                    'organizationIds' => [$validated['iiko_organization_id']],
-                    'parameters' => ['AddressFormatType', 'CurrencyIsoName'],
-                ]
-            );
+            // Organization settings are useful for address formatting, but a missing
+            // permission must not prevent the manager from saving the restaurant/terminal.
+            $addressFormatType = null;
 
-            $organizationSettings = collect($organizationSettingsPayload['organizations'] ?? [])
-                ->first(fn ($settings) =>
-                    is_array($settings) &&
-                    (string) ($settings['organizationId'] ?? '') === $validated['iiko_organization_id']
+            try {
+                $organizationSettingsPayload = $this->iiko->request(
+                    $connection,
+                    'POST',
+                    '/api/1/organizations/settings',
+                    [
+                        'organizationIds' => [$validated['iiko_organization_id']],
+                        'parameters' => ['AddressFormatType', 'CurrencyIsoName'],
+                    ]
                 );
 
-            $addressFormatType = $organizationSettings['addressFormatType'] ?? null;
+                $organizationSettings = collect($organizationSettingsPayload['organizations'] ?? [])
+                    ->first(fn ($settings) =>
+                        is_array($settings) &&
+                        (string) ($settings['organizationId'] ?? '') === $validated['iiko_organization_id']
+                    );
+
+                $addressFormatType = $organizationSettings['addressFormatType'] ?? null;
+            } catch (Throwable $settingsException) {
+                report($settingsException);
+            }
 
             $connection->update([
                 'iiko_organization_id' => $validated['iiko_organization_id'],
