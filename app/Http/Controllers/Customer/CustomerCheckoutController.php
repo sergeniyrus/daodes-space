@@ -191,6 +191,13 @@ class CustomerCheckoutController extends Controller
             $selectedFulfillment = $defaultFulfillment;
         }
 
+        $timezone = $settings->timezoneName();
+        $minimumOrderAt = Carbon::now($timezone)->addMinutes($settings->minimumOrderLeadMinutes());
+        $slotMinutes = max(5, (int) ($settings->time_slot_minutes ?? 15));
+        $roundingMinutes = ($slotMinutes - ($minimumOrderAt->minute % $slotMinutes)) % $slotMinutes;
+        $minimumOrderAt->addMinutes($roundingMinutes)->second(0);
+        $requestedAtMinimum = $minimumOrderAt->format('Y-m-d\\TH:i');
+
         $savedAddresses = $customer->addresses()
             ->orderByDesc('is_favorite')
             ->orderByDesc('is_default')
@@ -265,6 +272,8 @@ class CustomerCheckoutController extends Controller
             'canUsePickup' => $canUsePickup,
             'canUseDineIn' => $canUseDineIn,
             'selectedFulfillment' => $selectedFulfillment,
+            'requestedAtMinimum' => $requestedAtMinimum,
+            'requestedAtDefault' => $requestedAtMinimum,
         ]);
     }
 
@@ -335,7 +344,7 @@ class CustomerCheckoutController extends Controller
             'customer_name' => ['required', 'string', 'max:100'],
             'customer_comment' => ['nullable', 'string', 'max:2000'],
             'fulfillment_type' => ['required', 'in:delivery,pickup,dine_in'],
-            'payment_method' => ['required', 'in:cash_on_receipt,card_on_receipt,online'],
+            'payment_method' => ['required', 'in:cash_on_receipt,card_on_receipt,online,guest_account'],
             'requested_at' => [
                 'nullable',
                 'date_format:Y-m-d\TH:i',
@@ -387,45 +396,38 @@ class CustomerCheckoutController extends Controller
             ]);
         }
 
-        $paymentEnabled = match ($validated['payment_method']) {
-            Order::PAYMENT_CASH_ON_RECEIPT => $settings->cash_payment_enabled,
-            Order::PAYMENT_CARD_ON_RECEIPT => $settings->card_payment_enabled,
-            Order::PAYMENT_ONLINE => false,
-            default => false,
-        };
-
-        if (!$paymentEnabled) {
-            $message = $validated['payment_method'] === Order::PAYMENT_ONLINE
-                ? 'Онлайн-оплата станет доступна после подключения платёжного провайдера.'
-                : 'Выбранный способ оплаты сейчас недоступен.';
-
-            throw ValidationException::withMessages([
-                'payment_method' => $message,
-            ]);
-        }
-
-        if (
-            $validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP
-            && empty($validated['requested_at'])
-        ) {
-            throw ValidationException::withMessages([
-                'requested_at' => 'Укажите желаемое время самовывоза.',
-            ]);
-        }
-
-        if (
-            $validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP
-        ) {
-            $minimumPickupMinutes = max(30, (int) ($settings->pickup_min_minutes ?? 0));
-            $minimumPickupTime = Carbon::now('Asia/Krasnoyarsk')->addMinutes($minimumPickupMinutes);
-            $requestedAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at'], 'Asia/Krasnoyarsk');
-
-            if ($requestedAt->lt($minimumPickupTime)) {
+        if ($validated['fulfillment_type'] === Order::FULFILLMENT_DINE_IN) {
+            if ($validated['payment_method'] !== Order::PAYMENT_GUEST_ACCOUNT) {
                 throw ValidationException::withMessages([
-                    'requested_at' => 'Самовывоз доступен не раньше чем через '
-                        . $minimumPickupMinutes . ' мин.',
+                    'payment_method' => 'Для заказа в заведении доступен расчёт на выходе по браслету или карте сотрудника.',
                 ]);
             }
+        } else {
+            $paymentEnabled = match ($validated['payment_method']) {
+                Order::PAYMENT_CASH_ON_RECEIPT => $settings->cash_payment_enabled,
+                Order::PAYMENT_CARD_ON_RECEIPT => $settings->card_payment_enabled,
+                Order::PAYMENT_ONLINE, Order::PAYMENT_GUEST_ACCOUNT => false,
+                default => false,
+            };
+
+            if (!$paymentEnabled) {
+                $message = $validated['payment_method'] === Order::PAYMENT_ONLINE
+                    ? 'Онлайн-оплата станет доступна после подключения платёжного провайдера.'
+                    : 'Выбранный способ оплаты сейчас недоступен.';
+                throw ValidationException::withMessages(['payment_method' => $message]);
+            }
+        }
+
+        $requestedAt = Carbon::createFromFormat('Y-m-d\\TH:i', $validated['requested_at'], $settings->timezoneName());
+        if ($requestedAt->lt(Carbon::now($settings->timezoneName())->addMinutes($settings->minimumOrderLeadMinutes()))) {
+            throw ValidationException::withMessages([
+                'requested_at' => 'Заказ можно запланировать не раньше чем через ' . $settings->minimumOrderLeadMinutes() . ' минут от текущего времени.',
+            ]);
+        }
+        if (!$settings->isWithinWorkingHours($requestedAt)) {
+            throw ValidationException::withMessages([
+                'requested_at' => 'Выбранное время находится за пределами графика работы заведения.',
+            ]);
         }
 
         $order = DB::transaction(function () use (
@@ -597,30 +599,35 @@ class CustomerCheckoutController extends Controller
                 ]);
             }
 
-            $paymentEnabled = match ($validated['payment_method']) {
-                Order::PAYMENT_CASH_ON_RECEIPT => $settings->cash_payment_enabled,
-                Order::PAYMENT_CARD_ON_RECEIPT => $settings->card_payment_enabled,
-                default => false,
-            };
-
-            if (!$paymentEnabled) {
-                throw ValidationException::withMessages([
-                    'payment_method' => 'Выбранный способ оплаты больше недоступен.',
-                ]);
-            }
-
-            if (
-                $validated['fulfillment_type'] === Order::FULFILLMENT_PICKUP
-            ) {
-                $minimumPickupMinutes = max(30, (int) ($settings->pickup_min_minutes ?? 0));
-                $requestedAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['requested_at'], 'Asia/Krasnoyarsk');
-
-                if ($requestedAt->lt(Carbon::now('Asia/Krasnoyarsk')->addMinutes($minimumPickupMinutes))) {
+            if ($validated['fulfillment_type'] === Order::FULFILLMENT_DINE_IN) {
+                if ($validated['payment_method'] !== Order::PAYMENT_GUEST_ACCOUNT) {
                     throw ValidationException::withMessages([
-                        'requested_at' => 'Время самовывоза должно быть не раньше чем через '
-                            . $minimumPickupMinutes . ' мин.',
+                        'payment_method' => 'Для заказа в заведении используется расчёт на выходе.',
                     ]);
                 }
+            } else {
+                $paymentEnabled = match ($validated['payment_method']) {
+                    Order::PAYMENT_CASH_ON_RECEIPT => $settings->cash_payment_enabled,
+                    Order::PAYMENT_CARD_ON_RECEIPT => $settings->card_payment_enabled,
+                    default => false,
+                };
+                if (!$paymentEnabled) {
+                    throw ValidationException::withMessages([
+                        'payment_method' => 'Выбранный способ оплаты больше недоступен.',
+                    ]);
+                }
+            }
+
+            $requestedAt = Carbon::createFromFormat('Y-m-d\\TH:i', $validated['requested_at'], $settings->timezoneName());
+            if ($requestedAt->lt(Carbon::now($settings->timezoneName())->addMinutes($settings->minimumOrderLeadMinutes()))) {
+                throw ValidationException::withMessages([
+                    'requested_at' => 'Заказ можно запланировать не раньше чем через ' . $settings->minimumOrderLeadMinutes() . ' минут от текущего времени.',
+                ]);
+            }
+            if (!$settings->isWithinWorkingHours($requestedAt)) {
+                throw ValidationException::withMessages([
+                    'requested_at' => 'Выбранное время находится за пределами графика работы заведения.',
+                ]);
             }
 
             $subtotalCents = 0;
@@ -789,7 +796,7 @@ class CustomerCheckoutController extends Controller
                 'currency' => $settings->currency,
                 'idempotency_key' => $validated['idempotency_key'],
                 'metadata' => [
-                    'collection' => 'upon_receipt',
+                    'collection' => $validated['fulfillment_type'] === Order::FULFILLMENT_DINE_IN ? 'guest_account_at_venue' : 'upon_receipt',
                 ],
             ]);
 
