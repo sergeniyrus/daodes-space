@@ -36,7 +36,7 @@ class SendIikoOrder implements ShouldQueue
     public function handle(IikoOrderService $orderService): void
     {
         $order = Order::query()
-            ->with(['items', 'organization.iikoConnection'])
+            ->with(['items', 'organization.iikoConnection', 'organization.orderSettings'])
             ->find($this->orderId);
 
         if (!$order) {
