@@ -2141,14 +2141,9 @@
         </div>
 
         <div class="organization-order-options">
-            <label>
-                <input
-                    type="checkbox"
-                    name="online_payment_enabled"
-                    value="1"
-                    @checked(old('online_payment_enabled', $orderSettings?->online_payment_enabled ?? false))
-                >
-                💳 Онлайн-оплата
+            <label style="opacity:.58; cursor:not-allowed;">
+                <input type="checkbox" disabled>
+                💳 Онлайн-оплата — после подключения провайдера
             </label>
 
             <label>
