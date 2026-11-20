@@ -102,14 +102,6 @@ class IikoOrderService
                 throw new RuntimeException('Для заказа доставки не указан адрес.');
             }
 
-            $deliveryComment = collect([
-                $address['entrance'] ?? null ? 'Подъезд: ' . $address['entrance'] : null,
-                $address['floor'] ?? null ? 'Этаж: ' . $address['floor'] : null,
-                $address['apartment'] ?? null ? 'Квартира: ' . $address['apartment'] : null,
-                $address['intercom'] ?? null ? 'Домофон: ' . $address['intercom'] : null,
-                $address['delivery_comment'] ?? null,
-            ])->filter()->implode('; ');
-
             if (mb_strtolower((string) $connection->address_format_type) !== 'city') {
                 throw new RuntimeException(
                     'Формат адреса iiko (' . ($connection->address_format_type ?: 'не определён')
