@@ -1172,6 +1172,13 @@ Route::middleware('auth')
             ->middleware(['organization.manager', 'throttle:10,1'])
             ->name('iiko.menu.preview');
 
+        Route::post(
+            '/{organization}/integrations/iiko/menu/stop-list/sync',
+            [OrganizationIikoMenuController::class, 'synchronizeStopList']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.menu.stop-list-sync');
+
         // Управление количеством TV-экранов организации
         Route::post(
             '/{organization}/tv-screens',
