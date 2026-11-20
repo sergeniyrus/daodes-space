@@ -50,6 +50,7 @@ class IikoStopListService
             ->map(fn ($item) => [
                 'organization_id' => $connection->organization_id,
                 'iiko_organization_id' => $connection->iiko_organization_id,
+                'terminal_group_id' => $connection->terminal_group_id,
                 'iiko_product_id' => (string) $item['productId'],
                 'balance' => (float) ($item['balance'] ?? 0),
                 'is_available' => false,
