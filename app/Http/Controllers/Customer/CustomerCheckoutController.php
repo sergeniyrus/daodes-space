@@ -273,6 +273,7 @@ class CustomerCheckoutController extends Controller
             'order_lead_minutes' => (int) ($settings->order_lead_minutes ?? 30),
             'pickup_min_minutes' => (int) ($settings->pickup_min_minutes ?? 0),
             'time_slot_minutes' => (int) ($settings->time_slot_minutes ?? 15),
+            'pickup_address' => trim((string) $settings->pickup_address),
             'delivery_origin' => $deliveryOrigin,
             'delivery_zones' => $deliveryZones->map(fn ($zone) => [
                 'max_distance_km' => (string) $zone->max_distance_km,
@@ -658,6 +659,7 @@ class CustomerCheckoutController extends Controller
                 || (int) ($checkoutSnapshot['order_lead_minutes'] ?? 0) !== (int) ($settings->order_lead_minutes ?? 30)
                 || (int) ($checkoutSnapshot['pickup_min_minutes'] ?? 0) !== (int) ($settings->pickup_min_minutes ?? 0)
                 || (int) ($checkoutSnapshot['time_slot_minutes'] ?? 0) !== (int) ($settings->time_slot_minutes ?? 15)
+                || ($checkoutSnapshot['pickup_address'] ?? null) !== trim((string) $settings->pickup_address)
                 || ($checkoutSnapshot['delivery_origin'] ?? null) !== [
                     'latitude' => $settings->delivery_origin_latitude,
                     'longitude' => $settings->delivery_origin_longitude,
@@ -686,7 +688,7 @@ class CustomerCheckoutController extends Controller
 
             $fulfillmentEnabled = match ($validated['fulfillment_type']) {
                 Order::FULFILLMENT_DELIVERY => $settings->hasConfiguredDelivery(),
-                Order::FULFILLMENT_PICKUP => $settings->pickup_enabled,
+                Order::FULFILLMENT_PICKUP => $settings->pickup_enabled && $settings->hasPickupAddress(),
                 Order::FULFILLMENT_DINE_IN => $settings->dine_in_enabled,
                 default => false,
             };
