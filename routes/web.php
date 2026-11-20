@@ -55,6 +55,7 @@ use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationIikoController;
 use App\Http\Controllers\OrganizationIikoMenuController;
 use App\Http\Controllers\OrganizationIikoPaymentController;
+use App\Http\Controllers\OrganizationIikoTableController;
 use App\Http\Controllers\OrganizationMenuController;
 use App\Http\Controllers\OrganizationTVController;
 use App\Http\Controllers\OrganizationStaffController;
@@ -1214,6 +1215,27 @@ Route::middleware('auth')
         )
             ->middleware(['organization.manager', 'throttle:20,1'])
             ->name('iiko.payments.save');
+
+        Route::get(
+            '/{organization}/integrations/iiko/tables',
+            [OrganizationIikoTableController::class, 'index']
+        )
+            ->middleware('organization.manager')
+            ->name('iiko.tables.index');
+
+        Route::post(
+            '/{organization}/integrations/iiko/tables/discover',
+            [OrganizationIikoTableController::class, 'discover']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.tables.discover');
+
+        Route::post(
+            '/{organization}/integrations/iiko/tables/save',
+            [OrganizationIikoTableController::class, 'save']
+        )
+            ->middleware(['organization.manager', 'throttle:20,1'])
+            ->name('iiko.tables.save');
 
         // Управление количеством TV-экранов организации
         Route::post(
