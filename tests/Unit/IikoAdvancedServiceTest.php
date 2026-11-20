@@ -8,6 +8,7 @@ use App\Services\Iiko\IikoInventoryService;
 use App\Services\Iiko\IikoFinanceService;
 use App\Services\Iiko\IikoLoyaltyService;
 use App\Services\Iiko\IikoReservationService;
+use App\Services\Iiko\IikoTableOrderService;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -135,6 +136,33 @@ class IikoAdvancedServiceTest extends TestCase
             && $request['filters'] === []
             && $request['limit'] === 100
             && $request['offset'] === 0
+        );
+    }
+
+
+    public function test_table_order_uses_common_service_type_and_selected_tables(): void
+    {
+        Http::fakeSequence()
+            ->push(['token' => 'test-jwt'], 200)
+            ->push(['correlationId' => 'test-correlation', 'orderInfo' => ['id' => '88888888-8888-4888-8888-888888888888']], 200);
+
+        $result = app(IikoTableOrderService::class)->create(
+            $this->connection(),
+            ['66666666-6666-4666-8666-666666666666'],
+            [[
+                'type' => 'Product',
+                'productId' => '99999999-9999-4999-8999-999999999999',
+                'amount' => 1,
+            ]],
+            'Synthetic table order'
+        );
+
+        $this->assertSame('test-correlation', $result['correlationId']);
+
+        Http::assertSent(fn (Request $request): bool =>
+            str_ends_with($request->url(), '/api/1/order/create')
+            && $request['order']['orderServiceType'] === 'Common'
+            && $request['order']['tableIds'] === ['66666666-6666-4666-8666-666666666666']
         );
     }
 
