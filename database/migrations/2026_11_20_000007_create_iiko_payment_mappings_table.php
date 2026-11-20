@@ -15,6 +15,7 @@ return new class extends Migration
                 ->constrained('organizations')
                 ->cascadeOnDelete();
 
+            $table->string('iiko_organization_id', 36)->index();
             $table->string('daodes_payment_method', 40);
             $table->string('iiko_payment_type_id', 36);
             $table->string('iiko_payment_type_name');
