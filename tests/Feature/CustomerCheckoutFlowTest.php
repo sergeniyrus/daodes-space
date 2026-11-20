@@ -145,6 +145,15 @@ class CustomerCheckoutFlowTest extends TestCase
                 'cash_payment_enabled' => '1',
                 'card_payment_enabled' => '1',
                 'pickup_min_minutes' => '30',
+                'working_hours' => array_fill_keys(range(1, 7), [
+                    'enabled' => true,
+                    'open' => '09:00',
+                    'close' => '22:00',
+                ]),
+                'timezone' => 'Asia/Krasnoyarsk',
+                'preorders_enabled' => '1',
+                'order_lead_minutes' => '30',
+                'time_slot_minutes' => '15',
                 'delivery_city' => 'Test city',
                 'pickup_address' => 'Test street 1',
                 'delivery_origin_latitude' => '55.0000000',
@@ -181,6 +190,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 'idempotency_key' => $checkout->viewData('idempotencyKey'),
                 'customer_name' => 'Test customer',
                 'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
                 'delivery_latitude' => '55.0000000',
                 'delivery_longitude' => '90.2000000',
                 'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
@@ -245,6 +255,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'idempotency_key' => $idempotencyKey,
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'delivery_latitude' => '55.0000000',
             'delivery_longitude' => '90.0000000',
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
@@ -317,6 +328,7 @@ class CustomerCheckoutFlowTest extends TestCase
                 'idempotency_key' => $checkout->viewData('idempotencyKey'),
                 'customer_name' => 'Test customer',
                 'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
                 'delivery_latitude' => '55.0000000',
                 'delivery_longitude' => '90.0000000',
                 'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
@@ -384,6 +396,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'idempotency_key' => $checkout->viewData('idempotencyKey'),
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'delivery_latitude' => '55.0000000',
             'delivery_longitude' => '90.0000000',
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
@@ -407,6 +420,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'idempotency_key' => $checkout->viewData('idempotencyKey'),
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'delivery_latitude' => '55.0000000',
             'delivery_longitude' => '90.0000000',
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
@@ -513,6 +527,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'idempotency_key' => $checkout->viewData('idempotencyKey'),
             'customer_name' => 'Test customer',
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'delivery_latitude' => '55.0000000',
             'delivery_longitude' => '90.0000000',
             'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
@@ -712,6 +727,7 @@ class CustomerCheckoutFlowTest extends TestCase
         $order = $this->createPickupOrder($customer, $organization, $item);
         $order->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_READY,
         ]);
 
@@ -1317,6 +1333,7 @@ class CustomerCheckoutFlowTest extends TestCase
         $order = $this->createPickupOrder($customer, $organization, $item);
         $order->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_HANDED_TO_COURIER,
             'delivery_address' => [
                 'address_line' => 'Courier detail street 21, Graz',
@@ -1357,6 +1374,7 @@ class CustomerCheckoutFlowTest extends TestCase
         $unassignedOrder = $this->createPickupOrder($customer, $organization, $item);
         $unassignedOrder->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_HANDED_TO_COURIER,
         ]);
 
@@ -1371,6 +1389,7 @@ class CustomerCheckoutFlowTest extends TestCase
         $order = $this->createPickupOrder($customer, $organization, $item);
         $order->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_HANDED_TO_COURIER,
             'delivery_address' => [
                 'address_line' => 'Test street 15, Graz',
@@ -1429,6 +1448,7 @@ class CustomerCheckoutFlowTest extends TestCase
         $courierOrder = $this->createPickupOrder($customer, $organization, $item);
         $courierOrder->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_HANDED_TO_COURIER,
             'delivery_address' => [
                 'address_line' => 'Courier test address 10',
@@ -1692,6 +1712,7 @@ class CustomerCheckoutFlowTest extends TestCase
         $readyOrder->update(['status' => Order::STATUS_READY]);
         $deliveryOrder->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_IN_TRANSIT,
         ]);
         $completedOrder->update([
