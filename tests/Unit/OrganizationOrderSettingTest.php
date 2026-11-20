@@ -59,6 +59,7 @@ class OrganizationOrderSettingTest extends TestCase
             'orders_enabled' => true,
             'delivery_enabled' => true,
             'pickup_enabled' => true,
+            'pickup_address' => 'Test street 1',
             'cash_payment_enabled' => true,
             'working_hours' => array_fill_keys(range(1, 7), [
                 'enabled' => true,
