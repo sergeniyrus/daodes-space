@@ -261,6 +261,123 @@ class OrganizationIikoMenuController extends Controller
     }
 
 
+
+    public function syncMappings(Organization $organization): RedirectResponse
+    {
+        $connection = $this->connectionOrFail($organization);
+
+        abort_unless(
+            filled($connection->external_menu_id),
+            422,
+            'Сначала выберите внешнее меню iiko.'
+        );
+
+        $startedAt = now();
+
+        try {
+            $payload = $this->menuService->externalMenu(
+                $connection,
+                $connection->external_menu_id,
+                $connection->price_category_id
+            );
+
+            $products = collect($payload['itemsGroups'] ?? $payload['itemGroups'] ?? [])
+                ->flatMap(function ($group) {
+                    if (!is_array($group)) {
+                        return [];
+                    }
+
+                    return collect($group['items'] ?? [])
+                        ->filter(fn ($item) => is_array($item) && filled($item['productId'] ?? null))
+                        ->map(function ($item) use ($group) {
+                            $item['_daodes_group_name'] = (string) ($group['name'] ?? 'Без категории');
+                            $item['_daodes_group_id'] = (string) ($group['id'] ?? '');
+
+                            return $item;
+                        });
+                })
+                ->keyBy(fn ($item) => (string) $item['productId']);
+
+            $mappings = IikoMenuMapping::query()
+                ->where('organization_id', $organization->id)
+                ->where('iiko_organization_id', $connection->iiko_organization_id)
+                ->where('external_menu_id', $connection->external_menu_id)
+                ->where('price_category_id', $connection->price_category_id)
+                ->get();
+
+            $updated = 0;
+            $missing = 0;
+
+            foreach ($mappings as $mapping) {
+                $product = $products->get($mapping->iiko_product_id);
+
+                if (!$product) {
+                    $metadata = (array) $mapping->metadata;
+                    $metadata['missing_from_menu'] = true;
+
+                    $mapping->update([
+                        'last_iiko_price' => null,
+                        'metadata' => $metadata,
+                    ]);
+
+                    $missing++;
+                    continue;
+                }
+
+                $price = $product['price'] ?? ($product['sizePrices'][0]['price'] ?? null);
+                $metadata = (array) $mapping->metadata;
+                $metadata['iiko_group_name'] = $product['_daodes_group_name'];
+                $metadata['has_modifiers'] = !empty($product['itemModifierGroups']) || !empty($product['modifierGroups']);
+                $metadata['has_multiple_sizes'] = count($product['sizePrices'] ?? []) > 1;
+                $metadata['missing_from_menu'] = false;
+
+                $mapping->update([
+                    'iiko_product_name' => (string) ($product['name'] ?? $mapping->iiko_product_name),
+                    'iiko_group_id' => filled($product['_daodes_group_id']) ? $product['_daodes_group_id'] : null,
+                    'last_iiko_price' => is_numeric($price) ? $price : null,
+                    'metadata' => $metadata,
+                ]);
+
+                $updated++;
+            }
+
+            $connection->update([
+                'last_menu_sync_at' => now(),
+                'last_error' => null,
+            ]);
+
+            $this->logger->record(
+                $connection,
+                'menu_mapping_sync',
+                'success',
+                'Цены и данные сопоставленных блюд обновлены из iiko.',
+                $payload['correlationId'] ?? null,
+                ['items_count' => $updated, 'external_menu_id' => $connection->external_menu_id, 'endpoint' => '/api/menu/v3/by_id'],
+                $startedAt
+            );
+
+            return redirect()
+                ->route('organizations.iiko.menu.index', $organization)
+                ->with('success', "Обновлено сопоставлений: {$updated}. Не найдены в меню: {$missing}. Цены DAODES не изменялись.");
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $this->logger->record(
+                $connection,
+                'menu_mapping_sync',
+                'failed',
+                'Не удалось обновить данные сопоставленных блюд iiko.',
+                null,
+                ['external_menu_id' => $connection->external_menu_id, 'endpoint' => '/api/menu/v3/by_id'],
+                $startedAt
+            );
+
+            return redirect()
+                ->route('organizations.iiko.menu.index', $organization)
+                ->withErrors(['iiko_menu' => 'Не удалось обновить сопоставления. Предыдущие цены и меню DAODES сохранены.']);
+        }
+    }
+
     public function saveMapping(Request $request, Organization $organization): RedirectResponse
     {
         $validated = $request->validate([
