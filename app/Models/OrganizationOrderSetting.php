@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -20,7 +21,12 @@ class OrganizationOrderSetting extends Model
         'online_payment_enabled',
         'cash_payment_enabled',
         'card_payment_enabled',
-        'pickup_min_minutes',\n        'working_hours',\n        'timezone',\n        'preorders_enabled',\n        'order_lead_minutes',\n        'time_slot_minutes',
+        'pickup_min_minutes',
+        'working_hours',
+        'timezone',
+        'preorders_enabled',
+        'order_lead_minutes',
+        'time_slot_minutes',
         'delivery_city',
         'pickup_address',
         'delivery_origin_latitude',
@@ -40,7 +46,11 @@ class OrganizationOrderSetting extends Model
             'online_payment_enabled' => 'boolean',
             'cash_payment_enabled' => 'boolean',
             'card_payment_enabled' => 'boolean',
-            'pickup_min_minutes' => 'integer',\n            'working_hours' => 'array',\n            'preorders_enabled' => 'boolean',\n            'order_lead_minutes' => 'integer',\n            'time_slot_minutes' => 'integer',
+            'pickup_min_minutes' => 'integer',
+            'working_hours' => 'array',
+            'preorders_enabled' => 'boolean',
+            'order_lead_minutes' => 'integer',
+            'time_slot_minutes' => 'integer',
         ];
     }
 
