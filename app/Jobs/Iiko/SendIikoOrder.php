@@ -137,7 +137,11 @@ class SendIikoOrder implements ShouldQueue
 
             // iiko documents 5xx as an infrastructure error: preserve its
             // correlationId and reconcile instead of blindly repeating create.
-            if ($exception instanceof IikoApiException && $exception->statusCode >= 500) {
+            if (
+                $exception instanceof IikoApiException &&
+                $exception->statusCode >= 500 &&
+                $exception->endpoint === '/api/1/deliveries/create'
+            ) {
                 $correlationId = is_array($exception->responseBody)
                     ? data_get($exception->responseBody, 'correlationId')
                     : null;
