@@ -101,7 +101,7 @@
                                             </div>
                                         </div>
 
-                                        @if($canOrder)
+                                        @if($canOrder && !$item->iiko_unavailable)
                                             <form
                                                 method="POST"
                                                 action="{{ route('customer.cart.add', $organization) }}"
@@ -116,6 +116,12 @@
                                                 </div>
                                                 <button type="submit" class="customer-order-button">В корзину</button>
                                             </form>
+                                        @elseif($canOrder && $item->iiko_unavailable)
+                                            <div class="customer-order-add customer-order-add-disabled">
+                                                <button type="button" class="customer-order-button customer-order-disabled" disabled>
+                                                    Временно нет в наличии
+                                                </button>
+                                            </div>
                                         @else
                                             <div class="customer-order-add customer-order-add-disabled">
                                                 <button type="button" class="customer-order-button customer-order-disabled" disabled>

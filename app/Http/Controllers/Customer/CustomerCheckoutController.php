@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\Iiko\SendIikoOrder;
 use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
@@ -10,6 +11,7 @@ use App\Models\Order;
 use App\Models\Organization;
 use App\Models\OrganizationOrderSetting;
 use App\Services\CustomerCartService;
+use App\Services\Iiko\IikoAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +26,7 @@ class CustomerCheckoutController extends Controller
     private const SESSION_KEY = 'customer_order_cart';
     private const MAX_MONEY_CENTS = 999999999999;
 
-    public function create(Request $request, CustomerCartService $cartService): View|RedirectResponse
+    public function create(Request $request, CustomerCartService $cartService, IikoAvailabilityService $iikoAvailability): View|RedirectResponse
     {
         $customer = Auth::guard('customer')->user();
 
@@ -68,7 +70,7 @@ class CustomerCheckoutController extends Controller
         }
 
         $organization = Organization::query()
-            ->with('orderSettings')
+            ->with(['orderSettings', 'iikoConnection'])
             ->findOrFail($organizationId);
 
         abort_unless($organization->isActive(), 404);
@@ -102,6 +104,19 @@ class CustomerCheckoutController extends Controller
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Некоторые товары больше недоступны. Обновите корзину.');
+        }
+
+        // Если менеджер включил синхронизацию стоп-листа iiko,
+        // не разрешаем оформить временно недоступные сопоставленные блюда.
+        if ($organization->iikoConnection?->stop_list_sync_enabled) {
+            $stoppedMenuItemIds = $iikoAvailability->stoppedMenuItemIds($organizationId);
+            $stoppedItems = $items->whereIn('id', $stoppedMenuItemIds);
+
+            if ($stoppedItems->isNotEmpty()) {
+                return redirect()
+                    ->route('customer.cart')
+                    ->with('error', 'Временно недоступно в ресторане: ' . $stoppedItems->pluck('name')->implode(', ') . '. Обновите корзину.');
+            }
         }
 
         $lines = [];
@@ -316,7 +331,7 @@ class CustomerCheckoutController extends Controller
         ]);
     }
 
-    public function store(Request $request, CustomerCartService $cartService): RedirectResponse
+    public function store(Request $request, CustomerCartService $cartService, IikoAvailabilityService $iikoAvailability): RedirectResponse
     {
         /** @var Customer|null $customer */
         $customer = Auth::guard('customer')->user();
@@ -517,6 +532,7 @@ class CustomerCheckoutController extends Controller
             }
 
             $organization = Organization::query()
+                ->with('iikoConnection')
                 ->whereKey($organizationId)
                 ->where('status', 'active')
                 ->lockForUpdate()
@@ -633,6 +649,19 @@ class CustomerCheckoutController extends Controller
                 throw ValidationException::withMessages([
                     'cart' => 'Состав меню изменился. Проверьте корзину и повторите оформление.',
                 ]);
+            }
+
+            // Повторная серверная проверка стоп-листа внутри транзакции заказа.
+            // Проверка GET checkout не заменяет эту защиту: стоп-лист мог измениться.
+            if ($organization->iikoConnection?->stop_list_sync_enabled) {
+                $stoppedMenuItemIds = $iikoAvailability->stoppedMenuItemIds($organizationId);
+                $stoppedItems = $items->whereIn('id', $stoppedMenuItemIds);
+
+                if ($stoppedItems->isNotEmpty()) {
+                    throw ValidationException::withMessages([
+                        'cart' => 'Временно недоступно в ресторане: ' . $stoppedItems->pluck('name')->implode(', ') . '. Обновите корзину.',
+                    ]);
+                }
             }
 
             $menuSections = MenuSection::query()
@@ -921,6 +950,20 @@ class CustomerCheckoutController extends Controller
                 ],
             ]);
 
+            // Передаём только доставку и самовывоз. Заказы в заведении требуют
+            // отдельного сопоставления столов и гостевых карт с iiko.
+            if (
+                $organization->iikoConnection?->is_enabled
+                && $organization->iikoConnection?->order_sync_enabled
+                && $validated['payment_method'] !== Order::PAYMENT_ONLINE
+                && in_array($validated['fulfillment_type'], [
+                    Order::FULFILLMENT_DELIVERY,
+                    Order::FULFILLMENT_PICKUP,
+                ], true)
+            ) {
+                SendIikoOrder::dispatch($order->id)->afterCommit();
+            }
+
             $customer->organizations()->syncWithoutDetaching([
                 $organizationId => ['source' => 'order'],
             ]);
@@ -977,6 +1020,8 @@ class CustomerCheckoutController extends Controller
             ->route('customer.orders.show', $order)
             ->with('success', 'Заказ успешно оформлен.');
     }
+
+
 
     private function calculateDistanceKm(float $latitudeFrom, float $longitudeFrom, float $latitudeTo, float $longitudeTo): float
     {

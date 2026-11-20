@@ -52,6 +52,10 @@ use App\Http\Controllers\Admin\ReleaseAdminController;
 
 
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\OrganizationIikoController;
+use App\Http\Controllers\OrganizationIikoMenuController;
+use App\Http\Controllers\OrganizationIikoPaymentController;
+use App\Http\Controllers\OrganizationIikoTableController;
 use App\Http\Controllers\OrganizationMenuController;
 use App\Http\Controllers\OrganizationTVController;
 use App\Http\Controllers\OrganizationStaffController;
@@ -1100,6 +1104,166 @@ Route::middleware('auth')
         )
             ->middleware('organization.manager')
             ->name('order-settings.update');
+
+        /*
+         * =====================================================
+         * ИНТЕГРАЦИЯ IIKO
+         * =====================================================
+         */
+
+        Route::get(
+            '/{organization}/integrations/iiko',
+            [OrganizationIikoController::class, 'index']
+        )
+            ->middleware('organization.manager')
+            ->name('iiko.index');
+
+        Route::post(
+            '/{organization}/integrations/iiko/credentials',
+            [OrganizationIikoController::class, 'saveCredentials']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.credentials');
+
+        Route::post(
+            '/{organization}/integrations/iiko/organizations',
+            [OrganizationIikoController::class, 'discoverOrganizations']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.organizations');
+
+        Route::post(
+            '/{organization}/integrations/iiko/terminal-groups',
+            [OrganizationIikoController::class, 'discoverTerminalGroups']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.terminal-groups');
+
+        Route::post(
+            '/{organization}/integrations/iiko/select-terminal',
+            [OrganizationIikoController::class, 'selectTerminalGroup']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.select-terminal');
+
+        Route::post(
+            '/{organization}/integrations/iiko/orders/enable',
+            [OrganizationIikoController::class, 'enableOrderSync']
+        )
+            ->middleware(['organization.manager', 'throttle:5,1'])
+            ->name('iiko.orders.enable');
+
+        Route::post(
+            '/{organization}/integrations/iiko/orders/disable',
+            [OrganizationIikoController::class, 'disableOrderSync']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.orders.disable');
+
+        Route::post(
+            '/{organization}/integrations/iiko/orders/{orderId}/recheck',
+            [OrganizationIikoController::class, 'recheckOrder']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.orders.recheck');
+
+        Route::post(
+            '/{organization}/integrations/iiko/webhook/configure',
+            [OrganizationIikoController::class, 'configureWebhook']
+        )
+            ->middleware(['organization.manager', 'throttle:5,1'])
+            ->name('iiko.webhook.configure');
+
+        Route::post(
+            '/{organization}/integrations/iiko/webhook/check',
+            [OrganizationIikoController::class, 'checkWebhook']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.webhook.check');
+
+        Route::delete(
+            '/{organization}/integrations/iiko',
+            [OrganizationIikoController::class, 'disconnect']
+        )
+            ->middleware('organization.manager')
+            ->name('iiko.disconnect');
+
+        Route::get(
+            '/{organization}/integrations/iiko/menu',
+            [OrganizationIikoMenuController::class, 'index']
+        )
+            ->middleware('organization.manager')
+            ->name('iiko.menu.index');
+
+        Route::post(
+            '/{organization}/integrations/iiko/menu/discover',
+            [OrganizationIikoMenuController::class, 'discover']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.menu.discover');
+
+        Route::post(
+            '/{organization}/integrations/iiko/menu/preview',
+            [OrganizationIikoMenuController::class, 'preview']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.menu.preview');
+
+        Route::post(
+            '/{organization}/integrations/iiko/menu/stop-list/sync',
+            [OrganizationIikoMenuController::class, 'synchronizeStopList']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.menu.stop-list-sync');
+
+        Route::post(
+            '/{organization}/integrations/iiko/menu/mapping',
+            [OrganizationIikoMenuController::class, 'saveMapping']
+        )
+            ->middleware(['organization.manager', 'throttle:20,1'])
+            ->name('iiko.menu.mapping');
+
+        Route::post(
+            '/{organization}/integrations/iiko/menu/sync-mappings',
+            [OrganizationIikoMenuController::class, 'syncMappings']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.menu.sync-mappings');
+
+        Route::post(
+            '/{organization}/integrations/iiko/payments/discover',
+            [OrganizationIikoPaymentController::class, 'discover']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.payments.discover');
+
+        Route::post(
+            '/{organization}/integrations/iiko/payments/save',
+            [OrganizationIikoPaymentController::class, 'save']
+        )
+            ->middleware(['organization.manager', 'throttle:20,1'])
+            ->name('iiko.payments.save');
+
+        Route::get(
+            '/{organization}/integrations/iiko/tables',
+            [OrganizationIikoTableController::class, 'index']
+        )
+            ->middleware('organization.manager')
+            ->name('iiko.tables.index');
+
+        Route::post(
+            '/{organization}/integrations/iiko/tables/discover',
+            [OrganizationIikoTableController::class, 'discover']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.tables.discover');
+
+        Route::post(
+            '/{organization}/integrations/iiko/tables/save',
+            [OrganizationIikoTableController::class, 'save']
+        )
+            ->middleware(['organization.manager', 'throttle:20,1'])
+            ->name('iiko.tables.save');
 
         // Управление количеством TV-экранов организации
         Route::post(

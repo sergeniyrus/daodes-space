@@ -5,6 +5,8 @@ namespace App\Services\Payments;
 use App\Data\Payments\PaymentWebhookEvent as VerifiedPaymentWebhook;
 use App\Models\Order;
 use App\Models\OrderPayment;
+use App\Models\IikoConnection;
+use App\Jobs\Iiko\SendIikoOrder;
 use App\Models\PaymentWebhookEvent;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -183,6 +185,27 @@ class PaymentWebhookProcessor
         $order->update([
             'payment_status' => $newStatus,
         ]);
+
+        if (
+            $newStatus === Order::PAYMENT_SUCCEEDED
+            && $order->payment_method === Order::PAYMENT_ONLINE
+            && in_array($order->fulfillment_type, [
+                Order::FULFILLMENT_DELIVERY,
+                Order::FULFILLMENT_PICKUP,
+            ], true)
+        ) {
+            $connection = IikoConnection::query()
+                ->where('organization_id', $order->organization_id)
+                ->first();
+
+            if (
+                $connection?->is_enabled &&
+                $connection?->order_sync_enabled &&
+                config('iiko.allow_online_payment_orders')
+            ) {
+                SendIikoOrder::dispatch($order->id)->afterCommit();
+            }
+        }
 
         return [
             'status' => 'processed',

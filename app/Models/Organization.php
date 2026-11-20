@@ -102,6 +102,56 @@ class Organization extends Model
     }
 
     /**
+     * Подключение iikoCloud организации.
+     */
+    public function iikoConnection(): HasOne
+    {
+        return $this->hasOne(IikoConnection::class);
+    }
+
+    /**
+     * Сопоставления блюд DAODES с номенклатурой iiko.
+     */
+    public function iikoMenuMappings(): HasMany
+    {
+        return $this->hasMany(IikoMenuMapping::class);
+    }
+
+    /**
+     * Последний снимок стоп-листа iiko.
+     */
+    public function iikoStopListItems(): HasMany
+    {
+        return $this->hasMany(IikoStopListItem::class);
+    }
+
+    /**
+     * Сопоставления заказов DAODES с заказами iiko.
+     */
+    public function iikoOrderMappings(): HasMany
+    {
+        return $this->hasMany(IikoOrderMapping::class);
+    }
+
+    /**
+     * Журнал синхронизации iiko.
+     */
+    public function iikoSyncLogs(): HasMany
+    {
+        return $this->hasMany(IikoSyncLog::class);
+    }
+
+    public function iikoPaymentMappings(): HasMany
+    {
+        return $this->hasMany(IikoPaymentMapping::class);
+    }
+
+    public function iikoTableMappings(): HasMany
+    {
+        return $this->hasMany(IikoTableMapping::class);
+    }
+
+    /**
      * Заказы клиентов организации.
      */
     public function orders(): HasMany

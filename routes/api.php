@@ -10,6 +10,7 @@ use App\Http\Controllers\AIController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\AppReleaseController;
 use App\Http\Controllers\Api\PaymentWebhookController;
+use App\Http\Controllers\IikoWebhookController;
 use App\Http\Middleware\ReleaseAdmin;
 
 /*
@@ -52,6 +53,10 @@ Route::middleware(['web', 'auth'])->group(function () {
 | Онлайн-провайдер должен быть явно зарегистрирован в config/payments.php.
 |
 */
+Route::post('/integrations/iiko/webhook', [IikoWebhookController::class, 'handle'])
+    ->middleware('throttle:240,1')
+    ->name('iiko.webhook');
+
 Route::post('/webhooks/payments/{provider}', PaymentWebhookController::class)
     ->where('provider', '[a-z0-9_-]{1,64}')
     ->middleware('throttle:120,1')

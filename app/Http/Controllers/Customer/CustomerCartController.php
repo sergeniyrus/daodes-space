@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\MenuItem;
 use App\Models\Organization;
 use App\Services\CustomerCartService;
+use App\Services\Iiko\IikoAvailabilityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,7 +16,7 @@ class CustomerCartController extends Controller
 {
     private const SESSION_KEY = 'customer_order_cart';
 
-    public function index(CustomerCartService $cartService): View
+    public function index(CustomerCartService $cartService, IikoAvailabilityService $iikoAvailability): View
     {
         /** @var Customer|null $customer */
         $customer = auth('customer')->user();
@@ -65,7 +66,9 @@ class CustomerCartController extends Controller
             ->get()
             ->keyBy('id');
 
-        $lines = collect($quantities)->map(function ($quantity, $itemId) use ($items, $organization) {
+        $iikoStoppedMenuItemIds = $iikoAvailability->stoppedMenuItemIds($organizationId);
+
+        $lines = collect($quantities)->map(function ($quantity, $itemId) use ($items, $organization, $iikoStoppedMenuItemIds) {
             $item = $items->get((int) $itemId);
             $section = $item?->section;
             $settings = $organization->orderSettings;
@@ -82,10 +85,12 @@ class CustomerCartController extends Controller
                 && (bool) ($settings?->dine_in_enabled)
                 && $item->dine_in_enabled
                 && $section->dine_in_enabled;
-            $available = $deliveryAvailable || $pickupAvailable || $dineInAvailable;
+            $iikoUnavailable = in_array((int) $itemId, $iikoStoppedMenuItemIds, true);
+            $available = ($deliveryAvailable || $pickupAvailable || $dineInAvailable) && !$iikoUnavailable;
 
             return [
                 'item_id' => (int) $itemId,
+                'iiko_unavailable' => $iikoUnavailable,
                 'item' => $item,
                 'quantity' => (int) $quantity,
                 'delivery_available' => (bool) $deliveryAvailable,
@@ -109,7 +114,8 @@ class CustomerCartController extends Controller
     public function add(
         Request $request,
         Organization $organization,
-        CustomerCartService $cartService
+        CustomerCartService $cartService,
+        IikoAvailabilityService $iikoAvailability
     ): RedirectResponse {
         abort_unless($organization->isActive(), 404);
 
@@ -163,6 +169,12 @@ class CustomerCartController extends Controller
                 }
             })
             ->firstOrFail();
+
+        if (!$iikoAvailability->isMenuItemAvailable($organization->id, $item->id)) {
+            return redirect()
+                ->route('customer.catalog', $organization)
+                ->with('error', 'Это блюдо временно отсутствует в ресторане по стоп-листу iiko.');
+        }
 
         /** @var Customer|null $customer */
         $customer = auth('customer')->user();
@@ -219,7 +231,8 @@ class CustomerCartController extends Controller
     public function update(
         Request $request,
         MenuItem $menuItem,
-        CustomerCartService $cartService
+        CustomerCartService $cartService,
+        IikoAvailabilityService $iikoAvailability
     ): RedirectResponse {
         $validated = $request->validate([
             'quantity' => ['required', 'integer', 'min:1', 'max:99'],
@@ -261,7 +274,7 @@ class CustomerCartController extends Controller
                 || ($settings?->dine_in_enabled && $menuItem->dine_in_enabled && $section->dine_in_enabled)
             );
 
-        abort_unless($available, 404);
+        abort_unless($available && $iikoAvailability->isMenuItemAvailable($organizationId, $menuItem->id), 404);
 
         $cart['items'][$menuItem->id] = (int) $validated['quantity'];
         $cartService->save($customer, $cart);
