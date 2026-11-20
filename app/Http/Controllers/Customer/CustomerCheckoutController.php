@@ -194,7 +194,8 @@ class CustomerCheckoutController extends Controller
         }
 
         $timezone = $settings->timezoneName();
-        $minimumOrderAt = Carbon::now($timezone)->addMinutes($settings->minimumOrderLeadMinutes($selectedFulfillment))->ceilUnit('minute');
+        $minimumLeadMinutes = $settings->minimumOrderLeadMinutes($selectedFulfillment);
+        $minimumOrderAt = Carbon::now($timezone)->addMinutes($minimumLeadMinutes)->ceilUnit('minute');
         $slotMinutes = max(5, (int) ($settings->time_slot_minutes ?? 15));
         $roundingMinutes = ($slotMinutes - ($minimumOrderAt->minute % $slotMinutes)) % $slotMinutes;
         $minimumOrderAt->addMinutes($roundingMinutes)->second(0);
@@ -278,6 +279,7 @@ class CustomerCheckoutController extends Controller
             'requestedAtMinimum' => $requestedAtMinimum,
             'requestedAtDefault' => $requestedAtMinimum,
             'requestedAtMaximum' => $requestedAtMaximum,
+            'minimumLeadMinutes' => $minimumLeadMinutes,
         ]);
     }
 
