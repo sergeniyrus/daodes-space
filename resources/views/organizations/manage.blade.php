@@ -2039,10 +2039,11 @@
             </label>
 
             <label class="organization-order-field">
-                Адрес точки самовывоза
+                Адрес заведения (самовывоз / центр доставки)
                 <input type="text" name="pickup_address" id="organization-pickup-address" class="organization-order-input"
                     value="{{ old('pickup_address', $orderSettings?->pickup_address) }}"
-                    maxlength="500" placeholder="Парковая улица, 23, Термбург">
+                    maxlength="500" placeholder="Улица, дом, город">
+                <small style="color:#9ca3af;">Укажите адрес, если включены самовывоз или доставка. От этой точки рассчитываются зоны доставки.</small>
                 @error('pickup_address')<span class="organization-order-error">{{ $message }}</span>@enderror
             </label>
         </div>
@@ -2195,13 +2196,20 @@
         </div>
 
         <div class="organization-order-hint">
-            <strong style="color: #f5d76e;">Проверка готовности корзины:</strong>
+            <strong style="color: #f5d76e;">Проверка готовности онлайн-заказов:</strong>
             <ul style="margin: 8px 0 0; padding-left: 20px;">
                 <li>
                     @if(filled($orderSettings?->currency))
                         <span style="color: #00e5a8;">✓ Валюта указана ({{ $orderSettings->currency }})</span>
                     @else
                         <span style="color: #ffb74d;">○ Укажите валюту (например, EUR или RUB)</span>
+                    @endif
+                </li>
+                <li>
+                    @if($orderSettings?->hasConfiguredWorkingHours())
+                        <span style="color: #00e5a8;">✓ График работы настроен</span>
+                    @else
+                        <span style="color: #ffb74d;">○ Настройте рабочие дни и часы</span>
                     @endif
                 </li>
                 <li>
@@ -2228,7 +2236,7 @@
             </ul>
             @if(!$orderSettings?->canAcceptOrders())
                 <div style="margin-top: 8px; color: #ffb74d;">
-                    Пока все четыре условия не выполнены, клиент не сможет добавлять блюда в корзину.
+                    Пока все условия не выполнены, клиент не сможет оформить заказ.
                 </div>
             @endif
         </div>
