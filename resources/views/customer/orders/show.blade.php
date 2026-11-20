@@ -182,6 +182,7 @@
             @switch($order->payment_method)
                 @case('cash_on_receipt') Наличные при получении @break
                 @case('card_on_receipt') Терминал при получении @break
+                @case('guest_account') На счёт гостя — расчёт при выходе @break
                 @default {{ $order->payment_method }}
             @endswitch
         </p>
