@@ -29,6 +29,56 @@ class EmployeeAdminOrderController extends Controller
             ->firstOrFail();
     }
 
+    public function overview(Organization $organization): View
+    {
+        $this->assertAdmin($organization);
+
+        $todayStart = now('Asia/Krasnoyarsk')->startOfDay()->utc();
+        $tomorrowStart = $todayStart->copy()->addDay();
+
+        $todayOrders = $organization->orders()
+            ->where('created_at', '>=', $todayStart)
+            ->where('created_at', '<', $tomorrowStart);
+
+        $overviewStats = [
+            'orders_today' => (clone $todayOrders)->count(),
+            'new_orders' => (clone $todayOrders)->where('status', Order::STATUS_NEW)->count(),
+            'kitchen_orders' => (clone $todayOrders)->whereIn('status', [
+                Order::STATUS_CONFIRMED,
+                Order::STATUS_PREPARING,
+            ])->count(),
+            'ready_orders' => (clone $todayOrders)->where('status', Order::STATUS_READY)->count(),
+            'delivery_orders' => (clone $todayOrders)->whereIn('status', [
+                Order::STATUS_HANDED_TO_COURIER,
+                Order::STATUS_IN_TRANSIT,
+            ])->count(),
+            'completed_today' => (clone $todayOrders)->where('status', Order::STATUS_COMPLETED)->count(),
+            'cancelled_today' => (clone $todayOrders)->where('status', Order::STATUS_CANCELLED)->count(),
+        ];
+
+        $paidToday = DB::table('payments')
+            ->join('orders', 'orders.id', '=', 'payments.order_id')
+            ->where('orders.organization_id', $organization->id)
+            ->where('payments.status', Order::PAYMENT_SUCCEEDED)
+            ->whereNotNull('payments.paid_at')
+            ->where('payments.paid_at', '>=', $todayStart)
+            ->where('payments.paid_at', '<', $tomorrowStart)
+            ->sum('payments.amount');
+
+        $staffMemberships = $organization->employeeMemberships()
+            ->with('employee')
+            ->orderByRaw("CASE status WHEN 'active' THEN 0 WHEN 'pending' THEN 1 WHEN 'blocked' THEN 2 ELSE 3 END")
+            ->orderBy('id')
+            ->get();
+
+        return view('employee.admin.organizations.overview', compact(
+            'organization',
+            'overviewStats',
+            'paidToday',
+            'staffMemberships'
+        ));
+    }
+
     public function index(Request $request, Organization $organization): View
     {
         $this->assertAdmin($organization);
