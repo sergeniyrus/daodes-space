@@ -345,11 +345,7 @@ class CustomerCheckoutController extends Controller
             'customer_comment' => ['nullable', 'string', 'max:2000'],
             'fulfillment_type' => ['required', 'in:delivery,pickup,dine_in'],
             'payment_method' => ['required', 'in:cash_on_receipt,card_on_receipt,online,guest_account'],
-            'requested_at' => [
-                'nullable',
-                'date_format:Y-m-d\TH:i',
-                'after:now',
-            ],
+            'requested_at' => ['required', 'date_format:Y-m-d\\TH:i'],
             'table_number' => ['nullable', 'string', 'max:30'],
             'save_address' => ['nullable', 'boolean'],
             'address_label' => ['required_if:save_address,1', 'nullable', 'string', 'max:50'],
