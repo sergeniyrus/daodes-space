@@ -29,6 +29,7 @@ class OrganizationIikoTableController extends Controller
             'restaurantTables' => collect(),
             'tableMappings' => IikoTableMapping::query()
                 ->where('organization_id', $organization->id)
+                ->where('terminal_group_id', $organization->iikoConnection?->terminal_group_id)
                 ->orderBy('daodes_table_number')
                 ->get()
                 ->keyBy('daodes_table_number'),
@@ -76,6 +77,7 @@ class OrganizationIikoTableController extends Controller
                 'restaurantTables' => $restaurantTables,
                 'tableMappings' => IikoTableMapping::query()
                     ->where('organization_id', $organization->id)
+                    ->where('terminal_group_id', $connection->terminal_group_id)
                     ->get()
                     ->keyBy('daodes_table_number'),
             ]);
@@ -131,6 +133,7 @@ class OrganizationIikoTableController extends Controller
 
             $alreadyMapped = IikoTableMapping::query()
                 ->where('organization_id', $organization->id)
+                ->where('terminal_group_id', $connection->terminal_group_id)
                 ->where('iiko_table_id', $validated['iiko_table_id'])
                 ->where('daodes_table_number', '!=', trim($validated['daodes_table_number']))
                 ->exists();
@@ -140,6 +143,7 @@ class OrganizationIikoTableController extends Controller
             IikoTableMapping::query()->updateOrCreate(
                 [
                     'organization_id' => $organization->id,
+                    'terminal_group_id' => $connection->terminal_group_id,
                     'daodes_table_number' => trim($validated['daodes_table_number']),
                 ],
                 [
