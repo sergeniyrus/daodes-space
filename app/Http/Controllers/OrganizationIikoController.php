@@ -249,6 +249,7 @@ class OrganizationIikoController extends Controller
             // Organization settings are useful for address formatting, but a missing
             // permission must not prevent the manager from saving the restaurant/terminal.
             $addressFormatType = null;
+            $iikoCurrency = null;
 
             try {
                 $organizationSettingsPayload = $this->iiko->request(
