@@ -527,6 +527,7 @@
                     Номер браслета или карты сотрудника
                     <input
                         type="text"
+                        id="customer-guest-card-identifier"
                         name="guest_card_identifier"
                         value="{{ old('guest_card_identifier') }}"
                         maxlength="100"
@@ -748,6 +749,7 @@
     const guestAccountPayment = document.getElementById('customer-guest-account-payment');
     const guestAccountNote = document.getElementById('customer-guest-account-note');
     const dineInField = document.getElementById('customer-dine-in-field');
+    const guestCardIdentifier = document.getElementById('customer-guest-card-identifier');
     const fulfillmentInputs = document.querySelectorAll('input[name="fulfillment_type"]');
     const saveAddress = document.getElementById('customer-save-address');
     const addressLabelWrap = document.getElementById('customer-address-label-wrap');
@@ -864,6 +866,7 @@
         if (guestAccountNote) guestAccountNote.hidden = !isDineIn;
         paymentOptions?.querySelectorAll('input[name="payment_method"]').forEach(input => { input.disabled = isDineIn; });
         if (dineInField) dineInField.hidden = !isDineIn;
+        if (guestCardIdentifier) guestCardIdentifier.required = isDineIn;
         if (addressFields.address_line) addressFields.address_line.required = isDelivery;
         if (isDelivery && deliveryMap) {
             setTimeout(() => deliveryMap.invalidateSize(), 180);
