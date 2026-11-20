@@ -54,6 +54,7 @@ use App\Http\Controllers\Admin\ReleaseAdminController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationIikoController;
 use App\Http\Controllers\OrganizationIikoMenuController;
+use App\Http\Controllers\OrganizationIikoPaymentController;
 use App\Http\Controllers\OrganizationMenuController;
 use App\Http\Controllers\OrganizationTVController;
 use App\Http\Controllers\OrganizationStaffController;
@@ -1199,6 +1200,20 @@ Route::middleware('auth')
         )
             ->middleware(['organization.manager', 'throttle:20,1'])
             ->name('iiko.menu.mapping');
+
+        Route::post(
+            '/{organization}/integrations/iiko/payments/discover',
+            [OrganizationIikoPaymentController::class, 'discover']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.payments.discover');
+
+        Route::post(
+            '/{organization}/integrations/iiko/payments/save',
+            [OrganizationIikoPaymentController::class, 'save']
+        )
+            ->middleware(['organization.manager', 'throttle:20,1'])
+            ->name('iiko.payments.save');
 
         // Управление количеством TV-экранов организации
         Route::post(
