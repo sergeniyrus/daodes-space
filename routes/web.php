@@ -1161,6 +1161,13 @@ Route::middleware('auth')
             ->name('iiko.orders.disable');
 
         Route::post(
+            '/{organization}/integrations/iiko/orders/{orderId}/recheck',
+            [OrganizationIikoController::class, 'recheckOrder']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.orders.recheck');
+
+        Route::post(
             '/{organization}/integrations/iiko/webhook/configure',
             [OrganizationIikoController::class, 'configureWebhook']
         )
