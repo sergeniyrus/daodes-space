@@ -11,6 +11,7 @@ class IikoOrderMapping extends Model
 
     protected $fillable = [
         'organization_id',
+        'iiko_organization_id',
         'order_id',
         'iiko_order_id',
         'correlation_id',
