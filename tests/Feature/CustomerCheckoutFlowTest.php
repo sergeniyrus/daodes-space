@@ -727,7 +727,6 @@ class CustomerCheckoutFlowTest extends TestCase
         $order = $this->createPickupOrder($customer, $organization, $item);
         $order->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
-                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_READY,
         ]);
 
@@ -1333,7 +1332,6 @@ class CustomerCheckoutFlowTest extends TestCase
         $order = $this->createPickupOrder($customer, $organization, $item);
         $order->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
-                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_HANDED_TO_COURIER,
             'delivery_address' => [
                 'address_line' => 'Courier detail street 21, Graz',
@@ -1374,7 +1372,6 @@ class CustomerCheckoutFlowTest extends TestCase
         $unassignedOrder = $this->createPickupOrder($customer, $organization, $item);
         $unassignedOrder->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
-                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_HANDED_TO_COURIER,
         ]);
 
@@ -1389,7 +1386,6 @@ class CustomerCheckoutFlowTest extends TestCase
         $order = $this->createPickupOrder($customer, $organization, $item);
         $order->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
-                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_HANDED_TO_COURIER,
             'delivery_address' => [
                 'address_line' => 'Test street 15, Graz',
@@ -1448,7 +1444,6 @@ class CustomerCheckoutFlowTest extends TestCase
         $courierOrder = $this->createPickupOrder($customer, $organization, $item);
         $courierOrder->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
-                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_HANDED_TO_COURIER,
             'delivery_address' => [
                 'address_line' => 'Courier test address 10',
@@ -1712,7 +1707,6 @@ class CustomerCheckoutFlowTest extends TestCase
         $readyOrder->update(['status' => Order::STATUS_READY]);
         $deliveryOrder->update([
             'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
-                'requested_at' => now('Asia/Krasnoyarsk')->addHour()->format('Y-m-d\TH:i'),
             'status' => Order::STATUS_IN_TRANSIT,
         ]);
         $completedOrder->update([
