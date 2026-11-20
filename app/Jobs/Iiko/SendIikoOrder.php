@@ -57,7 +57,7 @@ class SendIikoOrder implements ShouldQueue
             ]
         );
 
-        if ($mapping->sync_status === 'sent' && filled($mapping->correlation_id)) {
+        if ($mapping->sync_status === 'sent') {
             return;
         }
 
@@ -69,6 +69,7 @@ class SendIikoOrder implements ShouldQueue
             $mapping->update([
                 'iiko_order_id' => data_get($response, 'orderInfo.id')
                     ?? data_get($response, 'order.id')
+                    ?? ($response['orderId'] ?? null)
                     ?? ($response['id'] ?? null),
                 'correlation_id' => $response['correlationId'] ?? null,
                 'sync_status' => 'sent',
