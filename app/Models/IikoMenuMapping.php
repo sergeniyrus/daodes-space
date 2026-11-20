@@ -11,6 +11,7 @@ class IikoMenuMapping extends Model
 
     protected $fillable = [
         'organization_id',
+        'iiko_organization_id',
         'menu_item_id',
         'iiko_product_id',
         'iiko_product_name',
