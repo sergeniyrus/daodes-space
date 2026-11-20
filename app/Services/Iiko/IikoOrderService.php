@@ -129,6 +129,10 @@ class IikoOrderService
                 ->format('Y-m-d H:i:s.v');
         }
 
+        if (filled(config('iiko.source_key'))) {
+            $orderPayload['sourceKey'] = (string) config('iiko.source_key');
+        }
+
         if (filled($order->customer_comment)) {
             $orderPayload['comment'] = $order->customer_comment;
         }
