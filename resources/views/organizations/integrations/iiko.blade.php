@@ -196,6 +196,14 @@
             </section>
         @endif
 
+        @if ($connection?->terminal_group_id)
+            <section class="iiko-card">
+                <h2>Столы и заказы в заведении</h2>
+                <p>Сопоставьте номера столов DAODES с идентификаторами столов iiko. Автоматическую передачу заказов в зале включим после проверки гостевых карт и оплаты.</p>
+                <a class="iiko-button" href="{{ route('organizations.iiko.tables.index', $organization) }}">Настроить столы</a>
+            </section>
+        @endif
+
         @if ($connection?->iiko_organization_id)
             <section class="iiko-card">
                 <h2>Способы оплаты</h2>
