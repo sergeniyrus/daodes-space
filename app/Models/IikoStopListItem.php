@@ -11,6 +11,7 @@ class IikoStopListItem extends Model
 
     protected $fillable = [
         'organization_id',
+        'iiko_organization_id',
         'iiko_product_id',
         'balance',
         'is_available',
