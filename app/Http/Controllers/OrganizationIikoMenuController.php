@@ -7,6 +7,7 @@ use App\Models\IikoStopListItem;
 use App\Models\IikoMenuMapping;
 use App\Models\MenuItem;
 use App\Services\Iiko\IikoStopListService;
+use App\Services\Iiko\IikoSyncLogger;
 use App\Models\Organization;
 use App\Services\Iiko\IikoMenuService;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +20,8 @@ class OrganizationIikoMenuController extends Controller
 {
     public function __construct(
         private readonly IikoMenuService $menuService,
-        private readonly IikoStopListService $stopListService
+        private readonly IikoStopListService $stopListService,
+        private readonly IikoSyncLogger $logger
     ) {
     }
 
@@ -43,6 +45,7 @@ class OrganizationIikoMenuController extends Controller
     public function discover(Organization $organization): View|RedirectResponse
     {
         $connection = $this->connectionOrFail($organization);
+        $startedAt = now();
 
         try {
             $payload = $this->menuService->externalMenus($connection);
@@ -69,6 +72,16 @@ class OrganizationIikoMenuController extends Controller
                     ->withErrors(['iiko_menu' => 'В iiko не настроено внешнее меню для выбранной организации. Попросите администратора ресторана настроить внешнее меню в iikoWeb.']);
             }
 
+            $this->logger->record(
+                $connection,
+                'menu_discovery',
+                'success',
+                'Список внешних меню iiko получен.',
+                $payload['correlationId'] ?? null,
+                ['items_count' => $externalMenus->count(), 'endpoint' => '/api/2/menu'],
+                $startedAt
+            );
+
             return view('organizations.integrations.iiko-menu', [
                 'organization' => $organization,
                 'connection' => $connection,
@@ -79,6 +92,15 @@ class OrganizationIikoMenuController extends Controller
             ]);
         } catch (Throwable $exception) {
             report($exception);
+            $this->logger->record(
+                $connection,
+                'menu_discovery',
+                'failed',
+                'Не удалось получить список внешних меню iiko.',
+                null,
+                ['endpoint' => '/api/2/menu'],
+                $startedAt
+            );
 
             return redirect()
                 ->route('organizations.iiko.menu.index', $organization)
@@ -152,6 +174,15 @@ class OrganizationIikoMenuController extends Controller
                 'last_error' => null,
             ]);
 
+            $this->logger->record(
+                $connection,
+                'menu_preview',
+                'success',
+                'Внешнее меню iiko загружено для предварительного просмотра.',
+                $payload['correlationId'] ?? null,
+                ['items_count' => $previewItems->count(), 'external_menu_id' => $validated['external_menu_id'], 'endpoint' => '/api/menu/v3/by_id']
+            );
+
             return view('organizations.integrations.iiko-menu', [
                 'organization' => $organization,
                 'connection' => $connection->fresh(),
@@ -173,6 +204,14 @@ class OrganizationIikoMenuController extends Controller
             ]);
         } catch (Throwable $exception) {
             report($exception);
+            $this->logger->record(
+                $connection,
+                'menu_preview',
+                'failed',
+                'Не удалось загрузить внешнее меню iiko.',
+                null,
+                ['external_menu_id' => $validated['external_menu_id'], 'endpoint' => '/api/menu/v3/by_id']
+            );
 
             return redirect()
                 ->route('organizations.iiko.menu.index', $organization)
@@ -193,6 +232,14 @@ class OrganizationIikoMenuController extends Controller
                 ->with('success', 'Стоп-лист iiko обновлён. Временно недоступных позиций: ' . $count . '.');
         } catch (Throwable $exception) {
             report($exception);
+            $this->logger->record(
+                $connection,
+                'stop_list',
+                'failed',
+                'Не удалось обновить стоп-лист iiko; предыдущий снимок сохранён.',
+                null,
+                ['endpoint' => '/api/1/stop_lists']
+            );
 
             return redirect()
                 ->route('organizations.iiko.menu.index', $organization)
