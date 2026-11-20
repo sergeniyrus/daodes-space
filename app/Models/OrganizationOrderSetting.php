@@ -73,6 +73,11 @@ class OrganizationOrderSetting extends Model
             && $this->deliveryZones()->exists();
     }
 
+    public function hasPickupAddress(): bool
+    {
+        return trim((string) $this->pickup_address) !== '';
+    }
+
     public function timezoneName(): string
     {
         $timezone = (string) ($this->timezone ?: 'Asia/Krasnoyarsk');
@@ -179,18 +184,15 @@ class OrganizationOrderSetting extends Model
 
     public function canAcceptOrders(): bool
     {
+        $hasPaymentAtReceipt = $this->cash_payment_enabled || $this->card_payment_enabled;
+
         return $this->orders_enabled
             && $this->hasConfiguredWorkingHours()
             && filled($this->currency)
             && (
-                $this->pickup_enabled
+                ($this->delivery_enabled && $this->hasConfiguredDelivery() && $hasPaymentAtReceipt)
+                || ($this->pickup_enabled && $this->hasPickupAddress() && $hasPaymentAtReceipt)
                 || $this->dine_in_enabled
-                || ($this->delivery_enabled && $this->hasConfiguredDelivery())
-            )
-            && (
-                $this->dine_in_enabled
-                || $this->cash_payment_enabled
-                || $this->card_payment_enabled
             );
     }
 }
