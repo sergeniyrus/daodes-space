@@ -161,7 +161,7 @@ class IikoOrderService
                     'product' => $item['productId'],
                     'amount' => $item['amount'],
                 ])->all(),
-                'deliverySum' => (float) $order->total,
+                'deliverySum' => (float) $order->subtotal,
                 'discountSum' => (float) $order->discount_total,
             ]
         );
