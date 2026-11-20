@@ -48,7 +48,7 @@ Route::prefix('staff')->name('employee.')->group(function () {
 
         // Администратору доступны обзор организации и список команды без управления персоналом.
         Route::get('/organizations/{organization}/admin/overview', [
-            \\App\\Http\\Controllers\\Employee\\EmployeeAdminOrderController::class,
+            \App\Http\Controllers\Employee\EmployeeAdminOrderController::class,
             'overview',
         ])
             ->middleware(['employee.organization', 'employee.role:admin'])
