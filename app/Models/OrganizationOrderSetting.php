@@ -20,7 +20,7 @@ class OrganizationOrderSetting extends Model
         'online_payment_enabled',
         'cash_payment_enabled',
         'card_payment_enabled',
-        'pickup_min_minutes',
+        'pickup_min_minutes',\n        'working_hours',\n        'timezone',\n        'preorders_enabled',\n        'order_lead_minutes',\n        'time_slot_minutes',
         'delivery_city',
         'pickup_address',
         'delivery_origin_latitude',
@@ -40,7 +40,7 @@ class OrganizationOrderSetting extends Model
             'online_payment_enabled' => 'boolean',
             'cash_payment_enabled' => 'boolean',
             'card_payment_enabled' => 'boolean',
-            'pickup_min_minutes' => 'integer',
+            'pickup_min_minutes' => 'integer',\n            'working_hours' => 'array',\n            'preorders_enabled' => 'boolean',\n            'order_lead_minutes' => 'integer',\n            'time_slot_minutes' => 'integer',
         ];
     }
 
@@ -61,6 +61,65 @@ class OrganizationOrderSetting extends Model
             && $this->delivery_origin_latitude !== null
             && $this->delivery_origin_longitude !== null
             && $this->deliveryZones()->exists();
+    }
+
+    public function timezoneName(): string
+    {
+        $timezone = (string) ($this->timezone ?: 'Asia/Krasnoyarsk');
+
+        return in_array($timezone, timezone_identifiers_list(), true)
+            ? $timezone
+            : 'Asia/Krasnoyarsk';
+    }
+
+    public function isWithinWorkingHours(Carbon $requestedAt): bool
+    {
+        // До заполнения графика сохраняем прежнее поведение организации.
+        if (!is_array($this->working_hours) || $this->working_hours === []) {
+            return true;
+        }
+
+        $localTime = $requestedAt->copy()->setTimezone($this->timezoneName());
+        $day = (string) $localTime->dayOfWeekIso;
+        $today = $this->working_hours[$day] ?? null;
+
+        if (!is_array($today) || empty($today['enabled'])) {
+            return false;
+        }
+
+        $open = (string) ($today['open'] ?? '');
+        $close = (string) ($today['close'] ?? '');
+        if (!preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $open)
+            || !preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $close)) {
+            return false;
+        }
+
+        $time = $localTime->format('H:i');
+
+        if ($close > $open) {
+            return $time >= $open && $time < $close;
+        }
+
+        if ($close < $open) {
+            if ($time >= $open) {
+                return true;
+            }
+
+            $previousDay = (string) ($localTime->copy()->subDay()->dayOfWeekIso);
+            $previous = $this->working_hours[$previousDay] ?? null;
+
+            return is_array($previous)
+                && !empty($previous['enabled'])
+                && (string) ($previous['close'] ?? '') < (string) ($previous['open'] ?? '')
+                && $time < (string) $previous['close'];
+        }
+
+        return false;
+    }
+
+    public function minimumOrderLeadMinutes(): int
+    {
+        return max(30, (int) ($this->order_lead_minutes ?? 30));
     }
 
     public function canAcceptOrders(): bool
