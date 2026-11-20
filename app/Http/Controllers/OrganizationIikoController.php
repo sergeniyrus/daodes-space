@@ -231,11 +231,30 @@ class OrganizationIikoController extends Controller
 
             abort_unless($availableGroup, 422, 'Терминальная группа больше недоступна для выбранной организации.');
 
+            $organizationSettingsPayload = $this->iiko->request(
+                $connection,
+                'POST',
+                '/api/1/organizations/settings',
+                [
+                    'organizationIds' => [$validated['iiko_organization_id']],
+                    'parameters' => ['AddressFormatType', 'CurrencyIsoName'],
+                ]
+            );
+
+            $organizationSettings = collect($organizationSettingsPayload['organizations'] ?? [])
+                ->first(fn ($settings) =>
+                    is_array($settings) &&
+                    (string) ($settings['organizationId'] ?? '') === $validated['iiko_organization_id']
+                );
+
+            $addressFormatType = $organizationSettings['addressFormatType'] ?? null;
+
             $connection->update([
                 'iiko_organization_id' => $validated['iiko_organization_id'],
                 'iiko_organization_name' => (string) ($availableOrganization['name'] ?? $validated['iiko_organization_name']),
                 'terminal_group_id' => $validated['terminal_group_id'],
                 'terminal_group_name' => (string) ($availableGroup['name'] ?? $validated['terminal_group_name']),
+                'address_format_type' => is_string($addressFormatType) ? $addressFormatType : null,
                 'connection_status' => 'connected',
                 'last_connected_at' => now(),
                 'last_error' => null,
