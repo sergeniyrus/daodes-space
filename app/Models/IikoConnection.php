@@ -17,6 +17,7 @@ class IikoConnection extends Model
         'iiko_organization_name',
         'terminal_group_id',
         'terminal_group_name',
+        'address_format_type',
         'external_menu_id',
         'price_category_id',
         'connection_status',
