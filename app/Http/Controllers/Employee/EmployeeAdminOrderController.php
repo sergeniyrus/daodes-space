@@ -68,8 +68,6 @@ class EmployeeAdminOrderController extends Controller
             ->where('payments.paid_at', '<', $tomorrowStart)
             ->sum('payments.amount');
 
-        $staffCount = $organization->employeeMemberships()->count();
-
         $activityLogs = OrganizationActivityLog::query()
             ->with('actor:id,name')
             ->where('organization_id', $organization->id)
