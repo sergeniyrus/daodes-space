@@ -302,6 +302,7 @@ class OrganizationIikoMenuController extends Controller
             IikoMenuMapping::query()->updateOrCreate(
                 [
                     'organization_id' => $organization->id,
+                    'iiko_organization_id' => $connection->iiko_organization_id,
                     'menu_item_id' => $menuItem->id,
                 ],
                 [
