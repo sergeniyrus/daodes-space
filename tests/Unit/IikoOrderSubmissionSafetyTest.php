@@ -20,6 +20,7 @@ class IikoOrderSubmissionSafetyTest extends TestCase
 
         $this->assertCount(1, $middleware);
         $this->assertInstanceOf(WithoutOverlapping::class, $middleware[0]);
+        $this->assertTrue($middleware[0]->dontRelease);
     }
 
     public function test_order_without_stable_idempotency_uuid_is_rejected_before_submission(): void
