@@ -35,6 +35,7 @@ class OrganizationMenuController extends Controller
             'organization' => $organization,
             'sections' => $sections,
             'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
+            'canManageTv' => !Auth::guard('employee')->check(),
         ]);
     }
 
@@ -47,6 +48,7 @@ class OrganizationMenuController extends Controller
         return view('organizations.menu.sections.create', [
             'organization' => $organization,
             'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
+            'canManageTv' => !Auth::guard('employee')->check(),
         ]);
     }
 
@@ -66,7 +68,9 @@ class OrganizationMenuController extends Controller
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
             'dine_in_enabled' => ['nullable', 'boolean'],
-            'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
+            'tv_screen' => Auth::guard('employee')->check()
+                ? ['nullable', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))]
+                : ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
         ]);
 
         $maxSortOrder = $organization->menuSections()
@@ -79,7 +83,7 @@ class OrganizationMenuController extends Controller
             'delivery_enabled' => $request->boolean('delivery_enabled', true),
             'pickup_enabled' => $request->boolean('pickup_enabled', true),
             'dine_in_enabled' => $request->boolean('dine_in_enabled', true),
-            'tv_screen' => $validated['tv_screen'],
+            'tv_screen' => Auth::guard('employee')->check() ? 1 : $validated['tv_screen'],
         ]);
 
         return redirect()
@@ -109,6 +113,7 @@ class OrganizationMenuController extends Controller
             'organization' => $organization,
             'section' => $section,
             'tvScreens' => range(1, max(1, (int) ($organization->tv_screens_count ?? 3))),
+            'canManageTv' => !Auth::guard('employee')->check(),
         ]);
     }
 
@@ -143,7 +148,9 @@ class OrganizationMenuController extends Controller
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
             'dine_in_enabled' => ['nullable', 'boolean'],
-            'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
+            'tv_screen' => Auth::guard('employee')->check()
+                ? ['nullable', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))]
+                : ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
         ]);
 
         $section->update([
@@ -153,7 +160,7 @@ class OrganizationMenuController extends Controller
             'delivery_enabled' => $request->boolean('delivery_enabled'),
             'pickup_enabled' => $request->boolean('pickup_enabled'),
             'dine_in_enabled' => $request->boolean('dine_in_enabled'),
-            'tv_screen' => $validated['tv_screen'],
+            'tv_screen' => Auth::guard('employee')->check() ? $section->tv_screen : $validated['tv_screen'],
         ]);
 
         return redirect()
@@ -180,7 +187,9 @@ class OrganizationMenuController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'sort_order' => ['required', 'integer', 'min:0'],
-            'tv_screen' => ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
+            'tv_screen' => Auth::guard('employee')->check()
+                ? ['nullable', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))]
+                : ['required', 'integer', 'min:1', 'max:' . max(1, (int) ($organization->tv_screens_count ?? 3))],
             'delivery_enabled' => ['nullable', 'boolean'],
             'pickup_enabled' => ['nullable', 'boolean'],
             'dine_in_enabled' => ['nullable', 'boolean'],
@@ -198,7 +207,7 @@ class OrganizationMenuController extends Controller
         $section->update([
             'name' => $validated['name'],
             'sort_order' => $validated['sort_order'],
-            'tv_screen' => $validated['tv_screen'],
+            'tv_screen' => Auth::guard('employee')->check() ? $section->tv_screen : $validated['tv_screen'],
             'delivery_enabled' => $request->boolean('delivery_enabled'),
             'pickup_enabled' => $request->boolean('pickup_enabled'),
             'dine_in_enabled' => $request->boolean('dine_in_enabled'),
