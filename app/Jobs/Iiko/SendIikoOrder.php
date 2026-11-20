@@ -53,6 +53,7 @@ class SendIikoOrder implements ShouldQueue
             ['order_id' => $order->id],
             [
                 'organization_id' => $order->organization_id,
+                'iiko_organization_id' => $connection->iiko_organization_id,
                 'sync_status' => 'pending',
             ]
         );
