@@ -59,7 +59,10 @@ class ProcessIikoWebhookEvent implements ShouldQueue
         try {
             if ($event->event_type === 'StopListUpdate') {
                 $stopListService->synchronize($connection);
-            } elseif ($event->event_type === 'DeliveryOrderUpdate') {
+            } elseif (
+                $event->event_type === 'DeliveryOrderUpdate' &&
+                $connection->status_sync_enabled
+            ) {
                 $mapping = IikoOrderMapping::query()
                     ->where('organization_id', $event->organization_id)
                     ->where('iiko_organization_id', $connection->iiko_organization_id)
@@ -74,7 +77,10 @@ class ProcessIikoWebhookEvent implements ShouldQueue
 
                     $statusSyncService->synchronize($mapping, $event->event_status);
                 }
-            } elseif ($event->event_type === 'DeliveryOrderError') {
+            } elseif (
+                $event->event_type === 'DeliveryOrderError' &&
+                $connection->order_sync_enabled
+            ) {
                 IikoOrderMapping::query()
                     ->where('organization_id', $event->organization_id)
                     ->where('iiko_organization_id', $connection->iiko_organization_id)
