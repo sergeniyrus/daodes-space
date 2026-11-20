@@ -1147,6 +1147,20 @@ Route::middleware('auth')
             ->name('iiko.select-terminal');
 
         Route::post(
+            '/{organization}/integrations/iiko/orders/enable',
+            [OrganizationIikoController::class, 'enableOrderSync']
+        )
+            ->middleware(['organization.manager', 'throttle:5,1'])
+            ->name('iiko.orders.enable');
+
+        Route::post(
+            '/{organization}/integrations/iiko/orders/disable',
+            [OrganizationIikoController::class, 'disableOrderSync']
+        )
+            ->middleware(['organization.manager', 'throttle:10,1'])
+            ->name('iiko.orders.disable');
+
+        Route::post(
             '/{organization}/integrations/iiko/webhook/configure',
             [OrganizationIikoController::class, 'configureWebhook']
         )
