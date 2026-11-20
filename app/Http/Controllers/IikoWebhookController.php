@@ -59,7 +59,9 @@ class IikoWebhookController extends Controller
             $eventInfo = is_array($event['eventInfo'] ?? null) ? $event['eventInfo'] : [];
             $orderInfo = is_array($eventInfo['order'] ?? null) ? $eventInfo['order'] : [];
 
-            $iikoOrderId = isset($eventInfo['id']) ? (string) $eventInfo['id'] : null;
+            $iikoOrderId = isset($eventInfo['id'])
+                ? (string) $eventInfo['id']
+                : (isset($orderInfo['id']) ? (string) $orderInfo['id'] : null);
             $eventStatus = (string) (
                 $orderInfo['status']
                 ?? $eventInfo['creationStatus']
