@@ -2302,24 +2302,27 @@ body.customer-menu-image-open { overflow: hidden !important; }
         @if(auth('customer')->check())
             <section class="customer-order-header-card {{ request()->routeIs('customer.feedback.*') ? 'is-active' : '' }}">
                 <a class="customer-order-header-action" href="{{ route('customer.feedback.index', ['organization' => $customerWorkspace['organization']->id]) }}">
-                    <span class="customer-order-header-action-title">Отзывы</span>
+                    <span class="customer-order-header-action-title">Отзывы и предложения</span>
                     <span class="customer-order-header-action-stats">
-                        <span class="customer-order-header-action-stat">и предложения</span>
+                        @if($customerHeaderPublicRating && (int) $customerHeaderPublicRating->total > 0)
+                            <span class="customer-order-header-action-stat">
+                                <span style="color:#ffd700;">★ {{ number_format((float) $customerHeaderPublicRating->average, 1, ',', ' ') }}</span> / 5
+                            </span>
+                            <span class="customer-order-header-action-stat">{{ $customerHeaderPublicRating->total }} отзыв(ов)</span>
+                        @else
+                            <span class="customer-order-header-action-stat">Оставить отзыв или обращение</span>
+                        @endif
                     </span>
-                    @if($customerHeaderPublicRating && (int) $customerHeaderPublicRating->total > 0)
-                        <span class="customer-order-header-action-stats">
-                            <span class="customer-order-header-action-stat"><span style="color:#ffd700;">★ {{ number_format((float) $customerHeaderPublicRating->average, 1, ',', ' ') }}</span> / 5</span>
-                            <span class="customer-order-header-action-stat">· {{ $customerHeaderPublicRating->total }} отзыв(ов)</span>
-                        </span>
-                    @endif
                     <span class="customer-order-header-notification-badge" data-header-notifications-count {{ ($customerUnreadNotificationsCount ?? 0) > 0 ? '' : 'hidden' }}>{{ ($customerUnreadNotificationsCount ?? 0) > 0 ? $customerUnreadNotificationsCount : '' }}</span>
                 </a>
             </section>
         @else
             <section class="customer-order-header-card">
                 <a class="customer-order-header-action" href="{{ route('customer.login') }}">
-                    <span class="customer-order-header-action-title">Отзывы</span>
-                    <span class="customer-order-header-action-stats"><span class="customer-order-header-action-stat">Войти для обращения</span></span>
+                    <span class="customer-order-header-action-title">Отзывы и предложения</span>
+                    <span class="customer-order-header-action-stats">
+                        <span class="customer-order-header-action-stat">Войти для обращения</span>
+                    </span>
                 </a>
             </section>
         @endif
