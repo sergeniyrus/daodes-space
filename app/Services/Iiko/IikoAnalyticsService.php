@@ -65,16 +65,21 @@ class IikoAnalyticsService
             throw new RuntimeException('Сначала выберите организацию iiko.');
         }
 
+        $payload = [
+            'organizationIds' => [$connection->iiko_organization_id],
+            'deliveryDateFrom' => $dateFrom,
+            'deliveryDateTo' => $dateTo,
+        ];
+
+        if ($statuses !== []) {
+            $payload['statuses'] = array_values($statuses);
+        }
+
         return $this->client->request(
             $connection,
             'POST',
             '/api/1/deliveries/by_delivery_date_and_status',
-            [
-                'organizationIds' => [$connection->iiko_organization_id],
-                'deliveryDateFrom' => $dateFrom,
-                'deliveryDateTo' => $dateTo,
-                'statuses' => array_values($statuses),
-            ]
+            $payload
         );
     }
 
