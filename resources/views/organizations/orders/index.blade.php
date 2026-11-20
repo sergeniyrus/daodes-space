@@ -3,9 +3,6 @@
 @section('title_page') Заказы — {{ $organization->name }} @endsection
 
 @section('management-content')
-,
-])
-
 
 @php
 $statusLabels = ['new'=>'Новый','awaiting_payment'=>'Ожидает оплаты','confirmed'=>'Подтверждён','preparing'=>'Готовится','ready'=>'Готов','handed_to_courier'=>'У курьера','in_transit'=>'В пути','issued'=>'Выдан','served'=>'Подан','delivered'=>'Доставлен','completed'=>'Завершён','cancelled'=>'Отменён'];
