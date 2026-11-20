@@ -151,8 +151,10 @@ class CustomerCheckoutController extends Controller
         }
 
         $canUseDelivery = $settings->hasConfiguredDelivery()
+            && ($settings->cash_payment_enabled || $settings->card_payment_enabled)
             && collect($lines)->every(fn ($line) => $line['available_delivery']);
         $canUsePickup = $settings->pickup_enabled
+            && ($settings->cash_payment_enabled || $settings->card_payment_enabled)
             && collect($lines)->every(fn ($line) => $line['available_pickup']);
         $canUseDineIn = $settings->dine_in_enabled
             && collect($lines)->every(fn ($line) => $line['available_dine_in']);
@@ -197,6 +199,7 @@ class CustomerCheckoutController extends Controller
         $roundingMinutes = ($slotMinutes - ($minimumOrderAt->minute % $slotMinutes)) % $slotMinutes;
         $minimumOrderAt->addMinutes($roundingMinutes)->second(0);
         $requestedAtMinimum = $minimumOrderAt->format('Y-m-d\\TH:i');
+        $requestedAtMaximum = $minimumOrderAt->copy()->addMinutes($slotMinutes)->format('Y-m-d\\TH:i');
 
         $savedAddresses = $customer->addresses()
             ->orderByDesc('is_favorite')
@@ -274,6 +277,7 @@ class CustomerCheckoutController extends Controller
             'selectedFulfillment' => $selectedFulfillment,
             'requestedAtMinimum' => $requestedAtMinimum,
             'requestedAtDefault' => $requestedAtMinimum,
+            'requestedAtMaximum' => $requestedAtMaximum,
         ]);
     }
 
@@ -423,6 +427,11 @@ class CustomerCheckoutController extends Controller
         if (!$settings->isWithinWorkingHours($requestedAt)) {
             throw ValidationException::withMessages([
                 'requested_at' => 'Выбранное время находится за пределами графика работы заведения.',
+            ]);
+        }
+        if (!$settings->preorders_enabled && $requestedAt->gt($minimumOrderAt->copy()->addMinutes($settings->time_slot_minutes))) {
+            throw ValidationException::withMessages([
+                'requested_at' => 'Предзаказ сейчас отключён. Выберите ближайшее доступное время.',
             ]);
         }
 
@@ -623,6 +632,11 @@ class CustomerCheckoutController extends Controller
             if (!$settings->isWithinWorkingHours($requestedAt)) {
                 throw ValidationException::withMessages([
                     'requested_at' => 'Выбранное время находится за пределами графика работы заведения.',
+                ]);
+            }
+            if (!$settings->preorders_enabled && $requestedAt->gt(Carbon::now($settings->timezoneName())->addMinutes($settings->minimumOrderLeadMinutes() + $settings->time_slot_minutes))) {
+                throw ValidationException::withMessages([
+                    'requested_at' => 'Предзаказ сейчас отключён. Выберите ближайшее доступное время.',
                 ]);
             }
 
