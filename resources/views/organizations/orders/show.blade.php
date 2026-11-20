@@ -167,12 +167,18 @@
             </div>
             <div class="organization-order-detail__field">
                 <span class="organization-order-detail__label">Желаемое время</span>
-                <div class="organization-order-detail__value">{{ $order->requested_at?->timezone('Asia/Krasnoyarsk')->format('d.m.Y H:i') ?? 'Не указано' }}</div>
+                <div class="organization-order-detail__value">{{ $order->requested_at?->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') ?? 'Не указано' }}</div>
             </div>
             @if($order->table_number)
                 <div class="organization-order-detail__field">
-                    <span class="organization-order-detail__label">Номер браслета</span>
+                    <span class="organization-order-detail__label">Номер столика</span>
                     <div class="organization-order-detail__value">{{ $order->table_number }}</div>
+                </div>
+            @endif
+            @if($order->guest_card_identifier)
+                <div class="organization-order-detail__field">
+                    <span class="organization-order-detail__label">Браслет / карта сотрудника</span>
+                    <div class="organization-order-detail__value">{{ $order->guest_card_identifier }}</div>
                 </div>
             @endif
         </div>
