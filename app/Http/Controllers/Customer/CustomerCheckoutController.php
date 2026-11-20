@@ -75,7 +75,13 @@ class CustomerCheckoutController extends Controller
 
         $settings = $organization->orderSettings;
 
-        if (!$settings || !$settings->canAcceptOrders()) {
+        if (!$settings || !$settings->hasConfiguredWorkingHours()) {
+            return redirect()
+                ->route('customer.cart')
+                ->with('error', 'Организация ещё не настроила график работы. Оформление заказа временно недоступно.');
+        }
+
+        if (!$settings->canAcceptOrders()) {
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Организация пока не принимает онлайн-заказы.');
