@@ -15,6 +15,8 @@ return new class extends Migration
                 ->constrained('organizations')
                 ->cascadeOnDelete();
 
+            $table->string('iiko_organization_id', 36)->nullable()->index();
+
             $table->foreignId('order_id')
                 ->unique()
                 ->constrained('orders')
