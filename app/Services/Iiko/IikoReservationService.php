@@ -31,8 +31,12 @@ class IikoReservationService
             }
         }
 
-        if (!is_array($reservation['customer']) || !filled($reservation['customer']['name'] ?? null)) {
-            throw new InvalidArgumentException('Для бронирования iiko укажите имя гостя.');
+        if (
+            !is_array($reservation['customer']) ||
+            !filled($reservation['customer']['name'] ?? null) ||
+            !in_array($reservation['customer']['type'] ?? null, ['regular', 'one-time'], true)
+        ) {
+            throw new InvalidArgumentException('Для бронирования iiko укажите тип и имя гостя.');
         }
 
         if (!str_starts_with(trim((string) $reservation['phone']), '+')) {
