@@ -651,6 +651,19 @@ class OrganizationController extends Controller
             ],
         ]);
 
+        foreach ($validated['working_hours'] as $dayNumber => $hours) {
+            if (
+                !empty($hours['enabled'])
+                && (string) $hours['open'] === (string) $hours['close']
+            ) {
+                return back()
+                    ->withErrors([
+                        "working_hours.$dayNumber.close" => 'Время открытия и закрытия не может совпадать для рабочего дня.',
+                    ])
+                    ->withInput();
+            }
+        }
+
         if ($validated['orders_enabled']) {
             if (!collect($validated['working_hours'])->contains(fn (array $hours) => !empty($hours['enabled']))) {
                 return back()
