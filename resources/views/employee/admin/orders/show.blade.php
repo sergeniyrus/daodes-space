@@ -85,6 +85,12 @@ $collectable = ($order->fulfillment_type === 'pickup' && $order->status === 'iss
             <div class="admin-order-info">
                 <h3>{{ $order->customer_name }}</h3>
                 <p>Телефон: <a href="tel:{{ preg_replace('/[^0-9+]/','',$order->customer_phone) }}">{{ $order->customer_phone }}</a></p>
+                @if($order->guest_card_identifier)
+                    <p>Браслет / карта сотрудника: <strong>{{ $order->guest_card_identifier }}</strong></p>
+                @endif
+                @if($order->requested_at)
+                    <p>Желаемое время: {{ $order->requested_at->timezone($organization->orderSettings?->timezoneName() ?? 'Asia/Krasnoyarsk')->format('d.m.Y H:i') }}</p>
+                @endif
                 @if($order->fulfillment_type === 'delivery')
                     <p>Адрес доставки: {{ $order->delivery_address['address_line'] ?? '—' }}</p>
                 @endif
