@@ -76,11 +76,13 @@ class ProcessIikoWebhookEvent implements ShouldQueue
                 $event->event_type === 'DeliveryOrderUpdate' &&
                 $connection->status_sync_enabled
             ) {
-                $mapping = IikoOrderMapping::query()
-                    ->where('organization_id', $event->organization_id)
-                    ->where('iiko_organization_id', $connection->iiko_organization_id)
-                    ->where('iiko_order_id', $event->iiko_order_id)
-                    ->first();
+                $mapping = filled($event->iiko_order_id)
+                    ? IikoOrderMapping::query()
+                        ->where('organization_id', $event->organization_id)
+                        ->where('iiko_organization_id', $connection->iiko_organization_id)
+                        ->where('iiko_order_id', $event->iiko_order_id)
+                        ->first()
+                    : null;
 
                 if ($mapping) {
                     $mapping->update([
@@ -94,15 +96,17 @@ class ProcessIikoWebhookEvent implements ShouldQueue
                 $event->event_type === 'DeliveryOrderError' &&
                 $connection->order_sync_enabled
             ) {
-                IikoOrderMapping::query()
-                    ->where('organization_id', $event->organization_id)
-                    ->where('iiko_organization_id', $connection->iiko_organization_id)
-                    ->where('iiko_order_id', $event->iiko_order_id)
-                    ->update([
+                if (filled($event->iiko_order_id)) {
+                    IikoOrderMapping::query()
+                        ->where('organization_id', $event->organization_id)
+                        ->where('iiko_organization_id', $connection->iiko_organization_id)
+                        ->where('iiko_order_id', $event->iiko_order_id)
+                        ->update([
                         'sync_status' => 'failed',
                         'last_error' => 'iiko сообщила об ошибке сохранения заказа.',
-                        'last_synced_at' => now(),
-                    ]);
+                            'last_synced_at' => now(),
+                        ]);
+                }
             }
 
             $event->update([
