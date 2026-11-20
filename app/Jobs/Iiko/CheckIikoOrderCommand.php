@@ -9,6 +9,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Throwable;
 
@@ -31,6 +32,15 @@ class CheckIikoOrderCommand implements ShouldQueue
     ) {
     }
 
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping('iiko-order-check-' . $this->orderId))
+                ->expireAfter(90)
+                ->dontRelease(),
+        ];
+    }
+
     public function handle(IikoOrderService $orderService): void
     {
         $mapping = IikoOrderMapping::query()
@@ -45,6 +55,15 @@ class CheckIikoOrderCommand implements ShouldQueue
         $connection = $mapping->organization?->iikoConnection;
 
         if (!$connection) {
+            return;
+        }
+
+        if ((string) $mapping->iiko_organization_id !== (string) $connection->iiko_organization_id) {
+            $mapping->update([
+                'sync_status' => 'processing',
+                'last_error' => 'Подключение iiko изменилось. Проверка старой команды остановлена; требуется ручная сверка в исходной организации.',
+            ]);
+
             return;
         }
 
