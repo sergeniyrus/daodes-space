@@ -745,6 +745,8 @@
     const orderTimeField = document.getElementById('customer-order-time-field');
     const pickupAddressField = document.getElementById('customer-pickup-address-field');
     const requestedAt = document.querySelector('input[name="requested_at"]');
+    const requestedAtLimits = @json($requestedAtLimits);
+    const preordersEnabled = @json((bool) $settings->preorders_enabled);
     const paymentOptions = document.getElementById('customer-payment-options');
     const guestAccountPayment = document.getElementById('customer-guest-account-payment');
     const guestAccountNote = document.getElementById('customer-guest-account-note');
@@ -860,7 +862,18 @@
         if (deliverySummary) deliverySummary.hidden = !isDelivery;
         if (orderTimeField) orderTimeField.hidden = false;
         if (pickupAddressField) pickupAddressField.hidden = !isPickup;
-        if (requestedAt) requestedAt.required = true;
+        if (requestedAt) {
+            requestedAt.required = true;
+            const limits = requestedAtLimits[fulfillmentType] || requestedAtLimits.pickup;
+            if (limits) {
+                requestedAt.min = limits.min;
+                if (preordersEnabled) requestedAt.removeAttribute('max');
+                else requestedAt.max = limits.max;
+                if (!requestedAt.value || requestedAt.value < limits.min || (!preordersEnabled && requestedAt.value > limits.max)) {
+                    requestedAt.value = limits.min;
+                }
+            }
+        }
         if (paymentOptions) paymentOptions.hidden = isDineIn;
         if (guestAccountPayment) guestAccountPayment.disabled = !isDineIn;
         if (guestAccountNote) guestAccountNote.hidden = !isDineIn;
