@@ -524,14 +524,19 @@
                 </label>
 
                 <label class="customer-checkout-field" id="customer-dine-in-field" @if($selectedFulfillment !== 'dine_in') hidden @endif>
-                    Номер браслета
+                    Номер браслета или карты сотрудника
                     <input
                         type="text"
-                        name="table_number"
-                        value="{{ old('table_number') }}"
-                        maxlength="30"
-                        placeholder="Например, 125"
+                        name="guest_card_identifier"
+                        value="{{ old('guest_card_identifier') }}"
+                        maxlength="100"
+                        autocomplete="off"
+                        placeholder="Введите номер или код карты"
+                        required
                     >
+                    @error('guest_card_identifier')
+                        <span class="customer-checkout-error">{{ $message }}</span>
+                    @enderror
                 </label>
             </div>
         </div>
