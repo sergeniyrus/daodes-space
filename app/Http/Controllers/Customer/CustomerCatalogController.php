@@ -124,6 +124,8 @@ class CustomerCatalogController extends Controller
                 $cartItemsQuery->where('pickup_enabled', true);
             } elseif ($selectedFulfillment === 'dine_in') {
                 $cartItemsQuery->where('dine_in_enabled', true);
+            } elseif (!$selectedFulfillment) {
+                $cartItemsQuery->whereRaw('1 = 0');
             }
 
             $cartItems = $cartItemsQuery
