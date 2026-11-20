@@ -51,6 +51,7 @@ class Order extends Model
         'delivery_address',
         'table_number',
         'guest_card_identifier',
+        'pickup_address_snapshot',
         'requested_at',
         'subtotal',
         'delivery_fee',
