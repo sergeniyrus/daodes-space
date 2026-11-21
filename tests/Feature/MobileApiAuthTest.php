@@ -11,6 +11,22 @@ class MobileApiAuthTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'cache.default' => 'array',
+            'cache.limiter' => 'array',
+            'cache.stores.array' => [
+                'driver' => 'array',
+                'serialize' => false,
+            ],
+        ]);
+
+        $this->createPublicCatalogSchema();
+    }
+
     public function test_mobile_health_endpoint_is_public(): void
     {
         $this->getJson('/api/mobile/v1/health')
@@ -101,6 +117,54 @@ class MobileApiAuthTest extends TestCase
         $this->getJson('/api/mobile/v1/organizations')
             ->assertOk()
             ->assertJsonStructure(['data']);
+    }
+
+    private function createPublicCatalogSchema(): void
+    {
+        if (!Schema::hasTable('organizations')) {
+            Schema::create('organizations', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('status')->default('active');
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('menu_sections')) {
+            Schema::create('menu_sections', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('organization_id');
+                $table->string('name');
+                $table->boolean('is_active')->default(true);
+                $table->integer('sort_order')->default(0);
+                $table->boolean('delivery_enabled')->default(true);
+                $table->boolean('pickup_enabled')->default(true);
+                $table->boolean('dine_in_enabled')->default(true);
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('menu_items')) {
+            Schema::create('menu_items', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('menu_section_id');
+                $table->string('name');
+                $table->boolean('is_active')->default(true);
+                $table->integer('sort_order')->default(0);
+                $table->boolean('delivery_enabled')->default(true);
+                $table->boolean('pickup_enabled')->default(true);
+                $table->boolean('dine_in_enabled')->default(true);
+                $table->timestamps();
+            });
+        }
+
+        if (!Schema::hasTable('organization_order_settings')) {
+            Schema::create('organization_order_settings', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('organization_id');
+                $table->timestamps();
+            });
+        }
     }
 
     private function createCustomer(bool $verified = true): Customer
