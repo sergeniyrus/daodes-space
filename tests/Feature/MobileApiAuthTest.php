@@ -80,7 +80,8 @@ class MobileApiAuthTest extends TestCase
             ->assertJsonPath('customer.id', $customer->id)
             ->assertJsonMissingPath('customer.password');
 
-        $this->postJson('/api/mobile/v1/auth/logout')
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/mobile/v1/auth/logout')
             ->assertOk();
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
