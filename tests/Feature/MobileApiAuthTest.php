@@ -1,0 +1,115 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Customer;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
+
+class MobileApiAuthTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_mobile_health_endpoint_is_public(): void
+    {
+        $this->getJson('/api/mobile/v1/health')
+            ->assertOk()
+            ->assertJson([
+                'status' => 'ok',
+                'application' => 'DAODES',
+                'api_version' => 'v1',
+            ]);
+    }
+
+    public function test_verified_customer_can_sign_in_and_receive_a_mobile_token(): void
+    {
+        $customer = $this->createCustomer();
+
+        $response = $this->postJson('/api/mobile/v1/auth/login', [
+            'phone' => '+43 660 123 45 67',
+            'password' => 'Correct-password-123',
+            'device_name' => 'DAODES Android test',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('token_type', 'Bearer')
+            ->assertJsonPath('customer.id', $customer->id)
+            ->assertJsonPath('customer.phone', '+436601234567')
+            ->assertJsonStructure(['access_token', 'expires_at']);
+
+        $this->assertDatabaseHas('personal_access_tokens', [
+            'tokenable_type' => Customer::class,
+            'tokenable_id' => $customer->id,
+            'name' => 'DAODES Android test',
+        ]);
+    }
+
+    public function test_mobile_token_can_read_customer_profile_and_logout_revokes_only_that_token(): void
+    {
+        $customer = $this->createCustomer();
+
+        $login = $this->postJson('/api/mobile/v1/auth/login', [
+            'phone' => $customer->phone,
+            'password' => 'Correct-password-123',
+        ])->assertOk();
+
+        $token = $login->json('access_token');
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/mobile/v1/me')
+            ->assertOk()
+            ->assertJsonPath('customer.id', $customer->id)
+            ->assertJsonMissingPath('customer.password');
+
+        $this->postJson('/api/mobile/v1/auth/logout')
+            ->assertOk();
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+
+        $this->getJson('/api/mobile/v1/me')->assertUnauthorized();
+    }
+
+    public function test_mobile_login_rejects_an_incorrect_password(): void
+    {
+        $customer = $this->createCustomer();
+
+        $this->postJson('/api/mobile/v1/auth/login', [
+            'phone' => $customer->phone,
+            'password' => 'Wrong-password',
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'Неверный номер телефона или пароль.');
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_mobile_login_rejects_an_unverified_phone(): void
+    {
+        $customer = $this->createCustomer(verified: false);
+
+        $this->postJson('/api/mobile/v1/auth/login', [
+            'phone' => $customer->phone,
+            'password' => 'Correct-password-123',
+        ])->assertForbidden()
+            ->assertJsonPath('message', 'Сначала подтвердите номер телефона через SMS и установите пароль.');
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
+
+    public function test_organizations_endpoint_returns_a_public_data_collection(): void
+    {
+        $this->getJson('/api/mobile/v1/organizations')
+            ->assertOk()
+            ->assertJsonStructure(['data']);
+    }
+
+    private function createCustomer(bool $verified = true): Customer
+    {
+        return Customer::query()->create([
+            'name' => 'Mobile API Test',
+            'phone' => '+436601234567',
+            'password' => Hash::make('Correct-password-123'),
+            'phone_verified_at' => $verified ? now() : null,
+        ]);
+    }
+}
