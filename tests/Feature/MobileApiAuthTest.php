@@ -73,8 +73,10 @@ class MobileApiAuthTest extends TestCase
 
         $token = $login->json('access_token');
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->getJson('/api/mobile/v1/me')
+        $this->call('GET', '/api/mobile/v1/me', [], [], [], [
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
+        ])
             ->assertOk()
             ->assertJsonPath('customer.id', $customer->id)
             ->assertJsonMissingPath('customer.password');
@@ -92,15 +94,19 @@ class MobileApiAuthTest extends TestCase
         $token = $login->json('access_token');
         $this->assertNotEmpty($token);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->postJson('/api/mobile/v1/auth/logout')
+        $this->call('POST', '/api/mobile/v1/auth/logout', [], [], [], [
+            'HTTP_ACCEPT' => 'application/json',
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
+        ])
             ->assertOk();
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->getJson('/api/mobile/v1/me')
-            ->assertUnauthorized();
+        $this->call('GET', '/api/mobile/v1/me', [], [], [], [
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
+        ])->assertUnauthorized();
     }
 
     public function test_mobile_login_rejects_an_incorrect_password(): void
