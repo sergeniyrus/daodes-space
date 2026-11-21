@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Laravel\Sanctum\PersonalAccessToken;
 use InvalidArgumentException;
 
 class AuthController extends Controller
@@ -81,17 +82,33 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return response()->json([
-            'customer' => $this->customerPayload($request->user()),
+            'customer' => $this->customerPayload($this->authenticatedCustomer($request)),
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()?->delete();
+        $this->authenticatedCustomer($request)->currentAccessToken()->delete();
 
         return response()->json([
             'message' => 'Сеанс мобильного приложения завершён.',
         ]);
+    }
+
+    private function authenticatedCustomer(Request $request): Customer
+    {
+        $customer = $request->user();
+
+        abort_unless($customer instanceof Customer, 401);
+
+        $accessToken = $customer->currentAccessToken();
+
+        abort_unless(
+            $accessToken instanceof PersonalAccessToken && $accessToken->can('mobile'),
+            401
+        );
+
+        return $customer;
     }
 
     private function customerPayload(Customer $customer): array
