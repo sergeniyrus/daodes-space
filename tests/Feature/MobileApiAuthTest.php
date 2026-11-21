@@ -54,7 +54,8 @@ class MobileApiAuthTest extends TestCase
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('customer.id', $customer->id)
             ->assertJsonPath('customer.phone', '+436601234567')
-            ->assertJsonStructure(['access_token', 'expires_at']);
+            ->assertJsonStructure(['access_token', 'expires_at'])
+            ->assertJsonPath('token_type', 'Bearer');
 
         $this->assertDatabaseHas('personal_access_tokens', [
             'tokenable_type' => Customer::class,
@@ -73,6 +74,7 @@ class MobileApiAuthTest extends TestCase
         ])->assertOk();
 
         $token = $login->json('access_token');
+        $this->assertNotEmpty($token);
 
         $this->withHeader('Authorization', 'Bearer ' . $token)
             ->getJson('/api/mobile/v1/me')
