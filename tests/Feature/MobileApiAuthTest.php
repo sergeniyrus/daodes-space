@@ -73,7 +73,7 @@ class MobileApiAuthTest extends TestCase
 
         $token = $login->json('access_token');
 
-        $this->withToken($token)
+        $this->withHeader('Authorization', 'Bearer ' . $token)
             ->getJson('/api/mobile/v1/me')
             ->assertOk()
             ->assertJsonPath('customer.id', $customer->id)
@@ -92,13 +92,13 @@ class MobileApiAuthTest extends TestCase
         $token = $login->json('access_token');
         $this->assertNotEmpty($token);
 
-        $this->withToken($token)
+        $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/mobile/v1/auth/logout')
             ->assertOk();
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
 
-        $this->withToken($token)
+        $this->withHeader('Authorization', 'Bearer ' . $token)
             ->getJson('/api/mobile/v1/me')
             ->assertUnauthorized();
     }
