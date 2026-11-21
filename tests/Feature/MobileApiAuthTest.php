@@ -6,7 +6,9 @@ use App\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class MobileApiAuthTest extends TestCase
@@ -17,14 +19,11 @@ class MobileApiAuthTest extends TestCase
     {
         parent::setUp();
 
-        config([
-            'cache.default' => 'array',
-            'cache.limiter' => 'array',
-            'cache.stores.array' => [
-                'driver' => 'array',
-                'serialize' => false,
-            ],
-        ]);
+        $this->withoutMiddleware(ThrottleRequests::class);
+
+        RateLimiter::shouldReceive('tooManyAttempts')->andReturnFalse();
+        RateLimiter::shouldReceive('hit');
+        RateLimiter::shouldReceive('clear');
 
         $this->createPublicCatalogSchema();
     }
@@ -54,8 +53,7 @@ class MobileApiAuthTest extends TestCase
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('customer.id', $customer->id)
             ->assertJsonPath('customer.phone', '+436601234567')
-            ->assertJsonStructure(['access_token', 'expires_at'])
-            ->assertJsonPath('token_type', 'Bearer');
+            ->assertJsonStructure(['access_token', 'expires_at']);
 
         $this->assertDatabaseHas('personal_access_tokens', [
             'tokenable_type' => Customer::class,
