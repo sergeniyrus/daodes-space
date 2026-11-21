@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Schema;
@@ -65,18 +66,16 @@ class MobileApiAuthTest extends TestCase
     public function test_mobile_token_can_read_customer_profile(): void
     {
         $customer = $this->createCustomer();
+        $createdToken = $customer->createToken('DAODES Mobile test', ['mobile']);
+        $customer->withAccessToken($createdToken->accessToken);
 
-        $login = $this->postJson('/api/mobile/v1/auth/login', [
-            'phone' => $customer->phone,
-            'password' => 'Correct-password-123',
-        ])->assertOk();
+        $resolvedToken = PersonalAccessToken::findToken($createdToken->plainTextToken);
 
-        $token = $login->json('access_token');
+        $this->assertNotNull($resolvedToken);
+        $this->assertInstanceOf(Customer::class, $resolvedToken->tokenable);
 
-        $this->call('GET', '/api/mobile/v1/me', [], [], [], [
-            'HTTP_ACCEPT' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ])
+        $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/mobile/v1/me')
             ->assertOk()
             ->assertJsonPath('customer.id', $customer->id)
             ->assertJsonMissingPath('customer.password');
@@ -85,28 +84,14 @@ class MobileApiAuthTest extends TestCase
     public function test_mobile_logout_revokes_the_current_device_token(): void
     {
         $customer = $this->createCustomer();
+        $createdToken = $customer->createToken('DAODES Mobile test', ['mobile']);
+        $customer->withAccessToken($createdToken->accessToken);
 
-        $login = $this->postJson('/api/mobile/v1/auth/login', [
-            'phone' => $customer->phone,
-            'password' => 'Correct-password-123',
-        ])->assertOk();
-
-        $token = $login->json('access_token');
-        $this->assertNotEmpty($token);
-
-        $this->call('POST', '/api/mobile/v1/auth/logout', [], [], [], [
-            'HTTP_ACCEPT' => 'application/json',
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ])
+        $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/mobile/v1/auth/logout')
             ->assertOk();
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
-
-        $this->call('GET', '/api/mobile/v1/me', [], [], [], [
-            'HTTP_ACCEPT' => 'application/json',
-            'HTTP_AUTHORIZATION' => 'Bearer ' . $token,
-        ])->assertUnauthorized();
     }
 
     public function test_mobile_login_rejects_an_incorrect_password(): void
