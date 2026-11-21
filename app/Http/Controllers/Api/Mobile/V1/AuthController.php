@@ -64,7 +64,7 @@ class AuthController extends Controller
         RateLimiter::clear($throttleKey);
 
         $token = $customer->createToken(
-            $validated['device_name'] ?: 'DAODES Mobile',
+            $validated['device_name'] ?? 'DAODES Mobile',
             ['mobile'],
             now()->addDays(30)
         );
