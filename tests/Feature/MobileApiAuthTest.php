@@ -62,7 +62,25 @@ class MobileApiAuthTest extends TestCase
         ]);
     }
 
-    public function test_mobile_token_can_read_customer_profile_and_logout_revokes_only_that_token(): void
+    public function test_mobile_token_can_read_customer_profile(): void
+    {
+        $customer = $this->createCustomer();
+
+        $login = $this->postJson('/api/mobile/v1/auth/login', [
+            'phone' => $customer->phone,
+            'password' => 'Correct-password-123',
+        ])->assertOk();
+
+        $token = $login->json('access_token');
+
+        $this->withToken($token)
+            ->getJson('/api/mobile/v1/me')
+            ->assertOk()
+            ->assertJsonPath('customer.id', $customer->id)
+            ->assertJsonMissingPath('customer.password');
+    }
+
+    public function test_mobile_logout_revokes_the_current_device_token(): void
     {
         $customer = $this->createCustomer();
 
@@ -74,19 +92,15 @@ class MobileApiAuthTest extends TestCase
         $token = $login->json('access_token');
         $this->assertNotEmpty($token);
 
-        $this->withHeader('Authorization', 'Bearer ' . $token)
-            ->getJson('/api/mobile/v1/me')
-            ->assertOk()
-            ->assertJsonPath('customer.id', $customer->id)
-            ->assertJsonMissingPath('customer.password');
-
-        $this->withHeader('Authorization', 'Bearer ' . $token)
+        $this->withToken($token)
             ->postJson('/api/mobile/v1/auth/logout')
             ->assertOk();
 
         $this->assertDatabaseCount('personal_access_tokens', 0);
 
-        $this->getJson('/api/mobile/v1/me')->assertUnauthorized();
+        $this->withToken($token)
+            ->getJson('/api/mobile/v1/me')
+            ->assertUnauthorized();
     }
 
     public function test_mobile_login_rejects_an_incorrect_password(): void
