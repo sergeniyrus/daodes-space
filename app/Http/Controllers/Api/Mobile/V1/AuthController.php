@@ -1,14 +1,14 @@
 <?php
 
-namespace App\\Http\\Controllers\\Api\\Mobile\\V1;
+namespace App\Http\Controllers\Api\Mobile\V1;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Models\\Customer;
-use App\\Support\\EmployeePhone;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Hash;
-use Illuminate\\Support\\Facades\\RateLimiter;
+use App\Http\Controllers\Controller;
+use App\Models\Customer;
+use App\Support\EmployeePhone;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use InvalidArgumentException;
 
 class AuthController extends Controller

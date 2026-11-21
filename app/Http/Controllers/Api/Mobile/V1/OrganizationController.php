@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Http\\Controllers\\Api\\Mobile\\V1;
+namespace App\Http\Controllers\Api\Mobile\V1;
 
-use App\\Http\\Controllers\\Controller;
-use App\\Models\\Organization;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
+use App\Http\Controllers\Controller;
+use App\Models\Organization;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class OrganizationController extends Controller
 {

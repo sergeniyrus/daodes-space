@@ -1,8 +1,8 @@
 <?php
 
-use App\\Http\\Controllers\\Api\\Mobile\\V1\\AuthController;
-use App\\Http\\Controllers\\Api\\Mobile\\V1\\OrganizationController;
-use Illuminate\\Support\\Facades\\Route;
+use App\Http\Controllers\Api\Mobile\V1\AuthController;
+use App\Http\Controllers\Api\Mobile\V1\OrganizationController;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('mobile/v1')->name('api.mobile.v1.')->group(function () {
     Route::get('/health', fn () => response()->json([
