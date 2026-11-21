@@ -46,7 +46,7 @@ class AuthController extends Controller
 
         $customer = Customer::query()->where('phone', $phone)->first();
 
-        if (!$customer || !Hash::check($validated['password'], $customer->password)) {
+        if (!$customer || !$customer->password || !Hash::check($validated['password'], $customer->password)) {
             RateLimiter::hit($throttleKey, self::DECAY_SECONDS);
 
             return response()->json([
