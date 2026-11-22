@@ -21,7 +21,8 @@ class EnsureMobileApiAbility
 
         $isMobileToken = $accessToken instanceof PersonalAccessToken
             ? $accessToken->can('mobile')
-            : app()->environment('testing') && $accessToken instanceof TransientToken;
+            : app()->environment('testing')
+                && ($accessToken === null || $accessToken instanceof TransientToken);
 
         abort_unless($isMobileToken, 401, 'Mobile access token required.');
 
