@@ -2196,19 +2196,21 @@ class CustomerCheckoutFlowTest extends TestCase
         $customer = $this->createVerifiedCustomer();
         [$organization, $item] = $this->createOrderableMenu('Mobile checkout cafe');
 
+        $mobileToken = $customer->createToken('DAODES mobile checkout test', ['mobile'])->plainTextToken;
+
         app(CustomerCartService::class)->save($customer, [
             'organization_id' => $organization->id,
             'items' => [$item->id => 2],
         ]);
 
-        $this->actingAs($customer, 'sanctum')
+        $this->withToken($mobileToken)
             ->getJson('/api/mobile/v1/cart')
             ->assertOk()
             ->assertJsonPath('data.organization.id', $organization->id)
             ->assertJsonPath('data.items.0.item_id', $item->id)
             ->assertJsonPath('data.items.0.quantity', 2);
 
-        $quote = $this->actingAs($customer, 'sanctum')
+        $quote = $this->withToken($mobileToken)
             ->getJson('/api/mobile/v1/checkout')
             ->assertOk()
             ->assertJsonPath('data.organization.id', $organization->id);
@@ -2224,7 +2226,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'requested_at' => $requestedAt,
         ];
 
-        $created = $this->actingAs($customer, 'sanctum')
+        $created = $this->withToken($mobileToken)
             ->postJson('/api/mobile/v1/checkout', $payload)
             ->assertCreated()
             ->assertJsonPath('data.status', Order::STATUS_NEW);
@@ -2243,7 +2245,7 @@ class CustomerCheckoutFlowTest extends TestCase
             'idempotency_key' => $idempotencyKey,
         ]);
 
-        $replay = $this->actingAs($customer, 'sanctum')
+        $replay = $this->withToken($mobileToken)
             ->postJson('/api/mobile/v1/checkout', $payload)
             ->assertOk();
 
