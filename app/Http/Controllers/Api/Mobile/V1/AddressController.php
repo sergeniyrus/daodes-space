@@ -59,7 +59,7 @@ class AddressController extends Controller
 
         DB::transaction(function () use ($customer, $address, $validated, $request) {
             if ($request->boolean('is_default')) {
-                $customer->addresses()->whereKeyNot($address->id)->update(['is_default' => false]);
+                $customer->addresses()->where('id', '!=', $address->id)->update(['is_default' => false]);
             }
 
             $address->update(array_merge($validated, [
