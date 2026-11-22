@@ -144,6 +144,32 @@ Route::prefix('mobile/v1')->name('api.mobile.v1.')->group(function () {
         ->name('organizations.show');
 
     Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/cart', [\App\Http\Controllers\Api\Mobile\V1\CartController::class, 'show'])->name('cart.show');
+        Route::post('/cart/items', [\App\Http\Controllers\Api\Mobile\V1\CartController::class, 'add'])->name('cart.items.add');
+        Route::patch('/cart/items/{menuItem}', [\App\Http\Controllers\Api\Mobile\V1\CartController::class, 'update'])->whereNumber('menuItem')->name('cart.items.update');
+        Route::delete('/cart/items/{menuItem}', [\App\Http\Controllers\Api\Mobile\V1\CartController::class, 'remove'])->whereNumber('menuItem')->name('cart.items.remove');
+        Route::delete('/cart', [\App\Http\Controllers\Api\Mobile\V1\CartController::class, 'clear'])->name('cart.clear');
+
+        Route::get('/addresses', [\App\Http\Controllers\Api\Mobile\V1\AddressController::class, 'index'])->name('addresses.index');
+        Route::post('/addresses', [\App\Http\Controllers\Api\Mobile\V1\AddressController::class, 'store'])->name('addresses.store');
+        Route::put('/addresses/{address}', [\App\Http\Controllers\Api\Mobile\V1\AddressController::class, 'update'])->whereNumber('address')->name('addresses.update');
+        Route::delete('/addresses/{address}', [\App\Http\Controllers\Api\Mobile\V1\AddressController::class, 'destroy'])->whereNumber('address')->name('addresses.destroy');
+
+        Route::get('/checkout', [\App\Http\Controllers\Customer\CustomerCheckoutController::class, 'create'])->name('checkout.quote');
+        Route::post('/checkout', [\App\Http\Controllers\Customer\CustomerCheckoutController::class, 'store'])->name('checkout.store');
+
+        Route::get('/orders', [\App\Http\Controllers\Api\Mobile\V1\OrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}/updates', [\App\Http\Controllers\Api\Mobile\V1\OrderController::class, 'updates'])->whereNumber('order')->name('orders.updates');
+        Route::get('/orders/{order}', [\App\Http\Controllers\Api\Mobile\V1\OrderController::class, 'show'])->whereNumber('order')->name('orders.show');
+        Route::post('/orders/{order}/pickup/confirm', [\App\Http\Controllers\Api\Mobile\V1\OrderController::class, 'confirmPickup'])->whereNumber('order')->name('orders.pickup.confirm');
+
+        Route::get('/notifications', [\App\Http\Controllers\Api\Mobile\V1\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all', [\App\Http\Controllers\Api\Mobile\V1\NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+        Route::post('/notifications/{notification}/read', [\App\Http\Controllers\Api\Mobile\V1\NotificationController::class, 'markRead'])->whereNumber('notification')->name('notifications.read');
+
+        Route::post('/push/devices', [\App\Http\Controllers\Api\Mobile\V1\PushDeviceController::class, 'store'])->middleware('throttle:10,1')->name('push.devices.store');
+        Route::delete('/push/devices', [\App\Http\Controllers\Api\Mobile\V1\PushDeviceController::class, 'destroy'])->middleware('throttle:20,1')->name('push.devices.destroy');
+
         Route::get('/me', [\App\Http\Controllers\Api\Mobile\V1\AuthController::class, 'me'])
             ->name('me');
         Route::post('/auth/logout', [\App\Http\Controllers\Api\Mobile\V1\AuthController::class, 'logout'])
