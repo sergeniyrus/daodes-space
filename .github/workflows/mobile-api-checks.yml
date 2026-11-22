@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/mobile-api-foundation
+      - feature/mobile-commerce-api
   pull_request:
     branches:
       - main
@@ -38,6 +39,11 @@ jobs:
         run: |
           php -l app/Http/Controllers/Api/Mobile/V1/AuthController.php
           php -l app/Http/Controllers/Api/Mobile/V1/OrganizationController.php
+          php -l app/Http/Controllers/Api/Mobile/V1/CartController.php
+          php -l app/Http/Controllers/Api/Mobile/V1/AddressController.php
+          php -l app/Http/Controllers/Api/Mobile/V1/OrderController.php
+          php -l app/Http/Middleware/EnsureMobileApiAbility.php
+          php -l app/Services/OrderPickupConfirmationService.php
           php -l app/Models/Customer.php
           php -l routes/api.php
           php -l tests/Feature/MobileApiAuthTest.php
@@ -46,4 +52,4 @@ jobs:
         run: php artisan route:list --path=api/mobile/v1
 
       - name: Run mobile API feature tests
-        run: vendor/bin/phpunit --filter MobileApiAuthTest
+        run: vendor/bin/phpunit --filter 'MobileApiAuthTest|MobileCommerceApiTest|CustomerCheckoutFlowTest'
