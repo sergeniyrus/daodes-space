@@ -26,13 +26,13 @@ class MobileCommerceApiTest extends TestCase
     {
         $customer = $this->verifiedCustomer();
 
-        $this->withToken($this->mobileToken($customer))
+        $this->actingAs($customer, 'sanctum')
             ->getJson('/api/mobile/v1/cart')
             ->assertOk()
             ->assertJsonPath('data.items', [])
             ->assertJsonPath('data.can_order', false);
 
-        $this->withToken($this->mobileToken($customer))
+        $this->actingAs($customer, 'sanctum')
             ->getJson('/api/mobile/v1/orders')
             ->assertOk()
             ->assertJsonPath('data', [])
@@ -43,7 +43,7 @@ class MobileCommerceApiTest extends TestCase
     {
         $customer = $this->verifiedCustomer();
 
-        $response = $this->withToken($this->mobileToken($customer))
+        $response = $this->actingAs($customer, 'sanctum')
             ->postJson('/api/mobile/v1/addresses', [
                 'label' => 'Дом',
                 'address_line' => 'Тестовая улица',
@@ -60,14 +60,14 @@ class MobileCommerceApiTest extends TestCase
 
         $addressId = $response->json('data.id');
 
-        $this->withToken($this->mobileToken($customer))
+        $this->actingAs($customer, 'sanctum')
             ->getJson('/api/mobile/v1/addresses')
             ->assertOk()
             ->assertJsonPath('data.0.id', $addressId);
 
         $otherCustomer = $this->verifiedCustomer('+436601234568');
 
-        $this->withToken($this->mobileToken($otherCustomer))
+        $this->actingAs($otherCustomer, 'sanctum')
             ->deleteJson('/api/mobile/v1/addresses/' . $addressId)
             ->assertNotFound();
 
@@ -81,7 +81,7 @@ class MobileCommerceApiTest extends TestCase
     {
         $customer = $this->verifiedCustomer();
 
-        $this->withToken($this->mobileToken($customer))
+        $this->actingAs($customer, 'sanctum')
             ->getJson('/api/mobile/v1/checkout')
             ->assertUnprocessable()
             ->assertJsonValidationErrors('cart');
@@ -91,13 +91,13 @@ class MobileCommerceApiTest extends TestCase
     {
         $customer = $this->verifiedCustomer();
 
-        $this->withToken($this->mobileToken($customer))
+        $this->actingAs($customer, 'sanctum')
             ->getJson('/api/mobile/v1/notifications')
             ->assertOk()
             ->assertJsonPath('data', [])
             ->assertJsonPath('unread_count', 0);
 
-        $this->withToken($this->mobileToken($customer))
+        $this->actingAs($customer, 'sanctum')
             ->postJson('/api/mobile/v1/notifications/read-all')
             ->assertOk()
             ->assertJsonPath('unread_count', 0);
@@ -111,7 +111,7 @@ class MobileCommerceApiTest extends TestCase
         config()->set('services.firebase.client_email', null);
         config()->set('services.firebase.private_key', null);
 
-        $this->withToken($this->mobileToken($customer))
+        $this->actingAs($customer, 'sanctum')
             ->postJson('/api/mobile/v1/push/devices', [
                 'token' => 'mobile-fcm-token',
                 'platform' => 'android',
@@ -120,11 +120,6 @@ class MobileCommerceApiTest extends TestCase
             ->assertServiceUnavailable();
 
         $this->assertDatabaseCount('customer_devices', 0);
-    }
-
-    private function mobileToken(Customer $customer): string
-    {
-        return $customer->createToken('DAODES Mobile commerce test', ['mobile'])->plainTextToken;
     }
 
     private function verifiedCustomer(string $phone = '+436601234567'): Customer
