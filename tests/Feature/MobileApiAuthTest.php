@@ -74,7 +74,7 @@ class MobileApiAuthTest extends TestCase
         $this->assertNotNull($resolvedToken);
         $this->assertInstanceOf(Customer::class, $resolvedToken->tokenable);
 
-        $this->actingAs($customer, 'sanctum')
+        $this->withToken($createdToken->plainTextToken)
             ->getJson('/api/mobile/v1/me')
             ->assertOk()
             ->assertJsonPath('customer.id', $customer->id)
@@ -87,7 +87,7 @@ class MobileApiAuthTest extends TestCase
         $createdToken = $customer->createToken('DAODES Mobile test', ['mobile']);
         $customer->withAccessToken($createdToken->accessToken);
 
-        $this->actingAs($customer, 'sanctum')
+        $this->withToken($createdToken->plainTextToken)
             ->postJson('/api/mobile/v1/auth/logout')
             ->assertOk();
 
