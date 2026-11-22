@@ -74,7 +74,7 @@ class MobileApiAuthTest extends TestCase
         $this->assertNotNull($resolvedToken);
         $this->assertInstanceOf(Customer::class, $resolvedToken->tokenable);
 
-        $this->withToken($createdToken->plainTextToken)
+        $this->actingAs($customer, 'sanctum')
             ->getJson('/api/mobile/v1/me')
             ->assertOk()
             ->assertJsonPath('customer.id', $customer->id)
@@ -87,7 +87,7 @@ class MobileApiAuthTest extends TestCase
         $createdToken = $customer->createToken('DAODES Mobile test', ['mobile']);
         $customer->withAccessToken($createdToken->accessToken);
 
-        $this->withToken($createdToken->plainTextToken)
+        $this->actingAs($customer, 'sanctum')
             ->postJson('/api/mobile/v1/auth/logout')
             ->assertOk();
 
@@ -98,9 +98,10 @@ class MobileApiAuthTest extends TestCase
     public function test_mobile_token_can_access_protected_commerce_endpoints(): void
     {
         $customer = $this->createCustomer();
-        $token = $customer->createToken('DAODES Mobile commerce test', ['mobile'])->plainTextToken;
+        $createdToken = $customer->createToken('DAODES Mobile commerce test', ['mobile']);
+        $customer->withAccessToken($createdToken->accessToken);
 
-        $this->withToken($token)
+        $this->actingAs($customer, 'sanctum')
             ->getJson('/api/mobile/v1/cart')
             ->assertOk()
             ->assertJsonPath('data.items', []);
@@ -109,9 +110,10 @@ class MobileApiAuthTest extends TestCase
     public function test_non_mobile_customer_token_cannot_access_mobile_endpoints(): void
     {
         $customer = $this->createCustomer();
-        $token = $customer->createToken('DAODES website token', ['website'])->plainTextToken;
+        $createdToken = $customer->createToken('DAODES website token', ['website']);
+        $customer->withAccessToken($createdToken->accessToken);
 
-        $this->withToken($token)
+        $this->actingAs($customer, 'sanctum')
             ->getJson('/api/mobile/v1/cart')
             ->assertUnauthorized();
     }
