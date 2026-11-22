@@ -143,7 +143,7 @@ Route::prefix('mobile/v1')->name('api.mobile.v1.')->group(function () {
         ->whereNumber('organization')
         ->name('organizations.show');
 
-    Route::middleware(['auth:sanctum', \\App\\Http\\Middleware\\EnsureMobileApiAbility::class])->group(function () {
+    Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureMobileApiAbility::class])->group(function () {
         Route::get('/cart', [\App\Http\Controllers\Api\Mobile\V1\CartController::class, 'show'])->name('cart.show');
         Route::post('/cart/items', [\App\Http\Controllers\Api\Mobile\V1\CartController::class, 'add'])->name('cart.items.add');
         Route::patch('/cart/items/{menuItem}', [\App\Http\Controllers\Api\Mobile\V1\CartController::class, 'update'])->whereNumber('menuItem')->name('cart.items.update');
