@@ -68,6 +68,10 @@ class CustomerCheckoutController extends Controller
         $quantities = $cart['items'] ?? [];
 
         if ($organizationId < 1 || !is_array($quantities) || $quantities === []) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['cart' => 'Добавьте товары в корзину перед оформлением заказа.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Добавьте товары в корзину перед оформлением заказа.');
@@ -82,12 +86,20 @@ class CustomerCheckoutController extends Controller
         $settings = $organization->orderSettings;
 
         if (!$settings || !$settings->hasConfiguredWorkingHours()) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['checkout' => 'Организация ещё не настроила график работы. Оформление заказа временно недоступно.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Организация ещё не настроила график работы. Оформление заказа временно недоступно.');
         }
 
         if (!$settings->canAcceptOrders()) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['checkout' => 'Организация пока не принимает онлайн-заказы.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Организация пока не принимает онлайн-заказы.');
@@ -105,6 +117,10 @@ class CustomerCheckoutController extends Controller
             ->keyBy('id');
 
         if ($items->count() !== count($quantities)) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['cart' => 'Некоторые товары больше недоступны. Обновите корзину.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Некоторые товары больше недоступны. Обновите корзину.');
@@ -117,6 +133,10 @@ class CustomerCheckoutController extends Controller
             $item = $items->get((int) $itemId);
 
             if (!$item || !$item->is_active || (int) $quantity < 1 || (int) $quantity > 99) {
+                if ($request->expectsJson()) {
+                    throw ValidationException::withMessages(['cart' => 'Корзина содержит недоступную позицию или некорректное количество.']);
+                }
+
                 return redirect()
                     ->route('customer.cart')
                     ->with('error', 'Корзина содержит недоступную позицию или некорректное количество.');
@@ -130,6 +150,10 @@ class CustomerCheckoutController extends Controller
                 $lineTotalCents > self::MAX_MONEY_CENTS
                 || $subtotalCents > self::MAX_MONEY_CENTS
             ) {
+                if ($request->expectsJson()) {
+                    throw ValidationException::withMessages(['cart' => 'Сумма заказа превышает допустимый предел.']);
+                }
+
                 return redirect()
                     ->route('customer.cart')
                     ->with('error', 'Сумма заказа превышает допустимый предел.');
@@ -440,6 +464,10 @@ class CustomerCheckoutController extends Controller
         $quantities = $cart['items'] ?? [];
 
         if ($organizationId < 1 || !is_array($quantities) || $quantities === []) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['cart' => 'Корзина пуста.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Корзина пуста.');
@@ -512,6 +540,10 @@ class CustomerCheckoutController extends Controller
         $settings = $organization->orderSettings;
 
         if (!$settings || !$settings->canAcceptOrders()) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['checkout' => 'Организация временно не принимает заказы.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Организация временно не принимает заказы.');
