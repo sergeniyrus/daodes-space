@@ -53,6 +53,21 @@ export class MessageSender {
                 body.topic_id = this.config.topicId;
             }
 
+            if (!isEditing && this.config.mentionUsers?.length) {
+                const mentionedNames = new Set(
+                    [...text.matchAll(/@([a-zA-Z0-9_]{2,32})/g)]
+                        .map(match => match[1].toLowerCase())
+                );
+
+                const mentionedIds = this.config.mentionUsers
+                    .filter(user => user.nickname && mentionedNames.has(user.nickname.toLowerCase()))
+                    .map(user => Number(user.id));
+
+                if (mentionedIds.length) {
+                    body.mentioned_user_ids = [...new Set(mentionedIds)];
+                }
+            }
+
             if (replyToMessageId && !isEditing) {
                 body.reply_to_message_id = parseInt(replyToMessageId);
             }
