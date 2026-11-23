@@ -969,6 +969,46 @@
 
 
 /* =========================================================
+   ПОДСКАЗКИ @УПОМИНАНИЙ
+   ========================================================= */
+.input-wrapper { position: relative; }
+.chat-mention-suggestions {
+    position: absolute;
+    z-index: 30;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 8px);
+    display: grid;
+    gap: 4px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 7px;
+    background: #111827;
+    border: 1px solid rgba(0, 229, 255, .35);
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.4);
+}
+.chat-mention-suggestions[hidden] { display: none; }
+.chat-mention-suggestion {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    color: #e5e7eb;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+}
+.chat-mention-suggestion:hover {
+    color: gold;
+    background: rgba(0, 229, 255, .08);
+}
+.chat-mention-suggestion small { color: #00e5ff; }
+
+/* =========================================================
    РЕАКЦИИ НА СООБЩЕНИЯ
    ========================================================= */
 .message-reactions {
@@ -1596,6 +1636,8 @@
                     required
                     @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
                 ></textarea>
+
+                <div class="chat-mention-suggestions" id="chatMentionSuggestions" hidden></div>
 
             </div>
 
