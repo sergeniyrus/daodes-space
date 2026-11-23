@@ -36,7 +36,10 @@ export function loadChatConfig() {
             mediaDownload: el.dataset.translateMediaDownload,
             roleMember: el.dataset.translateRoleMember,
             roleModerator: el.dataset.translateRoleModerator,
-            roleAdmin: el.dataset.translateRoleAdmin
+            roleAdmin: el.dataset.translateRoleAdmin,
+            pin: el.dataset.translatePin,
+            unpin: el.dataset.translateUnpin,
+            pinnedMessages: el.dataset.translatePinnedMessages
         },
     };
 }
