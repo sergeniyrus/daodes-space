@@ -16,6 +16,8 @@ export class MessagePoller {
         this.deletedCheckInterval = null;
         this.isLoading = false;
         this.initialLoadDone = false;
+        this.loadingOlder = false;
+        this.hasOlderMessages = true;
 
         window.__chatPoller = this;
     }
@@ -290,6 +292,102 @@ export class MessagePoller {
             console.error('[Poller] Network error:', err);
         } finally {
             this.isLoading = false;
+        }
+    }
+
+    async loadOlderMessages() {
+        if (this.loadingOlder || !this.hasOlderMessages || !this.initialLoadDone) return;
+
+        const container = document.getElementById('chat-messages');
+        const firstMessage = container.querySelector('.message');
+        const beforeId = Number(firstMessage?.dataset.id || 0);
+        if (!beforeId) return;
+
+        this.loadingOlder = true;
+        const previousHeight = container.scrollHeight;
+        const previousTop = container.scrollTop;
+
+        try {
+            const params = new URLSearchParams({ before_id: String(beforeId) });
+            if (this.config.topicId) params.set('topic_id', String(this.config.topicId));
+
+            const response = await fetch(
+                `/chats/${this.config.chatId}/messages?${params.toString()}`,
+                {
+                    headers: {
+                        'X-CSRF-TOKEN': this.config.csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                }
+            );
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const messages = await response.json();
+
+            if (!Array.isArray(messages) || messages.length === 0) {
+                this.hasOlderMessages = false;
+                return;
+            }
+
+            // API отдаёт сообщения по возрастанию ID; prepend выполняем в обратном порядке.
+            [...messages].reverse().forEach(msg => {
+                if (this.allMessageIds.has(msg.id)) return;
+
+                const replyPreview = msg.reply_to_message_id
+                    ? `<div class="reply-preview" data-reply-id="${msg.reply_to_message_id}">
+                           <div class="reply-indicator"><i class="fa fa-reply" aria-hidden="true"></i></div>
+                           <div class="reply-content">${this.config.translations.download}</div>
+                       </div>`
+                    : '';
+
+                const html = `
+                    <div class="message ${msg.sender.id === this.config.userId ? 'sent' : 'received'}"
+                         data-id="${msg.id}"
+                         data-cid="${this.escapeAttr(msg.ipfs_cid)}"
+                         data-message-type="${this.escapeAttr(msg.message_type || 'text')}"
+                         data-attachment-id="${msg.attachments?.[0]?.id || ''}"
+                         data-is-edited="${msg.is_edited === true}">
+                        ${replyPreview}
+                        <div class="${msg.sender.id === this.config.userId ? 'my-card-body' : 'card-body'}">
+                            <p class="card-title">
+                                ${this.escapeHtml(msg.sender.name)}
+                                <small>${new Date(msg.created_at).toLocaleTimeString()}</small>
+                            </p>
+                            <p class="card-text">${this.config.translations.download}</p>
+                        </div>
+                        <div class="message-reactions" data-message-id="${msg.id}">
+                            <button type="button" class="add-reaction" aria-label="Add reaction">＋</button>
+                            <div class="reaction-picker" hidden>
+                                <button type="button" class="reaction-choice" data-reaction="👍">👍</button>
+                                <button type="button" class="reaction-choice" data-reaction="❤️">❤️</button>
+                                <button type="button" class="reaction-choice" data-reaction="😂">😂</button>
+                                <button type="button" class="reaction-choice" data-reaction="🔥">🔥</button>
+                                <button type="button" class="reaction-choice" data-reaction="👏">👏</button>
+                                <button type="button" class="reaction-choice" data-reaction="😮">😮</button>
+                                <button type="button" class="reaction-choice" data-reaction="😢">😢</button>
+                                <button type="button" class="reaction-choice" data-reaction="🎉">🎉</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.insertAdjacentHTML('afterbegin', html);
+                const messageElement = container.firstElementChild;
+                messageElement.querySelector('.card-text')
+                    .setAttribute('data-encrypted', msg.message);
+
+                this.allMessageIds.add(msg.id);
+                this.renderReactionSummary(messageElement, msg.reactions || []);
+            });
+
+            this.decryptAndAttach();
+            container.scrollTop = container.scrollHeight - previousHeight + previousTop;
+        } catch (error) {
+            console.error('[Poller] Failed to load older messages:', error);
+        } finally {
+            this.loadingOlder = false;
         }
     }
 
