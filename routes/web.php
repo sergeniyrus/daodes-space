@@ -657,6 +657,16 @@ Route::middleware('auth')->group(function () {
         [MessageController::class, 'getMessageIds']
     )->name('messages.ids');
 
+    Route::post(
+        '/chats/{chat}/read',
+        [MessageController::class, 'markRead']
+    )->middleware('throttle:120,1')->name('messages.read');
+
+    Route::post(
+        '/chats/{chat}/read-receipts',
+        [MessageController::class, 'readReceipts']
+    )->middleware('throttle:60,1')->name('messages.readReceipts');
+
 
     /*
      * Участники, роли и темы мессенджера
