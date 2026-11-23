@@ -107,7 +107,6 @@ class MessageController extends Controller
                 'message_type' => $msg->message_type ?? 'text',
                 'attachments' => $msg->attachments->map(fn($attachment) => [
                     'id' => $attachment->id,
-                    'ipfs_cid' => $attachment->ipfs_cid,
                     'media_type' => $attachment->media_type,
                     'byte_size' => $attachment->byte_size,
                     'position' => $attachment->position,
@@ -180,6 +179,19 @@ class MessageController extends Controller
                 if ($uploads->count() !== count($uploadIds)) {
                     return response()->json(['status' => 'error', 'message' => 'Invalid or expired attachment upload'], 422);
                 }
+            }
+
+            $messageType = $validated['message_type'] ?? 'text';
+
+            if ($messageType === 'voice' && (
+                $uploads->count() !== 1
+                || $uploads->first()->media_type !== 'audio'
+            )) {
+                return response()->json(['status' => 'error', 'message' => 'Voice messages require one audio attachment'], 422);
+            }
+
+            if (in_array($messageType, ['media', 'file'], true) && $uploads->isEmpty()) {
+                return response()->json(['status' => 'error', 'message' => 'Attachment is required'], 422);
             }
 
             $fullPayload = $request->nonce . '|' . $request->message;
@@ -293,9 +305,7 @@ class MessageController extends Controller
             'encrypted' => 'required|accepted',
         ]);
 
-        ChatUpload::where('user_id', Auth::id())
-            ->where('expires_at', '<=', now())
-            ->delete();
+        ChatUpload::where('expires_at', '<=', now())->delete();
 
         try {
             $file = $request->file('file');
