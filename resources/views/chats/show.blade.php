@@ -969,6 +969,50 @@
 
 
 /* =========================================================
+   РЕАКЦИИ НА СООБЩЕНИЯ
+   ========================================================= */
+.message-reactions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    position: relative;
+    margin-top: 5px;
+}
+.add-reaction,
+.reaction-pill,
+.reaction-choice {
+    color: #dbeafe;
+    background: rgba(0, 229, 255, .07);
+    border: 1px solid rgba(0, 229, 255, .24);
+    border-radius: 14px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-size: .85rem;
+}
+.reaction-pill.active {
+    color: gold;
+    border-color: rgba(255, 215, 0, .65);
+    background: rgba(255, 215, 0, .1);
+}
+.reaction-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    position: absolute;
+    z-index: 20;
+    left: 0;
+    bottom: calc(100% + 5px);
+    padding: 7px;
+    background: #111827;
+    border: 1px solid rgba(255, 215, 0, .4);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.45);
+}
+.reaction-picker[hidden] { display: none; }
+.reaction-choice { padding: 5px 7px; font-size: 1rem; }
+
+/* =========================================================
    ЗАШИФРОВАННЫЕ МЕДИАФАЙЛЫ
    ========================================================= */
 .chat-media-message {
@@ -1471,6 +1515,15 @@
 
                     </p>
 
+                </div>
+
+                <div class="message-reactions" data-message-id="{{ $message->id }}">
+                    <button type="button" class="add-reaction" aria-label="Add reaction">＋</button>
+                    <div class="reaction-picker" hidden>
+                        @foreach (['👍', '❤️', '😂', '🔥', '👏', '😮', '😢', '🎉'] as $reaction)
+                            <button type="button" class="reaction-choice" data-reaction="{{ $reaction }}">{{ $reaction }}</button>
+                        @endforeach
+                    </div>
                 </div>
 
             </div>
