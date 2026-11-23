@@ -69,4 +69,8 @@ return [
     'new_topic' => 'Новая тема',
     'topic_name_prompt' => 'Название новой темы',
     'topic_create_error' => 'Не удалось создать тему',
+    'add_participant' => 'Добавить участника',
+    'remove_participant' => 'Исключить',
+    'select_participant' => 'Выберите пользователя',
+    'cancel' => 'Отмена',
 ];
