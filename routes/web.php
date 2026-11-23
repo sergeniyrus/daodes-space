@@ -638,6 +638,30 @@ Route::middleware('auth')->group(function () {
 
 
     /*
+     * Участники, роли и темы мессенджера
+     */
+    Route::post(
+        '/chats/{chat}/participants',
+        [ChatController::class, 'addParticipant']
+    )->name('chats.participants.add');
+
+    Route::delete(
+        '/chats/{chat}/participants/{user}',
+        [ChatController::class, 'removeParticipant']
+    )->name('chats.participants.remove');
+
+    Route::patch(
+        '/chats/{chat}/participants/{user}/role',
+        [ChatController::class, 'updateParticipantRole']
+    )->name('chats.participants.role');
+
+    Route::post(
+        '/chats/{chat}/topics',
+        [ChatController::class, 'createTopic']
+    )->name('chats.topics.store');
+
+
+    /*
      * Уведомления чатов
      */
 
