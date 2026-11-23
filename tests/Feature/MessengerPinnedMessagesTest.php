@@ -19,6 +19,7 @@ class MessengerPinnedMessagesTest extends TestCase
         parent::setUp();
 
         config(['cache.default' => 'array']);
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
     }
 
     public function test_moderator_can_pin_and_unpin_message(): void
