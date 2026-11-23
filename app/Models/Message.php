@@ -14,6 +14,8 @@ class Message extends Model
         'sender_id',
         'ipfs_cid',
         'reply_to_message_id',
+        'topic_id',
+        'message_type',
         'edited_at',
     ];
 
