@@ -4,6 +4,7 @@ export function loadChatConfig() {
     if (!el) throw new Error('Chat config element not found');
     return {
         chatId: Number(el.dataset.chatId),
+        topicId: el.dataset.topicId ? Number(el.dataset.topicId) : null,
         userId: Number(el.dataset.userId),
         userName: el.dataset.userName || '',
         firstUnreadId: el.dataset.firstUnread ? Number(el.dataset.firstUnread) : null,
@@ -20,7 +21,9 @@ export function loadChatConfig() {
             messageDeleted: el.dataset.translateMessageDeleted,
             deleteConfirm: el.dataset.translateDeleteConfirm,
             sendError: el.dataset.translateSendError,
-            you: el.dataset.translateYou
+            you: el.dataset.translateYou,
+            topicNamePrompt: el.dataset.translateTopicNamePrompt,
+            topicCreateError: el.dataset.translateTopicCreateError
         },
     };
 }
