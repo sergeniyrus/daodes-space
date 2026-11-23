@@ -37,13 +37,19 @@ class MessageController extends Controller
         }
 
         $lastId = (int) request('last_id', 0);
+        $topicId = (int) request('topic_id', 0);
 
-        // Ключ кэша зависит от last_id, чтобы не смешивать новые и старые сообщения
-        $cacheKey = "chat:{$chat->id}:messages:{$lastId}";
+        if ($topicId > 0 && !$chat->topics()->whereKey($topicId)->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Topic not found'], 404);
+        }
+
+        // Ключ кэша учитывает тему и курсор сообщений.
+        $cacheKey = "chat:{$chat->id}:messages:{$topicId}:{$lastId}";
 
         // Получаем метаданные из кэша или из БД
-        $messagesMeta = Cache::remember($cacheKey, self::MESSAGES_CACHE_TTL, function () use ($chat, $lastId) {
+        $messagesMeta = Cache::remember($cacheKey, self::MESSAGES_CACHE_TTL, function () use ($chat, $lastId, $topicId) {
             $messageQuery = $chat->messages()
+                ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
                 ->with([
                     'sender:id,name',
                     'attachments:id,message_id,ipfs_cid,media_type,byte_size,position',
@@ -67,6 +73,7 @@ class MessageController extends Controller
             }
 
             $recentlyEdited = $chat->messages()
+                ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
                 ->where('edited_at', 1)
                 ->where('updated_at', '>', now()->subMinutes(5))
                 ->with('sender:id,name')
