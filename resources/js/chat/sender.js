@@ -1,3 +1,4 @@
+import { hydrateLinkPreview } from './link-preview.js';
 import { renderMessageText } from './render.js';
 import { u8ToB64 } from './utils.js';
 
@@ -97,6 +98,7 @@ export class MessageSender {
             cardText.setAttribute('data-plaintext', text);
             cardText.dataset.decrypted = '1';
             renderMessageText(cardText, text);
+            hydrateLinkPreview(cardText, this.config.csrfToken);
         }
 
         msgEl.setAttribute('data-is-edited', 'true');
