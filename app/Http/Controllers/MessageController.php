@@ -479,12 +479,20 @@ class MessageController extends Controller
      */
     public function destroy(Message $message)
     {
-        if (!$message->chat || !$message->chat->users()->where('user_id', Auth::id())->exists()) {
+        $membership = $message->chat
+            ? DB::table('chat_user')
+                ->where('chat_id', $message->chat_id)
+                ->where('user_id', Auth::id())
+                ->first()
+            : null;
+
+        if (!$membership) {
             return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
         }
 
-        if ($message->sender_id !== Auth::id()) {
-            return response()->json(['status' => 'error'], 403);
+        $canModerate = in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true);
+        if ($message->sender_id !== Auth::id() && !$canModerate) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
         }
 
         $chatId = $message->chat_id;
