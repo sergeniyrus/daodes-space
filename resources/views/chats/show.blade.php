@@ -1594,6 +1594,7 @@
                     placeholder="{{ __('chats.type_message') }}"
                     rows="1"
                     required
+                    @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
                 ></textarea>
 
             </div>
@@ -1605,6 +1606,7 @@
                 class="voice-record-btn"
                 aria-label="{{ __('chats.attach_file') }}"
                 title="{{ __('chats.attach_file') }}"
+                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
             >
                 <i class="fa fa-paperclip" aria-hidden="true"></i>
             </button>
@@ -1622,6 +1624,7 @@
                 class="voice-record-btn"
                 aria-label="{{ __('chats.voice_record') }}"
                 title="{{ __('chats.voice_record') }}"
+                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
             >
                 <i class="fa fa-microphone" aria-hidden="true"></i>
             </button>
@@ -1630,6 +1633,7 @@
                 type="button"
                 id="sendBtn"
                 class="send-btn"
+                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
             >
 
                 <i
