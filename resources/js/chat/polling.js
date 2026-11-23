@@ -18,6 +18,8 @@ export class MessagePoller {
         this.initialLoadDone = false;
         this.loadingOlder = false;
         this.hasOlderMessages = true;
+        this.pendingReadThroughId = 0;
+        this.pendingReadTopicId = this.config.topicId || null;
 
         window.__chatPoller = this;
     }
@@ -176,7 +178,11 @@ export class MessagePoller {
     async load() {
         if (this.isLoading) return;
         this.isLoading = true;
-        const requestedTopicId = this.config.topicId;
+        const requestedTopicId = this.config.topicId || null;
+        if (this.pendingReadTopicId !== requestedTopicId) {
+            this.pendingReadThroughId = 0;
+            this.pendingReadTopicId = requestedTopicId;
+        }
 
         try {
             const lastId = this.initialLoadDone ? this.highestKnownMessageId : 0;
@@ -306,11 +312,16 @@ export class MessagePoller {
             this.decryptAndAttach();
             if (wasAtBottom) this.scrollToBottom();
 
-            if (msgs.length && document.visibilityState === 'visible') {
-                const readThroughId = Math.max(...msgs.map(message => Number(message.id) || 0));
-                if (readThroughId > 0) {
-                    await this.markMessagesRead(readThroughId);
-                }
+            if (msgs.length) {
+                this.pendingReadThroughId = Math.max(
+                    this.pendingReadThroughId,
+                    ...msgs.map(message => Number(message.id) || 0)
+                );
+            }
+
+            if (this.pendingReadThroughId > 0 && document.visibilityState === 'visible') {
+                await this.markMessagesRead(this.pendingReadThroughId);
+                this.pendingReadThroughId = 0;
             }
             await this.refreshReadReceipts();
 
