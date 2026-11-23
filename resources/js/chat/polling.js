@@ -176,6 +176,7 @@ export class MessagePoller {
     async load() {
         if (this.isLoading) return;
         this.isLoading = true;
+        const requestedTopicId = this.config.topicId;
 
         try {
             const lastId = this.initialLoadDone ? this.highestKnownMessageId : 0;
@@ -206,6 +207,7 @@ export class MessagePoller {
             }
 
             const msgs = await res.json();
+            if (requestedTopicId !== this.config.topicId) return;
             if (!Array.isArray(msgs)) return;
 
             const wasAtBottom = this.isAtBottom();
@@ -323,6 +325,7 @@ export class MessagePoller {
         if (!beforeId) return;
 
         this.loadingOlder = true;
+        const requestedTopicId = this.config.topicId;
         const previousHeight = container.scrollHeight;
         const previousTop = container.scrollTop;
 
@@ -344,6 +347,7 @@ export class MessagePoller {
 
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const messages = await response.json();
+            if (requestedTopicId !== this.config.topicId) return;
 
             if (!Array.isArray(messages) || messages.length === 0) {
                 this.hasOlderMessages = false;
