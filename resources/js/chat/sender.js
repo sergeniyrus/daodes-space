@@ -1,3 +1,4 @@
+import { renderMessageText } from './render.js';
 import { u8ToB64 } from './utils.js';
 
 export class MessageSender {
@@ -95,7 +96,7 @@ export class MessageSender {
             cardText.setAttribute('data-encrypted', newCid);
             cardText.setAttribute('data-plaintext', text);
             cardText.dataset.decrypted = '1';
-            cardText.innerHTML = text.replace(/\n/g, '<br>');
+            renderMessageText(cardText, text);
         }
 
         msgEl.setAttribute('data-is-edited', 'true');
