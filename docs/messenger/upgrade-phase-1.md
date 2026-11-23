@@ -28,7 +28,7 @@ The application's `EncryptionService` is used elsewhere and is not the current c
 - Reactions with a fixed supported emoji set.
 - Encrypted image, video, audio and document upload staging through IPFS.
 - Voice recording with `MediaRecorder`, client-side encryption, IPFS upload and authenticated encrypted playback.
-- Safe message rendering, clickable links, highlighted @mentions and link preview cards.
+- Safe message rendering, clickable links, @mention autocomplete with participant IDs, highlighted mentions and link preview cards.
 - Russian and English labels and responsive styles for the new controls.
 
 ## Database additions
@@ -46,7 +46,7 @@ The migration `2026_11_23_000001_add_advanced_messenger_features.php` adds:
 ## Remaining work before production merge
 
 1. Replace the current three-second polling with Laravel Reverb / Echo events. Reverb is not currently configured as a project dependency; this requires installing and locking the package, setting environment variables, and configuring authenticated private channels.
-2. Add @mention autocomplete and dedicated mention notifications. The current phase safely highlights @handles, while existing reply previews already show the replying author's name.
+2. Add dedicated mention-specific notification presentation and delivery controls. @mention autocomplete, participant validation and mention metadata are now implemented; existing reply previews show the replying author's name.
 3. Add read/delivery receipts, message pinning, forwarding, full-text chat search, mute controls, channel discovery/subscription and invite links.
 4. Add key-version rotation policy for participant removal and membership changes. Current removal revokes application access and removes the member key record; it does not re-encrypt historical IPFS messages.
 5. Add automated feature tests for roles, channel publishing, topic isolation, upload ownership, encrypted attachment access and reaction authorization.
