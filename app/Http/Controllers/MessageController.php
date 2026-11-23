@@ -505,6 +505,104 @@ class MessageController extends Controller
     }
 
     /**
+     * Закрепляет сообщение в чате. Содержимое остаётся зашифрованным в IPFS.
+     */
+    public function pin(Message $message)
+    {
+        $chat = $message->chat;
+        $membership = DB::table('chat_user')
+            ->where('chat_id', $message->chat_id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$chat || !$membership) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
+        if (!in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true)) {
+            return response()->json(['status' => 'error', 'message' => 'Only chat moderators can pin messages'], 403);
+        }
+
+        DB::table('chat_pinned_messages')->insertOrIgnore([
+            'chat_id' => $chat->id,
+            'message_id' => $message->id,
+            'pinned_by' => Auth::id(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'pinned' => true,
+            'message_id' => $message->id,
+        ]);
+    }
+
+    /**
+     * Снимает закрепление. Удалять закрепления могут модераторы и автор закрепления.
+     */
+    public function unpin(Message $message)
+    {
+        $membership = DB::table('chat_user')
+            ->where('chat_id', $message->chat_id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$membership) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
+        $pinned = DB::table('chat_pinned_messages')
+            ->where('chat_id', $message->chat_id)
+            ->where('message_id', $message->id)
+            ->first();
+
+        if (!$pinned) {
+            return response()->json(['status' => 'success', 'pinned' => false]);
+        }
+
+        $canModerate = in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true);
+        if (!$canModerate && (int) $pinned->pinned_by !== (int) Auth::id()) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
+        DB::table('chat_pinned_messages')
+            ->where('chat_id', $message->chat_id)
+            ->where('message_id', $message->id)
+            ->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'pinned' => false,
+            'message_id' => $message->id,
+        ]);
+    }
+
+    /**
+     * Возвращает список закреплений без выдачи CID или зашифрованного содержимого.
+     */
+    public function pinnedMessages(Chat $chat)
+    {
+        abort_unless($chat->users()->where('users.id', Auth::id())->exists(), 403);
+
+        $items = DB::table('chat_pinned_messages as pins')
+            ->join('messages', 'messages.id', '=', 'pins.message_id')
+            ->join('users', 'users.id', '=', 'messages.sender_id')
+            ->where('pins.chat_id', $chat->id)
+            ->orderByDesc('pins.created_at')
+            ->limit(100)
+            ->get([
+                'messages.id as message_id',
+                'messages.topic_id',
+                'users.name as sender_name',
+                'pins.pinned_by',
+                'pins.created_at as pinned_at',
+            ]);
+
+        return response()->json($items);
+    }
+
+    /**
      * Переключение реакции участника на сообщении.
      */
     public function toggleReaction(Request $request, Message $message)
