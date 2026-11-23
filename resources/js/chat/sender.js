@@ -46,7 +46,12 @@ export class MessageSender {
             const body = {
                 message: u8ToB64(encrypted),
                 nonce: nonceB64,
+                message_type: 'text',
             };
+
+            if (this.config.topicId && !isEditing) {
+                body.topic_id = this.config.topicId;
+            }
 
             if (replyToMessageId && !isEditing) {
                 body.reply_to_message_id = parseInt(replyToMessageId);
