@@ -32,10 +32,18 @@ return new class extends Migration
         }
 
         if (Schema::hasTable('chat_user') && Schema::hasTable('chats') && Schema::hasColumn('chat_user', 'role')) {
-            DB::table('chat_user')
-                ->join('chats', 'chats.id', '=', 'chat_user.chat_id')
-                ->whereColumn('chat_user.user_id', 'chats.initiator_id')
-                ->update(['chat_user.role' => 'owner']);
+            DB::table('chats')
+                ->select(['id', 'initiator_id'])
+                ->whereNotNull('initiator_id')
+                ->orderBy('id')
+                ->chunkById(500, function ($chats) {
+                    foreach ($chats as $chat) {
+                        DB::table('chat_user')
+                            ->where('chat_id', $chat->id)
+                            ->where('user_id', $chat->initiator_id)
+                            ->update(['role' => 'owner']);
+                    }
+                });
         }
 
         if (!Schema::hasTable('chat_topics')) {
