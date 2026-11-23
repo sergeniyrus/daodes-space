@@ -88,4 +88,7 @@ return [
     'role_admin' => 'Administrator',
     'role_moderator' => 'Moderator',
     'role_member' => 'Member',
+    'pin' => 'Pin message',
+    'unpin' => 'Unpin message',
+    'pinned_messages' => 'Pinned messages',
 ];
