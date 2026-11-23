@@ -1206,6 +1206,14 @@
 
         <div
             class="mode-btn"
+            data-mode="channel"
+            onclick="setChatMode('channel')"
+        >
+            {{ __('chats.channel') }}
+        </div>
+
+        <div
+            class="mode-btn"
             data-mode="personal"
             onclick="setChatMode('personal')"
         >
@@ -1724,7 +1732,7 @@ document.addEventListener(
                    ПРОВЕРКА НАЗВАНИЯ ГРУППЫ
                    ========================================= */
 
-                if (chatType === 'group') {
+                if (chatType === 'group' || chatType === 'channel') {
 
                     const nameValue =
                         chatName.value.trim();
