@@ -1591,7 +1591,7 @@
                 <textarea
                     id="messageInput"
                     name="message"
-                    placeholder="{{ __('chats.type_message') }}"
+                    placeholder="{{ $chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true) ? __('chats.channel_read_only') : __('chats.type_message') }}"
                     rows="1"
                     required
                     @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
