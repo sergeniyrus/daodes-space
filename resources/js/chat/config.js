@@ -10,6 +10,7 @@ export function loadChatConfig() {
         currentRole: el.dataset.currentRole || 'member',
         userName: el.dataset.userName || '',
         firstUnreadId: el.dataset.firstUnread ? Number(el.dataset.firstUnread) : null,
+        mutedUntil: el.dataset.mutedUntil || null,
         sendUrl: el.dataset.sendUrl,
         csrfToken: el.dataset.csrf,
         translations: {
