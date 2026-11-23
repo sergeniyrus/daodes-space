@@ -19,6 +19,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const chatMessages = document.getElementById('chat-messages');
+    const mentionSuggestions = document.getElementById('chatMentionSuggestions');
+    let mentionUsers = [];
+
+    input.addEventListener('input', () => {
+        const beforeCursor = input.value.slice(0, input.selectionStart);
+        const match = beforeCursor.match(/(?:^|\\s)@([a-zA-Z0-9_]{0,32})$/);
+
+        if (!match || !mentionUsers.length) {
+            mentionSuggestions.hidden = true;
+            return;
+        }
+
+        const query = match[1].toLowerCase();
+        const matches = mentionUsers
+            .filter(user => user.nickname && user.nickname.toLowerCase().startsWith(query))
+            .slice(0, 8);
+
+        mentionSuggestions.replaceChildren();
+        matches.forEach(user => {
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'chat-mention-suggestion';
+            option.dataset.nickname = user.nickname;
+
+            const nickname = document.createElement('strong');
+            nickname.textContent = '@' + user.nickname;
+
+            const name = document.createElement('small');
+            name.textContent = user.name;
+
+            option.append(nickname, name);
+            mentionSuggestions.appendChild(option);
+        });
+
+        mentionSuggestions.hidden = matches.length === 0;
+    });
+
+    mentionSuggestions?.addEventListener('click', event => {
+        const option = event.target.closest('.chat-mention-suggestion');
+        if (!option) return;
+
+        const beforeCursor = input.value.slice(0, input.selectionStart);
+        const start = beforeCursor.lastIndexOf('@');
+        if (start < 0) return;
+
+        const nickname = option.dataset.nickname;
+        const cursor = input.selectionStart;
+        input.value = input.value.slice(0, start) + '@' + nickname + ' ' + input.value.slice(cursor);
+
+        const nextCursor = start + nickname.length + 2;
+        input.setSelectionRange(nextCursor, nextCursor);
+        mentionSuggestions.hidden = true;
+        input.focus();
+    });
 
     const topicsBar = document.getElementById('chatTopicsBar');
     topicsBar?.addEventListener('click', async event => {
@@ -217,6 +271,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!crypto.chatKey) {
             console.error('Ключ чата не получен');
             return;
+        }
+
+        try {
+            const mentionResponse = await fetch(`/chats/${config.chatId}/mention-users`, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            });
+            if (mentionResponse.ok) {
+                mentionUsers = await mentionResponse.json();
+                config.mentionUsers = mentionUsers;
+            }
+        } catch (mentionError) {
+            console.warn('Could not load mention users:', mentionError);
         }
 
         poller.initExistingMessages();
