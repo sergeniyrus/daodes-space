@@ -306,6 +306,14 @@ export class MessagePoller {
             this.decryptAndAttach();
             if (wasAtBottom) this.scrollToBottom();
 
+            if (msgs.length && document.visibilityState === 'visible') {
+                const readThroughId = Math.max(...msgs.map(message => Number(message.id) || 0));
+                if (readThroughId > 0) {
+                    await this.markMessagesRead(readThroughId);
+                }
+            }
+            await this.refreshReadReceipts();
+
             if (hasIncoming) {
                 document.getElementById('notificationSound')?.play().catch(() => {});
             }
@@ -411,6 +419,86 @@ export class MessagePoller {
             console.error('[Poller] Failed to load older messages:', error);
         } finally {
             this.loadingOlder = false;
+        }
+    }
+
+    async markMessagesRead(messageId) {
+        try {
+            const response = await fetch(`/chats/${this.config.chatId}/read`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': this.config.csrfToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    message_id: messageId,
+                    topic_id: this.config.topicId || null,
+                }),
+            });
+
+            if (!response.ok) {
+                console.warn('[Poller] Failed to mark messages as read:', response.status);
+            }
+        } catch (error) {
+            console.error('[Poller] Read receipt update failed:', error);
+        }
+    }
+
+    async refreshReadReceipts() {
+        const messageIds = Array.from(document.querySelectorAll('.message.sent[data-id]'))
+            .map(element => Number(element.dataset.id))
+            .filter(id => Number.isInteger(id) && id > 0)
+            .slice(-100);
+
+        if (!messageIds.length) return;
+
+        try {
+            const response = await fetch(`/chats/${this.config.chatId}/read-receipts`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': this.config.csrfToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ message_ids: messageIds }),
+            });
+
+            if (!response.ok) return;
+
+            const receipts = await response.json();
+            const byMessage = new Map(
+                receipts.map(item => [Number(item.message_id), item.user_ids || []])
+            );
+
+            messageIds.forEach(id => {
+                const message = document.querySelector(`.message.sent[data-id="${id}"]`);
+                if (!message) return;
+
+                const body = message.querySelector('.my-card-body') || message.querySelector('.card-body');
+                if (!body) return;
+
+                let status = body.querySelector('.message-read-status');
+                if (!status) {
+                    status = document.createElement('small');
+                    status.className = 'message-read-status';
+                    body.appendChild(status);
+                }
+
+                const readers = byMessage.get(id) || [];
+                status.textContent = readers.length ? '✓✓' : '✓';
+                status.title = readers.length
+                    ? `Прочитано участниками: ${readers.length}`
+                    : 'Отправлено';
+                status.setAttribute('aria-label', status.title);
+                status.dataset.readCount = String(readers.length);
+            });
+        } catch (error) {
+            console.error('[Poller] Failed to refresh read receipts:', error);
         }
     }
 
