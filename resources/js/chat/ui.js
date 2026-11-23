@@ -5,6 +5,7 @@ export class ChatUI {
         this.editingBackupText = null;
         this.editingNonceB64 = null;
         this.replyingToMessageId = null;
+        this.pinnedMessageIds = new Set();
     }
 
     attachEditButton(messageEl, plaintext, nonceB64) {
@@ -76,7 +77,14 @@ export class ChatUI {
             menu.remove();
         };
 
-        menu.append(replyBtn, copyBtn);
+        const pinBtn = document.createElement('div');
+        pinBtn.innerHTML = '<i class="fa fa-thumb-tack" aria-hidden="true"></i> ' + (this.pinnedMessageIds.has(Number(messageId)) ? (this.config.translations.unpin || 'Открепить') : (this.config.translations.pin || 'Закрепить'));
+        pinBtn.onclick = async () => {
+            menu.remove();
+            await this.togglePin(messageId, messageEl);
+        };
+
+        menu.append(replyBtn, copyBtn, pinBtn);
         document.body.appendChild(menu);
 
         const r = messageEl.getBoundingClientRect();
@@ -126,7 +134,14 @@ export class ChatUI {
             this.confirmDelete(messageId, messageEl);
         };
 
-        menu.append(replyBtn, editBtn, delBtn);
+        const pinBtn = document.createElement('div');
+        pinBtn.innerHTML = '<i class="fa fa-thumb-tack" aria-hidden="true"></i> ' + (this.pinnedMessageIds.has(Number(messageId)) ? (this.config.translations.unpin || 'Открепить') : (this.config.translations.pin || 'Закрепить'));
+        pinBtn.onclick = async () => {
+            menu.remove();
+            await this.togglePin(messageId, messageEl);
+        };
+
+        menu.append(replyBtn, editBtn, delBtn, pinBtn);
         document.body.appendChild(menu);
 
         const r = messageEl.getBoundingClientRect();
@@ -138,6 +153,89 @@ export class ChatUI {
                 if (!menu.contains(e.target)) menu.remove();
             }, { once: true });
         }, 0);
+    }
+
+    async loadPinnedMessages(container) {
+        if (!container) return;
+
+        try {
+            const response = await fetch(`/chats/${this.config.chatId}/pinned-messages`, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+            if (!response.ok) return;
+
+            const items = await response.json();
+            this.pinnedMessageIds = new Set(items.map(item => Number(item.message_id)));
+            container.replaceChildren();
+
+            if (!items.length) {
+                container.hidden = true;
+                return;
+            }
+
+            container.hidden = false;
+            const heading = document.createElement('strong');
+            heading.className = 'pinned-messages-heading';
+            heading.textContent = this.config.translations.pinnedMessages || 'Закреплённые сообщения';
+            container.appendChild(heading);
+
+            items.forEach(item => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'pinned-message-item';
+                button.dataset.messageId = String(item.message_id);
+
+                const icon = document.createElement('span');
+                icon.textContent = '📌';
+                const label = document.createElement('span');
+                label.textContent = item.sender_name || (this.config.translations.message || 'Сообщение');
+                const time = document.createElement('small');
+                time.textContent = item.pinned_at ? new Date(item.pinned_at).toLocaleString() : '';
+                button.append(icon, label, time);
+                button.addEventListener('click', () => {
+                    const target = document.querySelector(`.message[data-id="${item.message_id}"]`);
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        target.classList.add('message-highlight');
+                        window.setTimeout(() => target.classList.remove('message-highlight'), 1800);
+                    }
+                });
+                container.appendChild(button);
+            });
+        } catch (error) {
+            console.error('[ChatUI] Failed to load pinned messages:', error);
+        }
+    }
+
+    async togglePin(messageId, messageEl) {
+        const id = Number(messageId);
+        const isPinned = this.pinnedMessageIds.has(id);
+        const url = `/messages/${id}/pin`;
+
+        try {
+            const response = await fetch(url, {
+                method: isPinned ? 'DELETE' : 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': this.config.csrfToken,
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                console.error('[ChatUI] Could not update pin state:', data.message || response.status);
+                return;
+            }
+
+            if (data.pinned) this.pinnedMessageIds.add(id);
+            else this.pinnedMessageIds.delete(id);
+
+            await this.loadPinnedMessages(document.getElementById('chatPinnedMessages'));
+        } catch (error) {
+            console.error('[ChatUI] Pin update failed:', error);
+        }
     }
 
     startEditing(messageId, messageEl, text, nonceB64) {
