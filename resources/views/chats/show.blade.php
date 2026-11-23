@@ -122,6 +122,34 @@
     border-bottom: 1px solid rgba(255, 215, 0, 0.20);
 }
 
+.chat-mute-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+.chat-mute-controls select,
+.chat-mute-controls button {
+    min-height: 38px;
+    padding: 7px 12px;
+    color: #e5e7eb;
+    background: #151923;
+    border: 1px solid rgba(0, 229, 255, 0.35);
+    border-radius: 9px;
+}
+.chat-mute-controls button {
+    color: gold;
+    border-color: rgba(255, 215, 0, 0.45);
+    cursor: pointer;
+}
+.chat-mute-status {
+    flex-basis: 100%;
+    color: #aeb7c5;
+    font-size: 0.82rem;
+}
+
 
 .chat-title {
     margin: 0;
@@ -1451,6 +1479,26 @@
 
         @endif
 
+        <div class="chat-mute-controls">
+            <label for="chatMuteDuration">{{ __('chats.mute_notifications') }}</label>
+            <select id="chatMuteDuration">
+                <option value="">{{ __('chats.mute_off') }}</option>
+                <option value="60">{{ __('chats.mute_1_hour') }}</option>
+                <option value="480">{{ __('chats.mute_8_hours') }}</option>
+                <option value="1440">{{ __('chats.mute_1_day') }}</option>
+                <option value="10080">{{ __('chats.mute_7_days') }}</option>
+                <option value="43200">{{ __('chats.mute_30_days') }}</option>
+            </select>
+            <button type="button" id="saveChatMute">{{ __('chats.save') }}</button>
+            <span class="chat-mute-status" id="chatMuteStatus" aria-live="polite">
+                @if ($mutedUntil && \Illuminate\Support\Carbon::parse($mutedUntil)->isFuture())
+                    {{ __('chats.muted_until', ['date' => \Illuminate\Support\Carbon::parse($mutedUntil)->format('d.m.Y H:i')]) }}
+                @else
+                    {{ __('chats.notifications_enabled') }}
+                @endif
+            </span>
+        </div>
+
     </div>
 
 
@@ -1822,6 +1870,7 @@
     data-user-id="{{ auth()->id() }}"
     data-user-name="{{ auth()->user()->name }}"
     data-first-unread="{{ $firstUnreadMessageId ?? '' }}"
+    data-muted-until="{{ $mutedUntil ?? '' }}"
     data-send-url="{{ route('messages.send', $chat->id) }}"
     data-csrf="{{ csrf_token() }}"
     data-translate-edit="{{ __('chats.edit') }}"
