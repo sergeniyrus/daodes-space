@@ -42,11 +42,28 @@ class MessageController extends Controller
 
         // Получаем метаданные из кэша или из БД
         $messagesMeta = Cache::remember($cacheKey, self::MESSAGES_CACHE_TTL, function () use ($chat, $lastId) {
-            $newMessages = $chat->messages()
-                ->where('id', '>', $lastId)
-                ->with('sender:id,name')
-                ->orderBy('id', 'asc')
-                ->get();
+            $messageQuery = $chat->messages()
+                ->with([
+                    'sender:id,name',
+                    'attachments:id,message_id,ipfs_cid,media_type,byte_size,position',
+                    'reactions:id,message_id,user_id,reaction',
+                ]);
+
+            if ($lastId > 0) {
+                $newMessages = $messageQuery
+                    ->where('id', '>', $lastId)
+                    ->orderBy('id', 'asc')
+                    ->limit(100)
+                    ->get();
+            } else {
+                // Начальная загрузка: последние 50 сообщений, а не вся история чата.
+                $newMessages = $messageQuery
+                    ->orderByDesc('id')
+                    ->limit(50)
+                    ->get()
+                    ->reverse()
+                    ->values();
+            }
 
             $recentlyEdited = $chat->messages()
                 ->where('edited_at', 1)
@@ -54,7 +71,7 @@ class MessageController extends Controller
                 ->with('sender:id,name')
                 ->get();
 
-            return $newMessages->merge($recentlyEdited)->unique('id')->values();
+            return $newMessages->merge($recentlyEdited)->unique('id')->sortBy('id')->values();
         });
 
         // Контент тянем из IPFS (не кэшируем в Redis — он уже в IPFS!)
@@ -75,6 +92,19 @@ class MessageController extends Controller
                 'message' => $payload,
                 'ipfs_cid' => $msg->ipfs_cid,
                 'reply_to_message_id' => $msg->reply_to_message_id,
+                'topic_id' => $msg->topic_id,
+                'message_type' => $msg->message_type ?? 'text',
+                'attachments' => $msg->attachments->map(fn($attachment) => [
+                    'id' => $attachment->id,
+                    'ipfs_cid' => $attachment->ipfs_cid,
+                    'media_type' => $attachment->media_type,
+                    'byte_size' => $attachment->byte_size,
+                    'position' => $attachment->position,
+                ])->values(),
+                'reactions' => $msg->reactions->map(fn($reaction) => [
+                    'user_id' => $reaction->user_id,
+                    'reaction' => $reaction->reaction,
+                ])->values(),
                 'created_at' => $msg->created_at->toIso8601String(),
                 'is_edited' => $msg->edited_at == 1,
             ];
@@ -96,11 +126,23 @@ class MessageController extends Controller
             'message' => 'required|string',
             'nonce'   => 'required|string',
             'reply_to_message_id' => 'nullable|integer|exists:messages,id',
+            'topic_id' => 'nullable|integer|exists:chat_topics,id',
+            'message_type' => 'nullable|string|in:text,voice,media,file',
         ]);
 
         try {
             $fullPayload = $request->nonce . '|' . $request->message;
             $cid = (new Message())->uploadMessageToIPFS($fullPayload);
+
+            // Тема и ответ должны принадлежать текущему чату.
+            $topicId = null;
+            if (!empty($request->topic_id)) {
+                $topicExists = $chat->topics()->whereKey($request->topic_id)->exists();
+                if (!$topicExists) {
+                    return response()->json(['status' => 'error', 'message' => 'Invalid topic'], 422);
+                }
+                $topicId = (int) $request->topic_id;
+            }
 
             // Проверяем, что reply_to_message_id из того же чата
             $replyToId = null;
@@ -118,6 +160,8 @@ class MessageController extends Controller
                 'sender_id' => Auth::id(),
                 'ipfs_cid' => $cid,
                 'reply_to_message_id' => $replyToId,
+                'topic_id' => $topicId,
+                'message_type' => $validated['message_type'] ?? 'text',
             ]);
 
             // Инвалидируем кэш чата — список сообщений изменился
