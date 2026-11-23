@@ -88,6 +88,10 @@ class MessageController extends Controller
      */
     public function store(Request $request, Chat $chat)
     {
+        if (!$chat->users()->where('user_id', Auth::id())->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
         $request->validate([
             'message' => 'required|string',
             'nonce'   => 'required|string',
@@ -177,6 +181,10 @@ class MessageController extends Controller
             'nonce'   => 'required|string',
         ]);
 
+        if (!$message->chat || !$message->chat->users()->where('user_id', Auth::id())->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
         if ($message->sender_id !== Auth::id()) {
             return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
         }
@@ -215,6 +223,10 @@ class MessageController extends Controller
      */
     public function destroy(Message $message)
     {
+        if (!$message->chat || !$message->chat->users()->where('user_id', Auth::id())->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
         if ($message->sender_id !== Auth::id()) {
             return response()->json(['status' => 'error'], 403);
         }
