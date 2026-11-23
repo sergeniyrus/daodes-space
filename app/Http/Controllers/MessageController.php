@@ -342,7 +342,18 @@ class MessageController extends Controller
      */
     public function uploadAttachment(Request $request, Chat $chat, IPFSService $ipfs)
     {
-        if (!$chat->users()->where('user_id', Auth::id())->exists()) {
+        $membership = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (
+            !$membership
+            || (
+                $chat->type === 'channel'
+                && !in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true)
+            )
+        ) {
             return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
         }
 
