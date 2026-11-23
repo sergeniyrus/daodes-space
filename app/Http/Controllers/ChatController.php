@@ -239,18 +239,20 @@ class ChatController extends Controller
     $chat = Chat::with('initiator.profile')->findOrFail($chatId);
     $initiatorPublicKey = $chat->initiator?->profile?->public_key;
 
-    if (!$initiatorPublicKey) {
-        Log::error("❌ Публичный ключ инициатора отсутствует", [
+    $keySenderPublicKey = $record->sender_public_key ?: $initiatorPublicKey;
+
+    if (!$keySenderPublicKey) {
+        Log::error("Публичный ключ отправителя ключа чата отсутствует", [
             'chat_id' => $chatId,
             'initiator_id' => $chat->initiator_id
         ]);
-        return response()->json(['error' => 'Initiator public key missing'], 500);
+        return response()->json(['error' => 'Chat key sender public key missing'], 500);
     }
 
     return response()->json([
         'encrypted_key' => $record->encrypted_key,
         'nonce' => $record->nonce,
-        'initiator_public_key' => $initiatorPublicKey, // ← берём из профиля
+        'initiator_public_key' => $keySenderPublicKey,
     ]);
 }
 
@@ -279,12 +281,17 @@ class ChatController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Personal chats cannot have extra participants'], 422);
         }
 
+        $senderPublicKey = Auth::user()->profile?->public_key;
+        if (!$senderPublicKey) {
+            return response()->json(['status' => 'error', 'message' => 'Your public key is not configured'], 422);
+        }
+
         $userId = (int) $validated['user_id'];
         if ($chat->users()->where('users.id', $userId)->exists()) {
             return response()->json(['status' => 'error', 'message' => 'User is already a participant'], 409);
         }
 
-        DB::transaction(function () use ($chat, $userId, $validated) {
+        DB::transaction(function () use ($chat, $userId, $validated, $senderPublicKey) {
             $chat->users()->attach($userId, [
                 'role' => 'member',
                 'joined_at' => now(),
@@ -295,6 +302,7 @@ class ChatController extends Controller
                 'user_id' => $userId,
                 'encrypted_key' => $validated['encrypted_key'],
                 'nonce' => $validated['nonce'],
+                'sender_public_key' => $senderPublicKey,
             ]);
         });
 
