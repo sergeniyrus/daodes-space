@@ -21,7 +21,7 @@ class MessageController extends Controller
 {
     /**
      * TTL кэша для списка сообщений (в секундах)
-     * 60 секунд — оптимально для активных чатов
+     * Короткий TTL для активной переписки и быстрой синхронизации
      */
     private const MESSAGES_CACHE_TTL = 3;
 
@@ -623,7 +623,8 @@ class MessageController extends Controller
         // Используем tags, если Redis настроен с поддержкой tags
         // Иначе — удаляем по известным ключам
         
-        // Основной кэш сообщений
+        // Основная первая страница истории (общий поток).
+        Cache::forget("chat:{$chatId}:messages:0:0:0");
         Cache::forget("chat:{$chatId}:messages:0");
         
         // Кэш ID сообщений
