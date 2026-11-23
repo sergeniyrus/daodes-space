@@ -969,6 +969,83 @@
 
 
 /* =========================================================
+   УЧАСТНИКИ ЧАТА
+   ========================================================= */
+.chat-members-panel {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 0 14px;
+    color: #d1d5db;
+}
+.chat-members-panel details {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+.chat-members-panel summary {
+    color: #00e5ff;
+    cursor: pointer;
+    font-weight: 700;
+}
+.chat-members-list {
+    display: grid;
+    gap: 7px;
+    margin-top: 10px;
+}
+.chat-member {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(0, 229, 255, 0.045);
+    border: 1px solid rgba(0, 229, 255, 0.14);
+    border-radius: 10px;
+}
+.chat-member-name { color: #fff; font-weight: 600; }
+.chat-member-role { color: gold; font-size: 0.8rem; }
+.chat-member-role-select,
+.chat-participant-modal select {
+    min-height: 32px;
+    color: #fff;
+    background: #151923;
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    border-radius: 8px;
+    padding: 4px 8px;
+}
+.chat-member-remove {
+    color: #ff8a8a;
+    background: transparent;
+    border: 1px solid rgba(255, 82, 82, 0.35);
+    border-radius: 8px;
+    padding: 5px 9px;
+    cursor: pointer;
+}
+.chat-participant-modal {
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(11, 12, 24, 0.98);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 12px;
+}
+.chat-participant-modal[hidden] { display: none; }
+.chat-participant-modal-actions { display: flex; gap: 8px; }
+.chat-participant-modal-actions button {
+    color: gold;
+    background: rgba(255, 215, 0, 0.07);
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    border-radius: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+}
+
+/* =========================================================
    НАВИГАЦИЯ ПО ТЕМАМ
    ========================================================= */
 .chat-topics-bar {
@@ -1091,6 +1168,49 @@
 
     </div>
 
+
+    <div class="chat-members-panel">
+        <details>
+            <summary>
+                {{ __('chats.participants') }} ({{ $chat->users->count() }})
+            </summary>
+            <div class="chat-members-list" id="chatMembersList">
+                @foreach ($chat->users as $member)
+                    <div class="chat-member" data-user-id="{{ $member->id }}">
+                        <span class="chat-member-name">{{ $member->name }}</span>
+                        <span class="chat-member-role">{{ $member->pivot->role ?? 'member' }}</span>
+
+                        @if (in_array($currentRole, ['owner', 'admin'], true) && $member->id !== auth()->id() && ($member->pivot->role ?? 'member') !== 'owner')
+                            @if ($currentRole === 'owner')
+                                <select class="chat-member-role-select" aria-label="Role">
+                                    <option value="member" @selected(($member->pivot->role ?? 'member') === 'member')>member</option>
+                                    <option value="moderator" @selected(($member->pivot->role ?? 'member') === 'moderator')>moderator</option>
+                                    <option value="admin" @selected(($member->pivot->role ?? 'member') === 'admin')>admin</option>
+                                </select>
+                            @endif
+                            <button type="button" class="chat-member-remove" data-user-id="{{ $member->id }}">
+                                {{ __('chats.remove_participant') }}
+                            </button>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </details>
+
+        @if (in_array($currentRole, ['owner', 'admin'], true) && $chat->type !== 'personal')
+            <button type="button" class="chat-topic-create" id="addChatParticipant">
+                + {{ __('chats.add_participant') }}
+            </button>
+            <div class="chat-participant-modal" id="chatParticipantModal" hidden>
+                <label for="chatParticipantSelect">{{ __('chats.select_participant') }}</label>
+                <select id="chatParticipantSelect"></select>
+                <div class="chat-participant-modal-actions">
+                    <button type="button" id="confirmAddChatParticipant">{{ __('chats.add_participant') }}</button>
+                    <button type="button" id="cancelAddChatParticipant">{{ __('chats.cancel') }}</button>
+                </div>
+            </div>
+        @endif
+    </div>
 
     <div class="chat-topics-bar" id="chatTopicsBar">
         <button type="button" class="chat-topic-tab active" data-topic-id="">
