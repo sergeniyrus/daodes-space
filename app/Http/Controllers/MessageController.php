@@ -533,6 +533,10 @@ class MessageController extends Controller
             ->map(fn($item) => [
                 'reaction' => $item->reaction,
                 'count' => (int) $item->total,
+                'mine' => MessageReaction::where('message_id', $message->id)
+                    ->where('user_id', Auth::id())
+                    ->where('reaction', $item->reaction)
+                    ->exists(),
             ])
             ->values();
 
