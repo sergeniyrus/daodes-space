@@ -29,6 +29,7 @@ use App\Http\Controllers\{
     UserProfileController,
     UploadController,
     ChatController,
+    ChatLinkPreviewController,
     LanguageController,
     CaptchaController,
     NotificationController,
@@ -567,6 +568,11 @@ Route::get(
 */
 
 Route::middleware('auth')->group(function () {
+
+    Route::get(
+        '/chat/link-preview',
+        [ChatLinkPreviewController::class, 'show']
+    )->middleware('throttle:30,1')->name('chats.linkPreview');
 
     // Список чатов
     Route::get(
