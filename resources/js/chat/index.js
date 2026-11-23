@@ -77,6 +77,63 @@ document.addEventListener('DOMContentLoaded', async () => {
         await poller.load();
     });
 
+    chatMessages.addEventListener('click', async event => {
+        const addButton = event.target.closest('.add-reaction');
+        if (addButton) {
+            const picker = addButton.parentElement.querySelector('.reaction-picker');
+            if (picker) picker.hidden = !picker.hidden;
+            return;
+        }
+
+        const reactionButton = event.target.closest('.reaction-choice, .reaction-pill');
+        if (!reactionButton) return;
+
+        const messageElement = reactionButton.closest('.message');
+        const messageId = messageElement?.dataset.id;
+        const reaction = reactionButton.dataset.reaction;
+        if (!messageId || !reaction) return;
+
+        reactionButton.disabled = true;
+        try {
+            const response = await fetch(`/messages/${messageId}/reactions`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': config.csrfToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ reaction }),
+            });
+
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                throw new Error(data.message || 'Не удалось сохранить реакцию');
+            }
+
+            poller.renderReactionSummary(messageElement, data.reactions || []);
+            if (data.active) {
+                const activePill = [...messageElement.querySelectorAll('.reaction-pill')]
+                    .find(pill => pill.dataset.reaction === reaction);
+                activePill?.classList.add('active');
+            }
+
+            const picker = messageElement.querySelector('.reaction-picker');
+            if (picker) picker.hidden = true;
+        } catch (error) {
+            console.error('Message reaction failed:', error);
+            window.alert(error.message || 'Не удалось сохранить реакцию');
+        } finally {
+            reactionButton.disabled = false;
+        }
+    });
+
+    document.addEventListener('click', event => {
+        if (event.target.closest('.message-reactions')) return;
+        document.querySelectorAll('.reaction-picker').forEach(picker => {
+            picker.hidden = true;
+        });
+    });
+
     form.addEventListener('submit', e => {
         e.preventDefault();
         e.stopPropagation();
