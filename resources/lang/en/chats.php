@@ -83,4 +83,5 @@ return [
     'media_loading' => 'Loading attachment…',
     'media_error' => 'Could not load attachment',
     'media_download' => 'Download file',
+    'channel_read_only' => 'Only channel moderators can publish',
 ];
