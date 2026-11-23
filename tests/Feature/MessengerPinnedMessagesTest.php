@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class MessengerPinnedMessagesTest extends TestCase
@@ -15,7 +16,7 @@ class MessengerPinnedMessagesTest extends TestCase
 
     public function test_moderator_can_pin_and_unpin_message(): void
     {
-        $owner = User::factory()->create();
+        $owner = $this->createUser();
         $chat = Chat::create([
             'name' => 'Pinned messages test',
             'type' => 'group',
@@ -60,9 +61,9 @@ class MessengerPinnedMessagesTest extends TestCase
 
     public function test_regular_member_cannot_pin_message_and_non_member_cannot_list_pins(): void
     {
-        $owner = User::factory()->create();
-        $member = User::factory()->create();
-        $outsider = User::factory()->create();
+        $owner = $this->createUser();
+        $member = $this->createUser();
+        $outsider = $this->createUser();
 
         $chat = Chat::create([
             'name' => 'Pin permissions test',
@@ -88,4 +89,13 @@ class MessengerPinnedMessagesTest extends TestCase
 
         $this->assertSame(0, DB::table('chat_pinned_messages')->count());
     }
+    private function createUser(): User
+    {
+        return User::create([
+            'name' => 'chat_test_' . Str::uuid(),
+            'password' => 'test-password',
+            'keyword' => 'synthetic-test-keyword',
+        ]);
+    }
+
 }
