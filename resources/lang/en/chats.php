@@ -74,4 +74,9 @@ return [
     'remove_participant' => 'Remove',
     'select_participant' => 'Select a user',
     'cancel' => 'Cancel',
+    'voice_record' => 'Record voice message',
+    'voice_stop' => 'Stop recording',
+    'voice_play' => 'Play voice message',
+    'voice_loading' => 'Loading voice message…',
+    'voice_error' => 'Could not load voice message',
 ];
