@@ -66,4 +66,8 @@ return [
 'chat_exists' => 'A private chat with this user already exists',
 'chat_created' => 'Chat has been created successfully!',
     'channel' => 'Channel',
+    'all_messages' => 'All messages',
+    'new_topic' => 'New topic',
+    'topic_name_prompt' => 'New topic name',
+    'topic_create_error' => 'Could not create topic',
 ];
