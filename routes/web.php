@@ -661,6 +661,11 @@ Route::middleware('auth')->group(function () {
     /*
      * Участники, роли и темы мессенджера
      */
+    Route::get(
+        '/chats/{chat}/mention-users',
+        [ChatController::class, 'mentionUsers']
+    )->name('chats.mentionUsers');
+
     Route::post(
         '/chats/{chat}/participants',
         [ChatController::class, 'addParticipant']
