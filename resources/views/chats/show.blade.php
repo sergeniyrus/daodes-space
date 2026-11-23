@@ -969,6 +969,52 @@
 
 
 /* =========================================================
+   НАВИГАЦИЯ ПО ТЕМАМ
+   ========================================================= */
+.chat-topics-bar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 0 14px;
+    margin-bottom: 14px;
+    scrollbar-width: thin;
+}
+.chat-topic-tab,
+.chat-topic-create {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 7px 14px;
+    color: #cbd5e1;
+    background: rgba(0, 229, 255, 0.06);
+    border: 1px solid rgba(0, 229, 255, 0.25);
+    border-radius: 18px;
+    cursor: pointer;
+}
+.chat-topic-tab.active {
+    color: #0b0c18;
+    background: linear-gradient(135deg, #ffd700, #ffb300);
+    border-color: gold;
+    font-weight: 700;
+}
+.chat-topic-create {
+    color: gold;
+    border-color: rgba(255, 215, 0, 0.45);
+}
+@media (max-width: 700px) {
+    .chat-topics-bar {
+        margin-right: -8px;
+        padding-bottom: 10px;
+    }
+    .chat-topic-tab,
+    .chat-topic-create {
+        min-height: 34px;
+        padding: 6px 12px;
+        font-size: 0.88rem;
+    }
+}
+
+/* =========================================================
    БЕЗОПАСНЫЕ ССЫЛКИ И УПОМИНАНИЯ
    ========================================================= */
 .chat-link {
@@ -1045,6 +1091,29 @@
 
     </div>
 
+
+    <div class="chat-topics-bar" id="chatTopicsBar">
+        <button type="button" class="chat-topic-tab active" data-topic-id="">
+            {{ __('chats.all_messages') }}
+        </button>
+
+        @foreach ($topics as $topic)
+            <button
+                type="button"
+                class="chat-topic-tab"
+                data-topic-id="{{ $topic->id }}"
+                title="{{ $topic->description }}"
+            >
+                {{ $topic->name }}
+            </button>
+        @endforeach
+
+        @if (in_array($currentRole, ['owner', 'admin', 'moderator'], true) && $chat->type !== 'personal')
+            <button type="button" class="chat-topic-create" id="createChatTopic">
+                + {{ __('chats.new_topic') }}
+            </button>
+        @endif
+    </div>
 
     {{-- =====================================================
          СООБЩЕНИЯ
@@ -1296,6 +1365,7 @@
 <div
     id="chat-config"
     data-chat-id="{{ $chat->id }}"
+    data-topic-id=""
     data-user-id="{{ auth()->id() }}"
     data-user-name="{{ auth()->user()->name }}"
     data-first-unread="{{ $firstUnreadMessageId ?? '' }}"
