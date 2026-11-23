@@ -1019,6 +1019,15 @@
     position: relative;
     margin-top: 5px;
 }
+.message-read-status {
+    display: block;
+    margin-top: 3px;
+    color: #00e5ff;
+    font-size: .72rem;
+    line-height: 1;
+    text-align: right;
+    letter-spacing: .04em;
+}
 .add-reaction,
 .reaction-pill,
 .reaction-choice {
