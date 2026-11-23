@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     input.addEventListener('input', () => {
         const beforeCursor = input.value.slice(0, input.selectionStart);
-        const match = beforeCursor.match(/(?:^|\\s)@([a-zA-Z0-9_]{0,32})$/);
+        const match = beforeCursor.match(/(?:^|\s)@([a-zA-Z0-9_]{0,32})$/);
 
         if (!match || !mentionUsers.length) {
             mentionSuggestions.hidden = true;
