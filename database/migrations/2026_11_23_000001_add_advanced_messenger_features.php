@@ -97,6 +97,18 @@ return new class extends Migration
             });
         }
 
+        if (!Schema::hasTable('message_mentions')) {
+            Schema::create('message_mentions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('message_id')->constrained('messages')->cascadeOnDelete();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->timestamps();
+
+                $table->unique(['message_id', 'user_id']);
+                $table->index(['user_id', 'created_at']);
+            });
+        }
+
         if (!Schema::hasTable('message_reactions')) {
             Schema::create('message_reactions', function (Blueprint $table) {
                 $table->id();
@@ -114,6 +126,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('message_reactions');
+        Schema::dropIfExists('message_mentions');
         Schema::dropIfExists('chat_uploads');
         Schema::dropIfExists('message_attachments');
 
