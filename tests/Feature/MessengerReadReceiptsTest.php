@@ -19,6 +19,7 @@ class MessengerReadReceiptsTest extends TestCase
         parent::setUp();
 
         config(['cache.default' => 'array']);
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
     }
 
     public function test_member_can_mark_incoming_messages_read_and_sender_can_fetch_receipts(): void
