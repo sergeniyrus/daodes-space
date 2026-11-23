@@ -1180,7 +1180,7 @@
                         <span class="chat-member-name">{{ $member->name }}</span>
                         <span class="chat-member-role">{{ $member->pivot->role ?? 'member' }}</span>
 
-                        @if (in_array($currentRole, ['owner', 'admin'], true) && $member->id !== auth()->id() && ($member->pivot->role ?? 'member') !== 'owner')
+                        @if (in_array($currentRole, ['owner', 'admin'], true) && $member->id !== auth()->id() && ($member->pivot->role ?? 'member') !== 'owner' && ($currentRole === 'owner' || ($member->pivot->role ?? 'member') !== 'admin'))
                             @if ($currentRole === 'owner')
                                 <select class="chat-member-role-select" aria-label="Role">
                                     <option value="member" @selected(($member->pivot->role ?? 'member') === 'member')>member</option>
@@ -1486,6 +1486,7 @@
     id="chat-config"
     data-chat-id="{{ $chat->id }}"
     data-topic-id=""
+    data-current-role="{{ $currentRole }}"
     data-user-id="{{ auth()->id() }}"
     data-user-name="{{ auth()->user()->name }}"
     data-first-unread="{{ $firstUnreadMessageId ?? '' }}"
