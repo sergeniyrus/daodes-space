@@ -1382,6 +1382,8 @@
     data-translate-delete-confirm="{{ __('chats.delete_confirm') }}"
     data-translate-send-error="{{ __('chats.send_error') }}"
     data-translate-you="{{ __('chats.you') }}"
+    data-translate-topic-name-prompt="{{ __('chats.topic_name_prompt') }}"
+    data-translate-topic-create-error="{{ __('chats.topic_create_error') }}"
 ></div>
 
 
