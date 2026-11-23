@@ -83,13 +83,25 @@ export class MessagePoller {
                 hydrateLinkPreview(el, this.config.csrfToken);
             }
 
-            el.dataset.plaintext = txt;
+            let replyText = txt;
+            if (isVoice) {
+                replyText = '🎤 Голосовое сообщение';
+            } else if (isAttachment) {
+                try {
+                    const attachmentPayload = JSON.parse(txt);
+                    replyText = '📎 ' + (attachmentPayload.file_name || 'Вложение');
+                } catch {
+                    replyText = '📎 Вложение';
+                }
+            }
+
+            el.dataset.plaintext = replyText;
             el.dataset.decrypted = '1';
 
-            if (messageEl.classList.contains('sent')) {
+            if (messageEl.classList.contains('sent') && messageType === 'text') {
                 const nonceB64 = encrypted.split('|')[0];
                 this.ui.attachEditButton(messageEl, txt, nonceB64);
-            } else {
+            } else if (!messageEl.classList.contains('sent')) {
                 this.ui.attachMessageMenu(messageEl);
             }
         });
@@ -132,8 +144,15 @@ export class MessagePoller {
                 const encrypted = data.message.content;
                 if (!encrypted || !encrypted.includes('|')) continue;
 
-                const decrypted = this.crypto.decrypt(encrypted);
-                const shortText = decrypted.replace(/\n/g, ' ').substring(0, 100);
+                let decrypted = this.crypto.decrypt(encrypted);
+                try {
+                    const payload = JSON.parse(decrypted);
+                    if (payload.type === 'voice') decrypted = '🎤 Голосовое сообщение';
+                    else if (payload.type === 'attachment') decrypted = '📎 ' + (payload.file_name || 'Вложение');
+                } catch {
+                    // Обычный текст сообщения.
+                }
+                const shortText = decrypted.replace(/\\n/g, ' ').substring(0, 100);
                 contentEl.innerHTML = `<strong>${this.escapeHtml(data.message.sender.name)}:</strong> ${this.escapeHtml(shortText)}`;
 
                 preview.dataset.loaded = '1';
