@@ -431,7 +431,7 @@ export class MessagePoller {
 
             const group = grouped.get(key);
             group.count += Number(item.count ?? 1);
-            if (Number(item.user_id) === this.config.userId) group.mine = true;
+            if (Number(item.user_id) === this.config.userId || item.mine === true) group.mine = true;
         });
 
         const addButton = container.querySelector('.add-reaction');
