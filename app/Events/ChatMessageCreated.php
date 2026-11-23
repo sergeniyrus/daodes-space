@@ -1,12 +1,12 @@
 <?php
 
-namespace App\\Events;
+namespace App\Events;
 
-use Illuminate\\Broadcasting\\InteractsWithSockets;
-use Illuminate\\Broadcasting\\PresenceChannel;
-use Illuminate\\Contracts\\Broadcasting\\ShouldBroadcastNow;
-use Illuminate\\Foundation\\Events\\Dispatchable;
-use Illuminate\\Queue\\SerializesModels;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PresenceChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
 
 /**
  * Real-time notification that a chat message was created.
