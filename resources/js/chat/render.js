@@ -4,7 +4,7 @@ export function renderMessageText(container, text) {
     delete container.dataset.previewChecked;
     container.replaceChildren();
 
-    const tokenPattern = /(https?:\\/\\/[^\\s<>]+|@[a-zA-Z0-9_]{2,32})/g;
+    const tokenPattern = /(https?:\/\/[^\s<>]+|@[a-zA-Z0-9_]{2,32})/g;
     const value = String(text ?? '');
     let cursor = 0;
 
@@ -55,7 +55,7 @@ export function renderMessageText(container, text) {
 }
 
 function appendTextWithBreaks(container, value) {
-    const lines = String(value).split('\\n');
+    const lines = String(value).split('\n');
     lines.forEach((line, index) => {
         if (index > 0) container.appendChild(document.createElement('br'));
         if (line) container.appendChild(document.createTextNode(line));
