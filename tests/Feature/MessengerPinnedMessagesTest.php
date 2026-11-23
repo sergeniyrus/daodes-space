@@ -14,6 +14,13 @@ class MessengerPinnedMessagesTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['cache.default' => 'array']);
+    }
+
     public function test_moderator_can_pin_and_unpin_message(): void
     {
         $owner = $this->createUser();
