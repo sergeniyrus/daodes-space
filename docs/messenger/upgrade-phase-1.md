@@ -54,6 +54,20 @@ The migration `2026_11_23_000001_add_advanced_messenger_features.php` adds:
 - Browser notification sound is suppressed while the mute expiry is in the future.
 - Mute changes are protected by chat membership checks and a throttled authenticated endpoint.
 
+## Reverb / Echo integration status
+
+- Laravel 11 broadcasting authorization routes are registered through `withBroadcasting`, and the existing `routes/channels.php` membership check is loaded.
+- The broadcasting default now reads `BROADCAST_CONNECTION` first and safely falls back to `log`; this avoids selecting an unavailable Reverb driver.
+- Reverb is **not installed yet**: `composer.lock` does not contain `laravel/reverb`, and `package-lock.json` does not contain `laravel-echo` or `pusher-js`. The current messenger therefore continues using three-second polling.
+- To install the runtime dependencies in the development checkout, run:
+  ```bash
+  composer require laravel/reverb
+  php artisan reverb:install
+  npm install --save-dev laravel-echo pusher-js
+  npm run build
+  ```
+  Commit the generated Composer and npm lockfile changes together with the published Reverb configuration. Configure the Reverb application credentials and public WebSocket host before enabling `BROADCAST_CONNECTION=reverb` in production.
+
 ## Remaining work before production merge
 
 1. Replace the current three-second polling with Laravel Reverb / Echo events. Reverb is not currently configured as a project dependency; this requires installing and locking the package, setting environment variables, and configuring authenticated private channels.
