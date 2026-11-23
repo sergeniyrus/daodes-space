@@ -91,4 +91,13 @@ return [
     'pin' => 'Pin message',
     'unpin' => 'Unpin message',
     'pinned_messages' => 'Pinned messages',
+    'mute_notifications' => 'Notifications:',
+    'mute_off' => 'Enabled',
+    'mute_1_hour' => 'For 1 hour',
+    'mute_8_hours' => 'For 8 hours',
+    'mute_1_day' => 'For 1 day',
+    'mute_7_days' => 'For 7 days',
+    'mute_30_days' => 'For 30 days',
+    'muted_until' => 'Muted until :date',
+    'notifications_enabled' => 'Notifications enabled',
 ];
