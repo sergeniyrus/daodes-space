@@ -152,7 +152,7 @@ export class MessagePoller {
                 } catch {
                     // Обычный текст сообщения.
                 }
-                const shortText = decrypted.replace(/\\n/g, ' ').substring(0, 100);
+                const shortText = decrypted.replace(/\n/g, ' ').substring(0, 100);
                 contentEl.innerHTML = `<strong>${this.escapeHtml(data.message.sender.name)}:</strong> ${this.escapeHtml(shortText)}`;
 
                 preview.dataset.loaded = '1';
