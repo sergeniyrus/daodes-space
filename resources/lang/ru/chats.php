@@ -73,4 +73,9 @@ return [
     'remove_participant' => 'Исключить',
     'select_participant' => 'Выберите пользователя',
     'cancel' => 'Отмена',
+    'voice_record' => 'Записать голосовое',
+    'voice_stop' => 'Остановить запись',
+    'voice_play' => 'Прослушать голосовое',
+    'voice_loading' => 'Загрузка голосового…',
+    'voice_error' => 'Не удалось загрузить голосовое',
 ];
