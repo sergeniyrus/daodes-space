@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 use App\Models\Message;
 use App\Models\ChatUpload;
 use App\Models\MessageAttachment;
+use App\Models\MessageReaction;
 use App\Models\Chat;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -436,6 +437,53 @@ class MessageController extends Controller
         $this->invalidateChatCache($chatId);
 
         return response()->json(['status' => 'success']);
+    }
+
+    /**
+     * Переключение реакции участника на сообщении.
+     */
+    public function toggleReaction(Request $request, Message $message)
+    {
+        if (!$message->chat || !$message->chat->users()->where('user_id', Auth::id())->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
+        $validated = $request->validate([
+            'reaction' => 'required|string|in:👍,❤️,😂,🔥,👏,😮,😢,🎉',
+        ]);
+
+        $existing = MessageReaction::where('message_id', $message->id)
+            ->where('user_id', Auth::id())
+            ->where('reaction', $validated['reaction'])
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+            $active = false;
+        } else {
+            MessageReaction::create([
+                'message_id' => $message->id,
+                'user_id' => Auth::id(),
+                'reaction' => $validated['reaction'],
+            ]);
+            $active = true;
+        }
+
+        $reactions = MessageReaction::where('message_id', $message->id)
+            ->select('reaction', DB::raw('COUNT(*) as total'))
+            ->groupBy('reaction')
+            ->get()
+            ->map(fn($item) => [
+                'reaction' => $item->reaction,
+                'count' => (int) $item->total,
+            ])
+            ->values();
+
+        return response()->json([
+            'status' => 'success',
+            'active' => $active,
+            'reactions' => $reactions,
+        ]);
     }
 
     /**
