@@ -8,6 +8,7 @@ use App\Models\ChatMemberKey;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ChatController extends Controller
 {
@@ -65,7 +66,7 @@ class ChatController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'chat_type' => 'required|string|in:group,personal',
+            'chat_type' => 'required|string|in:group,personal,channel',
             'name'      => 'nullable|string|max:255',
             'users'     => 'nullable|string',
             'encrypted_keys' => 'required|array',
@@ -85,7 +86,15 @@ class ChatController extends Controller
             'initiator_id' => $initiatorId,
         ]);
 
-        $chat->users()->attach(array_unique($userIds));
+        $chat->users()->attach(array_unique($userIds), [
+            'role' => 'member',
+            'joined_at' => now(),
+        ]);
+
+        $chat->users()->updateExistingPivot($initiatorId, [
+            'role' => 'owner',
+            'joined_at' => now(),
+        ]);
 
         foreach ($validated['encrypted_keys'] as $uid => $data) {
             ChatMemberKey::create([
@@ -233,4 +242,157 @@ class ChatController extends Controller
         'initiator_public_key' => $initiatorPublicKey, // ← берём из профиля
     ]);
 }
+
+    /**
+     * Добавление участника. Клиент передаёт ключ чата,
+     * зашифрованный публичным ключом нового участника.
+     */
+    public function addParticipant(Request $request, Chat $chat)
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'encrypted_key' => 'required|string',
+            'nonce' => 'required|string',
+        ]);
+
+        $actor = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$actor || !in_array($actor->role ?? 'member', ['owner', 'admin'], true)) {
+            abort(403);
+        }
+
+        if ($chat->type === 'personal') {
+            return response()->json(['status' => 'error', 'message' => 'Personal chats cannot have extra participants'], 422);
+        }
+
+        $userId = (int) $validated['user_id'];
+        if ($chat->users()->where('users.id', $userId)->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'User is already a participant'], 409);
+        }
+
+        DB::transaction(function () use ($chat, $userId, $validated) {
+            $chat->users()->attach($userId, [
+                'role' => 'member',
+                'joined_at' => now(),
+            ]);
+
+            ChatMemberKey::create([
+                'chat_id' => $chat->id,
+                'user_id' => $userId,
+                'encrypted_key' => $validated['encrypted_key'],
+                'nonce' => $validated['nonce'],
+            ]);
+        });
+
+        return response()->json(['status' => 'success']);
+    }
+
+    /**
+     * Исключение участника. Администратор не может исключить владельца
+     * или другого администратора.
+     */
+    public function removeParticipant(Chat $chat, User $user)
+    {
+        $actor = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        $target = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$actor || !$target || !in_array($actor->role ?? 'member', ['owner', 'admin'], true)) {
+            abort(403);
+        }
+
+        if (($target->role ?? 'member') === 'owner') {
+            return response()->json(['status' => 'error', 'message' => 'The owner cannot be removed'], 422);
+        }
+
+        if (($actor->role ?? 'member') === 'admin' && ($target->role ?? 'member') === 'admin') {
+            abort(403);
+        }
+
+        DB::transaction(function () use ($chat, $user) {
+            ChatMemberKey::where('chat_id', $chat->id)
+                ->where('user_id', $user->id)
+                ->delete();
+
+            $chat->users()->detach($user->id);
+        });
+
+        return response()->json(['status' => 'success']);
+    }
+
+    /**
+     * Назначение администратора или модератора доступно только владельцу.
+     */
+    public function updateParticipantRole(Request $request, Chat $chat, User $user)
+    {
+        $validated = $request->validate([
+            'role' => 'required|string|in:admin,moderator,member',
+        ]);
+
+        $actor = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        $target = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$actor || ($actor->role ?? 'member') !== 'owner' || !$target) {
+            abort(403);
+        }
+
+        DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $user->id)
+            ->update(['role' => $validated['role']]);
+
+        return response()->json(['status' => 'success', 'role' => $validated['role']]);
+    }
+
+    /**
+     * Создание темы внутри группового чата или канала.
+     */
+    public function createTopic(Request $request, Chat $chat)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:120',
+            'description' => 'nullable|string|max:2000',
+        ]);
+
+        $actor = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (
+            !$actor
+            || !in_array($actor->role ?? 'member', ['owner', 'admin', 'moderator'], true)
+            || $chat->type === 'personal'
+        ) {
+            abort(403);
+        }
+
+        $topic = $chat->topics()->create([
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'created_by' => Auth::id(),
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'topic' => $topic,
+        ], 201);
+    }
+
 }
