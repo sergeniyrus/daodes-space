@@ -76,6 +76,21 @@ return new class extends Migration
             });
         }
 
+        if (!Schema::hasTable('chat_uploads')) {
+            Schema::create('chat_uploads', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('chat_id')->constrained('chats')->cascadeOnDelete();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->string('ipfs_cid', 128);
+                $table->string('media_type', 24)->default('file');
+                $table->unsignedBigInteger('byte_size')->default(0);
+                $table->timestamp('expires_at')->index();
+                $table->timestamps();
+
+                $table->index(['chat_id', 'user_id']);
+            });
+        }
+
         if (!Schema::hasTable('message_reactions')) {
             Schema::create('message_reactions', function (Blueprint $table) {
                 $table->id();
@@ -93,6 +108,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('message_reactions');
+        Schema::dropIfExists('chat_uploads');
         Schema::dropIfExists('message_attachments');
 
         if (Schema::hasTable('messages') && Schema::hasColumn('messages', 'topic_id')) {
