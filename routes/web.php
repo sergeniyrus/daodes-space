@@ -683,6 +683,11 @@ Route::middleware('auth')->group(function () {
     )->middleware('throttle:60,1')->name('messages.readReceipts');
 
 
+    Route::post(
+        '/chats/{chat}/mute',
+        [ChatController::class, 'updateMute']
+    )->middleware('throttle:30,1')->name('chats.mute');
+
     /*
      * Участники, роли и темы мессенджера
      */
