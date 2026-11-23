@@ -607,6 +607,108 @@ class MessageController extends Controller
     }
 
     /**
+     * Отмечает входящие сообщения выбранного чата/темы как прочитанные
+     * до указанного сообщения. Содержимое сообщений не затрагивается.
+     */
+    public function markRead(Request $request, Chat $chat)
+    {
+        abort_unless(
+            $chat->users()->where('users.id', Auth::id())->exists(),
+            403
+        );
+
+        $validated = $request->validate([
+            'message_id' => 'required|integer|min:1',
+            'topic_id' => 'nullable|integer',
+        ]);
+
+        $target = Message::query()
+            ->where('chat_id', $chat->id)
+            ->whereKey($validated['message_id'])
+            ->first();
+
+        if (!$target) {
+            return response()->json(['status' => 'error', 'message' => 'Message not found in this chat'], 404);
+        }
+
+        $topicId = $validated['topic_id'] ?? null;
+        if ($topicId !== null && !$chat->topics()->whereKey($topicId)->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Topic not found'], 404);
+        }
+
+        Message::query()
+            ->where('chat_id', $chat->id)
+            ->where('id', '<=', $target->id)
+            ->where('sender_id', '!=', Auth::id())
+            ->when(
+                $topicId !== null,
+                fn ($query) => $query->where('topic_id', $topicId),
+                fn ($query) => $query->whereNull('topic_id')
+            )
+            ->orderBy('id')
+            ->chunkById(500, function ($messages) {
+                $now = now();
+                $rows = $messages->map(fn ($message) => [
+                    'message_id' => $message->id,
+                    'user_id' => Auth::id(),
+                    'read_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ])->all();
+
+                if ($rows) {
+                    DB::table('message_reads')->insertOrIgnore($rows);
+                }
+            });
+
+        return response()->json([
+            'status' => 'success',
+            'read_through' => $target->id,
+        ]);
+    }
+
+    /**
+     * Возвращает статусы прочтения для сообщений текущего пользователя,
+     * которые сейчас отображаются в интерфейсе.
+     */
+    public function readReceipts(Request $request, Chat $chat)
+    {
+        abort_unless(
+            $chat->users()->where('users.id', Auth::id())->exists(),
+            403
+        );
+
+        $validated = $request->validate([
+            'message_ids' => 'required|array|max:100',
+            'message_ids.*' => 'required|integer|distinct',
+        ]);
+
+        $messageIds = Message::query()
+            ->where('chat_id', $chat->id)
+            ->where('sender_id', Auth::id())
+            ->whereIn('id', $validated['message_ids'])
+            ->pluck('id');
+
+        if ($messageIds->isEmpty()) {
+            return response()->json([]);
+        }
+
+        $receipts = DB::table('message_reads')
+            ->whereIn('message_id', $messageIds)
+            ->select(['message_id', 'user_id'])
+            ->orderBy('message_id')
+            ->get()
+            ->groupBy('message_id')
+            ->map(fn ($items, $messageId) => [
+                'message_id' => (int) $messageId,
+                'user_ids' => $items->pluck('user_id')->map(fn ($id) => (int) $id)->values(),
+            ])
+            ->values();
+
+        return response()->json($receipts);
+    }
+
+    /**
      * Получение ID всех сообщений чата (для проверки удалений)
      * Лёгкий запрос — только ID, без IPFS
      */
