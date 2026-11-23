@@ -1,3 +1,4 @@
+import { renderEncryptedAttachment } from './media.js';
 import { renderVoiceMessage } from './voice.js';
 import { hydrateLinkPreview } from './link-preview.js';
 import { renderMessageText } from './render.js';
@@ -65,7 +66,17 @@ export class MessagePoller {
                     this.crypto
                 );
 
-            if (!isVoice) {
+            const isAttachment = ['media', 'file'].includes(messageType)
+                && renderEncryptedAttachment(
+                    el,
+                    txt,
+                    Number(messageEl.dataset.id),
+                    attachmentId,
+                    this.config,
+                    this.crypto
+                );
+
+            if (!isVoice && !isAttachment) {
                 renderMessageText(el, txt);
                 hydrateLinkPreview(el, this.config.csrfToken);
             }
