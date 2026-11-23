@@ -184,6 +184,14 @@ class MessageController extends Controller
 
             $messageType = $validated['message_type'] ?? 'text';
 
+            if ($uploads->isNotEmpty() && !in_array($messageType, ['voice', 'media', 'file'], true)) {
+                return response()->json(['status' => 'error', 'message' => 'Attachment message type is required'], 422);
+            }
+
+            if ($messageType === 'media' && $uploads->contains(fn($upload) => !in_array($upload->media_type, ['image', 'video'], true))) {
+                return response()->json(['status' => 'error', 'message' => 'Media messages support images and videos'], 422);
+            }
+
             if ($messageType === 'voice' && (
                 $uploads->count() !== 1
                 || $uploads->first()->media_type !== 'audio'
