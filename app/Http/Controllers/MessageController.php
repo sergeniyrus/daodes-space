@@ -59,6 +59,7 @@ class MessageController extends Controller
                     'sender:id,name',
                     'attachments:id,message_id,ipfs_cid,media_type,byte_size,position',
                     'reactions:id,message_id,user_id,reaction',
+                    'mentions:id,message_id,user_id',
                 ]);
 
             if ($beforeId > 0) {
@@ -128,6 +129,7 @@ class MessageController extends Controller
                     'user_id' => $reaction->user_id,
                     'reaction' => $reaction->reaction,
                 ])->values(),
+                'mentions' => $msg->mentions->pluck('user_id')->values(),
                 'created_at' => $msg->created_at->toIso8601String(),
                 'is_edited' => $msg->edited_at == 1,
             ];
@@ -165,9 +167,27 @@ class MessageController extends Controller
             'message_type' => 'nullable|string|in:text,voice,media,file',
             'attachment_upload_ids' => 'nullable|array|max:10',
             'attachment_upload_ids.*' => 'required|integer|distinct|exists:chat_uploads,id',
+            'mentioned_user_ids' => 'nullable|array|max:50',
+            'mentioned_user_ids.*' => 'required|integer|distinct|exists:users,id',
         ]);
 
         try {
+            $mentionedUserIds = collect($validated['mentioned_user_ids'] ?? [])
+                ->map(fn($id) => (int) $id)
+                ->unique()
+                ->values();
+
+            if ($mentionedUserIds->isNotEmpty()) {
+                $validMentionIds = $chat->users()
+                    ->whereIn('users.id', $mentionedUserIds)
+                    ->pluck('users.id')
+                    ->map(fn($id) => (int) $id);
+
+                if ($validMentionIds->count() !== $mentionedUserIds->count()) {
+                    return response()->json(['status' => 'error', 'message' => 'Mentions must target chat participants'], 422);
+                }
+            }
+
             // Проверяем тему до загрузки, чтобы не создавать недоступный orphan CID.
             $topicId = null;
             if (!empty($request->topic_id)) {
@@ -229,7 +249,7 @@ class MessageController extends Controller
                 }
             }
 
-            $message = DB::transaction(function () use ($chat, $cid, $replyToId, $topicId, $validated, $uploads, $uploadIds) {
+            $message = DB::transaction(function () use ($chat, $cid, $replyToId, $topicId, $validated, $uploads, $uploadIds, $mentionedUserIds) {
                 $message = Message::create([
                     'chat_id' => $chat->id,
                     'sender_id' => Auth::id(),
@@ -246,6 +266,12 @@ class MessageController extends Controller
                         'byte_size' => $upload->byte_size,
                         'position' => $position,
                     ]);
+                }
+
+                if ($mentionedUserIds->isNotEmpty()) {
+                    foreach ($mentionedUserIds as $mentionedUserId) {
+                        $message->mentions()->create(['user_id' => $mentionedUserId]);
+                    }
                 }
 
                 if (!empty($uploadIds)) {
