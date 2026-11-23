@@ -1871,6 +1871,8 @@
     data-user-name="{{ auth()->user()->name }}"
     data-first-unread="{{ $firstUnreadMessageId ?? '' }}"
     data-muted-until="{{ $mutedUntil ?? '' }}"
+    data-translate-muted-until="{{ __('chats.muted_until', ['date' => ':date']) }}"
+    data-translate-notifications-enabled="{{ __('chats.notifications_enabled') }}"
     data-send-url="{{ route('messages.send', $chat->id) }}"
     data-csrf="{{ csrf_token() }}"
     data-translate-edit="{{ __('chats.edit') }}"
