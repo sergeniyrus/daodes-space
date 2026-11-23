@@ -493,6 +493,116 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
+        const attachFileButton = document.getElementById('attachChatFileBtn');
+        const attachmentInput = document.getElementById('chatAttachmentInput');
+
+        attachFileButton?.addEventListener('click', () => attachmentInput?.click());
+
+        attachmentInput?.addEventListener('change', async () => {
+            const file = attachmentInput.files?.[0];
+            if (!file) return;
+
+            if (file.size > 50 * 1024 * 1024) {
+                window.alert('Максимальный размер вложения — 50 МБ');
+                attachmentInput.value = '';
+                return;
+            }
+
+            attachFileButton.disabled = true;
+            attachFileButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>';
+
+            try {
+                const mediaType = file.type.startsWith('image/')
+                    ? 'image'
+                    : file.type.startsWith('video/')
+                        ? 'video'
+                        : file.type.startsWith('audio/')
+                            ? 'audio'
+                            : 'file';
+
+                const fileBytes = new Uint8Array(await file.arrayBuffer());
+                const fileNonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+                const encryptedBytes = nacl.secretbox(fileBytes, fileNonce, crypto.chatKey);
+                const encryptedFile = new File(
+                    [encryptedBytes],
+                    'attachment.enc',
+                    { type: 'application/octet-stream' }
+                );
+
+                const uploadForm = new FormData();
+                uploadForm.append('file', encryptedFile);
+                uploadForm.append('media_type', mediaType);
+                uploadForm.append('encrypted', '1');
+
+                const uploadResponse = await fetch(`/chats/${config.chatId}/attachments`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': config.csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: uploadForm,
+                });
+
+                const uploadResult = await uploadResponse.json();
+                if (!uploadResponse.ok || uploadResult.status !== 'success') {
+                    throw new Error(uploadResult.message || 'Не удалось загрузить вложение в IPFS');
+                }
+
+                const attachmentPayload = JSON.stringify({
+                    type: 'attachment',
+                    media_type: mediaType,
+                    file_nonce: u8ToB64(fileNonce),
+                    mime_type: file.type || 'application/octet-stream',
+                    file_name: file.name,
+                    file_size: file.size,
+                });
+
+                const messageNonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+                const encryptedMessage = nacl.secretbox(
+                    new TextEncoder().encode(attachmentPayload),
+                    messageNonce,
+                    crypto.chatKey
+                );
+
+                const body = {
+                    message: u8ToB64(encryptedMessage),
+                    nonce: u8ToB64(messageNonce),
+                    message_type: ['image', 'video'].includes(mediaType) ? 'media' : 'file',
+                    attachment_upload_ids: [uploadResult.upload_id],
+                };
+
+                if (config.topicId) body.topic_id = config.topicId;
+                if (ui.replyingToMessageId) {
+                    body.reply_to_message_id = Number(ui.replyingToMessageId);
+                }
+
+                const sendResponse = await fetch(config.sendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': config.csrfToken,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(body),
+                });
+
+                const sendResult = await sendResponse.json();
+                if (!sendResponse.ok || sendResult.status !== 'success') {
+                    throw new Error(sendResult.message || 'Не удалось отправить вложение');
+                }
+
+                ui.cancelReply();
+                await poller.load();
+            } catch (error) {
+                console.error('Encrypted attachment send failed:', error);
+                window.alert(error.message || 'Не удалось отправить вложение');
+            } finally {
+                attachFileButton.disabled = false;
+                attachFileButton.innerHTML = '<i class="fa fa-paperclip" aria-hidden="true"></i>';
+                attachmentInput.value = '';
+            }
+        });
+
     } catch (err) {
         console.error('Failed to load chat key:', err);
     }
