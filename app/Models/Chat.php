@@ -75,6 +75,11 @@ public function memberKeys()
     return $this->hasMany(ChatMemberKey::class, 'chat_id');
 }
 
+public function topics()
+{
+    return $this->hasMany(ChatTopic::class, 'chat_id');
+}
+
 public function initiator()
 {
     return $this->belongsTo(User::class, 'initiator_id');
