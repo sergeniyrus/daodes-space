@@ -14,6 +14,13 @@ class MessengerReadReceiptsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['cache.default' => 'array']);
+    }
+
     public function test_member_can_mark_incoming_messages_read_and_sender_can_fetch_receipts(): void
     {
         $sender = $this->createUser();
