@@ -126,4 +126,10 @@ public function replies()
         return $this->belongsTo(ChatTopic::class, 'topic_id');
     }
 
+
+    public function mentions()
+    {
+        return $this->hasMany(MessageMention::class);
+    }
+
 }
