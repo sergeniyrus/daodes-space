@@ -192,7 +192,7 @@ Route::middleware('auth')->group(function () {
         return response()->json([
             'encrypted_key' => $keyRecord->encrypted_key,
             'nonce' => $keyRecord->nonce,
-            'initiator_public_key' => $initiator->profile->public_key,
+            'initiator_public_key' => $keyRecord->sender_public_key ?: $initiator->profile->public_key,
         ]);
     });
 
