@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Message;
+use App\Models\ChatUpload;
 use App\Models\Chat;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Services\TelegramNotifier;
+use App\Services\IPFSService;
 
 class MessageController extends Controller
 {
@@ -148,6 +150,8 @@ class MessageController extends Controller
             'reply_to_message_id' => 'nullable|integer|exists:messages,id',
             'topic_id' => 'nullable|integer|exists:chat_topics,id',
             'message_type' => 'nullable|string|in:text,voice,media,file',
+            'attachment_upload_ids' => 'nullable|array|max:10',
+            'attachment_upload_ids.*' => 'required|integer|distinct|exists:chat_uploads,id',
         ]);
 
         try {
@@ -159,6 +163,22 @@ class MessageController extends Controller
                     return response()->json(['status' => 'error', 'message' => 'Invalid topic'], 422);
                 }
                 $topicId = (int) $request->topic_id;
+            }
+
+            $uploadIds = $validated['attachment_upload_ids'] ?? [];
+            $uploads = collect();
+
+            if (!empty($uploadIds)) {
+                $uploads = ChatUpload::query()
+                    ->whereIn('id', $uploadIds)
+                    ->where('chat_id', $chat->id)
+                    ->where('user_id', Auth::id())
+                    ->where('expires_at', '>', now())
+                    ->get();
+
+                if ($uploads->count() !== count($uploadIds)) {
+                    return response()->json(['status' => 'error', 'message' => 'Invalid or expired attachment upload'], 422);
+                }
             }
 
             $fullPayload = $request->nonce . '|' . $request->message;
@@ -175,14 +195,31 @@ class MessageController extends Controller
                 }
             }
 
-            $message = Message::create([
-                'chat_id' => $chat->id,
-                'sender_id' => Auth::id(),
-                'ipfs_cid' => $cid,
-                'reply_to_message_id' => $replyToId,
-                'topic_id' => $topicId,
-                'message_type' => $validated['message_type'] ?? 'text',
-            ]);
+            $message = DB::transaction(function () use ($chat, $cid, $replyToId, $topicId, $validated, $uploads, $uploadIds) {
+                $message = Message::create([
+                    'chat_id' => $chat->id,
+                    'sender_id' => Auth::id(),
+                    'ipfs_cid' => $cid,
+                    'reply_to_message_id' => $replyToId,
+                    'topic_id' => $topicId,
+                    'message_type' => $validated['message_type'] ?? 'text',
+                ]);
+
+                foreach ($uploads as $position => $upload) {
+                    $message->attachments()->create([
+                        'ipfs_cid' => $upload->ipfs_cid,
+                        'media_type' => $upload->media_type,
+                        'byte_size' => $upload->byte_size,
+                        'position' => $position,
+                    ]);
+                }
+
+                if (!empty($uploadIds)) {
+                    ChatUpload::whereIn('id', $uploadIds)->delete();
+                }
+
+                return $message;
+            });
 
             // Инвалидируем кэш чата — список сообщений изменился
             $this->invalidateChatCache($chat->id);
@@ -225,6 +262,9 @@ class MessageController extends Controller
                     'sender' => $sender->name,
                     'ipfs_cid' => $message->ipfs_cid,
                     'reply_to_message_id' => $message->reply_to_message_id,
+                    'topic_id' => $message->topic_id,
+                    'message_type' => $message->message_type,
+                    'attachments' => $message->attachments()->get(['id', 'media_type', 'byte_size']),
                     'created_at' => now()->toDateTimeString(),
                     'is_edited' => false,
                 ]
@@ -232,6 +272,89 @@ class MessageController extends Controller
         } catch (\Exception $e) {
             Log::error('Ошибка отправки: ' . $e->getMessage());
             return response()->json(['status' => 'error'], 500);
+        }
+    }
+
+
+    /**
+     * Загружает уже зашифрованное на клиенте вложение в IPFS.
+     * Временная запись привязана к чату и автору и может быть использована один раз.
+     */
+    public function uploadAttachment(Request $request, Chat $chat, IPFSService $ipfs)
+    {
+        if (!$chat->users()->where('user_id', Auth::id())->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
+        $validated = $request->validate([
+            'file' => 'required|file|max:51200',
+            'media_type' => 'required|string|in:image,video,audio,file',
+            'encrypted' => 'required|accepted',
+        ]);
+
+        ChatUpload::where('user_id', Auth::id())
+            ->where('expires_at', '<=', now())
+            ->delete();
+
+        try {
+            $file = $request->file('file');
+            $cid = $ipfs->uploadFile($file);
+
+            $upload = ChatUpload::create([
+                'chat_id' => $chat->id,
+                'user_id' => Auth::id(),
+                'ipfs_cid' => $cid,
+                'media_type' => $validated['media_type'],
+                'byte_size' => $file->getSize(),
+                'expires_at' => now()->addHours(2),
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'upload_id' => $upload->id,
+                'media_type' => $upload->media_type,
+                'byte_size' => $upload->byte_size,
+            ], 201);
+        } catch (\Throwable $exception) {
+            Log::error('Encrypted chat attachment upload failed', [
+                'chat_id' => $chat->id,
+                'user_id' => Auth::id(),
+                'error' => $exception->getMessage(),
+            ]);
+
+            return response()->json(['status' => 'error', 'message' => 'Attachment upload failed'], 503);
+        }
+    }
+
+    /**
+     * Выдаёт зашифрованные байты вложения только участнику исходного чата.
+     */
+    public function downloadAttachment(Chat $chat, Message $message, MessageAttachment $attachment, IPFSService $ipfs)
+    {
+        if (
+            $message->chat_id !== $chat->id
+            || $attachment->message_id !== $message->id
+            || !$chat->users()->where('user_id', Auth::id())->exists()
+        ) {
+            abort(404);
+        }
+
+        try {
+            $content = $ipfs->downloadFile($attachment->ipfs_cid);
+
+            return response($content, 200, [
+                'Content-Type' => 'application/octet-stream',
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+            ]);
+        } catch (\Throwable $exception) {
+            Log::warning('Chat attachment retrieval failed', [
+                'chat_id' => $chat->id,
+                'message_id' => $message->id,
+                'attachment_id' => $attachment->id,
+            ]);
+
+            return response()->json(['status' => 'error', 'message' => 'Attachment unavailable'], 503);
         }
     }
 
