@@ -67,7 +67,7 @@ class ChatController extends Controller
     {
         $validated = $request->validate([
             'chat_type' => 'required|string|in:group,personal,channel',
-            'name'      => 'nullable|string|max:255',
+            'name'      => 'required_if:chat_type,group|required_if:chat_type,channel|nullable|string|max:255',
             'users'     => 'nullable|string',
             'encrypted_keys' => 'required|array',
             'encrypted_keys.*.encrypted_key' => 'required|string',
