@@ -4,6 +4,7 @@ export function loadChatConfig() {
     if (!el) throw new Error('Chat config element not found');
     return {
         chatId: Number(el.dataset.chatId),
+        chatType: el.dataset.chatType || 'group',
         topicId: el.dataset.topicId ? Number(el.dataset.topicId) : null,
         userId: Number(el.dataset.userId),
         currentRole: el.dataset.currentRole || 'member',
