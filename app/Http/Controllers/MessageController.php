@@ -131,10 +131,7 @@ class MessageController extends Controller
         ]);
 
         try {
-            $fullPayload = $request->nonce . '|' . $request->message;
-            $cid = (new Message())->uploadMessageToIPFS($fullPayload);
-
-            // Тема и ответ должны принадлежать текущему чату.
+            // Проверяем тему до загрузки, чтобы не создавать недоступный orphan CID.
             $topicId = null;
             if (!empty($request->topic_id)) {
                 $topicExists = $chat->topics()->whereKey($request->topic_id)->exists();
@@ -143,6 +140,9 @@ class MessageController extends Controller
                 }
                 $topicId = (int) $request->topic_id;
             }
+
+            $fullPayload = $request->nonce . '|' . $request->message;
+            $cid = (new Message())->uploadMessageToIPFS($fullPayload);
 
             // Проверяем, что reply_to_message_id из того же чата
             $replyToId = null;
