@@ -636,6 +636,11 @@ class MessageController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Topic not found'], 404);
         }
 
+        if (($target->topic_id === null) !== ($topicId === null)
+            || ($topicId !== null && (int) $target->topic_id !== (int) $topicId)) {
+            return response()->json(['status' => 'error', 'message' => 'Message does not belong to this topic'], 422);
+        }
+
         Message::query()
             ->where('chat_id', $chat->id)
             ->where('id', '<=', $target->id)
