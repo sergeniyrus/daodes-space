@@ -24,7 +24,12 @@ export function loadChatConfig() {
             sendError: el.dataset.translateSendError,
             you: el.dataset.translateYou,
             topicNamePrompt: el.dataset.translateTopicNamePrompt,
-            topicCreateError: el.dataset.translateTopicCreateError
+            topicCreateError: el.dataset.translateTopicCreateError,
+            voicePlay: el.dataset.translateVoicePlay,
+            voiceLoading: el.dataset.translateVoiceLoading,
+            voiceError: el.dataset.translateVoiceError,
+            voiceRecord: el.dataset.translateVoiceRecord,
+            voiceStop: el.dataset.translateVoiceStop
         },
     };
 }
