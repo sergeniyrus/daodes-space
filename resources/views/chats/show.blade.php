@@ -969,6 +969,47 @@
 
 
 /* =========================================================
+   ЗАШИФРОВАННЫЕ МЕДИАФАЙЛЫ
+   ========================================================= */
+.chat-media-message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+.chat-media-load,
+.chat-media-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #00e5ff;
+    background: rgba(0, 229, 255, .08);
+    border: 1px solid rgba(0, 229, 255, .35);
+    border-radius: 18px;
+    padding: 8px 13px;
+    text-decoration: none;
+    cursor: pointer;
+}
+.chat-media-message small {
+    color: #aeb7c5;
+    overflow-wrap: anywhere;
+}
+.chat-media-image {
+    display: block;
+    max-width: min(100%, 420px);
+    max-height: 360px;
+    object-fit: contain;
+    border-radius: 10px;
+}
+.chat-media-video {
+    display: block;
+    width: min(100%, 420px);
+    max-height: 360px;
+    border-radius: 10px;
+    background: #000;
+}
+
+/* =========================================================
    ГОЛОСОВЫЕ СООБЩЕНИЯ
    ========================================================= */
 .voice-record-btn {
@@ -1507,6 +1548,23 @@
 
             <button
                 type="button"
+                id="attachChatFileBtn"
+                class="voice-record-btn"
+                aria-label="{{ __('chats.attach_file') }}"
+                title="{{ __('chats.attach_file') }}"
+            >
+                <i class="fa fa-paperclip" aria-hidden="true"></i>
+            </button>
+
+            <input
+                type="file"
+                id="chatAttachmentInput"
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                hidden
+            >
+
+            <button
+                type="button"
                 id="recordVoiceBtn"
                 class="voice-record-btn"
                 aria-label="{{ __('chats.voice_record') }}"
@@ -1631,6 +1689,10 @@
     data-translate-voice-error="{{ __('chats.voice_error') }}"
     data-translate-voice-record="{{ __('chats.voice_record') }}"
     data-translate-voice-stop="{{ __('chats.voice_stop') }}"
+    data-translate-attach-file="{{ __('chats.attach_file') }}"
+    data-translate-media-loading="{{ __('chats.media_loading') }}"
+    data-translate-media-error="{{ __('chats.media_error') }}"
+    data-translate-media-download="{{ __('chats.media_download') }}"
 ></div>
 
 
