@@ -1,3 +1,4 @@
+import { hydrateLinkPreview } from './link-preview.js';
 import { renderMessageText } from './render.js';
 import { b64ToU8 } from './utils.js';
 
@@ -52,6 +53,7 @@ export class MessagePoller {
 
             const txt = this.crypto.decrypt(encrypted);
             renderMessageText(el, txt);
+            hydrateLinkPreview(el, this.config.csrfToken);
             el.dataset.plaintext = txt;
             el.dataset.decrypted = '1';
 
