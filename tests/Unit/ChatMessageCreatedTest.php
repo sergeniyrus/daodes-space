@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Events\\ChatMessageCreated;
-use Illuminate\\Broadcasting\\PresenceChannel;
-use PHPUnit\\Framework\\TestCase;
+use App\Events\ChatMessageCreated;
+use Illuminate\Broadcasting\PresenceChannel;
+use PHPUnit\Framework\TestCase;
 
 class ChatMessageCreatedTest extends TestCase
 {
