@@ -9,6 +9,15 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('chats') && !Schema::hasColumn('chats', 'initiator_id')) {
+            Schema::table('chats', function (Blueprint $table) {
+                $table->foreignId('initiator_id')
+                    ->nullable()
+                    ->constrained('users')
+                    ->nullOnDelete();
+            });
+        }
+
         if (Schema::hasTable('chat_member_keys') && !Schema::hasColumn('chat_member_keys', 'sender_public_key')) {
             Schema::table('chat_member_keys', function (Blueprint $table) {
                 $table->string('sender_public_key', 255)->nullable();
@@ -133,6 +142,12 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (Schema::hasTable('chats') && Schema::hasColumn('chats', 'initiator_id')) {
+            Schema::table('chats', function (Blueprint $table) {
+                $table->dropConstrainedForeignId('initiator_id');
+            });
+        }
+
         Schema::dropIfExists('message_reactions');
         Schema::dropIfExists('message_mentions');
         Schema::dropIfExists('chat_uploads');
