@@ -41,7 +41,9 @@ export function loadChatConfig() {
             roleAdmin: el.dataset.translateRoleAdmin,
             pin: el.dataset.translatePin,
             unpin: el.dataset.translateUnpin,
-            pinnedMessages: el.dataset.translatePinnedMessages
+            pinnedMessages: el.dataset.translatePinnedMessages,
+            mutedUntil: el.dataset.translateMutedUntil,
+            notificationsEnabled: el.dataset.translateNotificationsEnabled
         },
     };
 }
