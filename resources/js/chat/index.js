@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const remaining = new Date(config.mutedUntil).getTime() - Date.now();
             const presets = [60, 480, 1440, 10080, 43200];
             const matchingPreset = presets.find(minutes =>
-                Math.abs(remaining - minutes * 60 * 1000) < 5 * 60 * 1000
+                minutes * 60 * 1000 >= remaining
             );
             muteDuration.value = matchingPreset ? String(matchingPreset) : '';
         }
