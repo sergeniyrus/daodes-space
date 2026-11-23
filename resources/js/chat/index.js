@@ -7,6 +7,7 @@ import { ChatUI } from './ui.js';
 import { MessageSender } from './sender.js';
 import { MessagePoller } from './polling.js';
 import { u8ToB64 } from './utils.js';
+import { connectChatRealtime } from './realtime.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const config = loadChatConfig();
@@ -291,6 +292,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         poller.initExistingMessages();
         // Запускаем polling через startPolling (с защитой от параллельных запросов)
         poller.startPolling(3000);
+        connectChatRealtime(config, poller);
 
         const muteDuration = document.getElementById('chatMuteDuration');
         const saveMuteButton = document.getElementById('saveChatMute');
