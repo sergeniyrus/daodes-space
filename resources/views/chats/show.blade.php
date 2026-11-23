@@ -1816,6 +1816,7 @@
 <div
     id="chat-config"
     data-chat-id="{{ $chat->id }}"
+    data-chat-type="{{ $chat->type }}"
     data-topic-id=""
     data-current-role="{{ $currentRole }}"
     data-user-id="{{ auth()->id() }}"
