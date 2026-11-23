@@ -315,6 +315,10 @@ class ChatController extends Controller
      */
     public function removeParticipant(Chat $chat, User $user)
     {
+        if ($chat->type === 'personal') {
+            return response()->json(['status' => 'error', 'message' => 'Personal chat participants cannot be managed'], 422);
+        }
+
         $actor = DB::table('chat_user')
             ->where('chat_id', $chat->id)
             ->where('user_id', Auth::id())
@@ -353,6 +357,10 @@ class ChatController extends Controller
      */
     public function updateParticipantRole(Request $request, Chat $chat, User $user)
     {
+        if ($chat->type === 'personal') {
+            return response()->json(['status' => 'error', 'message' => 'Personal chat roles cannot be changed'], 422);
+        }
+
         $validated = $request->validate([
             'role' => 'required|string|in:admin,moderator,member',
         ]);
