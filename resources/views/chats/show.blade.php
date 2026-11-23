@@ -1414,7 +1414,7 @@
                         <span class="chat-member-name">{{ $member->name }}</span>
                         <span class="chat-member-role">{{ $member->pivot->role ?? 'member' }}</span>
 
-                        @if (in_array($currentRole, ['owner', 'admin'], true) && $member->id !== auth()->id() && ($member->pivot->role ?? 'member') !== 'owner' && ($currentRole === 'owner' || ($member->pivot->role ?? 'member') !== 'admin'))
+                        @if (in_array($currentRole, ['owner', 'admin'], true) && $chat->type !== 'personal' && $member->id !== auth()->id() && ($member->pivot->role ?? 'member') !== 'owner' && ($currentRole === 'owner' || ($member->pivot->role ?? 'member') !== 'admin'))
                             @if ($currentRole === 'owner')
                                 <select class="chat-member-role-select" aria-label="Role">
                                     <option value="member" @selected(($member->pivot->role ?? 'member') === 'member')>member</option>
