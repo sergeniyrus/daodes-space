@@ -65,4 +65,5 @@ return [
 'chat_name_exists' => 'A chat with that name already exists',
 'chat_exists' => 'A private chat with this user already exists',
 'chat_created' => 'Chat has been created successfully!',
+    'channel' => 'Channel',
 ];
