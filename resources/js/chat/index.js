@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const chatMessages = document.getElementById('chat-messages');
+    const pinnedMessages = document.getElementById('chatPinnedMessages');
+    ui.loadPinnedMessages(pinnedMessages);
     const mentionSuggestions = document.getElementById('chatMentionSuggestions');
     let mentionUsers = [];
 
