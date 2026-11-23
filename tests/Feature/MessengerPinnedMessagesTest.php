@@ -20,7 +20,6 @@ class MessengerPinnedMessagesTest extends TestCase
         $chat = Chat::create([
             'name' => 'Pinned messages test',
             'type' => 'group',
-            'initiator_id' => $owner->id,
         ]);
         $chat->users()->attach($owner->id, ['role' => 'owner']);
 
@@ -68,7 +67,6 @@ class MessengerPinnedMessagesTest extends TestCase
         $chat = Chat::create([
             'name' => 'Pin permissions test',
             'type' => 'group',
-            'initiator_id' => $owner->id,
         ]);
         $chat->users()->attach($owner->id, ['role' => 'owner']);
         $chat->users()->attach($member->id, ['role' => 'member']);
