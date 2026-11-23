@@ -1,13 +1,13 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\Chat;
-use App\\Models\\User;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Str;
-use Tests\\TestCase;
+use App\Models\Chat;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Tests\TestCase;
 
 class MessengerChatMuteTest extends TestCase
 {
@@ -18,7 +18,7 @@ class MessengerChatMuteTest extends TestCase
         parent::setUp();
 
         config(['cache.default' => 'array']);
-        $this->withoutMiddleware(\\Illuminate\\Routing\\Middleware\\ThrottleRequests::class);
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
     }
 
     public function test_member_can_mute_and_unmute_chat_for_themselves(): void
