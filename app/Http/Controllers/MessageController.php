@@ -597,7 +597,6 @@ class MessageController extends Controller
                 'messages.id as message_id',
                 'messages.topic_id',
                 'users.name as sender_name',
-                'pins.pinned_by',
                 'pins.created_at as pinned_at',
             ]);
 
