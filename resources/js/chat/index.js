@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const role = document.createElement('span');
                 role.className = 'chat-member-role';
-                role.textContent = 'member';
+                role.textContent = config.translations.roleMember || 'Member';
 
                 row.append(name, role);
 
@@ -464,11 +464,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!response.ok || result.status !== 'success') {
                     throw new Error(result.message || 'Не удалось изменить роль');
                 }
-                row.querySelector('.chat-member-role').textContent = select.value;
+                row.querySelector('.chat-member-role').textContent = ({
+                    member: config.translations.roleMember,
+                    moderator: config.translations.roleModerator,
+                    admin: config.translations.roleAdmin,
+                })[select.value] || select.value;
             } catch (error) {
                 console.error('Updating participant role failed:', error);
                 window.alert(error.message || 'Не удалось изменить роль');
-                select.value = row.querySelector('.chat-member-role').textContent;
+                select.value = ['member', 'moderator', 'admin'].find(role => ({
+                    member: config.translations.roleMember,
+                    moderator: config.translations.roleModerator,
+                    admin: config.translations.roleAdmin,
+                })[role] === row.querySelector('.chat-member-role').textContent) || 'member';
             }
         });
         const recordVoiceButton = document.getElementById('recordVoiceBtn');
