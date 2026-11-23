@@ -70,4 +70,8 @@ return [
     'new_topic' => 'New topic',
     'topic_name_prompt' => 'New topic name',
     'topic_create_error' => 'Could not create topic',
+    'add_participant' => 'Add participant',
+    'remove_participant' => 'Remove',
+    'select_participant' => 'Select a user',
+    'cancel' => 'Cancel',
 ];
