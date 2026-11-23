@@ -284,8 +284,17 @@ class MessageController extends Controller
             // Инвалидируем кэш чата — список сообщений изменился
             $this->invalidateChatCache($chat->id);
 
-            // Уведомления
-            $recipientIds = $chat->users()->where('user_id', '!=', Auth::id())->pluck('user_id');
+            // Уведомления получают только участники, у которых сейчас не действует mute.
+            // Настройка персональная: она не влияет на остальных участников чата.
+            $recipientIds = DB::table('chat_user')
+                ->where('chat_id', $chat->id)
+                ->where('user_id', '!=', Auth::id())
+                ->where(function ($query) {
+                    $query->whereNull('muted_until')
+                        ->orWhere('muted_until', '<=', now());
+                })
+                ->pluck('user_id');
+
             if ($recipientIds->isNotEmpty()) {
                 $notifications = $recipientIds->map(fn($id) => [
                     'user_id' => $id,
