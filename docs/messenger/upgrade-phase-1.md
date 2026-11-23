@@ -46,6 +46,14 @@ The migration `2026_11_23_000001_add_advanced_messenger_features.php` adds:
 - `chat_pinned_messages` for multiple independently pinned messages per chat, with pin author and timestamps;
 - `topic_id` and `message_type` to `messages`.
 
+## Mute controls
+
+- Each participant can mute a chat independently for 1 hour, 8 hours, 1 day, 7 days or 30 days.
+- The existing `chat_user.muted_until` pivot column stores the personal mute expiry; clearing the setting restores notifications immediately.
+- Muted participants are excluded from new in-app and Telegram message notifications.
+- Browser notification sound is suppressed while the mute expiry is in the future.
+- Mute changes are protected by chat membership checks and a throttled authenticated endpoint.
+
 ## Remaining work before production merge
 
 1. Replace the current three-second polling with Laravel Reverb / Echo events. Reverb is not currently configured as a project dependency; this requires installing and locking the package, setting environment variables, and configuring authenticated private channels.
