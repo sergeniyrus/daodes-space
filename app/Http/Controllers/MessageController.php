@@ -86,12 +86,14 @@ class MessageController extends Controller
                     ->values();
             }
 
-            $recentlyEdited = $chat->messages()
-                ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
-                ->where('edited_at', 1)
-                ->where('updated_at', '>', now()->subMinutes(5))
-                ->with('sender:id,name')
-                ->get();
+            $recentlyEdited = $beforeId > 0
+                ? collect()
+                : $chat->messages()
+                    ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
+                    ->where('edited_at', 1)
+                    ->where('updated_at', '>', now()->subMinutes(5))
+                    ->with('sender:id,name')
+                    ->get();
 
             return $newMessages->merge($recentlyEdited)->unique('id')->sortBy('id')->values();
         });
