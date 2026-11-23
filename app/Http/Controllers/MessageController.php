@@ -519,7 +519,8 @@ class MessageController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
         }
 
-        if (!in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true)) {
+        if ($chat->type !== 'personal'
+            && !in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true)) {
             return response()->json(['status' => 'error', 'message' => 'Only chat moderators can pin messages'], 403);
         }
 
@@ -561,7 +562,8 @@ class MessageController extends Controller
             return response()->json(['status' => 'success', 'pinned' => false]);
         }
 
-        $canModerate = in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true);
+        $canModerate = $message->chat?->type === 'personal'
+            || in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true);
         if (!$canModerate && (int) $pinned->pinned_by !== (int) Auth::id()) {
             return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
         }
