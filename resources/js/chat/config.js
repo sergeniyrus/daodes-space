@@ -29,7 +29,11 @@ export function loadChatConfig() {
             voiceLoading: el.dataset.translateVoiceLoading,
             voiceError: el.dataset.translateVoiceError,
             voiceRecord: el.dataset.translateVoiceRecord,
-            voiceStop: el.dataset.translateVoiceStop
+            voiceStop: el.dataset.translateVoiceStop,
+            attachFile: el.dataset.translateAttachFile,
+            mediaLoading: el.dataset.translateMediaLoading,
+            mediaError: el.dataset.translateMediaError,
+            mediaDownload: el.dataset.translateMediaDownload
         },
     };
 }
