@@ -3,6 +3,7 @@
 use Illuminate\\Database\\Migrations\\Migration;
 use Illuminate\\Database\\Schema\\Blueprint;
 use Illuminate\\Support\\Facades\\Schema;
+use Illuminate\\Support\\Facades\\DB;
 
 return new class extends Migration
 {
@@ -22,6 +23,13 @@ return new class extends Migration
                     $table->timestamp('muted_until')->nullable();
                 }
             });
+        }
+
+        if (Schema::hasTable('chat_user') && Schema::hasTable('chats') && Schema::hasColumn('chat_user', 'role')) {
+            DB::table('chat_user')
+                ->join('chats', 'chats.id', '=', 'chat_user.chat_id')
+                ->whereColumn('chat_user.user_id', 'chats.initiator_id')
+                ->update(['chat_user.role' => 'owner']);
         }
 
         if (!Schema::hasTable('chat_topics')) {
