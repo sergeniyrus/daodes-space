@@ -575,10 +575,20 @@ export class MessagePoller {
         }
     }
 
+    setPollingInterval(interval = 3000) {
+        const normalizedInterval = Math.max(1000, Number(interval) || 3000);
+
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+        }
+
+        this.pollingInterval = setInterval(() => this.load(), normalizedInterval);
+    }
+
     startPolling(interval = 3000) {
         if (this.pollingInterval) return;
         this.load();
-        this.pollingInterval = setInterval(() => this.load(), interval);
+        this.setPollingInterval(interval);
         this.checkDeletedMessages();
         this.deletedCheckInterval = setInterval(() => this.checkDeletedMessages(), 30000);
     }
