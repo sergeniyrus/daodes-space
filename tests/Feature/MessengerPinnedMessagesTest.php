@@ -91,11 +91,13 @@ class MessengerPinnedMessagesTest extends TestCase
     }
     private function createUser(): User
     {
-        return User::create([
-            'name' => 'chat_test_' . Str::uuid(),
-            'password' => 'test-password',
-            'keyword' => 'synthetic-test-keyword',
-        ]);
+        $user = new User();
+        $user->name = 'chat_test_' . Str::uuid();
+        $user->password = 'test-password';
+        $user->keyword = 'synthetic-test-keyword';
+        $user->save();
+
+        return $user;
     }
 
 }
