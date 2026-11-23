@@ -84,4 +84,8 @@ return [
     'media_error' => 'Could not load attachment',
     'media_download' => 'Download file',
     'channel_read_only' => 'Only channel moderators can publish',
+    'role_owner' => 'Owner',
+    'role_admin' => 'Administrator',
+    'role_moderator' => 'Moderator',
+    'role_member' => 'Member',
 ];
