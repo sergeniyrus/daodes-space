@@ -36,6 +36,7 @@ The application's `EncryptionService` is used elsewhere and is not the current c
 
 The migration `2026_11_23_000001_add_advanced_messenger_features.php` adds:
 
+- nullable `chats.initiator_id` with a user foreign key (required by chat creation and owner assignment);
 - role and membership metadata to `chat_user`;
 - sender public key metadata to `chat_member_keys`;
 - `chat_topics`;
