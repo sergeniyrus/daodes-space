@@ -108,4 +108,20 @@ public function replies()
     return $this->hasMany(Message::class, 'reply_to_message_id');
 }
 
+
+    public function attachments()
+    {
+        return $this->hasMany(MessageAttachment::class)->orderBy('position');
+    }
+
+    public function reactions()
+    {
+        return $this->hasMany(MessageReaction::class);
+    }
+
+    public function topic()
+    {
+        return $this->belongsTo(ChatTopic::class, 'topic_id');
+    }
+
 }
