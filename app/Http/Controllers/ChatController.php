@@ -16,7 +16,7 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        $groupChats = Chat::where('type', 'group')
+        $groupChats = Chat::whereIn('type', ['group', 'channel'])
             ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
             ->paginate(10);
 
