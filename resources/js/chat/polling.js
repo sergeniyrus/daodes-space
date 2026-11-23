@@ -248,6 +248,19 @@ export class MessagePoller {
                                 </p>
                                 <p class="card-text">${downloadText} ${downloadIcon}</p>
                             </div>
+                            <div class="message-reactions" data-message-id="${msg.id}">
+                                <button type="button" class="add-reaction" aria-label="Add reaction">＋</button>
+                                <div class="reaction-picker" hidden>
+                                    <button type="button" class="reaction-choice" data-reaction="👍">👍</button>
+                                    <button type="button" class="reaction-choice" data-reaction="❤️">❤️</button>
+                                    <button type="button" class="reaction-choice" data-reaction="😂">😂</button>
+                                    <button type="button" class="reaction-choice" data-reaction="🔥">🔥</button>
+                                    <button type="button" class="reaction-choice" data-reaction="👏">👏</button>
+                                    <button type="button" class="reaction-choice" data-reaction="😮">😮</button>
+                                    <button type="button" class="reaction-choice" data-reaction="😢">😢</button>
+                                    <button type="button" class="reaction-choice" data-reaction="🎉">🎉</button>
+                                </div>
+                            </div>
                         </div>
                     `;
                     chatMessages.insertAdjacentHTML('beforeend', html);
@@ -258,6 +271,10 @@ export class MessagePoller {
 
                     this.allMessageIds.add(msg.id);
                     this.highestKnownMessageId = Math.max(this.highestKnownMessageId, msg.id);
+                }
+                const renderedMessage = document.querySelector(`.message[data-id="${msg.id}"]`);
+                if (renderedMessage) {
+                    this.renderReactionSummary(renderedMessage, msg.reactions || []);
                 }
             });
 
@@ -274,6 +291,37 @@ export class MessagePoller {
         } finally {
             this.isLoading = false;
         }
+    }
+
+    renderReactionSummary(messageEl, reactions = []) {
+        const container = messageEl.querySelector('.message-reactions');
+        if (!container) return;
+
+        container.querySelectorAll('.reaction-pill').forEach(button => button.remove());
+
+        const grouped = new Map();
+        reactions.forEach(item => {
+            const key = item.reaction;
+            if (!key) return;
+
+            if (!grouped.has(key)) {
+                grouped.set(key, { count: 0, mine: false });
+            }
+
+            const group = grouped.get(key);
+            group.count += Number(item.count ?? 1);
+            if (Number(item.user_id) === this.config.userId) group.mine = true;
+        });
+
+        const addButton = container.querySelector('.add-reaction');
+        grouped.forEach((group, reaction) => {
+            const pill = document.createElement('button');
+            pill.type = 'button';
+            pill.className = 'reaction-pill' + (group.mine ? ' active' : '');
+            pill.dataset.reaction = reaction;
+            pill.textContent = `${reaction} ${group.count}`;
+            container.insertBefore(pill, addButton);
+        });
     }
 
     async checkDeletedMessages() {
