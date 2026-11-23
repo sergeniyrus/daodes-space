@@ -559,6 +559,19 @@
     border: #ff980 solid 5px;
 }
 
+
+.chat-type-label {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 7px;
+    padding: 2px 8px;
+    color: #00e5ff;
+    font-size: .72rem;
+    border: 1px solid rgba(0, 229, 255, .3);
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
 </style>
 
 
@@ -621,6 +634,10 @@
                                 >
                                     {{ $chat->getChatNameForUser(auth()->id()) }}
                                 </a>
+
+                                @if ($chat->type === 'channel')
+                                    <span class="chat-type-label">{{ __('chats.channel') }}</span>
+                                @endif
 
 
                                 {{-- Счётчик показываем только если > 0 --}}
