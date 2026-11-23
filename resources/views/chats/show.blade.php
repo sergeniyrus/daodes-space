@@ -969,6 +969,61 @@
 
 
 /* =========================================================
+   КАРТОЧКА ПРЕДПРОСМОТРА ССЫЛКИ
+   ========================================================= */
+.chat-link-preview {
+    display: flex;
+    gap: 10px;
+    max-width: 420px;
+    margin-top: 10px;
+    padding: 9px;
+    color: #e5e7eb;
+    text-decoration: none;
+    background: rgba(0, 229, 255, 0.045);
+    border: 1px solid rgba(0, 229, 255, 0.24);
+    border-left: 3px solid #00e5ff;
+    border-radius: 10px;
+}
+.chat-link-preview:hover {
+    border-color: rgba(255, 215, 0, 0.55);
+}
+.chat-link-preview img {
+    width: 76px;
+    height: 76px;
+    flex: 0 0 76px;
+    object-fit: cover;
+    border-radius: 7px;
+    background: #10131d;
+}
+.chat-link-preview-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+.chat-link-preview-content small {
+    color: #00e5ff;
+    overflow-wrap: anywhere;
+}
+.chat-link-preview-content strong {
+    color: gold;
+    font-size: 0.9rem;
+}
+.chat-link-preview-content span {
+    color: #aeb7c5;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+@media (max-width: 520px) {
+    .chat-link-preview { max-width: 100%; }
+    .chat-link-preview img { width: 64px; height: 64px; flex-basis: 64px; }
+}
+
+/* =========================================================
    УЧАСТНИКИ ЧАТА
    ========================================================= */
 .chat-members-panel {
