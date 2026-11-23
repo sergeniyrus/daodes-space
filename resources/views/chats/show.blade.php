@@ -1412,14 +1412,14 @@
                 @foreach ($chat->users as $member)
                     <div class="chat-member" data-user-id="{{ $member->id }}">
                         <span class="chat-member-name">{{ $member->name }}</span>
-                        <span class="chat-member-role">{{ $member->pivot->role ?? 'member' }}</span>
+                        <span class="chat-member-role">{{ __('chats.role_' . ($member->pivot->role ?? 'member')) }}</span>
 
                         @if (in_array($currentRole, ['owner', 'admin'], true) && $chat->type !== 'personal' && $member->id !== auth()->id() && ($member->pivot->role ?? 'member') !== 'owner' && ($currentRole === 'owner' || ($member->pivot->role ?? 'member') !== 'admin'))
                             @if ($currentRole === 'owner')
                                 <select class="chat-member-role-select" aria-label="Role">
-                                    <option value="member" @selected(($member->pivot->role ?? 'member') === 'member')>member</option>
-                                    <option value="moderator" @selected(($member->pivot->role ?? 'member') === 'moderator')>moderator</option>
-                                    <option value="admin" @selected(($member->pivot->role ?? 'member') === 'admin')>admin</option>
+                                    <option value="member" @selected(($member->pivot->role ?? 'member') === 'member')>{{ __('chats.role_member') }}</option>
+                                    <option value="moderator" @selected(($member->pivot->role ?? 'member') === 'moderator')>{{ __('chats.role_moderator') }}</option>
+                                    <option value="admin" @selected(($member->pivot->role ?? 'member') === 'admin')>{{ __('chats.role_admin') }}</option>
                                 </select>
                             @endif
                             <button type="button" class="chat-member-remove" data-user-id="{{ $member->id }}">
@@ -1792,6 +1792,9 @@
     data-translate-media-loading="{{ __('chats.media_loading') }}"
     data-translate-media-error="{{ __('chats.media_error') }}"
     data-translate-media-download="{{ __('chats.media_download') }}"
+    data-translate-role-member="{{ __('chats.role_member') }}"
+    data-translate-role-moderator="{{ __('chats.role_moderator') }}"
+    data-translate-role-admin="{{ __('chats.role_admin') }}"
 ></div>
 
 
