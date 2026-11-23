@@ -79,4 +79,8 @@ return [
     'voice_play' => 'Play voice message',
     'voice_loading' => 'Loading voice message…',
     'voice_error' => 'Could not load voice message',
+    'attach_file' => 'Attach file',
+    'media_loading' => 'Loading attachment…',
+    'media_error' => 'Could not load attachment',
+    'media_download' => 'Download file',
 ];
