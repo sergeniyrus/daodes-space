@@ -371,6 +371,10 @@ class ChatController extends Controller
             abort(403);
         }
 
+        if (($target->role ?? 'member') === 'owner') {
+            return response()->json(['status' => 'error', 'message' => 'The owner role cannot be changed'], 422);
+        }
+
         DB::table('chat_user')
             ->where('chat_id', $chat->id)
             ->where('user_id', $user->id)
