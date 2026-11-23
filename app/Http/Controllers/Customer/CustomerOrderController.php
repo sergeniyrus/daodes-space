@@ -74,38 +74,7 @@ class CustomerOrderController extends Controller
             return redirect()->guest(route('customer.login'));
         }
 
-        DB::transaction(function () use ($customer, $order) {
-            $lockedOrder = Order::query()
-                ->where('customer_id', $customer->id)
-                ->whereKey($order->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if (
-                $lockedOrder->fulfillment_type !== Order::FULFILLMENT_PICKUP
-                || $lockedOrder->status !== Order::STATUS_READY
-            ) {
-                throw ValidationException::withMessages([
-                    'pickup' => 'Подтвердить получение можно только для готового заказа на самовывоз.',
-                ]);
-            }
-
-            $lockedOrder->update([
-                'status' => Order::STATUS_ISSUED,
-            ]);
-
-            $lockedOrder->statusHistory()->create([
-                'from_status' => Order::STATUS_READY,
-                'to_status' => Order::STATUS_ISSUED,
-                'actor_type' => 'customer',
-                'actor_id' => $customer->id,
-                'comment' => 'Клиент самостоятельно подтвердил получение заказа.',
-                'created_at' => now(),
-            ]);
-
-            app(OrderNotificationService::class)
-                ->notifyCustomerAboutStatusChange($lockedOrder, Order::STATUS_ISSUED);
-        }, 3);
+        app(\App\Services\OrderPickupConfirmationService::class)->confirm($customer, $order->id);
 
         return redirect()
             ->route('customer.orders.show', $order)

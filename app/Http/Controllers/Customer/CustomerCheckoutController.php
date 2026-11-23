@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\CustomerCheckoutSnapshot;
 use App\Models\MenuItem;
 use App\Models\MenuSection;
 use App\Models\Order;
@@ -11,6 +12,7 @@ use App\Models\Organization;
 use App\Models\OrganizationOrderSetting;
 use App\Services\CustomerCartService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,9 +26,9 @@ class CustomerCheckoutController extends Controller
     private const SESSION_KEY = 'customer_order_cart';
     private const MAX_MONEY_CENTS = 999999999999;
 
-    public function create(Request $request, CustomerCartService $cartService): View|RedirectResponse
+    public function create(Request $request, CustomerCartService $cartService): View|RedirectResponse|JsonResponse
     {
-        $customer = Auth::guard('customer')->user();
+        $customer = $request->expectsJson() ? $request->user() : Auth::guard('customer')->user();
 
         if (!$customer) {
             return redirect()->guest(route('customer.login'));
@@ -47,6 +49,10 @@ class CustomerCheckoutController extends Controller
                 session()->forget('customer_order_checkout_snapshots');
                 session()->forget('customer_order_checkout_snapshot');
 
+                if ($request->expectsJson()) {
+                    return response()->json(['data' => $this->mobileOrderPayload($existingOrder)], 200);
+                }
+
                 return redirect()
                     ->route('customer.orders.show', $existingOrder)
                     ->with('success', 'Этот заказ уже был оформлен ранее.');
@@ -62,6 +68,10 @@ class CustomerCheckoutController extends Controller
         $quantities = $cart['items'] ?? [];
 
         if ($organizationId < 1 || !is_array($quantities) || $quantities === []) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['cart' => 'Добавьте товары в корзину перед оформлением заказа.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Добавьте товары в корзину перед оформлением заказа.');
@@ -76,12 +86,20 @@ class CustomerCheckoutController extends Controller
         $settings = $organization->orderSettings;
 
         if (!$settings || !$settings->hasConfiguredWorkingHours()) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['checkout' => 'Организация ещё не настроила график работы. Оформление заказа временно недоступно.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Организация ещё не настроила график работы. Оформление заказа временно недоступно.');
         }
 
         if (!$settings->canAcceptOrders()) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['checkout' => 'Организация пока не принимает онлайн-заказы.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Организация пока не принимает онлайн-заказы.');
@@ -99,6 +117,10 @@ class CustomerCheckoutController extends Controller
             ->keyBy('id');
 
         if ($items->count() !== count($quantities)) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['cart' => 'Некоторые товары больше недоступны. Обновите корзину.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Некоторые товары больше недоступны. Обновите корзину.');
@@ -111,6 +133,10 @@ class CustomerCheckoutController extends Controller
             $item = $items->get((int) $itemId);
 
             if (!$item || !$item->is_active || (int) $quantity < 1 || (int) $quantity > 99) {
+                if ($request->expectsJson()) {
+                    throw ValidationException::withMessages(['cart' => 'Корзина содержит недоступную позицию или некорректное количество.']);
+                }
+
                 return redirect()
                     ->route('customer.cart')
                     ->with('error', 'Корзина содержит недоступную позицию или некорректное количество.');
@@ -124,6 +150,10 @@ class CustomerCheckoutController extends Controller
                 $lineTotalCents > self::MAX_MONEY_CENTS
                 || $subtotalCents > self::MAX_MONEY_CENTS
             ) {
+                if ($request->expectsJson()) {
+                    throw ValidationException::withMessages(['cart' => 'Сумма заказа превышает допустимый предел.']);
+                }
+
                 return redirect()
                     ->route('customer.cart')
                     ->with('error', 'Сумма заказа превышает допустимый предел.');
@@ -290,6 +320,79 @@ class CustomerCheckoutController extends Controller
             );
         }
 
+        if ($request->expectsJson()) {
+            CustomerCheckoutSnapshot::query()
+                ->where('customer_id', $customer->id)
+                ->where('expires_at', '<', now())
+                ->delete();
+
+            CustomerCheckoutSnapshot::query()->updateOrCreate(
+                ['customer_id' => $customer->id, 'idempotency_key' => $idempotencyKey],
+                [
+                    'organization_id' => $organization->id,
+                    'payload' => $checkoutSnapshots[$idempotencyKey],
+                    'expires_at' => now()->addMinutes(30),
+                ]
+            );
+
+            return response()->json([
+                'data' => [
+                    'idempotency_key' => $idempotencyKey,
+                    'customer' => ['name' => $customer->name, 'phone' => $customer->phone],
+                    'organization' => ['id' => $organization->id, 'name' => $organization->name],
+                    'lines' => collect($lines)->map(fn ($line) => [
+                        'item_id' => $line['item']->id,
+                        'name' => $line['item']->name,
+                        'description' => $line['item']->description,
+                        'weight' => $line['item']->weight,
+                        'unit' => $line['item']->unit,
+                        'quantity' => $line['quantity'],
+                        'unit_price' => (string) $line['item']->price,
+                        'line_total' => $line['line_total'],
+                    ])->values(),
+                    'subtotal' => $this->fromCents($subtotalCents),
+                    'currency' => $settings->currency,
+                    'fulfillments' => [
+                        'delivery' => $canUseDelivery,
+                        'pickup' => $canUsePickup,
+                        'dine_in' => $canUseDineIn,
+                    ],
+                    'selected_fulfillment' => $selectedFulfillment,
+                    'requested_at_limits' => $requestedAtLimits,
+                    'addresses' => $savedAddresses->map(fn ($address) => [
+                        'id' => $address->id,
+                        'label' => $address->label,
+                        'address_line' => $address->address_line,
+                        'house_number' => $address->house_number,
+                        'entrance' => $address->entrance,
+                        'floor' => $address->floor,
+                        'apartment' => $address->apartment,
+                        'intercom' => $address->intercom,
+                        'delivery_comment' => $address->delivery_comment,
+                        'latitude' => $address->latitude,
+                        'longitude' => $address->longitude,
+                        'is_default' => $address->is_default,
+                        'is_favorite' => $address->is_favorite,
+                    ])->values(),
+                    'delivery_zones' => $deliveryZones->map(fn ($zone) => [
+                        'max_distance_km' => (string) $zone->max_distance_km,
+                        'minimum_order_amount' => (string) $zone->minimum_order_amount,
+                    ])->values(),
+                    'delivery_origin' => $deliveryOrigin,
+                    'pickup_address' => $settings->pickup_address,
+                    'payment_methods' => [
+                        'cash_on_receipt' => (bool) $settings->cash_payment_enabled,
+                        'card_on_receipt' => (bool) $settings->card_payment_enabled,
+                        'guest_account' => (bool) $canUseDineIn,
+                        'online' => false,
+                    ],
+                    'online_payment_unavailable_reason' => 'Онлайн-провайдер ещё не подключён к DAODES.',
+                    'requested_at_minimum' => $requestedAtMinimum,
+                    'requested_at_maximum' => $requestedAtMaximum,
+                ],
+            ])->header('Cache-Control', 'private, no-store, max-age=0');
+        }
+
         session()->put('customer_order_checkout_snapshots', $checkoutSnapshots);
 
         return view('customer.checkout.index', [
@@ -316,10 +419,10 @@ class CustomerCheckoutController extends Controller
         ]);
     }
 
-    public function store(Request $request, CustomerCartService $cartService): RedirectResponse
+    public function store(Request $request, CustomerCartService $cartService): RedirectResponse|JsonResponse
     {
         /** @var Customer|null $customer */
-        $customer = Auth::guard('customer')->user();
+        $customer = $request->expectsJson() ? $request->user() : Auth::guard('customer')->user();
 
         if (!$customer) {
             return redirect()->guest(route('customer.login'));
@@ -343,6 +446,10 @@ class CustomerCheckoutController extends Controller
             session()->forget('customer_order_checkout_snapshots');
             session()->forget('customer_order_checkout_snapshot');
 
+            if ($request->expectsJson()) {
+                return response()->json(['data' => $this->mobileOrderPayload($existingOrder)], 200);
+            }
+
             return redirect()
                 ->route('customer.orders.show', $existingOrder)
                 ->with('success', 'Этот заказ уже был оформлен ранее.');
@@ -357,15 +464,28 @@ class CustomerCheckoutController extends Controller
         $quantities = $cart['items'] ?? [];
 
         if ($organizationId < 1 || !is_array($quantities) || $quantities === []) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['cart' => 'Корзина пуста.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Корзина пуста.');
         }
 
-        $checkoutSnapshots = session('customer_order_checkout_snapshots', []);
-        $checkoutSnapshot = is_array($checkoutSnapshots)
-            ? ($checkoutSnapshots[$idempotencyKey] ?? [])
-            : [];
+        if ($request->expectsJson()) {
+            $checkoutSnapshot = CustomerCheckoutSnapshot::query()
+                ->where('customer_id', $customer->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->where('organization_id', $organizationId)
+                ->where('expires_at', '>', now())
+                ->value('payload') ?? [];
+        } else {
+            $checkoutSnapshots = session('customer_order_checkout_snapshots', []);
+            $checkoutSnapshot = is_array($checkoutSnapshots)
+                ? ($checkoutSnapshots[$idempotencyKey] ?? [])
+                : [];
+        }
 
         if (
             !is_array($checkoutSnapshot)
@@ -373,6 +493,12 @@ class CustomerCheckoutController extends Controller
             || (int) ($checkoutSnapshot['organization_id'] ?? 0) !== $organizationId
             || !is_array($checkoutSnapshot['prices'] ?? null)
         ) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages([
+                    'checkout' => 'Срок проверки корзины истёк. Обновите оформление заказа.',
+                ]);
+            }
+
             return redirect()
                 ->route('customer.checkout')
                 ->with('error', 'Обновите страницу оформления заказа перед подтверждением.');
@@ -414,6 +540,10 @@ class CustomerCheckoutController extends Controller
         $settings = $organization->orderSettings;
 
         if (!$settings || !$settings->canAcceptOrders()) {
+            if ($request->expectsJson()) {
+                throw ValidationException::withMessages(['checkout' => 'Организация временно не принимает заказы.']);
+            }
+
             return redirect()
                 ->route('customer.cart')
                 ->with('error', 'Организация временно не принимает заказы.');
@@ -970,12 +1100,52 @@ class CustomerCheckoutController extends Controller
         }, 3);
 
         $cartService->clearForOrganization($customer, (int) $organizationId);
+
+        if ($request->expectsJson()) {
+            CustomerCheckoutSnapshot::query()
+                ->where('customer_id', $customer->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->delete();
+
+            return response()->json(['data' => $this->mobileOrderPayload($order)], 201)
+                ->header('Cache-Control', 'private, no-store, max-age=0');
+        }
+
         session()->forget('customer_order_checkout_snapshots');
         session()->forget('customer_order_checkout_snapshot');
 
         return redirect()
             ->route('customer.orders.show', $order)
             ->with('success', 'Заказ успешно оформлен.');
+    }
+
+    private function mobileOrderPayload(Order $order): array
+    {
+        $order->loadMissing(['organization', 'items', 'statusHistory', 'payments']);
+
+        return [
+            'id' => $order->id,
+            'order_number' => $order->order_number,
+            'organization' => ['id' => $order->organization?->id, 'name' => $order->organization?->name],
+            'status' => $order->status,
+            'payment_method' => $order->payment_method,
+            'payment_status' => $order->payment_status,
+            'fulfillment_type' => $order->fulfillment_type,
+            'requested_at' => $order->requested_at?->toIso8601String(),
+            'subtotal' => $order->subtotal,
+            'delivery_fee' => $order->delivery_fee,
+            'discount_total' => $order->discount_total,
+            'total' => $order->total,
+            'currency' => $order->currency,
+            'created_at' => $order->created_at?->toIso8601String(),
+            'items' => $order->items->map(fn ($item) => [
+                'id' => $item->id,
+                'name' => $item->item_name,
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_price,
+                'line_total' => $item->line_total,
+            ])->values(),
+        ];
     }
 
     private function calculateDistanceKm(float $latitudeFrom, float $longitudeFrom, float $latitudeTo, float $longitudeTo): float

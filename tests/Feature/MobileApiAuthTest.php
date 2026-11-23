@@ -94,6 +94,30 @@ class MobileApiAuthTest extends TestCase
         $this->assertDatabaseCount('personal_access_tokens', 0);
     }
 
+
+    public function test_mobile_token_can_access_protected_commerce_endpoints(): void
+    {
+        $customer = $this->createCustomer();
+        $createdToken = $customer->createToken('DAODES Mobile commerce test', ['mobile']);
+        $customer->withAccessToken($createdToken->accessToken);
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/mobile/v1/cart')
+            ->assertOk()
+            ->assertJsonPath('data.items', []);
+    }
+
+    public function test_non_mobile_customer_token_cannot_access_mobile_endpoints(): void
+    {
+        $customer = $this->createCustomer();
+        $createdToken = $customer->createToken('DAODES website token', ['website']);
+        $customer->withAccessToken($createdToken->accessToken);
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/mobile/v1/cart')
+            ->assertUnauthorized();
+    }
+
     public function test_mobile_login_rejects_an_incorrect_password(): void
     {
         $customer = $this->createCustomer();

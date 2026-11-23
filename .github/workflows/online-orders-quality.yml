@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/online-orders
+      - feature/mobile-commerce-api
   pull_request:
     branches:
       - main
