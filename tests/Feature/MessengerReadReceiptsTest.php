@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class MessengerReadReceiptsTest extends TestCase
@@ -15,8 +16,8 @@ class MessengerReadReceiptsTest extends TestCase
 
     public function test_member_can_mark_incoming_messages_read_and_sender_can_fetch_receipts(): void
     {
-        $sender = User::factory()->create();
-        $reader = User::factory()->create();
+        $sender = $this->createUser();
+        $reader = $this->createUser();
 
         $chat = Chat::create([
             'name' => 'Read receipts test',
@@ -66,8 +67,8 @@ class MessengerReadReceiptsTest extends TestCase
 
     public function test_non_member_cannot_mark_messages_as_read(): void
     {
-        $sender = User::factory()->create();
-        $outsider = User::factory()->create();
+        $sender = $this->createUser();
+        $outsider = $this->createUser();
 
         $chat = Chat::create([
             'name' => 'Private read receipts test',
@@ -88,4 +89,13 @@ class MessengerReadReceiptsTest extends TestCase
 
         $this->assertSame(0, DB::table('message_reads')->count());
     }
+    private function createUser(): User
+    {
+        return User::create([
+            'name' => 'chat_test_' . Str::uuid(),
+            'password' => 'test-password',
+            'keyword' => 'synthetic-test-keyword',
+        ]);
+    }
+
 }
