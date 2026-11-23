@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Services\TelegramNotifier;
 
 class MessageController extends Controller
@@ -118,8 +119,20 @@ class MessageController extends Controller
      */
     public function store(Request $request, Chat $chat)
     {
-        if (!$chat->users()->where('user_id', Auth::id())->exists()) {
+        $membership = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$membership) {
             return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
+        if (
+            $chat->type === 'channel'
+            && !in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true)
+        ) {
+            return response()->json(['status' => 'error', 'message' => 'Only channel moderators can publish'], 403);
         }
 
         $request->validate([
