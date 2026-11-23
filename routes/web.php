@@ -642,6 +642,11 @@ Route::middleware('auth')->group(function () {
         [MessageController::class, 'destroy']
     );
 
+    Route::post(
+        '/messages/{message}/reactions',
+        [MessageController::class, 'toggleReaction']
+    )->middleware('throttle:60,1')->name('messages.reactions.toggle');
+
     Route::get(
         '/messages/{message}/reply-info',
         [MessageController::class, 'getReplyInfo']
