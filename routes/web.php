@@ -664,7 +664,7 @@ Route::middleware('auth')->group(function () {
     Route::get(
         '/chats/{chat}/mention-users',
         [ChatController::class, 'mentionUsers']
-    )->name('chats.mentionUsers');
+    )->middleware('throttle:60,1')->name('chats.mentionUsers');
 
     Route::post(
         '/chats/{chat}/participants',
