@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Message;
 use App\Models\ChatUpload;
+use App\Models\MessageAttachment;
 use App\Models\Chat;
 use App\Models\Notification;
 use Illuminate\Http\Request;
@@ -144,7 +145,7 @@ class MessageController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Only channel moderators can publish'], 403);
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'message' => 'required|string',
             'nonce'   => 'required|string',
             'reply_to_message_id' => 'nullable|integer|exists:messages,id',
