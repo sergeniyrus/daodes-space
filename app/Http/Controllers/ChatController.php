@@ -129,10 +129,9 @@ class ChatController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        $currentRole = DB::table('chat_user')
-            ->where('chat_id', $chat->id)
-            ->where('user_id', $userId)
-            ->value('role') ?? 'member';
+        $currentMembership = $chat->users->firstWhere('id', $userId)?->pivot;
+        $currentRole = $currentMembership?->role ?? 'member';
+        $mutedUntil = $currentMembership?->muted_until;
 
         // Первоначально отображаем только последние 50 сообщений.
         // Более старые сообщения клиент сможет подгружать отдельными страницами.
@@ -168,7 +167,8 @@ class ChatController extends Controller
             'otherUser',
             'firstUnreadMessageId',
             'topics',
-            'currentRole'
+            'currentRole',
+            'mutedUntil'
         ));
     }
 
@@ -389,6 +389,38 @@ class ChatController extends Controller
             ->update(['role' => $validated['role']]);
 
         return response()->json(['status' => 'success', 'role' => $validated['role']]);
+    }
+
+    /**
+     * Настройка персонального отключения уведомлений для участника чата.
+     * duration: 60, 480, 1440, 10080 или 43200 минут; null — включить уведомления.
+     */
+    public function updateMute(Request $request, Chat $chat)
+    {
+        $validated = $request->validate([
+            'duration' => 'present|nullable|integer|in:60,480,1440,10080,43200',
+        ]);
+
+        $membership = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        abort_unless($membership, 403);
+
+        $mutedUntil = isset($validated['duration'])
+            ? now()->addMinutes((int) $validated['duration'])
+            : null;
+
+        DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->update(['muted_until' => $mutedUntil]);
+
+        return response()->json([
+            'status' => 'success',
+            'muted_until' => $mutedUntil?->toIso8601String(),
+        ]);
     }
 
     /**
