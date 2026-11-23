@@ -156,7 +156,7 @@ class ChatController extends Controller
         $firstUnreadMessageId = $firstUnreadMessage?->message?->id;
 
         // Удаляем только собственные уведомления после проверки доступа.
-        \\App\\Models\\Notification::whereHas(
+        \App\Models\Notification::whereHas(
             'message',
             fn($query) => $query->where('chat_id', $chatId)
         )
