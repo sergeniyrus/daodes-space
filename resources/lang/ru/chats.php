@@ -87,4 +87,7 @@ return [
     'role_admin' => 'Администратор',
     'role_moderator' => 'Модератор',
     'role_member' => 'Участник',
+    'pin' => 'Закрепить',
+    'unpin' => 'Открепить',
+    'pinned_messages' => 'Закреплённые сообщения',
 ];
