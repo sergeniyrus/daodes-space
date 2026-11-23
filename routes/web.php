@@ -618,6 +618,16 @@ Route::middleware('auth')->group(function () {
     )->name('messages.get');
 
     Route::post(
+        '/chats/{chat}/attachments',
+        [MessageController::class, 'uploadAttachment']
+    )->middleware('throttle:20,1')->name('messages.attachments.upload');
+
+    Route::get(
+        '/chats/{chat}/messages/{message}/attachments/{attachment}',
+        [MessageController::class, 'downloadAttachment']
+    )->name('messages.attachments.download');
+
+    Route::post(
         '/chats/{chat}/messages',
         [MessageController::class, 'store']
     )->name('messages.send');
