@@ -129,7 +129,11 @@ export class MessagePoller {
 
         try {
             const lastId = this.initialLoadDone ? this.highestKnownMessageId : 0;
-            const url = `/chats/${this.config.chatId}/messages?last_id=${lastId}`;
+            const params = new URLSearchParams({ last_id: String(lastId) });
+            if (this.config.topicId) {
+                params.set('topic_id', String(this.config.topicId));
+            }
+            const url = `/chats/${this.config.chatId}/messages?${params.toString()}`;
 
             const res = await fetch(url, {
                 headers: {
