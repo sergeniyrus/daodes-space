@@ -328,10 +328,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 config.mutedUntil = data.muted_until;
                 document.getElementById('chat-config').dataset.mutedUntil = data.muted_until || '';
                 if (data.muted_until) {
-                    muteStatus.textContent = 'Уведомления отключены до ' +
-                        new Date(data.muted_until).toLocaleString();
+                    muteStatus.textContent = (config.translations.mutedUntil || 'Muted until :date')
+                        .replace(':date', new Date(data.muted_until).toLocaleString());
                 } else {
-                    muteStatus.textContent = 'Уведомления включены';
+                    muteStatus.textContent = config.translations.notificationsEnabled || 'Notifications enabled';
                     muteDuration.value = '';
                 }
             } catch (error) {
