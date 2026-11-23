@@ -292,6 +292,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Запускаем polling через startPolling (с защитой от параллельных запросов)
         poller.startPolling(3000);
 
+        const muteDuration = document.getElementById('chatMuteDuration');
+        const saveMuteButton = document.getElementById('saveChatMute');
+        const muteStatus = document.getElementById('chatMuteStatus');
+
+        if (muteDuration && config.mutedUntil) {
+            const remaining = new Date(config.mutedUntil).getTime() - Date.now();
+            const presets = [60, 480, 1440, 10080, 43200];
+            const matchingPreset = presets.find(minutes =>
+                Math.abs(remaining - minutes * 60 * 1000) < 5 * 60 * 1000
+            );
+            muteDuration.value = matchingPreset ? String(matchingPreset) : '';
+        }
+
+        saveMuteButton?.addEventListener('click', async () => {
+            saveMuteButton.disabled = true;
+            try {
+                const response = await fetch(`/chats/${config.chatId}/mute`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': config.csrfToken,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        duration: muteDuration.value ? Number(muteDuration.value) : null,
+                    }),
+                });
+                const data = await response.json();
+                if (!response.ok || data.status !== 'success') {
+                    throw new Error(data.message || 'Не удалось изменить уведомления');
+                }
+
+                config.mutedUntil = data.muted_until;
+                document.getElementById('chat-config').dataset.mutedUntil = data.muted_until || '';
+                if (data.muted_until) {
+                    muteStatus.textContent = 'Уведомления отключены до ' +
+                        new Date(data.muted_until).toLocaleString();
+                } else {
+                    muteStatus.textContent = 'Уведомления включены';
+                    muteDuration.value = '';
+                }
+            } catch (error) {
+                console.error('Chat mute update failed:', error);
+                window.alert(error.message || 'Не удалось изменить уведомления');
+            } finally {
+                saveMuteButton.disabled = false;
+            }
+        });
+
         const participantModal = document.getElementById('chatParticipantModal');
         const participantSelect = document.getElementById('chatParticipantSelect');
         const addParticipantButton = document.getElementById('addChatParticipant');
