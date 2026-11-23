@@ -5,6 +5,7 @@ on:
     branches:
       - feature/online-orders
       - feature/mobile-commerce-api
+      - feature/messenger-upgrade
   pull_request:
     branches:
       - main
