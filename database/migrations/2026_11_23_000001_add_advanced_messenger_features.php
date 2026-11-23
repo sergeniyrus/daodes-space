@@ -1,0 +1,115 @@
+<?php
+
+use Illuminate\\Database\\Migrations\\Migration;
+use Illuminate\\Database\\Schema\\Blueprint;
+use Illuminate\\Support\\Facades\\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        if (Schema::hasTable('chat_user')) {
+            Schema::table('chat_user', function (Blueprint $table) {
+                if (!Schema::hasColumn('chat_user', 'role')) {
+                    $table->string('role', 24)->default('member');
+                }
+
+                if (!Schema::hasColumn('chat_user', 'joined_at')) {
+                    $table->timestamp('joined_at')->nullable();
+                }
+
+                if (!Schema::hasColumn('chat_user', 'muted_until')) {
+                    $table->timestamp('muted_until')->nullable();
+                }
+            });
+        }
+
+        if (!Schema::hasTable('chat_topics')) {
+            Schema::create('chat_topics', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('chat_id')->constrained('chats')->cascadeOnDelete();
+                $table->string('name', 120);
+                $table->text('description')->nullable();
+                $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->boolean('is_closed')->default(false);
+                $table->timestamps();
+
+                $table->index(['chat_id', 'is_closed']);
+            });
+        }
+
+        if (Schema::hasTable('messages')) {
+            Schema::table('messages', function (Blueprint $table) {
+                if (!Schema::hasColumn('messages', 'topic_id')) {
+                    $table->foreignId('topic_id')
+                        ->nullable()
+                        ->constrained('chat_topics')
+                        ->nullOnDelete();
+                }
+
+                if (!Schema::hasColumn('messages', 'message_type')) {
+                    $table->string('message_type', 24)->default('text');
+                }
+            });
+        }
+
+        if (!Schema::hasTable('message_attachments')) {
+            Schema::create('message_attachments', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('message_id')->constrained('messages')->cascadeOnDelete();
+                $table->string('ipfs_cid', 128);
+                $table->string('media_type', 24)->default('file');
+                $table->unsignedBigInteger('byte_size')->default(0);
+                $table->unsignedSmallInteger('position')->default(0);
+                $table->timestamps();
+
+                $table->index('ipfs_cid');
+                $table->index(['message_id', 'position']);
+            });
+        }
+
+        if (!Schema::hasTable('message_reactions')) {
+            Schema::create('message_reactions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('message_id')->constrained('messages')->cascadeOnDelete();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->string('reaction', 32);
+                $table->timestamps();
+
+                $table->unique(['message_id', 'user_id', 'reaction']);
+                $table->index(['message_id', 'created_at']);
+            });
+        }
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('message_reactions');
+        Schema::dropIfExists('message_attachments');
+
+        if (Schema::hasTable('messages') && Schema::hasColumn('messages', 'topic_id')) {
+            Schema::table('messages', function (Blueprint $table) {
+                $table->dropForeign(['topic_id']);
+                $table->dropColumn('topic_id');
+            });
+        }
+
+        if (Schema::hasTable('messages') && Schema::hasColumn('messages', 'message_type')) {
+            Schema::table('messages', function (Blueprint $table) {
+                $table->dropColumn('message_type');
+            });
+        }
+
+        Schema::dropIfExists('chat_topics');
+
+        if (Schema::hasTable('chat_user')) {
+            Schema::table('chat_user', function (Blueprint $table) {
+                foreach (['role', 'joined_at', 'muted_until'] as $column) {
+                    if (Schema::hasColumn('chat_user', $column)) {
+                        $table->dropColumn($column);
+                    }
+                }
+            });
+        }
+    }
+};
