@@ -42,11 +42,13 @@ return [
 ],
 
             'options' => [
-                'tls' => [
-                    'local_cert' => storage_path('certs/fullchain.pem'),
-                    'local_pk' => storage_path('certs/privkey.pem'),
+                // TLS is normally terminated by Nginx. Enable direct Reverb TLS
+                // only when explicitly requested (for deployments without a proxy).
+                'tls' => env('REVERB_SERVER_TLS', false) ? [
+                    'local_cert' => env('REVERB_SERVER_TLS_CERT', storage_path('certs/fullchain.pem')),
+                    'local_pk' => env('REVERB_SERVER_TLS_KEY', storage_path('certs/privkey.pem')),
                     'verify_peer' => false,
-                ],
+                ] : [],
             ],
 
 
