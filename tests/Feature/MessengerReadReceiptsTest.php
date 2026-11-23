@@ -22,7 +22,6 @@ class MessengerReadReceiptsTest extends TestCase
         $chat = Chat::create([
             'name' => 'Read receipts test',
             'type' => 'group',
-            'initiator_id' => $sender->id,
         ]);
 
         $chat->users()->attach($sender->id, ['role' => 'owner']);
@@ -73,7 +72,6 @@ class MessengerReadReceiptsTest extends TestCase
         $chat = Chat::create([
             'name' => 'Private read receipts test',
             'type' => 'group',
-            'initiator_id' => $sender->id,
         ]);
         $chat->users()->attach($sender->id, ['role' => 'owner']);
 
