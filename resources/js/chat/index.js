@@ -342,6 +342,157 @@ document.addEventListener('DOMContentLoaded', async () => {
                 select.value = row.querySelector('.chat-member-role').textContent;
             }
         });
+        const recordVoiceButton = document.getElementById('recordVoiceBtn');
+        let voiceRecorder = null;
+        let voiceStream = null;
+        let voiceChunks = [];
+        let voiceStartedAt = 0;
+
+        const resetVoiceButton = () => {
+            voiceRecorder = null;
+            recordVoiceButton?.classList.remove('recording');
+            if (recordVoiceButton) {
+                recordVoiceButton.disabled = false;
+                recordVoiceButton.innerHTML = '<i class="fa fa-microphone" aria-hidden="true"></i>';
+                recordVoiceButton.title = config.translations.voiceRecord || 'Record voice message';
+            }
+        };
+
+        recordVoiceButton?.addEventListener('click', async () => {
+            if (voiceRecorder?.state === 'recording') {
+                voiceRecorder.stop();
+                return;
+            }
+
+            if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+                window.alert('Запись аудио не поддерживается этим браузером');
+                return;
+            }
+
+            try {
+                voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                voiceChunks = [];
+
+                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                    ? 'audio/webm;codecs=opus'
+                    : undefined;
+
+                voiceRecorder = new MediaRecorder(
+                    voiceStream,
+                    mimeType ? { mimeType } : undefined
+                );
+
+                voiceStartedAt = Date.now();
+                voiceRecorder.addEventListener('dataavailable', event => {
+                    if (event.data?.size) voiceChunks.push(event.data);
+                });
+
+                voiceRecorder.addEventListener('stop', async () => {
+                    const duration = Math.max(1, Math.round((Date.now() - voiceStartedAt) / 1000));
+                    const audioBlob = new Blob(voiceChunks, {
+                        type: voiceRecorder?.mimeType || mimeType || 'audio/webm',
+                    });
+
+                    voiceStream?.getTracks().forEach(track => track.stop());
+                    voiceStream = null;
+                    recordVoiceButton.disabled = true;
+                    recordVoiceButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>';
+
+                    try {
+                        if (!audioBlob.size) throw new Error('Запись пустая');
+
+                        const audioBytes = new Uint8Array(await audioBlob.arrayBuffer());
+                        const audioNonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+                        const encryptedAudio = nacl.secretbox(audioBytes, audioNonce, crypto.chatKey);
+                        const encryptedFile = new File(
+                            [encryptedAudio],
+                            'voice.enc',
+                            { type: 'application/octet-stream' }
+                        );
+
+                        const uploadForm = new FormData();
+                        uploadForm.append('file', encryptedFile);
+                        uploadForm.append('media_type', 'audio');
+                        uploadForm.append('encrypted', '1');
+
+                        const uploadResponse = await fetch(`/chats/${config.chatId}/attachments`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': config.csrfToken,
+                                'Accept': 'application/json',
+                            },
+                            body: uploadForm,
+                        });
+
+                        const uploadResult = await uploadResponse.json();
+                        if (!uploadResponse.ok || uploadResult.status !== 'success') {
+                            throw new Error(uploadResult.message || 'Не удалось загрузить аудио в IPFS');
+                        }
+
+                        const voicePayload = JSON.stringify({
+                            type: 'voice',
+                            audio_nonce: u8ToB64(audioNonce),
+                            mime_type: audioBlob.type || 'audio/webm',
+                            duration,
+                        });
+
+                        const messageNonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+                        const encryptedMessage = nacl.secretbox(
+                            new TextEncoder().encode(voicePayload),
+                            messageNonce,
+                            crypto.chatKey
+                        );
+
+                        const body = {
+                            message: u8ToB64(encryptedMessage),
+                            nonce: u8ToB64(messageNonce),
+                            message_type: 'voice',
+                            attachment_upload_ids: [uploadResult.upload_id],
+                        };
+
+                        if (config.topicId) body.topic_id = config.topicId;
+                        if (ui.replyingToMessageId) {
+                            body.reply_to_message_id = Number(ui.replyingToMessageId);
+                        }
+
+                        const sendResponse = await fetch(config.sendUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': config.csrfToken,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify(body),
+                        });
+
+                        const sendResult = await sendResponse.json();
+                        if (!sendResponse.ok || sendResult.status !== 'success') {
+                            throw new Error(sendResult.message || 'Не удалось отправить голосовое сообщение');
+                        }
+
+                        ui.cancelReply();
+                        await poller.load();
+                    } catch (error) {
+                        console.error('Voice message send failed:', error);
+                        window.alert(error.message || 'Не удалось отправить голосовое сообщение');
+                    } finally {
+                        resetVoiceButton();
+                    }
+                });
+
+                voiceRecorder.start();
+                recordVoiceButton.classList.add('recording');
+                recordVoiceButton.title = config.translations.voiceStop || 'Stop recording';
+                recordVoiceButton.innerHTML = '<i class="fa fa-stop" aria-hidden="true"></i>';
+            } catch (error) {
+                voiceStream?.getTracks().forEach(track => track.stop());
+                voiceStream = null;
+                resetVoiceButton();
+                console.error('Microphone access failed:', error);
+                window.alert('Не удалось получить доступ к микрофону');
+            }
+        });
+
     } catch (err) {
         console.error('Failed to load chat key:', err);
     }
