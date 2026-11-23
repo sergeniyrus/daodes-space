@@ -84,7 +84,10 @@ export class ChatUI {
             await this.togglePin(messageId, messageEl);
         };
 
-        menu.append(replyBtn, copyBtn, pinBtn);
+        menu.append(replyBtn, copyBtn);
+        if (this.config.chatType === 'personal' || ['owner', 'admin', 'moderator'].includes(this.config.currentRole)) {
+            menu.appendChild(pinBtn);
+        }
         document.body.appendChild(menu);
 
         const r = messageEl.getBoundingClientRect();
@@ -141,7 +144,10 @@ export class ChatUI {
             await this.togglePin(messageId, messageEl);
         };
 
-        menu.append(replyBtn, editBtn, delBtn, pinBtn);
+        menu.append(replyBtn, editBtn, delBtn);
+        if (this.config.chatType === 'personal' || ['owner', 'admin', 'moderator'].includes(this.config.currentRole)) {
+            menu.appendChild(pinBtn);
+        }
         document.body.appendChild(menu);
 
         const r = messageEl.getBoundingClientRect();
