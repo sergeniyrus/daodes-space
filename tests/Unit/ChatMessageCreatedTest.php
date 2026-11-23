@@ -22,7 +22,7 @@ class ChatMessageCreatedTest extends TestCase
 
         $this->assertCount(1, $channels);
         $this->assertInstanceOf(PresenceChannel::class, $channels[0]);
-        $this->assertSame('chat.12', $channels[0]->name);
+        $this->assertSame('presence-chat.12', $channels[0]->name);
 
         $payload = $event->broadcastWith();
 
