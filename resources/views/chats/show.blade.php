@@ -967,6 +967,30 @@
     }
 }
 
+
+/* =========================================================
+   БЕЗОПАСНЫЕ ССЫЛКИ И УПОМИНАНИЯ
+   ========================================================= */
+.chat-link {
+    color: #00e5ff;
+    text-decoration: underline;
+    text-decoration-color: rgba(0, 229, 255, 0.45);
+    overflow-wrap: anywhere;
+}
+.chat-link:hover {
+    color: gold;
+    text-decoration-color: gold;
+}
+.chat-mention {
+    display: inline-block;
+    color: gold;
+    font-weight: 700;
+    background: rgba(255, 215, 0, 0.09);
+    border: 1px solid rgba(255, 215, 0, 0.22);
+    border-radius: 5px;
+    padding: 0 4px;
+}
+
 </style>
 
 
