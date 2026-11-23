@@ -1019,6 +1019,48 @@
     position: relative;
     margin-top: 5px;
 }
+
+.chat-pinned-messages {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 8px 0 12px;
+    padding: 9px 12px;
+    border: 1px solid rgba(255, 215, 0, .28);
+    border-left: 3px solid #ffd700;
+    border-radius: 10px;
+    background: rgba(255, 215, 0, .045);
+}
+.chat-pinned-messages[hidden] { display: none; }
+.pinned-messages-heading {
+    color: #ffd700;
+    font-size: .78rem;
+    white-space: nowrap;
+}
+.pinned-message-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 4px 8px;
+    border: 1px solid rgba(0, 229, 255, .22);
+    border-radius: 8px;
+    color: #dbeafe;
+    background: rgba(0, 229, 255, .055);
+    cursor: pointer;
+    font-size: .78rem;
+}
+.pinned-message-item small { color: #94a3b8; }
+.message-highlight {
+    outline: 2px solid rgba(0, 229, 255, .8);
+    outline-offset: 3px;
+    transition: outline-color .3s ease;
+}
+@media (max-width: 600px) {
+    .chat-pinned-messages { align-items: flex-start; }
+    .pinned-message-item { width: 100%; justify-content: flex-start; }
+}
 .message-read-status {
     display: block;
     margin-top: 3px;
@@ -1478,6 +1520,8 @@
         @endif
     </div>
 
+    <div id="chatPinnedMessages" class="chat-pinned-messages" hidden aria-live="polite"></div>
+
     {{-- =====================================================
          СООБЩЕНИЯ
          ===================================================== --}}
@@ -1804,6 +1848,9 @@
     data-translate-role-member="{{ __('chats.role_member') }}"
     data-translate-role-moderator="{{ __('chats.role_moderator') }}"
     data-translate-role-admin="{{ __('chats.role_admin') }}"
+    data-translate-pin="{{ __('chats.pin') }}"
+    data-translate-unpin="{{ __('chats.unpin') }}"
+    data-translate-pinned-messages="{{ __('chats.pinned_messages') }}"
 ></div>
 
 
