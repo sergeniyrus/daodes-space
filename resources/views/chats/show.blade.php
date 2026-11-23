@@ -969,6 +969,60 @@
 
 
 /* =========================================================
+   ГОЛОСОВЫЕ СООБЩЕНИЯ
+   ========================================================= */
+.voice-record-btn {
+    flex: 0 0 52px;
+    min-width: 52px;
+    min-height: 52px;
+    color: #00e5ff;
+    background: rgba(0, 229, 255, 0.08);
+    border: 1px solid rgba(0, 229, 255, 0.55);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.voice-record-btn:hover {
+    color: #0b0c18;
+    background: #00e5ff;
+    box-shadow: 0 0 14px rgba(0, 229, 255, .3);
+}
+.voice-record-btn.recording {
+    color: #fff;
+    background: #c62828;
+    border-color: #ff5252;
+    animation: voice-record-pulse 1s infinite;
+}
+@keyframes voice-record-pulse {
+    50% { box-shadow: 0 0 0 7px rgba(255, 82, 82, .16); }
+}
+.chat-voice-message {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-width: 210px;
+}
+.chat-voice-load {
+    color: #00e5ff;
+    background: rgba(0, 229, 255, .08);
+    border: 1px solid rgba(0, 229, 255, .35);
+    border-radius: 18px;
+    padding: 8px 13px;
+    cursor: pointer;
+}
+.chat-voice-message small {
+    color: #aeb7c5;
+}
+.chat-voice-message audio {
+    width: min(100%, 320px);
+    height: 38px;
+}
+@media (max-width: 520px) {
+    .voice-record-btn { flex-basis: 46px; min-width: 46px; min-height: 46px; }
+}
+
+/* =========================================================
    КАРТОЧКА ПРЕДПРОСМОТРА ССЫЛКИ
    ========================================================= */
 .chat-link-preview {
@@ -1453,6 +1507,16 @@
 
             <button
                 type="button"
+                id="recordVoiceBtn"
+                class="voice-record-btn"
+                aria-label="{{ __('chats.voice_record') }}"
+                title="{{ __('chats.voice_record') }}"
+            >
+                <i class="fa fa-microphone" aria-hidden="true"></i>
+            </button>
+
+            <button
+                type="button"
                 id="sendBtn"
                 class="send-btn"
             >
@@ -1562,6 +1626,11 @@
     data-translate-you="{{ __('chats.you') }}"
     data-translate-topic-name-prompt="{{ __('chats.topic_name_prompt') }}"
     data-translate-topic-create-error="{{ __('chats.topic_create_error') }}"
+    data-translate-voice-play="{{ __('chats.voice_play') }}"
+    data-translate-voice-loading="{{ __('chats.voice_loading') }}"
+    data-translate-voice-error="{{ __('chats.voice_error') }}"
+    data-translate-voice-record="{{ __('chats.voice_record') }}"
+    data-translate-voice-stop="{{ __('chats.voice_stop') }}"
 ></div>
 
 
