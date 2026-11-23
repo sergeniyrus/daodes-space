@@ -11,7 +11,8 @@ class Chat extends Model
     // Отношение "многие ко многим" с пользователями
     public function users()
     {
-        return $this->belongsToMany(User::class, 'chat_user');
+        return $this->belongsToMany(User::class, 'chat_user')
+            ->withPivot(['role', 'joined_at', 'muted_until']);
     }
     
     // Отношение "многие ко многим" с моделью User (альтернативное название)
