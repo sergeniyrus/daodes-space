@@ -9,6 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('chat_member_keys') && !Schema::hasColumn('chat_member_keys', 'sender_public_key')) {
+            Schema::table('chat_member_keys', function (Blueprint $table) {
+                $table->string('sender_public_key', 255)->nullable();
+            });
+        }
+
         if (Schema::hasTable('chat_user')) {
             Schema::table('chat_user', function (Blueprint $table) {
                 if (!Schema::hasColumn('chat_user', 'role')) {
@@ -125,6 +131,12 @@ return new class extends Migration
         }
 
         Schema::dropIfExists('chat_topics');
+
+        if (Schema::hasTable('chat_member_keys') && Schema::hasColumn('chat_member_keys', 'sender_public_key')) {
+            Schema::table('chat_member_keys', function (Blueprint $table) {
+                $table->dropColumn('sender_public_key');
+            });
+        }
 
         if (Schema::hasTable('chat_user')) {
             Schema::table('chat_user', function (Blueprint $table) {
