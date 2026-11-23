@@ -6,6 +6,7 @@ export function loadChatConfig() {
         chatId: Number(el.dataset.chatId),
         topicId: el.dataset.topicId ? Number(el.dataset.topicId) : null,
         userId: Number(el.dataset.userId),
+        currentRole: el.dataset.currentRole || 'member',
         userName: el.dataset.userName || '',
         firstUnreadId: el.dataset.firstUnread ? Number(el.dataset.firstUnread) : null,
         sendUrl: el.dataset.sendUrl,
