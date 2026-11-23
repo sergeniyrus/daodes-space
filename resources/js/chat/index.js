@@ -73,6 +73,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         poller.allMessageIds.clear();
         poller.highestKnownMessageId = 0;
         poller.initialLoadDone = false;
+        poller.loadingOlder = false;
+        poller.hasOlderMessages = true;
         poller.autoScrollEnabled = true;
         await poller.load();
     });
@@ -142,6 +144,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     chatMessages.addEventListener('scroll', () => {
         poller.autoScrollEnabled = poller.isAtBottom();
+        if (chatMessages.scrollTop <= 24) {
+            poller.loadOlderMessages();
+        }
     });
 
     input.addEventListener('keydown', e => {
