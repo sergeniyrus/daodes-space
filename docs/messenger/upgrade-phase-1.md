@@ -61,12 +61,16 @@ The migration `2026_11_23_000001_add_advanced_messenger_features.php` adds:
 - `App\\Events\\ChatMessageCreated` now broadcasts on the authorized presence channel immediately after a message is stored.
 - The broadcast payload contains only chat/message/sender/topic identifiers and a timestamp. It never includes encrypted content, message CIDs, attachment CIDs, nonces or encryption keys.
 - A focused unit test asserts the presence channel and the exact metadata-only payload.
-- The current GitHub branch still does **not** contain `laravel/reverb`, `laravel-echo` or `pusher-js` in its Composer/NPM manifests and lockfiles. The local installation must be committed and pushed to this branch before the Echo client can be wired and the Vite build can validate it.
-- Three-second polling remains enabled as a fallback until Echo is installed, configured and verified against the running Reverb service.
+- `laravel/reverb`, `laravel-echo` and `pusher-js` are installed and committed in the Composer/NPM manifests and lockfiles.
+- The chat page initializes Echo only when `VITE_REVERB_APP_KEY` and `VITE_REVERB_HOST` are configured. Otherwise it continues using HTTP polling without failing.
+- Echo joins the authenticated `chat.{chatId}` presence channel and listens for `.chat.message.created`. The event triggers an authenticated HTTP refresh; encrypted message content is never sent over WebSocket.
+- Polling remains as a fallback: 15 seconds while Reverb is connected and 3 seconds when disconnected. The existing deleted-message check remains enabled.
+- Browser settings are supplied through `VITE_REVERB_APP_KEY`, `VITE_REVERB_HOST`, `VITE_REVERB_PORT` and `VITE_REVERB_SCHEME`. The server-side Reverb publisher and daemon use the separate `REVERB_*` settings. Never commit the real `.env` or Reverb secret.
+- Reverb client code and its Vite build are now part of CI; the actual production socket connection still requires a configured and running Reverb daemon plus a correctly routed WebSocket endpoint.
 
 ## Remaining work before production merge
 
-1. Commit the generated Reverb/Echo Composer and NPM manifests and lockfiles, wire the Echo client to the metadata-only event, and verify the Reverb connection. Keep polling as a fallback until the WebSocket connection is healthy.
+1. Configure the production Reverb daemon, publisher endpoint, browser VITE settings and reverse-proxy WebSocket route; verify the authenticated socket connection on staging. Keep polling as a fallback.
 2. Add dedicated mention-specific notification presentation and delivery controls. @mention autocomplete, participant validation and mention metadata are now implemented; existing reply previews show the replying author's name.
 3. Add forwarding, full-text chat search, channel discovery/subscription and invite links. Read receipts, per-user mute controls and role-protected pinning are now implemented.
 4. Add key-version rotation policy for participant removal and membership changes. Current removal revokes application access and removes the member key record; it does not re-encrypt historical IPFS messages.
