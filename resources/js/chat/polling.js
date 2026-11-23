@@ -1,3 +1,4 @@
+import { renderMessageText } from './render.js';
 import { b64ToU8 } from './utils.js';
 
 export class MessagePoller {
@@ -50,7 +51,7 @@ export class MessagePoller {
             if (!encrypted || !encrypted.includes('|')) return;
 
             const txt = this.crypto.decrypt(encrypted);
-            el.innerHTML = txt.replace(/\n/g, '<br>');
+            renderMessageText(el, txt);
             el.dataset.plaintext = txt;
             el.dataset.decrypted = '1';
 
