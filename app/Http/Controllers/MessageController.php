@@ -3,6 +3,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ChatMessageCreated;
 use App\Models\Message;
 use App\Models\ChatUpload;
 use App\Models\MessageAttachment;
@@ -322,6 +323,24 @@ class MessageController extends Controller
                     'mini_app_url' => $miniAppUrl,
                 ];
                 TelegramNotifier::notifyNewMessage($recipientId, $payload);
+            }
+
+            // Отправляем только метаданные события после сохранения сообщения.
+            // Если Reverb временно недоступен, само сообщение всё равно считается отправленным.
+            try {
+                broadcast(new ChatMessageCreated(
+                    chatId: (int) $chat->id,
+                    messageId: (int) $message->id,
+                    senderId: (int) $message->sender_id,
+                    topicId: $message->topic_id ? (int) $message->topic_id : null,
+                    createdAt: $message->created_at->toIso8601String(),
+                ));
+            } catch (\Throwable $broadcastException) {
+                Log::warning('Chat message broadcast failed', [
+                    'chat_id' => $chat->id,
+                    'message_id' => $message->id,
+                    'error' => $broadcastException->getMessage(),
+                ]);
             }
 
             return response()->json([
