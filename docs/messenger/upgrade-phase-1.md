@@ -56,23 +56,19 @@ The migration `2026_11_23_000001_add_advanced_messenger_features.php` adds:
 
 ## Reverb / Echo integration status
 
-- Laravel 11 broadcasting authorization routes are registered through `withBroadcasting`, and the existing `routes/channels.php` membership check is loaded.
-- The broadcasting default now reads `BROADCAST_CONNECTION` first and safely falls back to `log`; this avoids selecting an unavailable Reverb driver.
-- Reverb is **not installed yet**: `composer.lock` does not contain `laravel/reverb`, and `package-lock.json` does not contain `laravel-echo` or `pusher-js`. The current messenger therefore continues using three-second polling.
-- To install the runtime dependencies in the development checkout, run:
-  ```bash
-  composer require laravel/reverb
-  php artisan reverb:install
-  npm install --save-dev laravel-echo pusher-js
-  npm run build
-  ```
-  Commit the generated Composer and npm lockfile changes together with the published Reverb configuration. Configure the Reverb application credentials and public WebSocket host before enabling `BROADCAST_CONNECTION=reverb` in production.
+- Laravel 11 broadcasting authorization routes are registered through `withBroadcasting`.
+- The existing `chat.{chatId}` presence channel is restricted to authenticated chat members.
+- `App\\Events\\ChatMessageCreated` now broadcasts on the authorized presence channel immediately after a message is stored.
+- The broadcast payload contains only chat/message/sender/topic identifiers and a timestamp. It never includes encrypted content, message CIDs, attachment CIDs, nonces or encryption keys.
+- A focused unit test asserts the presence channel and the exact metadata-only payload.
+- The current GitHub branch still does **not** contain `laravel/reverb`, `laravel-echo` or `pusher-js` in its Composer/NPM manifests and lockfiles. The local installation must be committed and pushed to this branch before the Echo client can be wired and the Vite build can validate it.
+- Three-second polling remains enabled as a fallback until Echo is installed, configured and verified against the running Reverb service.
 
 ## Remaining work before production merge
 
-1. Replace the current three-second polling with Laravel Reverb / Echo events. Reverb is not currently configured as a project dependency; this requires installing and locking the package, setting environment variables, and configuring authenticated private channels.
+1. Commit the generated Reverb/Echo Composer and NPM manifests and lockfiles, wire the Echo client to the metadata-only event, and verify the Reverb connection. Keep polling as a fallback until the WebSocket connection is healthy.
 2. Add dedicated mention-specific notification presentation and delivery controls. @mention autocomplete, participant validation and mention metadata are now implemented; existing reply previews show the replying author's name.
-3. Add forwarding, full-text chat search, mute controls, channel discovery/subscription and invite links. Read receipts and role-protected pinning are now implemented.
+3. Add forwarding, full-text chat search, channel discovery/subscription and invite links. Read receipts, per-user mute controls and role-protected pinning are now implemented.
 4. Add key-version rotation policy for participant removal and membership changes. Current removal revokes application access and removes the member key record; it does not re-encrypt historical IPFS messages.
 5. Expand automated feature tests for roles, channel publishing, topic isolation, upload ownership, encrypted attachment access and reaction authorization. Focused read-receipt and pinned-message tests are now included.
 6. Run migrations and test desktop/mobile behavior against a staging database and real IPFS node before merging.
