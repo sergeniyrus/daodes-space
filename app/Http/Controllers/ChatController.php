@@ -137,7 +137,7 @@ class ChatController extends Controller
         // Первоначально отображаем только последние 50 сообщений.
         // Более старые сообщения клиент сможет подгружать отдельными страницами.
         $messages = $chat->messages()
-            ->with(['sender', 'attachments'])
+            ->with(['sender', 'attachments', 'reactions'])
             ->orderByDesc('id')
             ->limit(50)
             ->get()
