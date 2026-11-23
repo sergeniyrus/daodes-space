@@ -394,6 +394,7 @@ class ChatController extends Controller
         );
 
         $users = $chat->users()
+            ->where('users.id', '!=', Auth::id())
             ->with('profile')
             ->get(['users.id', 'users.name']);
 
