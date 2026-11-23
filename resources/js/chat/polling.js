@@ -325,7 +325,10 @@ export class MessagePoller {
             }
             await this.refreshReadReceipts();
 
-            if (hasIncoming) {
+            const muteIsActive = this.config.mutedUntil
+                && new Date(this.config.mutedUntil).getTime() > Date.now();
+
+            if (hasIncoming && !muteIsActive) {
                 document.getElementById('notificationSound')?.play().catch(() => {});
             }
         } catch (err) {
