@@ -1,4 +1,7 @@
 export function renderMessageText(container, text) {
+    const messageBody = container.closest('.my-card-body, .card-body');
+    messageBody?.querySelectorAll('.chat-link-preview').forEach(preview => preview.remove());
+    delete container.dataset.previewChecked;
     container.replaceChildren();
 
     const tokenPattern = /(https?:\\/\\/[^\\s<>]+|@[a-zA-Z0-9_]{2,32})/g;
