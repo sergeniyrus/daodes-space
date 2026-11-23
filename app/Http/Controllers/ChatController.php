@@ -146,7 +146,7 @@ class ChatController extends Controller
 
         $chat->setRelation('messages', $messages);
 
-        $firstUnreadMessage = \\App\\Models\\Notification::where('user_id', $userId)
+        $firstUnreadMessage = \App\Models\Notification::where('user_id', $userId)
             ->whereHas('message', fn($query) => $query->where('chat_id', $chatId))
             ->where('is_read', false)
             ->with('message')
