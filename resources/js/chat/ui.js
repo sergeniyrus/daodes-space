@@ -199,8 +199,30 @@ export class ChatUI {
                 const time = document.createElement('small');
                 time.textContent = item.pinned_at ? new Date(item.pinned_at).toLocaleString() : '';
                 button.append(icon, label, time);
-                button.addEventListener('click', () => {
-                    const target = document.querySelector(`.message[data-id="${item.message_id}"]`);
+                button.addEventListener('click', async () => {
+                    const topicTab = document.querySelector(
+                        `.chat-topic-tab[data-topic-id="${item.topic_id || ''}"]`
+                    );
+
+                    if (topicTab && String(this.config.topicId || '') !== String(item.topic_id || '')) {
+                        topicTab.click();
+                        for (let attempt = 0; attempt < 80; attempt++) {
+                            const poller = window.__chatPoller;
+                            if (poller?.initialLoadDone && !poller.isLoading) break;
+                            await new Promise(resolve => window.setTimeout(resolve, 50));
+                        }
+                    }
+
+                    const poller = window.__chatPoller;
+                    let target = document.querySelector(`.message[data-id="${item.message_id}"]`);
+
+                    for (let attempt = 0; !target && poller?.hasOlderMessages && attempt < 100; attempt++) {
+                        const previousCount = poller.allMessageIds.size;
+                        await poller.loadOlderMessages();
+                        if (poller.allMessageIds.size === previousCount) break;
+                        target = document.querySelector(`.message[data-id="${item.message_id}"]`);
+                    }
+
                     if (target) {
                         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         target.classList.add('message-highlight');
