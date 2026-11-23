@@ -90,4 +90,13 @@ return [
     'pin' => 'Закрепить',
     'unpin' => 'Открепить',
     'pinned_messages' => 'Закреплённые сообщения',
+    'mute_notifications' => 'Уведомления:',
+    'mute_off' => 'Включены',
+    'mute_1_hour' => 'На 1 час',
+    'mute_8_hours' => 'На 8 часов',
+    'mute_1_day' => 'На 1 день',
+    'mute_7_days' => 'На 7 дней',
+    'mute_30_days' => 'На 30 дней',
+    'muted_until' => 'Отключены до :date',
+    'notifications_enabled' => 'Уведомления включены',
 ];
