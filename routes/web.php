@@ -647,6 +647,21 @@ Route::middleware('auth')->group(function () {
         [MessageController::class, 'toggleReaction']
     )->middleware('throttle:60,1')->name('messages.reactions.toggle');
 
+    Route::post(
+        '/messages/{message}/pin',
+        [MessageController::class, 'pin']
+    )->middleware('throttle:30,1')->name('messages.pin');
+
+    Route::delete(
+        '/messages/{message}/pin',
+        [MessageController::class, 'unpin']
+    )->middleware('throttle:30,1')->name('messages.unpin');
+
+    Route::get(
+        '/chats/{chat}/pinned-messages',
+        [MessageController::class, 'pinnedMessages']
+    )->middleware('throttle:60,1')->name('chats.pinnedMessages');
+
     Route::get(
         '/messages/{message}/reply-info',
         [MessageController::class, 'getReplyInfo']
