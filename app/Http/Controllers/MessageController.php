@@ -41,17 +41,18 @@ class MessageController extends Controller
         }
 
         $lastId = (int) request('last_id', 0);
+        $beforeId = (int) request('before_id', 0);
         $topicId = (int) request('topic_id', 0);
 
         if ($topicId > 0 && !$chat->topics()->whereKey($topicId)->exists()) {
             return response()->json(['status' => 'error', 'message' => 'Topic not found'], 404);
         }
 
-        // Ключ кэша учитывает тему и курсор сообщений.
-        $cacheKey = "chat:{$chat->id}:messages:{$topicId}:{$lastId}";
+        // Ключ кэша учитывает тему и направление пагинации.
+        $cacheKey = "chat:{$chat->id}:messages:{$topicId}:{$lastId}:{$beforeId}";
 
         // Получаем метаданные из кэша или из БД
-        $messagesMeta = Cache::remember($cacheKey, self::MESSAGES_CACHE_TTL, function () use ($chat, $lastId, $topicId) {
+        $messagesMeta = Cache::remember($cacheKey, self::MESSAGES_CACHE_TTL, function () use ($chat, $lastId, $beforeId, $topicId) {
             $messageQuery = $chat->messages()
                 ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
                 ->with([
@@ -60,7 +61,16 @@ class MessageController extends Controller
                     'reactions:id,message_id,user_id,reaction',
                 ]);
 
-            if ($lastId > 0) {
+            if ($beforeId > 0) {
+                // Подгружаем предыдущую страницу истории при прокрутке вверх.
+                $newMessages = $messageQuery
+                    ->where('id', '<', $beforeId)
+                    ->orderByDesc('id')
+                    ->limit(50)
+                    ->get()
+                    ->reverse()
+                    ->values();
+            } elseif ($lastId > 0) {
                 $newMessages = $messageQuery
                     ->where('id', '>', $lastId)
                     ->orderBy('id', 'asc')
