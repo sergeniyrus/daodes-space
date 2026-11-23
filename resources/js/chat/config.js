@@ -33,7 +33,10 @@ export function loadChatConfig() {
             attachFile: el.dataset.translateAttachFile,
             mediaLoading: el.dataset.translateMediaLoading,
             mediaError: el.dataset.translateMediaError,
-            mediaDownload: el.dataset.translateMediaDownload
+            mediaDownload: el.dataset.translateMediaDownload,
+            roleMember: el.dataset.translateRoleMember,
+            roleModerator: el.dataset.translateRoleModerator,
+            roleAdmin: el.dataset.translateRoleAdmin
         },
     };
 }
