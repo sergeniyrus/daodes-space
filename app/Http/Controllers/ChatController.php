@@ -384,6 +384,27 @@ class ChatController extends Controller
     }
 
     /**
+     * Возвращает список участников чата для подсказок @упоминаний.
+     */
+    public function mentionUsers(Chat $chat)
+    {
+        abort_unless(
+            $chat->users()->where('users.id', Auth::id())->exists(),
+            403
+        );
+
+        $users = $chat->users()
+            ->with('profile')
+            ->get(['users.id', 'users.name']);
+
+        return response()->json($users->map(fn($user) => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'nickname' => $user->profile?->nickname,
+        ])->values());
+    }
+
+    /**
      * Создание темы внутри группового чата или канала.
      */
     public function createTopic(Request $request, Chat $chat)
