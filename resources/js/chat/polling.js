@@ -1,3 +1,4 @@
+import { renderVoiceMessage } from './voice.js';
 import { hydrateLinkPreview } from './link-preview.js';
 import { renderMessageText } from './render.js';
 import { b64ToU8 } from './utils.js';
@@ -52,8 +53,23 @@ export class MessagePoller {
             if (!encrypted || !encrypted.includes('|')) return;
 
             const txt = this.crypto.decrypt(encrypted);
-            renderMessageText(el, txt);
-            hydrateLinkPreview(el, this.config.csrfToken);
+            const messageType = messageEl.dataset.messageType || 'text';
+            const attachmentId = Number(messageEl.dataset.attachmentId || 0);
+            const isVoice = messageType === 'voice'
+                && renderVoiceMessage(
+                    el,
+                    txt,
+                    Number(messageEl.dataset.id),
+                    attachmentId,
+                    this.config,
+                    this.crypto
+                );
+
+            if (!isVoice) {
+                renderMessageText(el, txt);
+                hydrateLinkPreview(el, this.config.csrfToken);
+            }
+
             el.dataset.plaintext = txt;
             el.dataset.decrypted = '1';
 
@@ -179,6 +195,8 @@ export class MessagePoller {
                         delete cardText.dataset.decrypted;
                     }
                     existing.setAttribute('data-is-edited', isEdited);
+                    existing.dataset.messageType = msg.message_type || 'text';
+                    existing.dataset.attachmentId = msg.attachments?.[0]?.id || '';
 
                     const cardTitle = existing.querySelector('.card-title');
                     if (cardTitle) {
@@ -208,6 +226,8 @@ export class MessagePoller {
                         <div class="message ${isOwn ? 'sent' : 'received'}"
                              data-id="${msg.id}"
                              data-cid="${this.escapeAttr(msg.ipfs_cid)}"
+                             data-message-type="${this.escapeAttr(msg.message_type || 'text')}"
+                             data-attachment-id="${msg.attachments?.[0]?.id || ''}"
                              data-is-edited="${isEdited}">
                             ${replyPreview}
                             <div class="${isOwn ? 'my-card-body' : 'card-body'}">
