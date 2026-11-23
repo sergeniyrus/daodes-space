@@ -40,7 +40,7 @@ The migration `2026_11_23_000001_add_advanced_messenger_features.php` adds:
 - `chat_topics`;
 - `message_attachments`;
 - `chat_uploads` (temporary, user/chat-bound upload staging with a two-hour expiry);
-- `message_reactions`;
+- `message_reactions` and `message_mentions`;
 - `topic_id` and `message_type` to `messages`.
 
 ## Remaining work before production merge
