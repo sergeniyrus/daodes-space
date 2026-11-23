@@ -19,6 +19,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sendBtn = document.getElementById('sendBtn');
     const chatMessages = document.getElementById('chat-messages');
 
+    const topicsBar = document.getElementById('chatTopicsBar');
+    topicsBar?.addEventListener('click', async event => {
+        const button = event.target.closest('button');
+        if (!button) return;
+
+        if (button.id === 'createChatTopic') {
+            const name = window.prompt(config.translations.topicNamePrompt || 'New topic name');
+            if (!name || !name.trim()) return;
+
+            try {
+                const response = await fetch(`/chats/${config.chatId}/topics`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': config.csrfToken,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ name: name.trim() }),
+                });
+
+                const data = await response.json();
+                if (!response.ok || data.status !== 'success') {
+                    throw new Error(data.message || config.translations.topicCreateError);
+                }
+
+                const tab = document.createElement('button');
+                tab.type = 'button';
+                tab.className = 'chat-topic-tab';
+                tab.dataset.topicId = String(data.topic.id);
+                tab.textContent = data.topic.name;
+                topicsBar.insertBefore(tab, button);
+                tab.click();
+            } catch (error) {
+                console.error('Topic creation failed:', error);
+                window.alert(config.translations.topicCreateError || 'Could not create topic');
+            }
+
+            return;
+        }
+
+        if (!button.classList.contains('chat-topic-tab')) return;
+
+        config.topicId = button.dataset.topicId ? Number(button.dataset.topicId) : null;
+        document.getElementById('chat-config').dataset.topicId = config.topicId || '';
+
+        topicsBar.querySelectorAll('.chat-topic-tab').forEach(tab => {
+            tab.classList.toggle('active', tab === button);
+        });
+
+        chatMessages.replaceChildren();
+        poller.allMessageIds.clear();
+        poller.highestKnownMessageId = 0;
+        poller.initialLoadDone = false;
+        poller.autoScrollEnabled = true;
+        await poller.load();
+    });
+
     form.addEventListener('submit', e => {
         e.preventDefault();
         e.stopPropagation();
