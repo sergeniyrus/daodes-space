@@ -40,16 +40,16 @@ The migration `2026_11_23_000001_add_advanced_messenger_features.php` adds:
 - `chat_topics`;
 - `message_attachments`;
 - `chat_uploads` (temporary, user/chat-bound upload staging with a two-hour expiry);
-- `message_reactions` and `message_mentions`;
+- `message_reactions`, `message_mentions` and per-message `message_reads` receipts;
 - `topic_id` and `message_type` to `messages`.
 
 ## Remaining work before production merge
 
 1. Replace the current three-second polling with Laravel Reverb / Echo events. Reverb is not currently configured as a project dependency; this requires installing and locking the package, setting environment variables, and configuring authenticated private channels.
 2. Add dedicated mention-specific notification presentation and delivery controls. @mention autocomplete, participant validation and mention metadata are now implemented; existing reply previews show the replying author's name.
-3. Add read/delivery receipts, message pinning, forwarding, full-text chat search, mute controls, channel discovery/subscription and invite links.
+3. Add message pinning, forwarding, full-text chat search, mute controls, channel discovery/subscription and invite links. Read receipts are now stored per message and displayed for the latest messages in the open conversation.
 4. Add key-version rotation policy for participant removal and membership changes. Current removal revokes application access and removes the member key record; it does not re-encrypt historical IPFS messages.
-5. Add automated feature tests for roles, channel publishing, topic isolation, upload ownership, encrypted attachment access and reaction authorization.
+5. Expand automated feature tests for roles, channel publishing, topic isolation, upload ownership, encrypted attachment access and reaction authorization. Focused read-receipt tests are now included.
 6. Run migrations and test desktop/mobile behavior against a staging database and real IPFS node before merging.
 
 ## Operational limits in this phase
