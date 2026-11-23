@@ -1305,6 +1305,8 @@
                 class="message {{ $message->sender_id === auth()->id() ? 'sent' : 'received' }}"
                 data-id="{{ $message->id }}"
                 data-ipfs-cid="{{ $message->ipfs_cid }}"
+                data-message-type="{{ $message->message_type ?? 'text' }}"
+                data-attachment-id="{{ $message->attachments->first()?->id ?? '' }}"
             >
 
                 @if ($message->reply_to_message_id)
