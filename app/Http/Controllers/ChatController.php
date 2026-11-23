@@ -125,6 +125,15 @@ class ChatController extends Controller
             ? $chat->users->first(fn($user) => $user->id !== $userId)
             : null;
 
+        $topics = $chat->topics()
+            ->orderBy('created_at')
+            ->get();
+
+        $currentRole = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $userId)
+            ->value('role') ?? 'member';
+
         // Первоначально отображаем только последние 50 сообщений.
         // Более старые сообщения клиент сможет подгружать отдельными страницами.
         $messages = $chat->messages()
@@ -157,7 +166,9 @@ class ChatController extends Controller
         return view('chats.show', compact(
             'chat',
             'otherUser',
-            'firstUnreadMessageId'
+            'firstUnreadMessageId',
+            'topics',
+            'currentRole'
         ));
     }
 
