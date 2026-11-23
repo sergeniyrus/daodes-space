@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use GuzzleHttp\\Client;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Cache;
-use Illuminate\\Support\\Str;
+use GuzzleHttp\Client;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use DOMDocument;
 use DOMXPath;
 
@@ -101,7 +101,7 @@ class ChatLinkPreviewController extends Controller
                     'description' => Str::limit(trim(strip_tags($description)), 320),
                     'image' => $image,
                 ];
-            } catch (\\Throwable $exception) {
+            } catch (\Throwable $exception) {
                 return null;
             }
         });
@@ -166,7 +166,7 @@ class ChatLinkPreviewController extends Controller
         } elseif (str_starts_with($image, '/')) {
             $parts = parse_url($pageUrl);
             $image = ($parts['scheme'] ?? 'https') . '://' . $pageHost . $image;
-        } elseif (!preg_match('/^https?:\\/\\//i', $image)) {
+        } elseif (!preg_match('/^https?:\/\//i', $image)) {
             return null;
         }
 
