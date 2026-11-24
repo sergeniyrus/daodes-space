@@ -16,11 +16,11 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        $groupChats = Chat::whereIn('type', ['group', 'channel'])
+        $groupChats = Chat::with('users.profile')->whereIn('type', ['group', 'channel'])
             ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
             ->paginate(10);
 
-        $privateChats = Chat::whereIn('type', ['personal', 'saved'])
+        $privateChats = Chat::with('users.profile')->whereIn('type', ['personal', 'saved'])
             ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
             ->paginate(10);
 
@@ -175,7 +175,7 @@ class ChatController extends Controller
     {
         $userId = Auth::id();
 
-        $chat = Chat::with('users')->findOrFail($chatId);
+        $chat = Chat::with('users.profile')->findOrFail($chatId);
 
         // Не загружаем сообщения и их IPFS payload до проверки членства.
         abort_unless(
