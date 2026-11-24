@@ -9,7 +9,7 @@ const SAFE_EXTENSIONS = new Set([
     'heic', 'heif', 'ico',
     'mp3', 'wav', 'ogg', 'oga', 'opus', 'm4a', 'aac', 'flac', 'aiff', 'aif',
     'mp4', 'm4v', 'mov', 'mkv', 'webm', 'avi', 'mpeg', 'mpg', '3gp', '3g2',
-    'ts', 'mts', 'm2ts',
+    'mts', 'm2ts',
     'woff', 'woff2', 'ttf', 'otf', 'eot',
     'blend', 'obj', 'stl', 'gltf', 'glb', 'fbx', 'dae',
     'dwg', 'dxf', 'step', 'stp', 'iges', 'igs',
