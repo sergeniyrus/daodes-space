@@ -3152,7 +3152,6 @@ body.chat-media-viewer-open { overflow: hidden; }
                 <input
                     type="file"
                     id="chatAttachmentInput"
-                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                     hidden
                 >
             </div>
@@ -3250,6 +3249,11 @@ body.chat-media-viewer-open { overflow: hidden; }
     data-translate-voice-play="{{ __('chats.voice_play') }}"
     data-translate-voice-loading="{{ __('chats.voice_loading') }}"
     data-translate-voice-error="{{ __('chats.voice_error') }}"
+    data-translate-voice-transcribe="{{ __('chats.voice_transcribe') }}"
+    data-translate-voice-transcribing="{{ __('chats.voice_transcribing') }}"
+    data-translate-voice-transcript-hide="{{ __('chats.voice_transcript_hide') }}"
+    data-translate-voice-transcript-error="{{ __('chats.voice_transcript_error') }}"
+    data-translate-voice-transcript-consent="{{ __('chats.voice_transcript_consent') }}"
     data-translate-voice-record="{{ __('chats.voice_record') }}"
     data-translate-voice-stop="{{ __('chats.voice_stop') }}"
     data-translate-attach-file="{{ __('chats.attach_file') }}"
