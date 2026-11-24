@@ -155,6 +155,19 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
         }
     });
 
+    if (payload.media_type === 'image' && 'IntersectionObserver' in window) {
+        const previewObserver = new IntersectionObserver(entries => {
+            if (entries.some(entry => entry.isIntersecting)) {
+                previewObserver.disconnect();
+                button.click();
+            }
+        }, {
+            root: document.getElementById('chat-messages') || null,
+            rootMargin: '120px',
+        });
+        previewObserver.observe(wrapper);
+    }
+
     window.addEventListener('pagehide', () => {
         if (objectUrl) URL.revokeObjectURL(objectUrl);
     }, { once: true });
