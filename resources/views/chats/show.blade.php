@@ -1215,6 +1215,96 @@
     background: #000;
 }
 
+.chat-poll-message {
+    min-width: min(280px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: #f5f7fb;
+}
+.chat-poll-question { color: #ffd700; font-weight: 700; font-size: 1rem; }
+.chat-poll-option {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid rgba(0, 229, 255, .32);
+    border-radius: 9px;
+    color: #e8f2ff;
+    background: rgba(0, 229, 255, .055);
+    text-align: left;
+    cursor: pointer;
+}
+.chat-poll-option.selected { border-color: #ffd700; color: #ffd700; }
+.chat-poll-option:disabled { cursor: default; }
+.chat-poll-progress {
+    height: 4px;
+    overflow: hidden;
+    border-radius: 5px;
+    background: rgba(255,255,255,.1);
+}
+.chat-poll-progress span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #00e5ff, #ffd700);
+}
+.chat-poll-voters { color: #9ca3af; font-size: .75rem; }
+.chat-poll-footer { display: flex; justify-content: space-between; gap: 8px; color: #9ca3af; font-size: .75rem; }
+.chat-poll-submit, .chat-poll-close {
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 215, 0, .4);
+    border-radius: 8px;
+    color: #ffd700;
+    background: rgba(255, 215, 0, .06);
+    cursor: pointer;
+}
+.chat-poll-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 99990;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: rgba(0,0,0,.78);
+}
+.chat-poll-modal[hidden] { display: none; }
+.chat-poll-form {
+    width: min(100%, 480px);
+    display: grid;
+    gap: 10px;
+    padding: 22px;
+    border: 1px solid rgba(255,215,0,.55);
+    border-left: 4px solid #00e5ff;
+    border-radius: 14px;
+    color: #fff;
+    background: #101421;
+    box-shadow: 0 16px 50px rgba(0,0,0,.5);
+}
+.chat-poll-form h3 { margin: 0 0 6px; color: #ffd700; }
+.chat-poll-form input[type="text"], .chat-poll-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid rgba(0,229,255,.35);
+    border-radius: 8px;
+    color: #fff;
+    background: #090d17;
+}
+.chat-poll-checkbox { display: flex; align-items: center; gap: 8px; color: #cbd5e1; }
+.chat-poll-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.chat-poll-form-actions button {
+    padding: 8px 13px;
+    border: 1px solid rgba(0,229,255,.4);
+    border-radius: 8px;
+    color: #00e5ff;
+    background: rgba(0,229,255,.06);
+    cursor: pointer;
+}
+@media (max-width: 600px) {
+    .chat-poll-form { padding: 16px; }
+}
+
 .chat-media-image { cursor: zoom-in; }
 .chat-media-viewer {
     position: fixed;
@@ -1797,6 +1887,22 @@ body.chat-media-viewer-open { overflow: hidden; }
     </div>
 
 
+    <div class="chat-poll-modal" id="chatPollModal" hidden>
+        <form id="chatPollForm" class="chat-poll-form">
+            <h3>{{ __('chats.poll_create') }}</h3>
+            <label for="chatPollQuestion">{{ __('chats.poll_question') }}</label>
+            <input id="chatPollQuestion" name="question" type="text" maxlength="500" required>
+            <label for="chatPollOptions">{{ __('chats.poll_options') }}</label>
+            <textarea id="chatPollOptions" name="options" rows="5" maxlength="2000" required placeholder="{{ __('chats.poll_options_hint') }}"></textarea>
+            <label class="chat-poll-checkbox"><input type="checkbox" name="is_anonymous" checked> {{ __('chats.poll_anonymous') }}</label>
+            <label class="chat-poll-checkbox"><input type="checkbox" name="allows_multiple"> {{ __('chats.poll_multiple') }}</label>
+            <div class="chat-poll-form-actions">
+                <button type="button" id="cancelPollBtn">{{ __('chats.cancel') }}</button>
+                <button type="submit">{{ __('chats.poll_create') }}</button>
+            </div>
+        </form>
+    </div>
+
     {{-- =====================================================
          ФОРМА ОТПРАВКИ
          ===================================================== --}}
@@ -1826,6 +1932,17 @@ body.chat-media-viewer-open { overflow: hidden; }
 
             </div>
 
+
+            <button
+                type="button"
+                id="createPollBtn"
+                class="voice-record-btn"
+                aria-label="{{ __('chats.poll_create') }}"
+                title="{{ __('chats.poll_create') }}"
+                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+            >
+                <i class="fa fa-bar-chart" aria-hidden="true"></i>
+            </button>
 
             <button
                 type="button"
@@ -1987,6 +2104,19 @@ body.chat-media-viewer-open { overflow: hidden; }
     data-translate-pin="{{ __('chats.pin') }}"
     data-translate-unpin="{{ __('chats.unpin') }}"
     data-translate-pinned-messages="{{ __('chats.pinned_messages') }}"
+    data-translate-poll-create="{{ __('chats.poll_create') }}"
+    data-translate-poll-question="{{ __('chats.poll_question') }}"
+    data-translate-poll-options="{{ __('chats.poll_options') }}"
+    data-translate-poll-options-hint="{{ __('chats.poll_options_hint') }}"
+    data-translate-poll-anonymous="{{ __('chats.poll_anonymous') }}"
+    data-translate-poll-open="{{ __('chats.poll_open') }}"
+    data-translate-poll-closed="{{ __('chats.poll_closed') }}"
+    data-translate-poll-multiple="{{ __('chats.poll_multiple') }}"
+    data-translate-poll-vote="{{ __('chats.poll_vote') }}"
+    data-translate-poll-voters="{{ __('chats.poll_voters') }}"
+    data-translate-poll-close="{{ __('chats.poll_close') }}"
+    data-translate-poll-error="{{ __('chats.poll_error') }}"
+    data-translate-poll-validation="{{ __('chats.poll_validation') }}"
 ></div>
 
 
