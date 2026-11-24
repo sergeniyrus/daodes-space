@@ -563,13 +563,6 @@ class MessageController extends Controller
             ], 422);
         }
 
-        if (DB::table('message_transcriptions')->where('message_id', $message->id)->exists()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Для этого голосового сообщения текст уже создан',
-            ], 409);
-        }
-
         $serviceUrl = rtrim((string) config('services.transcription.url'), '/');
         $serviceToken = (string) config('services.transcription.token');
 
@@ -635,69 +628,6 @@ class MessageController extends Controller
                 'message' => 'Не удалось преобразовать голосовое сообщение в текст',
             ], 502);
         }
-    }
-
-    public function getVoiceTranscription(Message $message)
-    {
-        $chat = $message->chat;
-
-        if (!$chat || !$chat->users()->where('user_id', Auth::id())->exists()) {
-            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
-        }
-
-        if ($message->message_type !== 'voice') {
-            return response()->json(['status' => 'error', 'message' => 'Это не голосовое сообщение'], 422);
-        }
-
-        $transcription = DB::table('message_transcriptions')
-            ->where('message_id', $message->id)
-            ->value('encrypted_text');
-
-        return response()->json([
-            'status' => 'success',
-            'transcription' => $transcription,
-        ]);
-    }
-
-    /**
-     * Сохраняет расшифровку только в зашифрованном виде.
-     */
-    public function storeVoiceTranscription(Request $request, Message $message)
-    {
-        $chat = $message->chat;
-
-        if (!$chat || !$chat->users()->where('user_id', Auth::id())->exists()) {
-            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
-        }
-
-        if ($message->message_type !== 'voice') {
-            return response()->json(['status' => 'error', 'message' => 'Это не голосовое сообщение'], 422);
-        }
-
-        $validated = $request->validate([
-            'nonce' => 'required|string|max:64',
-            'ciphertext' => 'required|string|max:100000',
-        ]);
-
-        $nonce = base64_decode($validated['nonce'], true);
-        $ciphertext = base64_decode($validated['ciphertext'], true);
-
-        if ($nonce === false || strlen($nonce) !== 24 || $ciphertext === false || strlen($ciphertext) < 16) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Некорректная зашифрованная расшифровка',
-            ], 422);
-        }
-
-        DB::table('message_transcriptions')->insertOrIgnore([
-            'message_id' => $message->id,
-            'created_by' => Auth::id(),
-            'encrypted_text' => $validated['nonce'] . '|' . $validated['ciphertext'],
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return response()->json(['status' => 'success']);
     }
 
     /**
