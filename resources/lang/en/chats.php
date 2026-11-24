@@ -124,4 +124,5 @@ return [
     'muted_until' => 'Muted until :date',
     'notifications_enabled' => 'Notifications enabled',
     'search_chats' => 'Search chats…',
+    'open_fullscreen' => 'Open full screen',
 ];
