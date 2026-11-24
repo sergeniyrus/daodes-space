@@ -780,7 +780,7 @@ class IPFSService
             throw new RuntimeException('IPFS CID не указан.');
         }
 
-        $host = env('IPFS_HOST', 'localhost');
+        $host = env('IPFS_HOST', '127.0.0.1');
         $port = env('IPFS_PORT', 5001);
         $url = 'http://' . $host . ':' . $port
             . '/api/v0/pin/rm?arg=' . rawurlencode($cid) . '&recursive=true';
