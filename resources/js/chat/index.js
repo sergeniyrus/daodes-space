@@ -38,6 +38,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('messageForm');
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
+    let composerBusyCount = 0;
+    const beginComposerLoading = () => {
+        composerBusyCount++;
+        sendBtn?.classList.add('is-loading');
+        if (sendBtn) sendBtn.disabled = true;
+        let finished = false;
+        return () => {
+            if (finished) return;
+            finished = true;
+            composerBusyCount = Math.max(0, composerBusyCount - 1);
+            if (composerBusyCount === 0) {
+                sendBtn?.classList.remove('is-loading');
+                if (sendBtn) sendBtn.disabled = false;
+            }
+        };
+    };
+
+    const toolsToggle = document.getElementById('toggleComposerTools');
+    const toolsMenu = document.getElementById('composerToolsMenu');
+    const closeComposerTools = () => {
+        if (!toolsMenu || !toolsToggle) return;
+        toolsMenu.hidden = true;
+        toolsToggle.setAttribute('aria-expanded', 'false');
+    };
+    toolsToggle?.addEventListener('click', () => {
+        const opening = toolsMenu.hidden;
+        toolsMenu.hidden = !opening;
+        toolsToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+    });
+    toolsMenu?.addEventListener('click', event => {
+        if (event.target.closest('button')) closeComposerTools();
+    });
+    document.addEventListener('click', event => {
+        if (!event.target.closest('.composer-tools')) closeComposerTools();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeComposerTools();
+    });
+
     const chatMessages = document.getElementById('chat-messages');
     const toggleMessageSearch = document.getElementById('toggleMessageSearch');
     const messageSearchPanel = document.getElementById('messageSearchPanel');
@@ -307,6 +346,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const submitButton = pollForm.querySelector('[type="submit"]');
         submitButton.disabled = true;
+        const finishComposerLoading = beginComposerLoading();
         try {
             await sender.sendPoll(
                 question,
@@ -321,6 +361,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Poll creation failed:', error);
             window.alert(error.message || config.translations.pollError);
         } finally {
+            finishComposerLoading();
             submitButton.disabled = false;
         }
     });
@@ -704,6 +745,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     voiceStream = null;
                     recordVoiceButton.disabled = true;
                     recordVoiceButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>';
+                    const finishComposerLoading = beginComposerLoading();
 
                     try {
                         if (!audioBlob.size) throw new Error('Запись пустая');
@@ -783,6 +825,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         console.error('Voice message send failed:', error);
                         window.alert(error.message || 'Не удалось отправить голосовое сообщение');
                     } finally {
+                        finishComposerLoading();
                         resetVoiceButton();
                     }
                 });
@@ -870,6 +913,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     videoNoteStream = null;
                     recordVideoNoteButton.disabled = true;
                     recordVideoNoteButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>';
+                    const finishComposerLoading = beginComposerLoading();
 
                     try {
                         if (!videoBlob.size) throw new Error('Запись пустая');
@@ -949,6 +993,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         console.error('Video note send failed:', error);
                         window.alert(error.message || config.translations.videoNoteError);
                     } finally {
+                        finishComposerLoading();
                         resetVideoNoteButton();
                     }
                 });
@@ -986,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             attachFileButton.disabled = true;
             attachFileButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>';
+            const finishComposerLoading = beginComposerLoading();
 
             try {
                 const mediaType = file.type.startsWith('image/')
@@ -1073,6 +1119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('Encrypted attachment send failed:', error);
                 window.alert(error.message || 'Не удалось отправить вложение');
             } finally {
+                finishComposerLoading();
                 attachFileButton.disabled = false;
                 attachFileButton.innerHTML = '<i class="fa fa-paperclip" aria-hidden="true"></i>';
                 attachmentInput.value = '';
