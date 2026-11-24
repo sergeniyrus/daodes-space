@@ -44,8 +44,8 @@ class ChatMeetingController extends Controller
         $validated = $request->validate([
             'encrypted_title' => 'required|string|max:4000',
             'title_nonce' => 'required|string|max:255',
-            'encrypted_description' => 'nullable|string|max:20000',
-            'description_nonce' => 'nullable|string|max:255',
+            'encrypted_description' => 'nullable|string|max:20000|required_with:description_nonce',
+            'description_nonce' => 'nullable|string|max:255|required_with:encrypted_description',
             'starts_at' => 'required|date|after:now',
             'duration_minutes' => 'required|integer|min:5|max:480',
             'participant_ids' => 'nullable|array|max:100',
