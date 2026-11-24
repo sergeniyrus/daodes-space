@@ -577,7 +577,7 @@ class MessageController extends Controller
             $audioContents = file_get_contents($request->file('audio')->getRealPath());
 
             if ($audioContents === false || $audioContents === '') {
-                throw new \\RuntimeException('Unable to read uploaded voice recording');
+                throw new \RuntimeException('Unable to read uploaded voice recording');
             }
 
             $response = Http::withToken($serviceToken)
@@ -617,7 +617,7 @@ class MessageController extends Controller
                 'status' => 'success',
                 'text' => $transcription,
             ]);
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             Log::error('Local voice transcription request failed', [
                 'message_id' => $message->id,
                 'error' => $exception->getMessage(),
