@@ -122,6 +122,18 @@
             margin-top: 5px;
         }
 
+        .business-card-editor {
+            margin: 24px 0 18px;
+            padding: 16px;
+            border: 1px solid rgba(0, 229, 255, .35);
+            border-radius: 12px;
+            background: rgba(0, 229, 255, .045);
+        }
+        .business-card-editor h3 { color: #00e5ff; margin: 0 0 8px; }
+        .business-card-editor > p { color: #aeb7c5; margin: 0 0 14px; font-size: .9rem; }
+        .business-card-editor .form-group { margin-bottom: 10px; }
+        .business-card-editor textarea { min-height: 92px; }
+
         .save-btn-wrapper {
             width: 100%;
             display: flex;
@@ -387,6 +399,42 @@
 
                 <textarea class="input_dark" name="portfolio"
                           placeholder="{{ __('user_profile.portfolio_placeholder') }}">{{ old('portfolio', $profile->portfolio) }}</textarea>
+            </div>
+
+            {{-- Публичная визитка DAODES --}}
+            <div class="business-card-editor">
+                <h3>Публичная визитка</h3>
+                <p>Эти сведения будут видны другим пользователям при открытии Вашей карточки в мессенджере. Не указывайте здесь личные данные, которые не хотите публиковать.</p>
+
+                <div class="form-group">
+                    <label for="card_position">Должность / специализация</label>
+                    <input id="card_position" type="text" class="input_dark" name="card_position" maxlength="120"
+                           value="{{ old('card_position', $profile->card_position) }}" placeholder="Например: Laravel-разработчик">
+                </div>
+
+                <div class="form-group">
+                    <label for="card_company">Компания / проект</label>
+                    <input id="card_company" type="text" class="input_dark" name="card_company" maxlength="120"
+                           value="{{ old('card_company', $profile->card_company) }}" placeholder="Название компании или проекта">
+                </div>
+
+                <div class="form-group">
+                    <label for="card_location">Город / местоположение</label>
+                    <input id="card_location" type="text" class="input_dark" name="card_location" maxlength="120"
+                           value="{{ old('card_location', $profile->card_location) }}" placeholder="Город, страна">
+                </div>
+
+                <div class="form-group">
+                    <label for="card_about">О себе / чем могу быть полезен</label>
+                    <textarea id="card_about" class="input_dark" name="card_about" rows="4" maxlength="1200"
+                              placeholder="Кратко расскажите о себе, своей деятельности и интересах">{{ old('card_about', $profile->card_about) }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="card_website">Сайт / портфолио</label>
+                    <input id="card_website" type="url" class="input_dark" name="card_website" maxlength="255"
+                           value="{{ old('card_website', $profile->card_website) }}" placeholder="https://example.com">
+                </div>
             </div>
 
             <!-- Save button -->
