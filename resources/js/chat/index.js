@@ -272,6 +272,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
 
+    const sidebarSearch = document.getElementById('telegramChatSearch');
+    sidebarSearch?.addEventListener('input', () => {
+        const term = sidebarSearch.value.trim().toLocaleLowerCase();
+        document.querySelectorAll('.telegram-chat-row').forEach(row => {
+            row.hidden = !row.dataset.search?.includes(term);
+        });
+    });
+
     const cancelReplyBtn = document.getElementById('cancelReply');
     if (cancelReplyBtn) {
         cancelReplyBtn.addEventListener('click', () => ui.cancelReply());
