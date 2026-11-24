@@ -161,6 +161,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeComposerTools();
             closeEmojiPicker();
             if (peerProfileModal && !peerProfileModal.hidden) closePeerProfile();
+            if (channelInfoModal && !channelInfoModal.hidden) closeChannelInfo();
         }
     });
 
@@ -186,6 +187,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (event.target === peerProfileModal) closePeerProfile();
     });
 
+    const channelInfoTrigger = document.getElementById('openChatChannelInfo');
+    const channelInfoModal = document.getElementById('chatChannelInfoModal');
+    const closeChannelInfoButton = document.getElementById('closeChatChannelInfo');
+    const closeChannelInfo = () => {
+        if (!channelInfoModal) return;
+        channelInfoModal.hidden = true;
+        document.body.style.overflow = '';
+        channelInfoTrigger?.focus();
+    };
+    channelInfoTrigger?.addEventListener('click', () => {
+        if (!channelInfoModal) return;
+        channelInfoModal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        closeChannelInfoButton?.focus();
+    });
+    closeChannelInfoButton?.addEventListener('click', closeChannelInfo);
+    channelInfoModal?.addEventListener('click', event => {
+        if (event.target === channelInfoModal) closeChannelInfo();
+    });
+
     // Полноценный emoji-picker с категориями, поиском и вариантами оттенков кожи.
     const emojiToggle = document.getElementById('chatEmojiToggle');
     const emojiPanel = document.getElementById('chatEmojiPanel');
@@ -201,6 +222,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         emojiPanel.hidden = !opening;
         emojiToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
         if (opening) input?.focus({ preventScroll: true });
+    });
+
+    const formatToolbar = document.getElementById('chatFormatToolbar');
+    formatToolbar?.addEventListener('click', event => {
+        const button = event.target.closest('button[data-format]');
+        if (!button || !input || input.disabled) return;
+        const format = button.dataset.format;
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? start;
+        const selected = input.value.slice(start, end);
+        const wrappers = {
+            bold: ['**', '**'],
+            italic: ['*', '*'],
+            strike: ['~~', '~~'],
+            code: ['`', '`'],
+        };
+
+        let replacement = selected;
+        let selectionStart = start;
+        let selectionEnd = start;
+
+        if (format === 'quote') {
+            const source = selected || 'Текст цитаты';
+            replacement = source.split('\n').map(line => line.startsWith('> ') ? line : '> ' + line).join('\n');
+            selectionEnd = start + replacement.length;
+        } else if (format === 'normal') {
+            replacement = selected
+                .replace(/^>\s?/gm, '')
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/~~(.*?)~~/g, '$1')
+                .replace(/`([^`]+)`/g, '$1')
+                .replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1$2');
+            selectionEnd = start + replacement.length;
+        } else {
+            const pair = wrappers[format];
+            if (!pair) return;
+            const content = selected || 'текст';
+            replacement = pair[0] + content + pair[1];
+            selectionStart = start + pair[0].length;
+            selectionEnd = selectionStart + content.length;
+        }
+
+        input.setRangeText(replacement, start, end, 'end');
+        input.setSelectionRange(selectionStart, selectionEnd);
+        input.focus();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
     const setupEmojiPicker = () => {
