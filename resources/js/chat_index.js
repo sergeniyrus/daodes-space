@@ -22,10 +22,6 @@ import nacl from 'tweetnacl';
         const pubKey = u8ToB64(pair.publicKey);
 
         localStorage.setItem("userPrivateKey", privKey);
-        const savedMessagesButton = document.getElementById("openSavedMessages");
-        if (savedMessagesButton?.dataset.userId) {
-            localStorage.setItem(`userPrivateKey_${savedMessagesButton.dataset.userId}`, privKey);
-        }
 
         fetch("/profile/set-public-key", {
             method: "POST",
@@ -101,8 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', async () => {
         const userId = Number(button.dataset.userId);
         const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
-        const privateKeyValue = localStorage.getItem(`userPrivateKey_${userId}`)
-            || localStorage.getItem('userPrivateKey');
+        const privateKeyValue = localStorage.getItem(`userPrivateKey_${userId}`);
 
         if (!privateKeyValue || !csrf) {
             window.alert('Не найден ключ шифрования. Сначала настройте ключи устройства.');
