@@ -28,6 +28,18 @@ class ChatStoriesController extends Controller
             })
             ->where('story_keys.user_id', $userId)
             ->where('stories.expires_at', '>', now())
+            ->whereNotExists(function ($query) use ($userId) {
+                $query->select(DB::raw(1))
+                    ->from('chat_contact_blocks as blocks')
+                    ->where(function ($pair) use ($userId) {
+                        $pair->whereColumn('blocks.user_id', 'stories.user_id')
+                            ->where('blocks.blocked_user_id', $userId);
+                    })
+                    ->orWhere(function ($pair) use ($userId) {
+                        $pair->where('blocks.user_id', $userId)
+                            ->whereColumn('blocks.blocked_user_id', 'stories.user_id');
+                    });
+            })
             ->orderByDesc('stories.created_at')
             ->limit(100)
             ->get([
@@ -68,18 +80,7 @@ class ChatStoriesController extends Controller
     {
         $userId = Auth::id();
 
-        $contactIds = DB::table('chat_user as own')
-            ->join('chats', 'chats.id', '=', 'own.chat_id')
-            ->join('chat_user as other', 'other.chat_id', '=', 'chats.id')
-            ->where('chats.type', 'personal')
-            ->where('own.user_id', $userId)
-            ->where('other.user_id', '!=', $userId)
-            ->pluck('other.user_id')
-            ->map(fn($id) => (int) $id)
-            ->unique()
-            ->push((int) $userId)
-            ->unique()
-            ->values();
+        $contactIds = $this->storyContactIds($userId);
 
         $contacts = User::with('profile')
             ->whereIn('id', $contactIds)
@@ -121,17 +122,7 @@ class ChatStoriesController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Public encryption key is not configured'], 422);
         }
 
-        $allowedIds = DB::table('chat_user as own')
-            ->join('chats', 'chats.id', '=', 'own.chat_id')
-            ->join('chat_user as other', 'other.chat_id', '=', 'chats.id')
-            ->where('chats.type', 'personal')
-            ->where('own.user_id', $user->id)
-            ->where('other.user_id', '!=', $user->id)
-            ->pluck('other.user_id')
-            ->map(fn($id) => (int) $id)
-            ->push((int) $user->id)
-            ->unique()
-            ->all();
+        $allowedIds = $this->storyContactIds((int) $user->id)->all();
 
         $keys = collect($validated['keys'])->keyBy(fn($item) => (int) $item['user_id']);
         if (!$keys->has((int) $user->id)) {
@@ -206,6 +197,7 @@ class ChatStoriesController extends Controller
             ->where('user_id', Auth::id())
             ->first();
         abort_unless($envelope, 404);
+        abort_if($this->isBlockedBetween((int) $storyRecord->user_id, (int) Auth::id()), 404);
 
         return response()->json([
             'encrypted_key' => $envelope->encrypted_key,
@@ -229,6 +221,7 @@ class ChatStoriesController extends Controller
             DB::table('chat_story_keys')->where('story_id', $story)->where('user_id', Auth::id())->exists(),
             404
         );
+        abort_if($this->isBlockedBetween((int) $storyRecord->user_id, (int) Auth::id()), 404);
 
         try {
             return response($ipfs->downloadFile($storyRecord->ipfs_cid), 200, [
@@ -254,6 +247,7 @@ class ChatStoriesController extends Controller
             DB::table('chat_story_keys')->where('story_id', $story)->where('user_id', Auth::id())->exists(),
             404
         );
+        abort_if($this->isBlockedBetween((int) $storyRecord->user_id, (int) Auth::id()), 404);
 
         DB::table('chat_story_views')->insertOrIgnore([
             'story_id' => $story,
@@ -287,6 +281,50 @@ class ChatStoriesController extends Controller
             ]);
 
         return response()->json($views);
+    }
+
+    /**
+     * Stories are shared with accepted contacts and existing direct-chat contacts.
+     * A block in either direction immediately hides existing stories too.
+     */
+    private function storyContactIds(int $userId)
+    {
+        $personalIds = DB::table('chat_user as own')
+            ->join('chats', 'chats.id', '=', 'own.chat_id')
+            ->join('chat_user as other', 'other.chat_id', '=', 'chats.id')
+            ->where('chats.type', 'personal')
+            ->where('own.user_id', $userId)
+            ->where('other.user_id', '!=', $userId)
+            ->pluck('other.user_id')
+            ->map(fn ($id) => (int) $id);
+
+        $friendIds = DB::table('chat_contact_requests')
+            ->where('status', 'accepted')
+            ->where(function ($query) use ($userId) {
+                $query->where('sender_id', $userId)->orWhere('recipient_id', $userId);
+            })
+            ->get(['sender_id', 'recipient_id'])
+            ->map(fn ($row) => (int) ($row->sender_id === $userId ? $row->recipient_id : $row->sender_id));
+
+        $blockedIds = DB::table('chat_contact_blocks')
+            ->where('user_id', $userId)
+            ->pluck('blocked_user_id')
+            ->merge(DB::table('chat_contact_blocks')->where('blocked_user_id', $userId)->pluck('user_id'))
+            ->map(fn ($id) => (int) $id);
+
+        return $personalIds->merge($friendIds)->diff($blockedIds)->push($userId)->unique()->values();
+    }
+
+    private function isBlockedBetween(int $firstUserId, int $secondUserId): bool
+    {
+        return DB::table('chat_contact_blocks')
+            ->where(function ($query) use ($firstUserId, $secondUserId) {
+                $query->where('user_id', $firstUserId)->where('blocked_user_id', $secondUserId);
+            })
+            ->orWhere(function ($query) use ($firstUserId, $secondUserId) {
+                $query->where('user_id', $secondUserId)->where('blocked_user_id', $firstUserId);
+            })
+            ->exists();
     }
 
     public function destroy(int $story, IPFSService $ipfs)
