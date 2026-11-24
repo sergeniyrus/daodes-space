@@ -13,9 +13,11 @@ class ChatGroupCallController extends Controller
     {
         $record = DB::table('chat_meetings as meetings')
             ->join('chats', 'chats.id', '=', 'meetings.chat_id')
+            ->join('chat_user', 'chat_user.chat_id', '=', 'chats.id')
             ->join('chat_meeting_participants as participants', 'participants.meeting_id', '=', 'meetings.id')
             ->where('meetings.id', $meeting)
             ->where('participants.user_id', auth()->id())
+            ->where('chat_user.user_id', auth()->id())
             ->where('participants.response', 'accepted')
             ->first([
                 'meetings.id',
