@@ -590,6 +590,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:60,1')->name('chats.scheduledMessages.index');
     Route::post('/chats/{chat}/scheduled-messages', [ChatScheduledMessageController::class, 'store'])
         ->middleware('throttle:20,1')->name('chats.scheduledMessages.store');
+    Route::patch('/chats/{chat}/scheduled-messages/{scheduledMessage}', [ChatScheduledMessageController::class, 'update'])
+        ->middleware('throttle:30,1')->name('chats.scheduledMessages.update');
     Route::delete('/chats/{chat}/scheduled-messages/{scheduledMessage}', [ChatScheduledMessageController::class, 'destroy'])
         ->middleware('throttle:30,1')->name('chats.scheduledMessages.destroy');
 
