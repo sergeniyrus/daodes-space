@@ -16,7 +16,7 @@ This phase builds on the contacts/navigation work already included in the parent
 - Schedule text messages from the chat composer.
 - Encrypt the message in the browser with the existing chat key before storing it.
 - The database stores ciphertext and nonce only; the plaintext never reaches the server.
-- Users can list and cancel their own pending or failed scheduled messages.
+- Users can list, edit and cancel their own pending or failed scheduled messages.
 - Laravel Scheduler delivers due messages to IPFS, creates the normal message row, and emits the same metadata-only Reverb event used by live messages.
 - Delivery retries up to five times; abandoned processing rows are recovered after ten minutes.
 - The first version intentionally supports encrypted text messages only. Attachments, polls and voice notes are not yet schedulable.

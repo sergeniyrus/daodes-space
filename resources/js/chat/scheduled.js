@@ -5,8 +5,34 @@ export function initScheduledMessages(config, crypto) {
     const dateInput = document.getElementById('scheduledMessageDate');
     const list = document.getElementById('scheduledMessagesList');
     const closeButton = document.getElementById('closeScheduledMessages');
+    const submitButton = form?.querySelector('[type="submit"]');
+    const messageInput = document.getElementById('messageInput');
 
     if (!openButton || !modal || !form || !dateInput || !list) return;
+
+    let editingScheduledMessageId = null;
+    let editingTopicId = null;
+    const defaultSubmitLabel = submitButton?.textContent || 'Запланировать';
+
+    const resetEditing = clearInput => {
+        editingScheduledMessageId = null;
+        editingTopicId = null;
+        if (submitButton) submitButton.textContent = defaultSubmitLabel;
+        if (clearInput && messageInput) messageInput.value = '';
+    };
+
+    const setMinimumDate = () => {
+        const minimum = new Date(Date.now() + 60 * 1000);
+        minimum.setMinutes(minimum.getMinutes() - minimum.getTimezoneOffset());
+        dateInput.min = minimum.toISOString().slice(0, 16);
+    };
+
+    const toLocalDateTimeValue = value => {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+        return date.toISOString().slice(0, 16);
+    };
 
     const toBase64 = bytes => {
         let binary = '';
@@ -25,7 +51,7 @@ export function initScheduledMessages(config, crypto) {
         const date = new Date(Date.now() + 5 * 60 * 1000);
         date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
         dateInput.value = date.toISOString().slice(0, 16);
-        dateInput.min = dateInput.value;
+        setMinimumDate();
     };
 
     const loadList = async () => {
@@ -58,6 +84,29 @@ export function initScheduledMessages(config, crypto) {
             status.textContent = item.status === 'failed' ? 'Ошибка отправки' : 'Ожидает отправки';
             details.append(preview, date, status);
 
+            const actions = document.createElement('div');
+            actions.className = 'scheduled-message-actions';
+
+            const edit = document.createElement('button');
+            edit.type = 'button';
+            edit.textContent = 'Изменить';
+            edit.addEventListener('click', () => {
+                const plaintext = decrypt(item.encrypted_message, item.nonce);
+                if (plaintext === 'Не удалось расшифровать') {
+                    window.alert('Не удалось расшифровать сообщение для редактирования.');
+                    return;
+                }
+
+                if (messageInput) messageInput.value = plaintext;
+                editingScheduledMessageId = item.id;
+                editingTopicId = item.topic_id || null;
+                dateInput.value = toLocalDateTimeValue(item.scheduled_for);
+                setMinimumDate();
+                submitButton.textContent = 'Сохранить изменения';
+                modal.hidden = false;
+                messageInput?.focus();
+            });
+
             const cancel = document.createElement('button');
             cancel.type = 'button';
             cancel.textContent = 'Отменить';
@@ -74,10 +123,14 @@ export function initScheduledMessages(config, crypto) {
                     window.alert('Не удалось отменить сообщение');
                     return;
                 }
+                if (String(editingScheduledMessageId) === String(item.id)) {
+                    resetEditing(true);
+                }
                 await loadList();
             });
 
-            row.append(details, cancel);
+            actions.append(edit, cancel);
+            row.append(details, actions);
             list.appendChild(row);
         });
     };
@@ -94,12 +147,13 @@ export function initScheduledMessages(config, crypto) {
 
     closeButton?.addEventListener('click', () => {
         modal.hidden = true;
+        resetEditing(true);
     });
 
     form.addEventListener('submit', async event => {
         event.preventDefault();
 
-        const input = document.getElementById('messageInput');
+        const input = messageInput;
         const text = input?.value.trim() || '';
         if (!text) {
             window.alert('Введите текст сообщения.');
@@ -120,12 +174,15 @@ export function initScheduledMessages(config, crypto) {
             crypto.chatKey
         );
 
-        const submit = form.querySelector('[type="submit"]');
+        const submit = submitButton;
         submit.disabled = true;
 
         try {
-            const response = await fetch('/chats/' + config.chatId + '/scheduled-messages', {
-                method: 'POST',
+            const isEditing = editingScheduledMessageId !== null;
+            const endpoint = '/chats/' + config.chatId + '/scheduled-messages'
+                + (isEditing ? '/' + editingScheduledMessageId : '');
+            const response = await fetch(endpoint, {
+                method: isEditing ? 'PATCH' : 'POST',
                 headers: {
                     'X-CSRF-TOKEN': config.csrfToken,
                     'Content-Type': 'application/json',
@@ -136,16 +193,18 @@ export function initScheduledMessages(config, crypto) {
                     encrypted_message: toBase64(encrypted),
                     nonce: toBase64(nonce),
                     scheduled_for: scheduledFor.toISOString(),
-                    topic_id: config.topicId || null,
+                    topic_id: isEditing ? editingTopicId : (config.topicId || null),
                 }),
             });
 
             const data = await response.json();
             if (!response.ok || data.status !== 'success') {
-                throw new Error(data.message || 'Не удалось запланировать сообщение');
+                throw new Error(data.message || 'Не удалось сохранить отложенное сообщение');
             }
 
             input.value = '';
+            resetEditing(false);
+            setDefaultDate();
             await loadList();
         } catch (error) {
             window.alert(error.message || 'Ошибка планирования сообщения');
