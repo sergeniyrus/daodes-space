@@ -242,7 +242,7 @@ export function initChatStories({ userId, csrfToken, labels = {} }) {
                     });
                     if (!response.ok) return;
                     const views = await response.json();
-                    window.alert(views.map(item => item.name).join('\\n') || 'No views yet');
+                    window.alert(views.map(item => item.name).join('\n') || 'No views yet');
                 });
 
                 const deleteButton = document.createElement('button');
