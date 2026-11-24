@@ -552,10 +552,15 @@ class MessageController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Only chat moderators can pin messages'], 403);
         }
 
+        $nextPosition = (int) DB::table('chat_pinned_messages')
+            ->where('chat_id', $chat->id)
+            ->max('position') + 1;
+
         DB::table('chat_pinned_messages')->insertOrIgnore([
             'chat_id' => $chat->id,
             'message_id' => $message->id,
             'pinned_by' => Auth::id(),
+            'position' => $nextPosition,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -613,22 +618,87 @@ class MessageController extends Controller
      */
     public function pinnedMessages(Chat $chat)
     {
-        abort_unless($chat->users()->where('users.id', Auth::id())->exists(), 403);
+        $membership = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        abort_unless($membership, 403);
+
+        $canManagePins = $chat->type === 'personal'
+            || in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true);
 
         $items = DB::table('chat_pinned_messages as pins')
             ->join('messages', 'messages.id', '=', 'pins.message_id')
             ->join('users', 'users.id', '=', 'messages.sender_id')
             ->where('pins.chat_id', $chat->id)
+            ->orderBy('pins.position')
             ->orderByDesc('pins.created_at')
             ->limit(100)
             ->get([
                 'messages.id as message_id',
                 'messages.topic_id',
                 'users.name as sender_name',
+                'pins.pinned_by',
+                'pins.position',
                 'pins.created_at as pinned_at',
-            ]);
+            ])
+            ->map(function ($item) use ($membership, $canManagePins) {
+                $item->can_unpin = $canManagePins || (int) $item->pinned_by === (int) Auth::id();
+                return $item;
+            });
 
         return response()->json($items);
+    }
+
+    /**
+     * Сохраняет пользовательский порядок закреплённых сообщений.
+     * Изменять порядок могут владельцы, администраторы и модераторы чата.
+     */
+    public function reorderPinnedMessages(Request $request, Chat $chat)
+    {
+        $membership = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        abort_unless($membership, 403);
+
+        $canManagePins = $chat->type === 'personal'
+            || in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true);
+
+        abort_unless($canManagePins, 403);
+
+        $validated = $request->validate([
+            'message_ids' => 'required|array|min:1|max:100',
+            'message_ids.*' => 'required|integer|distinct',
+        ]);
+
+        $messageIds = array_map('intval', $validated['message_ids']);
+        $pinnedQuery = DB::table('chat_pinned_messages')->where('chat_id', $chat->id);
+        $pinnedCount = (clone $pinnedQuery)->count();
+        $matchedCount = (clone $pinnedQuery)->whereIn('message_id', $messageIds)->count();
+
+        if (count($messageIds) !== $pinnedCount || $matchedCount !== $pinnedCount) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'The order must contain every pinned message exactly once',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($chat, $messageIds) {
+            foreach ($messageIds as $position => $messageId) {
+                DB::table('chat_pinned_messages')
+                    ->where('chat_id', $chat->id)
+                    ->where('message_id', $messageId)
+                    ->update([
+                        'position' => $position,
+                        'updated_at' => now(),
+                    ]);
+            }
+        });
+
+        return response()->json(['status' => 'success']);
     }
 
     /**
