@@ -168,6 +168,7 @@ class MessageController extends Controller
             'message_type' => 'nullable|string|in:text,voice,media,file,poll,video_note',
             'poll_is_anonymous' => 'required_if:message_type,poll|boolean',
             'poll_allows_multiple' => 'required_if:message_type,poll|boolean',
+            'poll_option_count' => 'required_if:message_type,poll|integer|min:2|max:10',
             'attachment_upload_ids' => 'nullable|array|max:10',
             'attachment_upload_ids.*' => 'required|integer|distinct|exists:chat_uploads,id',
             'mentioned_user_ids' => 'nullable|array|max:50',
@@ -278,6 +279,7 @@ class MessageController extends Controller
                         'message_id' => $message->id,
                         'is_anonymous' => (bool) $validated['poll_is_anonymous'],
                         'allows_multiple' => (bool) $validated['poll_allows_multiple'],
+                        'option_count' => (int) $validated['poll_option_count'],
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
@@ -758,6 +760,10 @@ class MessageController extends Controller
         ]);
 
         $optionIds = array_values(array_unique(array_map('intval', $validated['option_ids'])));
+        if (collect($optionIds)->contains(fn($optionId) => $optionId >= (int) $poll->option_count)) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid poll option'], 422);
+        }
+
         if (!$poll->allows_multiple && count($optionIds) !== 1) {
             return response()->json(['status' => 'error', 'message' => 'This poll accepts one answer'], 422);
         }
@@ -862,6 +868,7 @@ class MessageController extends Controller
             'status' => 'success',
             'is_anonymous' => (bool) $poll->is_anonymous,
             'allows_multiple' => (bool) $poll->allows_multiple,
+            'option_count' => (int) $poll->option_count,
             'closed_at' => $poll->closed_at,
             'total_voters' => $totalVoters,
             'counts' => $counts,
