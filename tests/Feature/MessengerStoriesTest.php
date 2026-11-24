@@ -20,7 +20,7 @@ class MessengerStoriesTest extends TestCase
         parent::setUp();
 
         config(['cache.default' => 'array']);
-        $this->withoutMiddleware(\\Illuminate\\Routing\\Middleware\\ThrottleRequests::class);
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
     }
 
     public function test_story_is_shared_only_with_direct_contacts_that_have_key_envelopes(): void
