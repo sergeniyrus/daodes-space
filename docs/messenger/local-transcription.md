@@ -1,6 +1,6 @@
 # DAODES local voice transcription
 
-Voice transcription is self-hosted with faster-whisper. No OpenAI key or external transcription API is used. Audio is uploaded to Laravel only after the user explicitly chooses **Open as text**. Laravel forwards it to a loopback-only Python service. The service uses a temporary file, removes it after inference, and does not persist audio or log transcripts. Laravel returns plaintext to the requesting browser; the browser encrypts the transcript with the existing chat key before saving it to `message_transcriptions`.
+Voice transcription is self-hosted with faster-whisper. No OpenAI key or external transcription API is used. Audio is uploaded to Laravel only after the user explicitly chooses **Open as text**. Laravel forwards it to a loopback-only Python service. The service uses a temporary file, removes it after inference, and does not persist audio or log transcripts. Laravel returns the recognized plaintext only to the requesting browser. The browser displays it in the current page session only. The transcript is never encrypted for storage, sent to another participant, written to logs, or saved in the database. Closing or reloading the page clears the displayed transcript.
 
 ## Runtime
 
@@ -79,4 +79,4 @@ Only one inference runs at a time to keep memory predictable. The HTTP request t
 - The token file is readable by the service account but not by other users.
 - Temporary audio files are deleted in a `finally` block.
 - No transcript or audio content is written to application logs.
-- The database continues to store only browser-encrypted transcript ciphertext.
+- No transcription table is read or written by the application. The legacy `message_transcriptions` migration is retained as a no-op for compatibility; existing historical rows, if any, are not read or modified.
