@@ -734,6 +734,175 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
+        const recordVideoNoteButton = document.getElementById('recordVideoNoteBtn');
+        let videoNoteRecorder = null;
+        let videoNoteStream = null;
+        let videoNoteChunks = [];
+        let videoNoteStopTimer = null;
+
+        const resetVideoNoteButton = () => {
+            if (videoNoteStopTimer) window.clearTimeout(videoNoteStopTimer);
+            videoNoteStopTimer = null;
+            videoNoteRecorder = null;
+            videoNoteChunks = [];
+            videoNoteStream?.getTracks().forEach(track => track.stop());
+            videoNoteStream = null;
+            if (recordVideoNoteButton) {
+                recordVideoNoteButton.disabled = false;
+                recordVideoNoteButton.classList.remove('recording');
+                recordVideoNoteButton.innerHTML = '<i class="fa fa-video-camera" aria-hidden="true"></i>';
+                recordVideoNoteButton.title = config.translations.videoNoteRecord || 'Record video message';
+            }
+        };
+
+        recordVideoNoteButton?.addEventListener('click', async () => {
+            if (videoNoteRecorder?.state === 'recording') {
+                videoNoteRecorder.stop();
+                return;
+            }
+
+            if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+                window.alert(config.translations.videoNoteError || 'Video recording is not supported by this browser');
+                return;
+            }
+
+            try {
+                videoNoteStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user',
+                        width: { ideal: 480 },
+                        height: { ideal: 480 },
+                    },
+                    audio: true,
+                });
+                videoNoteChunks = [];
+
+                const mimeType = [
+                    'video/webm;codecs=vp8,opus',
+                    'video/webm',
+                    'video/mp4',
+                ].find(type => MediaRecorder.isTypeSupported(type));
+
+                videoNoteRecorder = new MediaRecorder(
+                    videoNoteStream,
+                    mimeType ? { mimeType } : undefined
+                );
+
+                const recorder = videoNoteRecorder;
+                const recordedMimeType = mimeType || 'video/webm';
+
+                recorder.addEventListener('dataavailable', event => {
+                    if (event.data?.size) videoNoteChunks.push(event.data);
+                });
+
+                recorder.addEventListener('stop', async () => {
+                    const videoBlob = new Blob(videoNoteChunks, {
+                        type: recorder.mimeType || recordedMimeType,
+                    });
+
+                    videoNoteStream?.getTracks().forEach(track => track.stop());
+                    videoNoteStream = null;
+                    recordVideoNoteButton.disabled = true;
+                    recordVideoNoteButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>';
+
+                    try {
+                        if (!videoBlob.size) throw new Error('Запись пустая');
+                        if (videoBlob.size > 50 * 1024 * 1024) {
+                            throw new Error('Видеосообщение превышает лимит 50 МБ');
+                        }
+
+                        const fileBytes = new Uint8Array(await videoBlob.arrayBuffer());
+                        const fileNonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+                        const encryptedBytes = nacl.secretbox(fileBytes, fileNonce, crypto.chatKey);
+                        const encryptedFile = new File(
+                            [encryptedBytes],
+                            'video-note.enc',
+                            { type: 'application/octet-stream' }
+                        );
+
+                        const uploadForm = new FormData();
+                        uploadForm.append('file', encryptedFile);
+                        uploadForm.append('media_type', 'video');
+                        uploadForm.append('encrypted', '1');
+
+                        const uploadResponse = await fetch(`/chats/${config.chatId}/attachments`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': config.csrfToken,
+                                Accept: 'application/json',
+                            },
+                            body: uploadForm,
+                        });
+                        const uploadResult = await uploadResponse.json();
+                        if (!uploadResponse.ok || uploadResult.status !== 'success') {
+                            throw new Error(uploadResult.message || 'Не удалось загрузить видеосообщение');
+                        }
+
+                        const attachmentPayload = JSON.stringify({
+                            type: 'attachment',
+                            media_type: 'video',
+                            file_nonce: u8ToB64(fileNonce),
+                            mime_type: videoBlob.type || recordedMimeType,
+                            file_name: 'video-note',
+                            file_size: videoBlob.size,
+                        });
+                        const messageNonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+                        const encryptedMessage = nacl.secretbox(
+                            new TextEncoder().encode(attachmentPayload),
+                            messageNonce,
+                            crypto.chatKey
+                        );
+
+                        const body = {
+                            message: u8ToB64(encryptedMessage),
+                            nonce: u8ToB64(messageNonce),
+                            message_type: 'video_note',
+                            attachment_upload_ids: [uploadResult.upload_id],
+                        };
+                        if (config.topicId) body.topic_id = config.topicId;
+                        if (ui.replyingToMessageId) body.reply_to_message_id = Number(ui.replyingToMessageId);
+
+                        const sendResponse = await fetch(config.sendUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': config.csrfToken,
+                                'Content-Type': 'application/json',
+                                Accept: 'application/json',
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify(body),
+                        });
+                        const sendResult = await sendResponse.json();
+                        if (!sendResponse.ok || sendResult.status !== 'success') {
+                            throw new Error(sendResult.message || 'Не удалось отправить видеосообщение');
+                        }
+
+                        ui.cancelReply();
+                        await poller.load();
+                    } catch (error) {
+                        console.error('Video note send failed:', error);
+                        window.alert(error.message || config.translations.videoNoteError);
+                    } finally {
+                        resetVideoNoteButton();
+                    }
+                });
+
+                recorder.start(250);
+                recordVideoNoteButton.classList.add('recording');
+                recordVideoNoteButton.title = config.translations.videoNoteStop || 'Stop video recording';
+                recordVideoNoteButton.innerHTML = '<i class="fa fa-stop" aria-hidden="true"></i>';
+                videoNoteStopTimer = window.setTimeout(() => {
+                    if (recorder.state === 'recording') recorder.stop();
+                }, 60000);
+            } catch (error) {
+                videoNoteStream?.getTracks().forEach(track => track.stop());
+                videoNoteStream = null;
+                resetVideoNoteButton();
+                console.error('Video camera access failed:', error);
+                window.alert(config.translations.videoNoteError || 'Не удалось получить доступ к камере');
+            }
+        });
+
         const attachFileButton = document.getElementById('attachChatFileBtn');
         const attachmentInput = document.getElementById('chatAttachmentInput');
 
