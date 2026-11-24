@@ -3105,7 +3105,7 @@ body.chat-page .telegram-chat-layout .chat-container {
                 <option value="10080">{{ __('chats.mute_7_days') }}</option>
                 <option value="43200">{{ __('chats.mute_30_days') }}</option>
             </select>
-            <button type="button" id="saveChatMute">{{ __('chats.save') }}</button>
+            <button type="button" id="saveChatMute" aria-label="{{ __('chats.save') }}" title="{{ __('chats.save') }}">{{ __('chats.save') }}</button>
             <span class="chat-mute-status" id="chatMuteStatus" aria-live="polite">
                 @if ($mutedUntil && \Illuminate\Support\Carbon::parse($mutedUntil)->isFuture())
                     {{ __('chats.muted_until', ['date' => \Illuminate\Support\Carbon::parse($mutedUntil)->format('d.m.Y H:i')]) }}
