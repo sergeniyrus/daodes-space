@@ -2648,6 +2648,12 @@ body.chat-page .telegram-chat-layout .chat-container {
     min-width: 0;
     overflow-wrap: anywhere;
 }
+.composer-tools-menu .composer-tool-btn.recording {
+    color: #fff;
+    background: rgba(198,40,40,.28);
+    border-color: rgba(255,82,82,.75);
+}
+.composer-tools-menu .composer-tool-btn.recording > i { color: #ff8a80; }
 .composer-tools-menu .chat-call-push-settings { grid-column: 1 / -1; }
 @media (max-width: 420px) {
     .composer-tools-menu { width: min(340px, calc(100vw - 16px)); gap: 4px; padding: 6px; }
