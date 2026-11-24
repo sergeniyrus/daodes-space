@@ -273,6 +273,45 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
             }
             viewer.appendChild(media);
 
+            const reactionBar = document.createElement('div');
+            reactionBar.className = 'chat-story-reactions';
+            ['❤️', '🔥', '😂', '😮', '👏', '😢'].forEach(reaction => {
+                const reactionButton = document.createElement('button');
+                reactionButton.type = 'button';
+                reactionButton.textContent = reaction;
+                reactionButton.setAttribute('aria-label', 'Реакция ' + reaction);
+                reactionButton.setAttribute('aria-pressed', 'false');
+                reactionButton.addEventListener('click', async () => {
+                    reactionButton.disabled = true;
+                    try {
+                        const reactionUrl = story.is_channel
+                            ? `${endpoint}/${story.id}/reactions`
+                            : `/stories/${story.id}/reactions`;
+                        const response = await fetch(reactionUrl, {
+                            method: 'POST',
+                            headers: { ...requestHeaders, 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ reaction }),
+                        });
+                        const data = await response.json();
+                        if (!response.ok || data.status !== 'success') {
+                            throw new Error(data.message || 'Не удалось отправить реакцию');
+                        }
+                        reactionBar.querySelectorAll('button').forEach(button => {
+                            const selected = data.active && button === reactionButton;
+                            button.classList.toggle('active', selected);
+                            button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+                        });
+                    } catch (error) {
+                        showError(error);
+                    } finally {
+                        reactionButton.disabled = false;
+                    }
+                });
+                reactionBar.appendChild(reactionButton);
+            });
+            viewer.appendChild(reactionBar);
+
             const activeTrack = progress.children[sequenceIndex]?.querySelector('i');
             if (envelope.media_type === 'video') {
                 media.addEventListener('ended', () => next.click(), { once: true });
