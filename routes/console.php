@@ -42,4 +42,4 @@ Schedule::call(function () {
             report($exception);
         }
     }
-})->hourly()->withoutOverlapping();
+})->name('prune-expired-chat-stories')->hourly()->withoutOverlapping();
