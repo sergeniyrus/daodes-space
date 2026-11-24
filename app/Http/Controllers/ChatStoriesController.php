@@ -40,6 +40,14 @@ class ChatStoriesController extends Controller
                             ->whereColumn('blocks.blocked_user_id', 'stories.user_id');
                     });
             })
+            ->addSelect(DB::raw('(SELECT direct_chats.id
+                FROM chats AS direct_chats
+                INNER JOIN chat_user AS author_members ON author_members.chat_id = direct_chats.id
+                INNER JOIN chat_user AS viewer_members ON viewer_members.chat_id = direct_chats.id
+                WHERE direct_chats.type = "personal"
+                  AND author_members.user_id = stories.user_id
+                  AND viewer_members.user_id = ' . (int) $userId . '
+                LIMIT 1) AS direct_chat_id'))
             ->orderByDesc('stories.created_at')
             ->limit(100)
             ->get([
@@ -57,6 +65,7 @@ class ChatStoriesController extends Controller
             ->map(fn($story) => [
                 'id' => (int) $story->id,
                 'user_id' => (int) $story->user_id,
+                'direct_chat_id' => $story->direct_chat_id ? (int) $story->direct_chat_id : null,
                 'author_name' => $story->author_name,
                 'avatar_url' => $story->avatar_url,
                 'media_type' => $story->media_type,
