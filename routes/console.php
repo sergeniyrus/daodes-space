@@ -44,6 +44,22 @@ Schedule::call(function () {
             report($exception);
         }
     }
+
+    // Аналогично очищаем истёкшие истории каналов и снимаем pin с их ciphertext.
+    if (Schema::hasTable('chat_channel_stories')) {
+        $expiredChannelStories = DB::table('chat_channel_stories')
+            ->where('expires_at', '<=', now())
+            ->get(['id', 'ipfs_cid']);
+
+        foreach ($expiredChannelStories as $story) {
+            try {
+                $ipfs->unpinFile($story->ipfs_cid);
+                DB::table('chat_channel_stories')->where('id', $story->id)->delete();
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+    }
 })->name('prune-expired-chat-stories')->hourly()->withoutOverlapping();
 
 // Отправляем наступившие отложенные сообщения. В БД хранится только ciphertext и nonce.
