@@ -1,5 +1,5 @@
 import nacl from 'tweetnacl';
-import { b64ToU8, u8ToB64 } from './utils.js';
+import { b64ToU8 } from './utils.js';
 
 export function renderVoiceMessage(container, encryptedPayload, messageId, attachmentId, config, crypto) {
     let payload;
@@ -76,23 +76,6 @@ export function renderVoiceMessage(container, encryptedPayload, messageId, attac
         return audioBytesCache;
     };
 
-    const decryptTranscript = encryptedValue => {
-        if (!encryptedValue || typeof encryptedValue !== 'string') return null;
-
-        const separator = encryptedValue.indexOf('|');
-        if (separator <= 0) return null;
-
-        try {
-            const nonce = b64ToU8(encryptedValue.slice(0, separator));
-            const ciphertext = b64ToU8(encryptedValue.slice(separator + 1));
-            const decrypted = nacl.secretbox.open(ciphertext, nonce, crypto.chatKey);
-
-            return decrypted ? new TextDecoder().decode(decrypted) : null;
-        } catch {
-            return null;
-        }
-    };
-
     const showTranscript = text => {
         transcriptText = text;
         transcriptContainer.textContent = text;
@@ -150,123 +133,76 @@ export function renderVoiceMessage(container, encryptedPayload, messageId, attac
 
         try {
             if (!transcriptText) {
-                const savedResponse = await fetch('/messages/' + messageId + '/transcription', {
+                if (!window.confirm(
+                    config.translations.voiceTranscriptConsent
+                    || 'Аудиозапись будет обработана локально на сервере DAODES. Она не будет отправлена стороннему API, а текст расшифровки не будет сохранён в базе данных. Продолжить?'
+                )) {
+                    transcribeButton.textContent = config.translations.voiceTranscribe || 'Открыть как текст';
+                    return;
+                }
+
+                const audioBytes = await loadAudioBytes();
+                if (audioBytes.byteLength > 25000000) {
+                    throw new Error('Для распознавания размер аудио не должен превышать 25 МБ');
+                }
+
+                const mimeType = String(payload.mime_type || 'audio/webm')
+                    .toLowerCase()
+                    .split(';')[0]
+                    .trim();
+
+                const extensionByMime = {
+                    'audio/webm': 'webm',
+                    'video/webm': 'webm',
+                    'audio/ogg': 'ogg',
+                    'application/ogg': 'ogg',
+                    'audio/wav': 'wav',
+                    'audio/x-wav': 'wav',
+                    'audio/wave': 'wav',
+                    'audio/mpeg': 'mp3',
+                    'audio/mp3': 'mp3',
+                    'audio/mp4': 'm4a',
+                    'audio/x-m4a': 'm4a',
+                    'audio/flac': 'flac',
+                };
+                const extension = extensionByMime[mimeType];
+
+                if (!extension) {
+                    throw new Error('Формат этой голосовой записи пока не поддерживается для распознавания');
+                }
+
+                const audioFile = new File(
+                    [new Blob([audioBytes], { type: mimeType })],
+                    'voice.' + extension,
+                    { type: mimeType }
+                );
+                const formData = new FormData();
+                formData.append('audio', audioFile);
+                formData.append('file_name', audioFile.name);
+
+                const transcriptionResponse = await fetch('/messages/' + messageId + '/transcribe', {
+                    method: 'POST',
                     headers: {
-                        'Accept': 'application/json',
                         'X-CSRF-TOKEN': config.csrfToken,
+                        'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                     credentials: 'same-origin',
+                    body: formData,
                 });
 
-                const savedResult = await savedResponse.json();
-                if (!savedResponse.ok || savedResult.status !== 'success') {
-                    throw new Error(savedResult.message || 'Не удалось проверить сохранённую расшифровку');
+                const transcriptionResult = await transcriptionResponse.json();
+                if (!transcriptionResponse.ok || transcriptionResult.status !== 'success') {
+                    throw new Error(
+                        transcriptionResult.message
+                        || config.translations.voiceTranscriptError
+                        || 'Не удалось преобразовать голосовое в текст'
+                    );
                 }
 
-                if (savedResult.transcription) {
-                    transcriptText = decryptTranscript(savedResult.transcription);
-                    if (!transcriptText) {
-                        throw new Error('Не удалось расшифровать сохранённый текст');
-                    }
-                } else {
-                    if (!window.confirm(
-                        config.translations.voiceTranscriptConsent
-                        || 'Аудиозапись будет обработана локально на сервере DAODES и не будет отправлена стороннему API. Продолжить?'
-                    )) {
-                        transcribeButton.textContent = config.translations.voiceTranscribe || 'Открыть как текст';
-                        return;
-                    }
-
-                    const audioBytes = await loadAudioBytes();
-                    if (audioBytes.byteLength > 25000000) {
-                        throw new Error('Для распознавания размер аудио не должен превышать 25 МБ');
-                    }
-
-                    const mimeType = String(payload.mime_type || 'audio/webm')
-                        .toLowerCase()
-                        .split(';')[0]
-                        .trim();
-
-                    const extensionByMime = {
-                        'audio/webm': 'webm',
-                        'video/webm': 'webm',
-                        'audio/ogg': 'ogg',
-                        'application/ogg': 'ogg',
-                        'audio/wav': 'wav',
-                        'audio/x-wav': 'wav',
-                        'audio/wave': 'wav',
-                        'audio/mpeg': 'mp3',
-                        'audio/mp3': 'mp3',
-                        'audio/mp4': 'm4a',
-                        'audio/x-m4a': 'm4a',
-                        'audio/flac': 'flac',
-                    };
-                    const extension = extensionByMime[mimeType];
-
-                    if (!extension) {
-                        throw new Error('Формат этой голосовой записи пока не поддерживается для распознавания');
-                    }
-
-                    const audioFile = new File(
-                        [new Blob([audioBytes], { type: mimeType })],
-                        'voice.' + extension,
-                        { type: mimeType }
-                    );
-                    const formData = new FormData();
-                    formData.append('audio', audioFile);
-                    formData.append('file_name', audioFile.name);
-
-                    const transcriptionResponse = await fetch('/messages/' + messageId + '/transcribe', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': config.csrfToken,
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        credentials: 'same-origin',
-                        body: formData,
-                    });
-
-                    const transcriptionResult = await transcriptionResponse.json();
-                    if (!transcriptionResponse.ok || transcriptionResult.status !== 'success') {
-                        throw new Error(
-                            transcriptionResult.message
-                            || config.translations.voiceTranscriptError
-                            || 'Не удалось преобразовать голосовое в текст'
-                        );
-                    }
-
-                    transcriptText = String(transcriptionResult.text || '').trim();
-                    if (!transcriptText) {
-                        throw new Error('В аудиозаписи не удалось распознать речь');
-                    }
-
-                    const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
-                    const encryptedText = nacl.secretbox(
-                        new TextEncoder().encode(transcriptText),
-                        nonce,
-                        crypto.chatKey
-                    );
-
-                    const saveResponse = await fetch('/messages/' + messageId + '/transcription', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': config.csrfToken,
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({
-                            nonce: u8ToB64(nonce),
-                            ciphertext: u8ToB64(encryptedText),
-                        }),
-                    });
-
-                    if (!saveResponse.ok) {
-                        console.warn('Voice transcript could not be saved for future sessions');
-                    }
+                transcriptText = String(transcriptionResult.text || '').trim();
+                if (!transcriptText) {
+                    throw new Error('В аудиозаписи не удалось распознать речь');
                 }
             }
 
