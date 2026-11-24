@@ -95,6 +95,20 @@ Schedule::call(function () {
             continue;
         }
 
+        $senderStillMember = DB::table('chat_user')
+            ->where('chat_id', $scheduled->chat_id)
+            ->where('user_id', $scheduled->sender_id)
+            ->exists();
+
+        if (!$senderStillMember) {
+            DB::table('chat_scheduled_messages')->where('id', $id)->update([
+                'status' => 'cancelled',
+                'last_error' => 'Отправитель больше не состоит в чате.',
+                'updated_at' => now(),
+            ]);
+            continue;
+        }
+
         try {
             $cid = (new Message())->uploadMessageToIPFS($scheduled->nonce . '|' . $scheduled->encrypted_message);
 
