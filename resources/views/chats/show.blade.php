@@ -2016,6 +2016,18 @@ body.chat-media-viewer-open { overflow: hidden; }
 .chat-call-actions button.danger { color:#ff9b9b; border-color:rgba(255,100,100,.5); }
 @media(max-width:560px) { .chat-call-videos { grid-template-columns:1fr; } }
 
+
+.chat-meeting-row {
+    display:flex; flex-direction:column; align-items:flex-start; gap:7px;
+    padding:12px 0; border-bottom:1px solid rgba(255,255,255,.09);
+}
+.chat-meeting-row strong { color:#ffd700; }
+.chat-meeting-row small { color:#9aa8bc; }
+.chat-meeting-row button {
+    padding:7px 11px; color:#00e5ff; background:rgba(0,229,255,.05);
+    border:1px solid rgba(0,229,255,.35); border-radius:8px; cursor:pointer;
+}
+
 </style>
 
 
@@ -2221,6 +2233,12 @@ body.chat-media-viewer-open { overflow: hidden; }
             <div class="chat-call-toolbar">
                 <button type="button" id="startAudioCall"><i class="fa fa-phone" aria-hidden="true"></i> Аудиозвонок</button>
                 <button type="button" id="startVideoCall"><i class="fa fa-video-camera" aria-hidden="true"></i> Видеозвонок</button>
+            </div>
+        @endif
+
+        @if ($chat->type !== 'saved')
+            <div class="chat-call-toolbar">
+                <button type="button" id="openChatMeetings"><i class="fa fa-calendar" aria-hidden="true"></i> Запланировать созвон</button>
             </div>
         @endif
 
@@ -2483,6 +2501,47 @@ body.chat-media-viewer-open { overflow: hidden; }
                     <button type="button" id="rejectChatCall" class="danger" hidden>Отклонить</button>
                     <button type="button" id="endChatCall" class="danger" hidden>Завершить</button>
                 </div>
+            </section>
+        </div>
+    @endif
+
+    @if ($chat->type !== 'saved')
+        <div class="scheduled-message-modal" id="chatMeetingsModal" hidden>
+            <section class="scheduled-message-panel" role="dialog" aria-modal="true" aria-labelledby="chatMeetingsTitle">
+                <h3 id="chatMeetingsTitle">Встречи и запланированные созвоны</h3>
+                <form id="chatMeetingForm">
+                    <label for="chatMeetingName">Название</label>
+                    <input id="chatMeetingName" name="title" type="text" maxlength="500" required>
+                    <label for="chatMeetingDescription">Описание (необязательно)</label>
+                    <input id="chatMeetingDescription" name="description" type="text" maxlength="2000">
+                    <label for="chatMeetingStartsAt">Дата и время</label>
+                    <input id="chatMeetingStartsAt" name="starts_at" type="datetime-local" required>
+                    <label for="chatMeetingDuration">Продолжительность</label>
+                    <select id="chatMeetingDuration" name="duration_minutes">
+                        <option value="15">15 минут</option>
+                        <option value="30" selected>30 минут</option>
+                        <option value="45">45 минут</option>
+                        <option value="60">1 час</option>
+                        <option value="90">1 час 30 минут</option>
+                        <option value="120">2 часа</option>
+                    </select>
+                    <label>Пригласить участников</label>
+                    <div class="chat-meeting-invitees">
+                        @foreach ($chat->users as $meetingParticipant)
+                            @if ((int) $meetingParticipant->id !== (int) auth()->id())
+                                <label>
+                                    <input type="checkbox" name="participant_ids" value="{{ $meetingParticipant->id }}" checked>
+                                    {{ $meetingParticipant->name }}
+                                </label>
+                            @endif
+                        @endforeach
+                    </div>
+                    <div class="scheduled-message-actions">
+                        <button type="button" id="closeChatMeetings">Закрыть</button>
+                        <button type="submit">Создать встречу</button>
+                    </div>
+                </form>
+                <div id="chatMeetingsList" aria-live="polite"></div>
             </section>
         </div>
     @endif
