@@ -2174,6 +2174,9 @@ body.chat-media-viewer-open { overflow: hidden; }
     data-translate-poll-close="{{ __('chats.poll_close') }}"
     data-translate-poll-error="{{ __('chats.poll_error') }}"
     data-translate-poll-validation="{{ __('chats.poll_validation') }}"
+    data-translate-video-note-record="{{ __('chats.video_note_record') }}"
+    data-translate-video-note-stop="{{ __('chats.video_note_stop') }}"
+    data-translate-video-note-error="{{ __('chats.video_note_error') }}"
 ></div>
 
 
