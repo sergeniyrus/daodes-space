@@ -106,7 +106,13 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
                 wrapper.appendChild(link);
 
                 const mimeType = String(payload.mime_type || '').toLowerCase();
-                if (mimeType === 'application/pdf' || mimeType.startsWith('text/')) {
+                const previewableMimeTypes = new Set([
+                    'application/pdf',
+                    'text/plain',
+                    'text/csv',
+                    'text/markdown',
+                ]);
+                if (previewableMimeTypes.has(mimeType)) {
                     const openButton = document.createElement('button');
                     openButton.type = 'button';
                     openButton.className = 'chat-media-load';
