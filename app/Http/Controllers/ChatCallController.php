@@ -10,6 +10,40 @@ use Illuminate\Support\Facades\Schema;
 
 class ChatCallController extends Controller
 {
+    public function iceServers(Chat $chat)
+    {
+        $this->ensurePersonalMember($chat);
+
+        $stunUrls = array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) config('chat_calls.stun_urls', 'stun:stun.l.google.com:19302'))
+        )));
+
+        $iceServers = $stunUrls ? [['urls' => $stunUrls]] : [];
+        $turnUrls = array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) config('chat_calls.turn_urls', ''))
+        )));
+        $turnSecret = (string) config('chat_calls.turn_secret', '');
+
+        if ($turnUrls && $turnSecret !== '') {
+            $ttl = max(300, min(86400, (int) config('chat_calls.turn_ttl', 3600)));
+            $username = (now()->addSeconds($ttl)->timestamp) . ':' . Auth::id();
+            $credential = base64_encode(hash_hmac('sha1', $username, $turnSecret, true));
+
+            $iceServers[] = [
+                'urls' => $turnUrls,
+                'username' => $username,
+                'credential' => $credential,
+            ];
+        }
+
+        return response()->json([
+            'ice_servers' => $iceServers,
+            'turn_enabled' => $turnUrls !== [] && $turnSecret !== '',
+        ]);
+    }
+
     public function active(Chat $chat)
     {
         $this->ensurePersonalMember($chat);
