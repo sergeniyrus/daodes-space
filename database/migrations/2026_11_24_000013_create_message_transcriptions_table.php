@@ -1,26 +1,23 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 
+/**
+ * Retired: voice transcripts are displayed on demand and are never persisted.
+ *
+ * This migration remains as a no-op so fresh installations do not create a
+ * transcript table and existing installations keep their historical schema
+ * untouched. Existing rows, if any, are deliberately not deleted.
+ */
 return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('message_transcriptions')) {
-            Schema::create('message_transcriptions', function (Blueprint $table) {
-                $table->id();
-                $table->foreignId('message_id')->unique()->constrained('messages')->cascadeOnDelete();
-                $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-                $table->longText('encrypted_text');
-                $table->timestamps();
-            });
-        }
+        // Intentionally empty.
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('message_transcriptions');
+        // Intentionally empty: do not delete historical data automatically.
     }
 };
