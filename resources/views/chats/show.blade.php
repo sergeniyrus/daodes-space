@@ -128,6 +128,12 @@
     box-shadow: 0 0 16px rgba(0, 229, 255, .22);
 }
 .chat-person-heading-info { min-width: 0; }
+.chat-custom-status {
+    margin: 2px 0 0;
+    color: #ffd700;
+    font-size: .82rem;
+    overflow-wrap: anywhere;
+}
 .chat-person-heading-info .chat-title,
 .chat-person-heading-info .chat-status { margin-top: 0; margin-bottom: 3px; }
 @media (max-width: 600px) {
@@ -1679,6 +1685,11 @@ body.chat-media-viewer-open { overflow: hidden; }
                 @endif
 
                     </p>
+                    @if ($otherUser->profile?->status_text && (!$otherUser->profile->status_expires_at || $otherUser->profile->status_expires_at->isFuture()))
+                        <p class="chat-custom-status">
+                            {{ $otherUser->profile->status_emoji }} {{ $otherUser->profile->status_text }}
+                        </p>
+                    @endif
                 </div>
             </div>
 
