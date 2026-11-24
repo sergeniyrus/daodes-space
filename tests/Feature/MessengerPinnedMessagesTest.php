@@ -95,7 +95,7 @@ class MessengerPinnedMessagesTest extends TestCase
 
         $this->assertSame(0, DB::table('chat_pinned_messages')->count());
     }
-    public function test_moderator_can_reorder_pinned_messages_and_member_can_unpin_own_pin(): void
+    public function test_moderator_can_reorder_pinned_messages(): void
     {
         $owner = $this->createUser();
         $member = $this->createUser();
