@@ -16,6 +16,18 @@ class UserProfile extends Model
         'recommendations', 'activity_log', 'achievements', 'gender',        
         'telegram_chat_id',  
         'public_key',
+        'status_text',
+        'status_emoji',
+        'status_expires_at',
+        'card_position',
+        'card_company',
+        'card_location',
+        'card_about',
+        'card_website',
+    ];
+
+    protected $casts = [
+        'status_expires_at' => 'datetime',
     ];
 
     public $timestamps = false; 

@@ -68,4 +68,8 @@ return [
         ],
     ],
 
+    'transcription' => [
+        'url' => env('LOCAL_TRANSCRIPTION_URL', 'http://127.0.0.1:8765'),
+        'token' => env('LOCAL_TRANSCRIPTION_TOKEN'),
+    ],
 ];

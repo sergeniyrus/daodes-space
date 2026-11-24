@@ -11,7 +11,8 @@ class Chat extends Model
     // Отношение "многие ко многим" с пользователями
     public function users()
     {
-        return $this->belongsToMany(User::class, 'chat_user');
+        return $this->belongsToMany(User::class, 'chat_user')
+            ->withPivot(['role', 'joined_at', 'muted_until']);
     }
     
     // Отношение "многие ко многим" с моделью User (альтернативное название)
@@ -36,7 +37,7 @@ class Chat extends Model
 public function getChatNameForUser($userId)
 {
     // Если это групповой чат, возвращаем общее название
-    if ($this->type === 'group') {
+    if (in_array($this->type, ['group', 'channel', 'saved'], true)) {
         return $this->name;
     }
 
@@ -73,6 +74,11 @@ public function totalParticipantsCount(): int
 public function memberKeys()
 {
     return $this->hasMany(ChatMemberKey::class, 'chat_id');
+}
+
+public function topics()
+{
+    return $this->hasMany(ChatTopic::class, 'chat_id');
 }
 
 public function initiator()

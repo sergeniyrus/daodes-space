@@ -1,7 +1,9 @@
 <?php
 
 return [
-    'default' => env('BROADCAST_DRIVER', 'reverb'),
+    // Laravel 11 использует BROADCAST_CONNECTION; сохраняем поддержку старого BROADCAST_DRIVER.
+    // Без установленных Reverb-зависимостей безопасный fallback — log.
+    'default' => env('BROADCAST_CONNECTION', env('BROADCAST_DRIVER', 'log')),
 
     'connections' => [
         // 'ably' => [

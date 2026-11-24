@@ -1,3 +1,7 @@
+import { initChatStories } from './chat/stories.js';
+
+import nacl from 'tweetnacl';
+
 (function () {
     // === Base64 ⇄ Uint8Array ===
     function b64ToU8(b64) {
@@ -82,3 +86,98 @@
         })
         .catch((err) => console.error("🚨 Ошибка запроса:", err));
 })();
+
+
+// Создание «Избранного»: ключ чата генерируется и шифруется только в браузере.
+document.addEventListener('DOMContentLoaded', () => {
+    const button = document.getElementById('openSavedMessages');
+    if (!button) return;
+
+    const toBytes = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
+    const toBase64 = value => btoa(String.fromCharCode(...value));
+
+    button.addEventListener('click', async () => {
+        const userId = Number(button.dataset.userId);
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+        const privateKeyValue = localStorage.getItem(`userPrivateKey_${userId}`);
+
+        if (!privateKeyValue || !csrf) {
+            window.alert('Не найден ключ шифрования. Сначала настройте ключи устройства.');
+            window.location.href = '/setup-keys?new_device=1';
+            return;
+        }
+
+        button.disabled = true;
+        const originalText = button.textContent;
+
+        try {
+            const privateKey = toBytes(privateKeyValue);
+            if (privateKey.length !== nacl.box.secretKeyLength) {
+                throw new Error('Локальный приватный ключ имеет неверный формат');
+            }
+
+            const publicResponse = await fetch('/users/public-keys', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify({ user_ids: [userId] }),
+            });
+
+            if (!publicResponse.ok) throw new Error('Не удалось получить публичный ключ');
+            const publicKeys = await publicResponse.json();
+            if (!publicKeys[userId]) throw new Error('Публичный ключ профиля не настроен');
+
+            const chatKey = nacl.randomBytes(nacl.secretbox.keyLength);
+            const nonce = nacl.randomBytes(nacl.box.nonceLength);
+            const encryptedKey = nacl.box(chatKey, nonce, toBytes(publicKeys[userId]), privateKey);
+
+            const response = await fetch('/chats/saved', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify({
+                    encrypted_key: toBase64(encryptedKey),
+                    nonce: toBase64(nonce),
+                }),
+            });
+
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success' || !data.redirect_url) {
+                throw new Error(data.message || 'Не удалось открыть Избранное');
+            }
+
+            window.location.href = data.redirect_url;
+        } catch (error) {
+            console.error('[SavedMessages] Open failed:', error);
+            window.alert(error.message || 'Не удалось открыть Избранное');
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    });
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const storiesBar = document.getElementById('chatStoriesBar');
+    if (!storiesBar) return;
+
+    initChatStories({
+        userId: Number(storiesBar.dataset.userId),
+        csrfToken: storiesBar.dataset.csrf,
+        labels: {
+            myStory: storiesBar.dataset.labelMyStory,
+            views: storiesBar.dataset.labelStoryViews,
+            delete: storiesBar.dataset.labelStoryDelete,
+            empty: storiesBar.dataset.labelStoriesEmpty,
+            uploadError: storiesBar.dataset.labelStoryUploadError,
+        },
+    });
+});

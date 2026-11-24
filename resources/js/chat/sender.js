@@ -1,3 +1,5 @@
+import { hydrateLinkPreview } from './link-preview.js';
+import { renderMessageText } from './render.js';
 import { u8ToB64 } from './utils.js';
 
 export class MessageSender {
@@ -15,7 +17,11 @@ export class MessageSender {
         if (!text) return;
 
         this.isSending = true;
-        sendBtn.disabled = true;
+        const finishComposerLoading = window.beginChatComposerLoading?.();
+        if (typeof finishComposerLoading !== 'function') {
+            sendBtn.disabled = true;
+            sendBtn.classList.add('is-loading');
+        }
 
         const originalInputValue = input.value;
         input.value = '';
@@ -44,7 +50,27 @@ export class MessageSender {
             const body = {
                 message: u8ToB64(encrypted),
                 nonce: nonceB64,
+                message_type: 'text',
             };
+
+            if (this.config.topicId && !isEditing) {
+                body.topic_id = this.config.topicId;
+            }
+
+            if (!isEditing && this.config.mentionUsers?.length) {
+                const mentionedNames = new Set(
+                    [...text.matchAll(/@([a-zA-Z0-9_]{2,32})/g)]
+                        .map(match => match[1].toLowerCase())
+                );
+
+                const mentionedIds = this.config.mentionUsers
+                    .filter(user => user.nickname && mentionedNames.has(user.nickname.toLowerCase()))
+                    .map(user => Number(user.id));
+
+                if (mentionedIds.length) {
+                    body.mentioned_user_ids = [...new Set(mentionedIds)];
+                }
+            }
 
             if (replyToMessageId && !isEditing) {
                 body.reply_to_message_id = parseInt(replyToMessageId);
@@ -77,7 +103,58 @@ export class MessageSender {
             alert(this.config.translations.sendError);
         } finally {
             this.isSending = false;
-            sendBtn.disabled = false;
+            if (typeof finishComposerLoading === 'function') {
+                finishComposerLoading();
+            } else {
+                sendBtn.classList.remove('is-loading');
+                sendBtn.disabled = false;
+            }
+        }
+    }
+
+    async sendPoll(question, options, isAnonymous, allowsMultiple) {
+        if (this.isSending || !this.crypto.chatKey) return;
+
+        this.isSending = true;
+        const payload = JSON.stringify({
+            type: 'poll',
+            question,
+            options: options.map((text, id) => ({ id, text })),
+        });
+
+        try {
+            const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+            const encrypted = nacl.secretbox(new TextEncoder().encode(payload), nonce, this.crypto.chatKey);
+            const body = {
+                message: u8ToB64(encrypted),
+                nonce: u8ToB64(nonce),
+                message_type: 'poll',
+                poll_is_anonymous: Boolean(isAnonymous),
+                poll_allows_multiple: Boolean(allowsMultiple),
+                poll_option_count: options.length,
+            };
+
+            if (this.config.topicId) body.topic_id = this.config.topicId;
+
+            const response = await fetch(this.config.sendUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': this.config.csrfToken,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(body),
+            });
+
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                throw new Error(data.message || this.config.translations.pollError || 'Could not create poll');
+            }
+
+            return true;
+        } finally {
+            this.isSending = false;
         }
     }
 
@@ -95,7 +172,8 @@ export class MessageSender {
             cardText.setAttribute('data-encrypted', newCid);
             cardText.setAttribute('data-plaintext', text);
             cardText.dataset.decrypted = '1';
-            cardText.innerHTML = text.replace(/\n/g, '<br>');
+            renderMessageText(cardText, text);
+            hydrateLinkPreview(cardText, this.config.csrfToken);
         }
 
         msgEl.setAttribute('data-is-edited', 'true');

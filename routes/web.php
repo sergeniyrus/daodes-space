@@ -29,6 +29,14 @@ use App\Http\Controllers\{
     UserProfileController,
     UploadController,
     ChatController,
+    ChatLinkPreviewController,
+    ChatStoriesController,
+    ChatChannelStoriesController,
+    ChatChannelSettingsController,
+    ChatContactsController,
+    ChatScheduledMessageController,
+    ChatCallController,
+    ChatMeetingController,
     LanguageController,
     CaptchaController,
     NotificationController,
@@ -191,7 +199,7 @@ Route::middleware('auth')->group(function () {
         return response()->json([
             'encrypted_key' => $keyRecord->encrypted_key,
             'nonce' => $keyRecord->nonce,
-            'initiator_public_key' => $initiator->profile->public_key,
+            'initiator_public_key' => $keyRecord->sender_public_key ?: $initiator->profile->public_key,
         ]);
     });
 
@@ -568,6 +576,52 @@ Route::get(
 
 Route::middleware('auth')->group(function () {
 
+    // Контакты DAODES: заявки, подтверждение, блокировки.
+    Route::get('/contacts', [ChatContactsController::class, 'index'])->name('contacts.index');
+    Route::post('/contacts/{user}/requests', [ChatContactsController::class, 'sendRequest'])->name('contacts.requests.store');
+    Route::post('/contacts/requests/{contactRequest}/accept', [ChatContactsController::class, 'acceptRequest'])->name('contacts.requests.accept');
+    Route::post('/contacts/requests/{contactRequest}/decline', [ChatContactsController::class, 'declineRequest'])->name('contacts.requests.decline');
+    Route::delete('/contacts/{user}', [ChatContactsController::class, 'destroy'])->name('contacts.destroy');
+    Route::post('/contacts/{user}/block', [ChatContactsController::class, 'block'])->name('contacts.block');
+    Route::delete('/contacts/{user}/block', [ChatContactsController::class, 'unblock'])->name('contacts.unblock');
+
+    // Отложенные зашифрованные сообщения.
+    Route::get('/chats/{chat}/scheduled-messages', [ChatScheduledMessageController::class, 'index'])
+        ->middleware('throttle:60,1')->name('chats.scheduledMessages.index');
+    Route::post('/chats/{chat}/scheduled-messages', [ChatScheduledMessageController::class, 'store'])
+        ->middleware('throttle:20,1')->name('chats.scheduledMessages.store');
+    Route::delete('/chats/{chat}/scheduled-messages/{scheduledMessage}', [ChatScheduledMessageController::class, 'destroy'])
+        ->middleware('throttle:30,1')->name('chats.scheduledMessages.destroy');
+
+    // Временные TURN credentials выдаются только участникам личного чата.
+    Route::get('/chats/{chat}/calls/ice-servers', [ChatCallController::class, 'iceServers'])
+        ->middleware('throttle:20,1')->name('chats.calls.iceServers');
+
+    // WebRTC signaling: SDP и ICE передаются только в зашифрованном виде.
+    Route::get('/chats/{chat}/calls/active', [ChatCallController::class, 'active'])
+        ->middleware('throttle:60,1')->name('chats.calls.active');
+    Route::post('/chats/{chat}/calls', [ChatCallController::class, 'start'])
+        ->middleware('throttle:10,1')->name('chats.calls.start');
+    Route::get('/calls/{call}/signals', [ChatCallController::class, 'signals'])
+        ->middleware('throttle:120,1')->name('chats.calls.signals');
+    Route::post('/calls/{call}/signals', [ChatCallController::class, 'signal'])
+        ->middleware('throttle:120,1')->name('chats.calls.signal');
+
+    // Зашифрованные приглашения на встречи и созвоны по расписанию.
+    Route::get('/chats/{chat}/meetings', [ChatMeetingController::class, 'index'])
+        ->middleware('throttle:60,1')->name('chats.meetings.index');
+    Route::post('/chats/{chat}/meetings', [ChatMeetingController::class, 'store'])
+        ->middleware('throttle:20,1')->name('chats.meetings.store');
+    Route::post('/meetings/{meeting}/response', [ChatMeetingController::class, 'respond'])
+        ->middleware('throttle:30,1')->name('chats.meetings.response');
+    Route::delete('/meetings/{meeting}', [ChatMeetingController::class, 'destroy'])
+        ->middleware('throttle:30,1')->name('chats.meetings.destroy');
+
+    Route::get(
+        '/chat/link-preview',
+        [ChatLinkPreviewController::class, 'show']
+    )->middleware('throttle:30,1')->name('chats.linkPreview');
+
     // Список чатов
     Route::get(
         '/chats',
@@ -586,6 +640,40 @@ Route::middleware('auth')->group(function () {
         '/chats',
         [ChatController::class, 'store']
     )->name('chats.store');
+
+    Route::post(
+        '/chats/saved',
+        [ChatController::class, 'createSavedMessages']
+    )->middleware('throttle:10,1')->name('chats.saved');
+
+    /*
+     * Зашифрованные истории пользователей.
+     */
+    Route::get('/stories', [ChatStoriesController::class, 'index'])->middleware('throttle:60,1')->name('stories.index');
+    Route::get('/stories/contacts', [ChatStoriesController::class, 'contacts'])->middleware('throttle:30,1')->name('stories.contacts');
+    Route::post('/stories', [ChatStoriesController::class, 'store'])->middleware('throttle:10,1')->name('stories.store');
+    Route::get('/stories/{story}/key', [ChatStoriesController::class, 'key'])->middleware('throttle:60,1')->name('stories.key');
+    Route::get('/stories/{story}/media', [ChatStoriesController::class, 'media'])->middleware('throttle:30,1')->name('stories.media');
+    Route::post('/stories/{story}/view', [ChatStoriesController::class, 'view'])->middleware('throttle:60,1')->name('stories.view');
+    Route::get('/stories/{story}/views', [ChatStoriesController::class, 'views'])->middleware('throttle:30,1')->name('stories.views');
+    Route::delete('/stories/{story}', [ChatStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('stories.destroy');
+
+
+    // Настройки и фото канала: права редактирует только владелец.
+    Route::put('/chats/{chat}/channel-settings', [ChatChannelSettingsController::class, 'update'])
+        ->middleware('throttle:20,1')->name('chats.channel.settings');
+    Route::post('/chats/{chat}/channel-photo', [ChatChannelSettingsController::class, 'photo'])
+        ->middleware('throttle:10,1')->name('chats.channel.photo');
+
+    // Истории, публикуемые от имени канала (шифрование сохраняется).
+    Route::get('/chats/{chat}/stories', [ChatChannelStoriesController::class, 'index'])->middleware('throttle:60,1')->name('chats.channel.stories.index');
+    Route::get('/chats/{chat}/stories/contacts', [ChatChannelStoriesController::class, 'contacts'])->middleware('throttle:30,1')->name('chats.channel.stories.contacts');
+    Route::post('/chats/{chat}/stories', [ChatChannelStoriesController::class, 'store'])->middleware('throttle:10,1')->name('chats.channel.stories.store');
+    Route::get('/chats/{chat}/stories/{story}/key', [ChatChannelStoriesController::class, 'key'])->middleware('throttle:60,1')->name('chats.channel.stories.key');
+    Route::get('/chats/{chat}/stories/{story}/media', [ChatChannelStoriesController::class, 'media'])->middleware('throttle:30,1')->name('chats.channel.stories.media');
+    Route::post('/chats/{chat}/stories/{story}/view', [ChatChannelStoriesController::class, 'view'])->middleware('throttle:60,1')->name('chats.channel.stories.view');
+    Route::get('/chats/{chat}/stories/{story}/views', [ChatChannelStoriesController::class, 'views'])->middleware('throttle:30,1')->name('chats.channel.stories.views');
+    Route::delete('/chats/{chat}/stories/{story}', [ChatChannelStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('chats.channel.stories.destroy');
 
 
     // Просмотр чата
@@ -612,6 +700,21 @@ Route::middleware('auth')->group(function () {
     )->name('messages.get');
 
     Route::post(
+        '/chats/{chat}/attachments',
+        [MessageController::class, 'uploadAttachment']
+    )->middleware('throttle:20,1')->name('messages.attachments.upload');
+
+    Route::get(
+        '/chats/{chat}/messages/{message}/attachments/{attachment}',
+        [MessageController::class, 'downloadAttachment']
+    )->name('messages.attachments.download');
+
+    Route::post(
+        '/messages/{message}/transcribe',
+        [MessageController::class, 'transcribeVoice']
+    )->middleware('throttle:10,1')->name('messages.transcription.create');
+
+    Route::post(
         '/chats/{chat}/messages',
         [MessageController::class, 'store']
     )->name('messages.send');
@@ -626,6 +729,51 @@ Route::middleware('auth')->group(function () {
         [MessageController::class, 'destroy']
     );
 
+    Route::post(
+        '/messages/{message}/reactions',
+        [MessageController::class, 'toggleReaction']
+    )->middleware('throttle:60,1')->name('messages.reactions.toggle');
+
+    Route::post(
+        '/messages/{message}/pin',
+        [MessageController::class, 'pin']
+    )->middleware('throttle:30,1')->name('messages.pin');
+
+    Route::delete(
+        '/messages/{message}/pin',
+        [MessageController::class, 'unpin']
+    )->middleware('throttle:30,1')->name('messages.unpin');
+
+    Route::get(
+        '/chats/{chat}/pinned-messages',
+        [MessageController::class, 'pinnedMessages']
+    )->middleware('throttle:60,1')->name('chats.pinnedMessages');
+
+    Route::get(
+        '/messages/{message}/poll-results',
+        [MessageController::class, 'pollResults']
+    )->middleware('throttle:60,1')->name('messages.pollResults');
+
+    Route::post(
+        '/messages/{message}/poll-votes',
+        [MessageController::class, 'votePoll']
+    )->middleware('throttle:30,1')->name('messages.pollVotes');
+
+    Route::post(
+        '/messages/{message}/poll-close',
+        [MessageController::class, 'closePoll']
+    )->middleware('throttle:30,1')->name('messages.pollClose');
+
+    Route::patch(
+        '/chats/{chat}/pinned-messages/order',
+        [MessageController::class, 'reorderPinnedMessages']
+    )->middleware('throttle:30,1')->name('chats.pinnedMessages.reorder');
+
+    Route::patch(
+        '/chats/{chat}/pinned-messages/order',
+        [MessageController::class, 'reorderPinnedMessages']
+    )->middleware('throttle:30,1')->name('chats.pinnedMessages.reorder');
+
     Route::get(
         '/messages/{message}/reply-info',
         [MessageController::class, 'getReplyInfo']
@@ -635,6 +783,50 @@ Route::middleware('auth')->group(function () {
         '/chats/{chat}/messages/ids',
         [MessageController::class, 'getMessageIds']
     )->name('messages.ids');
+
+    Route::post(
+        '/chats/{chat}/read',
+        [MessageController::class, 'markRead']
+    )->middleware('throttle:120,1')->name('messages.read');
+
+    Route::post(
+        '/chats/{chat}/read-receipts',
+        [MessageController::class, 'readReceipts']
+    )->middleware('throttle:60,1')->name('messages.readReceipts');
+
+
+    Route::post(
+        '/chats/{chat}/mute',
+        [ChatController::class, 'updateMute']
+    )->middleware('throttle:30,1')->name('chats.mute');
+
+    /*
+     * Участники, роли и темы мессенджера
+     */
+    Route::get(
+        '/chats/{chat}/mention-users',
+        [ChatController::class, 'mentionUsers']
+    )->middleware('throttle:60,1')->name('chats.mentionUsers');
+
+    Route::post(
+        '/chats/{chat}/participants',
+        [ChatController::class, 'addParticipant']
+    )->name('chats.participants.add');
+
+    Route::delete(
+        '/chats/{chat}/participants/{user}',
+        [ChatController::class, 'removeParticipant']
+    )->name('chats.participants.remove');
+
+    Route::patch(
+        '/chats/{chat}/participants/{user}/role',
+        [ChatController::class, 'updateParticipantRole']
+    )->name('chats.participants.role');
+
+    Route::post(
+        '/chats/{chat}/topics',
+        [ChatController::class, 'createTopic']
+    )->name('chats.topics.store');
 
 
     /*

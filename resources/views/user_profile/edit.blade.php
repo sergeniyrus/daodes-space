@@ -122,6 +122,18 @@
             margin-top: 5px;
         }
 
+        .business-card-editor {
+            margin: 24px 0 18px;
+            padding: 16px;
+            border: 1px solid rgba(0, 229, 255, .35);
+            border-radius: 12px;
+            background: rgba(0, 229, 255, .045);
+        }
+        .business-card-editor h3 { color: #00e5ff; margin: 0 0 8px; }
+        .business-card-editor > p { color: #aeb7c5; margin: 0 0 14px; font-size: .9rem; }
+        .business-card-editor .form-group { margin-bottom: 10px; }
+        .business-card-editor textarea { min-height: 92px; }
+
         .save-btn-wrapper {
             width: 100%;
             display: flex;
@@ -225,6 +237,35 @@
                         <span class="file-size-note">{{ __('message.max_file_size_note') }}</span>
                         <span id="file-error" class="file-error" style="display:none;"></span>
                     </div>
+                </div>
+            </div>
+
+            <!-- Messenger status -->
+            <div class="form-group">
+                <label for="status_text">{{ __('user_profile.status_text') }}</label>
+                <div class="telegram-column">
+                    <input
+                        type="text"
+                        class="input_dark"
+                        id="status_text"
+                        name="status_text"
+                        maxlength="140"
+                        value="{{ old('status_text', $profile->status_text) }}"
+                        placeholder="{{ __('user_profile.status_placeholder') }}"
+                    >
+                    <input
+                        type="text"
+                        class="input_dark"
+                        name="status_emoji"
+                        maxlength="16"
+                        value="{{ old('status_emoji', $profile->status_emoji) }}"
+                        placeholder="{{ __('user_profile.status_emoji') }}"
+                    >
+                    <select class="input_dark" name="status_duration">
+                        <option value="24" @selected((!$profile->status_expires_at && !$profile->status_text) || ($profile->status_expires_at && $profile->status_expires_at->isFuture() && $profile->status_expires_at->diffInHours(now()) <= 24))>{{ __('user_profile.status_24h') }}</option>
+                        <option value="168" @selected($profile->status_expires_at && $profile->status_expires_at->isFuture() && $profile->status_expires_at->diffInHours(now()) > 24)>{{ __('user_profile.status_7d') }}</option>
+                        <option value="0" @selected($profile->status_text && !$profile->status_expires_at)>{{ __('user_profile.status_forever') }}</option>
+                    </select>
                 </div>
             </div>
 
@@ -358,6 +399,42 @@
 
                 <textarea class="input_dark" name="portfolio"
                           placeholder="{{ __('user_profile.portfolio_placeholder') }}">{{ old('portfolio', $profile->portfolio) }}</textarea>
+            </div>
+
+            {{-- Публичная визитка DAODES --}}
+            <div class="business-card-editor">
+                <h3>{{ __('user_profile.business_card') }}</h3>
+                <p>{{ __('user_profile.business_card_note') }}</p>
+
+                <div class="form-group">
+                    <label for="card_position">{{ __('user_profile.card_position') }}</label>
+                    <input id="card_position" type="text" class="input_dark" name="card_position" maxlength="120"
+                           value="{{ old('card_position', $profile->card_position) }}" placeholder="{{ __('user_profile.card_position_placeholder') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="card_company">{{ __('user_profile.card_company') }}</label>
+                    <input id="card_company" type="text" class="input_dark" name="card_company" maxlength="120"
+                           value="{{ old('card_company', $profile->card_company) }}" placeholder="{{ __('user_profile.card_company_placeholder') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="card_location">{{ __('user_profile.card_location') }}</label>
+                    <input id="card_location" type="text" class="input_dark" name="card_location" maxlength="120"
+                           value="{{ old('card_location', $profile->card_location) }}" placeholder="{{ __('user_profile.card_location_placeholder') }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="card_about">{{ __('user_profile.card_about') }}</label>
+                    <textarea id="card_about" class="input_dark" name="card_about" rows="4" maxlength="1200"
+                              placeholder="{{ __('user_profile.card_about_placeholder') }}">{{ old('card_about', $profile->card_about) }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="card_website">{{ __('user_profile.card_website') }}</label>
+                    <input id="card_website" type="url" class="input_dark" name="card_website" maxlength="255"
+                           value="{{ old('card_website', $profile->card_website) }}" placeholder="{{ __('user_profile.card_website_placeholder') }}">
+                </div>
             </div>
 
             <!-- Save button -->

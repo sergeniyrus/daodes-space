@@ -1,3 +1,8 @@
+import { renderEncryptedAttachment } from './media.js';
+import { renderPollMessage } from './poll.js';
+import { renderVoiceMessage } from './voice.js';
+import { hydrateLinkPreview } from './link-preview.js';
+import { renderMessageText } from './render.js';
 import { b64ToU8 } from './utils.js';
 
 export class MessagePoller {
@@ -12,6 +17,10 @@ export class MessagePoller {
         this.deletedCheckInterval = null;
         this.isLoading = false;
         this.initialLoadDone = false;
+        this.loadingOlder = false;
+        this.hasOlderMessages = true;
+        this.pendingReadThroughId = 0;
+        this.pendingReadTopicId = this.config.topicId || null;
 
         window.__chatPoller = this;
     }
@@ -50,14 +59,78 @@ export class MessagePoller {
             if (!encrypted || !encrypted.includes('|')) return;
 
             const txt = this.crypto.decrypt(encrypted);
-            el.innerHTML = txt.replace(/\n/g, '<br>');
-            el.dataset.plaintext = txt;
+            const messageType = messageEl.dataset.messageType || 'text';
+
+            let searchableText = txt;
+            try {
+                const decoded = JSON.parse(txt);
+                if (decoded?.type === 'poll') {
+                    const pollOptions = Array.isArray(decoded.options) ? decoded.options : [];
+                    searchableText = [decoded.question, ...pollOptions.map(option => option && typeof option === 'object' ? option.text : option)].join(' ');
+                } else if (decoded?.type === 'attachment') {
+                    searchableText = decoded.file_name || 'attachment';
+                }
+            } catch {
+                // Обычный текст сообщения.
+            }
+            messageEl.dataset.searchText = searchableText.toLocaleLowerCase();
+            document.dispatchEvent(new Event('chat:message-decrypted'));
+            const attachmentId = Number(messageEl.dataset.attachmentId || 0);
+            const isVoice = messageType === 'voice'
+                && renderVoiceMessage(
+                    el,
+                    txt,
+                    Number(messageEl.dataset.id),
+                    attachmentId,
+                    this.config,
+                    this.crypto
+                );
+
+            const isAttachment = ['media', 'file', 'video_note'].includes(messageType)
+                && renderEncryptedAttachment(
+                    el,
+                    txt,
+                    Number(messageEl.dataset.id),
+                    attachmentId,
+                    this.config,
+                    this.crypto,
+                    messageType
+                );
+            const isPoll = messageType === 'poll'
+                && renderPollMessage(el, txt, Number(messageEl.dataset.id), this.config, messageEl);
+
+            if (!isVoice && !isAttachment && !isPoll) {
+                renderMessageText(el, txt);
+                hydrateLinkPreview(el, this.config.csrfToken);
+            }
+
+            let replyText = txt;
+            if (isVoice) {
+                replyText = '🎤 Голосовое сообщение';
+            } else if (messageType === 'video_note') {
+                replyText = '🎥 Видеосообщение';
+            } else if (isAttachment) {
+                try {
+                    const attachmentPayload = JSON.parse(txt);
+                    replyText = '📎 ' + (attachmentPayload.file_name || 'Вложение');
+                } catch {
+                    replyText = '📎 Вложение';
+                }
+            } else if (isPoll) {
+                try {
+                    replyText = '📊 ' + (JSON.parse(txt).question || 'Опрос');
+                } catch {
+                    replyText = '📊 Опрос';
+                }
+            }
+
+            el.dataset.plaintext = replyText;
             el.dataset.decrypted = '1';
 
-            if (messageEl.classList.contains('sent')) {
+            if (messageEl.classList.contains('sent') && messageType === 'text') {
                 const nonceB64 = encrypted.split('|')[0];
                 this.ui.attachEditButton(messageEl, txt, nonceB64);
-            } else {
+            } else if (!messageEl.classList.contains('sent')) {
                 this.ui.attachMessageMenu(messageEl);
             }
         });
@@ -100,7 +173,14 @@ export class MessagePoller {
                 const encrypted = data.message.content;
                 if (!encrypted || !encrypted.includes('|')) continue;
 
-                const decrypted = this.crypto.decrypt(encrypted);
+                let decrypted = this.crypto.decrypt(encrypted);
+                try {
+                    const payload = JSON.parse(decrypted);
+                    if (payload.type === 'voice') decrypted = '🎤 Голосовое сообщение';
+                    else if (payload.type === 'attachment') decrypted = '📎 ' + (payload.file_name || 'Вложение');
+                } catch {
+                    // Обычный текст сообщения.
+                }
                 const shortText = decrypted.replace(/\n/g, ' ').substring(0, 100);
                 contentEl.innerHTML = `<strong>${this.escapeHtml(data.message.sender.name)}:</strong> ${this.escapeHtml(shortText)}`;
 
@@ -125,10 +205,19 @@ export class MessagePoller {
     async load() {
         if (this.isLoading) return;
         this.isLoading = true;
+        const requestedTopicId = this.config.topicId || null;
+        if (this.pendingReadTopicId !== requestedTopicId) {
+            this.pendingReadThroughId = 0;
+            this.pendingReadTopicId = requestedTopicId;
+        }
 
         try {
             const lastId = this.initialLoadDone ? this.highestKnownMessageId : 0;
-            const url = `/chats/${this.config.chatId}/messages?last_id=${lastId}`;
+            const params = new URLSearchParams({ last_id: String(lastId) });
+            if (this.config.topicId) {
+                params.set('topic_id', String(this.config.topicId));
+            }
+            const url = `/chats/${this.config.chatId}/messages?${params.toString()}`;
 
             const res = await fetch(url, {
                 headers: {
@@ -151,6 +240,7 @@ export class MessagePoller {
             }
 
             const msgs = await res.json();
+            if (requestedTopicId !== this.config.topicId) return;
             if (!Array.isArray(msgs)) return;
 
             const wasAtBottom = this.isAtBottom();
@@ -172,6 +262,8 @@ export class MessagePoller {
                         delete cardText.dataset.decrypted;
                     }
                     existing.setAttribute('data-is-edited', isEdited);
+                    existing.dataset.messageType = msg.message_type || 'text';
+                    existing.dataset.attachmentId = msg.attachments?.[0]?.id || '';
 
                     const cardTitle = existing.querySelector('.card-title');
                     if (cardTitle) {
@@ -201,6 +293,8 @@ export class MessagePoller {
                         <div class="message ${isOwn ? 'sent' : 'received'}"
                              data-id="${msg.id}"
                              data-cid="${this.escapeAttr(msg.ipfs_cid)}"
+                             data-message-type="${this.escapeAttr(msg.message_type || 'text')}"
+                             data-attachment-id="${msg.attachments?.[0]?.id || ''}"
                              data-is-edited="${isEdited}">
                             ${replyPreview}
                             <div class="${isOwn ? 'my-card-body' : 'card-body'}">
@@ -209,6 +303,19 @@ export class MessagePoller {
                                     <small>${new Date(msg.created_at).toLocaleTimeString()}</small>
                                 </p>
                                 <p class="card-text">${downloadText} ${downloadIcon}</p>
+                            </div>
+                            <div class="message-reactions" data-message-id="${msg.id}">
+                                <button type="button" class="add-reaction" aria-label="Add reaction">＋</button>
+                                <div class="reaction-picker" hidden>
+                                    <button type="button" class="reaction-choice" data-reaction="👍">👍</button>
+                                    <button type="button" class="reaction-choice" data-reaction="❤️">❤️</button>
+                                    <button type="button" class="reaction-choice" data-reaction="😂">😂</button>
+                                    <button type="button" class="reaction-choice" data-reaction="🔥">🔥</button>
+                                    <button type="button" class="reaction-choice" data-reaction="👏">👏</button>
+                                    <button type="button" class="reaction-choice" data-reaction="😮">😮</button>
+                                    <button type="button" class="reaction-choice" data-reaction="😢">😢</button>
+                                    <button type="button" class="reaction-choice" data-reaction="🎉">🎉</button>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -221,6 +328,10 @@ export class MessagePoller {
                     this.allMessageIds.add(msg.id);
                     this.highestKnownMessageId = Math.max(this.highestKnownMessageId, msg.id);
                 }
+                const renderedMessage = document.querySelector(`.message[data-id="${msg.id}"]`);
+                if (renderedMessage) {
+                    this.renderReactionSummary(renderedMessage, msg.reactions || []);
+                }
             });
 
             this.initialLoadDone = true;
@@ -228,7 +339,23 @@ export class MessagePoller {
             this.decryptAndAttach();
             if (wasAtBottom) this.scrollToBottom();
 
-            if (hasIncoming) {
+            if (msgs.length) {
+                this.pendingReadThroughId = Math.max(
+                    this.pendingReadThroughId,
+                    ...msgs.map(message => Number(message.id) || 0)
+                );
+            }
+
+            if (this.pendingReadThroughId > 0 && document.visibilityState === 'visible') {
+                await this.markMessagesRead(this.pendingReadThroughId);
+                this.pendingReadThroughId = 0;
+            }
+            await this.refreshReadReceipts();
+
+            const muteIsActive = this.config.mutedUntil
+                && new Date(this.config.mutedUntil).getTime() > Date.now();
+
+            if (hasIncoming && !muteIsActive) {
                 document.getElementById('notificationSound')?.play().catch(() => {});
             }
         } catch (err) {
@@ -236,6 +363,215 @@ export class MessagePoller {
         } finally {
             this.isLoading = false;
         }
+    }
+
+    async loadOlderMessages() {
+        if (this.loadingOlder || !this.hasOlderMessages || !this.initialLoadDone) return;
+
+        const container = document.getElementById('chat-messages');
+        const firstMessage = container.querySelector('.message');
+        const beforeId = Number(firstMessage?.dataset.id || 0);
+        if (!beforeId) return;
+
+        this.loadingOlder = true;
+        const requestedTopicId = this.config.topicId;
+        const previousHeight = container.scrollHeight;
+        const previousTop = container.scrollTop;
+
+        try {
+            const params = new URLSearchParams({ before_id: String(beforeId) });
+            if (this.config.topicId) params.set('topic_id', String(this.config.topicId));
+
+            const response = await fetch(
+                `/chats/${this.config.chatId}/messages?${params.toString()}`,
+                {
+                    headers: {
+                        'X-CSRF-TOKEN': this.config.csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                }
+            );
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const messages = await response.json();
+            if (requestedTopicId !== this.config.topicId) return;
+
+            if (!Array.isArray(messages) || messages.length === 0) {
+                this.hasOlderMessages = false;
+                return;
+            }
+
+            // API отдаёт сообщения по возрастанию ID; prepend выполняем в обратном порядке.
+            [...messages].reverse().forEach(msg => {
+                if (this.allMessageIds.has(msg.id)) return;
+
+                const replyPreview = msg.reply_to_message_id
+                    ? `<div class="reply-preview" data-reply-id="${msg.reply_to_message_id}">
+                           <div class="reply-indicator"><i class="fa fa-reply" aria-hidden="true"></i></div>
+                           <div class="reply-content">${this.config.translations.download}</div>
+                       </div>`
+                    : '';
+
+                const html = `
+                    <div class="message ${msg.sender.id === this.config.userId ? 'sent' : 'received'}"
+                         data-id="${msg.id}"
+                         data-cid="${this.escapeAttr(msg.ipfs_cid)}"
+                         data-message-type="${this.escapeAttr(msg.message_type || 'text')}"
+                         data-attachment-id="${msg.attachments?.[0]?.id || ''}"
+                         data-is-edited="${msg.is_edited === true}">
+                        ${replyPreview}
+                        <div class="${msg.sender.id === this.config.userId ? 'my-card-body' : 'card-body'}">
+                            <p class="card-title">
+                                ${this.escapeHtml(msg.sender.name)}
+                                <small>${new Date(msg.created_at).toLocaleTimeString()}</small>
+                            </p>
+                            <p class="card-text">${this.config.translations.download}</p>
+                        </div>
+                        <div class="message-reactions" data-message-id="${msg.id}">
+                            <button type="button" class="add-reaction" aria-label="Add reaction">＋</button>
+                            <div class="reaction-picker" hidden>
+                                <button type="button" class="reaction-choice" data-reaction="👍">👍</button>
+                                <button type="button" class="reaction-choice" data-reaction="❤️">❤️</button>
+                                <button type="button" class="reaction-choice" data-reaction="😂">😂</button>
+                                <button type="button" class="reaction-choice" data-reaction="🔥">🔥</button>
+                                <button type="button" class="reaction-choice" data-reaction="👏">👏</button>
+                                <button type="button" class="reaction-choice" data-reaction="😮">😮</button>
+                                <button type="button" class="reaction-choice" data-reaction="😢">😢</button>
+                                <button type="button" class="reaction-choice" data-reaction="🎉">🎉</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.insertAdjacentHTML('afterbegin', html);
+                const messageElement = container.firstElementChild;
+                messageElement.querySelector('.card-text')
+                    .setAttribute('data-encrypted', msg.message);
+
+                this.allMessageIds.add(msg.id);
+                this.renderReactionSummary(messageElement, msg.reactions || []);
+            });
+
+            this.decryptAndAttach();
+            container.scrollTop = container.scrollHeight - previousHeight + previousTop;
+        } catch (error) {
+            console.error('[Poller] Failed to load older messages:', error);
+        } finally {
+            this.loadingOlder = false;
+        }
+    }
+
+    async markMessagesRead(messageId) {
+        try {
+            const response = await fetch(`/chats/${this.config.chatId}/read`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': this.config.csrfToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    message_id: messageId,
+                    topic_id: this.config.topicId || null,
+                }),
+            });
+
+            if (!response.ok) {
+                console.warn('[Poller] Failed to mark messages as read:', response.status);
+            }
+        } catch (error) {
+            console.error('[Poller] Read receipt update failed:', error);
+        }
+    }
+
+    async refreshReadReceipts() {
+        const messageIds = Array.from(document.querySelectorAll('.message.sent[data-id]'))
+            .map(element => Number(element.dataset.id))
+            .filter(id => Number.isInteger(id) && id > 0)
+            .slice(-100);
+
+        if (!messageIds.length) return;
+
+        try {
+            const response = await fetch(`/chats/${this.config.chatId}/read-receipts`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': this.config.csrfToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ message_ids: messageIds }),
+            });
+
+            if (!response.ok) return;
+
+            const receipts = await response.json();
+            const byMessage = new Map(
+                receipts.map(item => [Number(item.message_id), item.user_ids || []])
+            );
+
+            messageIds.forEach(id => {
+                const message = document.querySelector(`.message.sent[data-id="${id}"]`);
+                if (!message) return;
+
+                const body = message.querySelector('.my-card-body') || message.querySelector('.card-body');
+                if (!body) return;
+
+                let status = body.querySelector('.message-read-status');
+                if (!status) {
+                    status = document.createElement('small');
+                    status.className = 'message-read-status';
+                    body.appendChild(status);
+                }
+
+                const readers = byMessage.get(id) || [];
+                status.textContent = readers.length ? '✓✓' : '✓';
+                status.title = readers.length
+                    ? `Прочитано участниками: ${readers.length}`
+                    : 'Отправлено';
+                status.setAttribute('aria-label', status.title);
+                status.dataset.readCount = String(readers.length);
+            });
+        } catch (error) {
+            console.error('[Poller] Failed to refresh read receipts:', error);
+        }
+    }
+
+    renderReactionSummary(messageEl, reactions = []) {
+        const container = messageEl.querySelector('.message-reactions');
+        if (!container) return;
+
+        container.querySelectorAll('.reaction-pill').forEach(button => button.remove());
+
+        const grouped = new Map();
+        reactions.forEach(item => {
+            const key = item.reaction;
+            if (!key) return;
+
+            if (!grouped.has(key)) {
+                grouped.set(key, { count: 0, mine: false });
+            }
+
+            const group = grouped.get(key);
+            group.count += Number(item.count ?? 1);
+            if (Number(item.user_id) === this.config.userId || item.mine === true) group.mine = true;
+        });
+
+        const addButton = container.querySelector('.add-reaction');
+        grouped.forEach((group, reaction) => {
+            const pill = document.createElement('button');
+            pill.type = 'button';
+            pill.className = 'reaction-pill' + (group.mine ? ' active' : '');
+            pill.dataset.reaction = reaction;
+            pill.textContent = `${reaction} ${group.count}`;
+            container.insertBefore(pill, addButton);
+        });
     }
 
     async checkDeletedMessages() {
@@ -266,10 +602,20 @@ export class MessagePoller {
         }
     }
 
+    setPollingInterval(interval = 3000) {
+        const normalizedInterval = Math.max(1000, Number(interval) || 3000);
+
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+        }
+
+        this.pollingInterval = setInterval(() => this.load(), normalizedInterval);
+    }
+
     startPolling(interval = 3000) {
         if (this.pollingInterval) return;
         this.load();
-        this.pollingInterval = setInterval(() => this.load(), interval);
+        this.setPollingInterval(interval);
         this.checkDeletedMessages();
         this.deletedCheckInterval = setInterval(() => this.checkDeletedMessages(), 30000);
     }

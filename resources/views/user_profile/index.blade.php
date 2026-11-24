@@ -117,6 +117,12 @@
                     <!-- Basic Information -->
                     <div class="category-block">
                         <div class="section-title">{{ __('user_profile.basic_information') }}</div>
+                        @if ($userProfile->status_text && (!$userProfile->status_expires_at || $userProfile->status_expires_at->isFuture()))
+                            <p class="card-text profile-status-text">
+                                <label>{{ __('user_profile.status_text') }}:</label>
+                                {{ $userProfile->status_emoji }} {{ $userProfile->status_text }}
+                            </p>
+                        @endif
                         <p class="card-text"><label>{{ __('user_profile.role') }}:</label>
                             {{ $userProfile->role ?? __('user_profile.not_specified') }}</p>
                             
@@ -140,6 +146,27 @@
                         <p class="card-text"><label>{{ __('user_profile.languages') }}:</label>
                             {{ $userProfile->languages ?? __('user_profile.not_specified') }}</p>
                     </div>
+
+                    @if ($userProfile->card_position || $userProfile->card_company || $userProfile->card_location || $userProfile->card_about || $userProfile->card_website)
+                        <div class="category-block">
+                            <div class="section-title">{{ __('user_profile.business_card') }}</div>
+                            @if ($userProfile->card_position)
+                                <p class="card-text"><label>{{ __('user_profile.card_position') }}:</label> {{ $userProfile->card_position }}</p>
+                            @endif
+                            @if ($userProfile->card_company)
+                                <p class="card-text"><label>{{ __('user_profile.card_company') }}:</label> {{ $userProfile->card_company }}</p>
+                            @endif
+                            @if ($userProfile->card_location)
+                                <p class="card-text"><label>{{ __('user_profile.card_location') }}:</label> {{ $userProfile->card_location }}</p>
+                            @endif
+                            @if ($userProfile->card_about)
+                                <p class="card-text"><label>{{ __('user_profile.card_about') }}:</label> {{ $userProfile->card_about }}</p>
+                            @endif
+                            @if ($userProfile->card_website)
+                                <p class="card-text"><label>{{ __('user_profile.card_website') }}:</label> <a href="{{ $userProfile->card_website }}" target="_blank" rel="noopener noreferrer" style="color:aqua">{{ $userProfile->card_website }}</a></p>
+                            @endif
+                        </div>
+                    @endif
 
                     <!-- Education and Skills -->
                     <div class="category-block">

@@ -13,6 +13,7 @@ class ChatMemberKey extends Model
         'user_id',
         'encrypted_key',
         'nonce',
+        'sender_public_key',
         
     ];
 

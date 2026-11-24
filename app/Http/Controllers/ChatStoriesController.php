@@ -284,8 +284,8 @@ class ChatStoriesController extends Controller
     }
 
     /**
-     * Stories доступны друзьям с подтверждённой заявкой и прежним собеседникам
-     * личных чатов. Блокировка в любую сторону исключает пользователя.
+     * Stories are shared with accepted contacts and existing direct-chat contacts.
+     * A block in either direction immediately hides existing stories too.
      */
     private function storyContactIds(int $userId)
     {
@@ -301,28 +301,18 @@ class ChatStoriesController extends Controller
         $friendIds = DB::table('chat_contact_requests')
             ->where('status', 'accepted')
             ->where(function ($query) use ($userId) {
-                $query->where('sender_id', $userId)
-                    ->orWhere('recipient_id', $userId);
+                $query->where('sender_id', $userId)->orWhere('recipient_id', $userId);
             })
             ->get(['sender_id', 'recipient_id'])
-            ->map(fn ($row) => (int) ($row->sender_id === $userId ? $row->recipient_id : $row->sender_id));
+            ->map(fn ($row) => (int) ((int) $row->sender_id === $userId ? $row->recipient_id : $row->sender_id));
 
         $blockedIds = DB::table('chat_contact_blocks')
             ->where('user_id', $userId)
             ->pluck('blocked_user_id')
-            ->merge(
-                DB::table('chat_contact_blocks')
-                    ->where('blocked_user_id', $userId)
-                    ->pluck('user_id')
-            )
+            ->merge(DB::table('chat_contact_blocks')->where('blocked_user_id', $userId)->pluck('user_id'))
             ->map(fn ($id) => (int) $id);
 
-        return $personalIds
-            ->merge($friendIds)
-            ->diff($blockedIds)
-            ->push($userId)
-            ->unique()
-            ->values();
+        return $personalIds->merge($friendIds)->diff($blockedIds)->push($userId)->unique()->values();
     }
 
     private function isBlockedBetween(int $firstUserId, int $secondUserId): bool

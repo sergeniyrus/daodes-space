@@ -111,7 +111,9 @@ class UserProfileController extends Controller
                 ->with('error', __('message.profile_not_found'));
         }
 
-        return view('user_profile.index', compact('profile'));
+        $userProfile = $profile;
+
+        return view('user_profile.index', compact('profile', 'userProfile'));
     }
 
     public function updateFullProfile(Request $request)
@@ -137,10 +139,29 @@ class UserProfileController extends Controller
             'specialization' => 'nullable|string',
             'resume' => 'nullable|string',
             'portfolio' => 'nullable|string',
+            'status_text' => 'nullable|string|max:140',
+            'status_emoji' => 'nullable|string|max:16',
+            'status_duration' => 'nullable|in:24,168,0',
+            'card_position' => 'nullable|string|max:120',
+            'card_company' => 'nullable|string|max:120',
+            'card_location' => 'nullable|string|max:120',
+            'card_about' => 'nullable|string|max:1200',
+            'card_website' => 'nullable|url:http,https|max:255',
         ]);
 
         $profile = $user->profile ?? new UserProfile(['user_id' => $user->id]);
         $profile->fill($validated);
+
+        if (array_key_exists('status_text', $validated)) {
+            $statusText = trim((string) ($validated['status_text'] ?? ''));
+            $profile->status_text = $statusText !== '' ? $statusText : null;
+            $profile->status_emoji = $statusText !== '' ? ($validated['status_emoji'] ?? null) : null;
+
+            $statusDuration = (string) ($validated['status_duration'] ?? '24');
+            $profile->status_expires_at = $statusText !== '' && $statusDuration !== '0'
+                ? now()->addHours((int) $statusDuration)
+                : null;
+        }
 
         if ($request->hasFile('filename')) {
             try {
