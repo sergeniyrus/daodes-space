@@ -106,7 +106,7 @@ return [
     'voice_transcribing' => 'Transcribing audio…',
     'voice_transcript_hide' => 'Hide text',
     'voice_transcript_error' => 'Could not transcribe voice message',
-    'voice_transcript_consent' => 'This audio will be sent to OpenAI for transcription. Continue?',
+    'voice_transcript_consent' => 'This audio will be processed locally on DAODES. The transcript will not be saved in the database. Continue?',
     'attach_file' => 'Attach file',
     'media_loading' => 'Loading attachment…',
     'media_error' => 'Could not load attachment',
