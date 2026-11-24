@@ -133,7 +133,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         input.setAttribute('spellcheck', 'true');
         input.setAttribute('lang', document.documentElement.lang || 'ru');
         input.addEventListener('input', resizeComposer);
-        resizeComposer();
+        const storyReplyParams = new URLSearchParams(window.location.search);
+        const storyReplyId = storyReplyParams.get('story_reply');
+        if (storyReplyId && /^\\d+$/.test(storyReplyId)) {
+            const storyAuthor = (storyReplyParams.get('story_author') || 'пользователь').slice(0, 80);
+            input.value = `↪️ Ответ на историю #${storyReplyId} от ${storyAuthor}\n`;
+            input.setSelectionRange(input.value.length, input.value.length);
+            resizeComposer();
+            input.focus({ preventScroll: true });
+        } else {
+            resizeComposer();
+        }
     }
 
     // Right-click on selected text opens formatting actions. When no text
