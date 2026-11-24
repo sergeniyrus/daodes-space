@@ -42,6 +42,66 @@ class MessengerScheduledMessagesTest extends TestCase
         $this->assertDatabaseMissing('chat_scheduled_messages', ['id' => $id]);
     }
 
+    public function test_sender_can_edit_a_pending_scheduled_message(): void
+    {
+        $user = $this->createUser();
+        $chat = Chat::create(['name' => 'Scheduled edit test', 'type' => 'group']);
+        $chat->users()->attach($user->id, ['role' => 'member']);
+
+        $create = $this->actingAs($user)->postJson("/chats/{$chat->id}/scheduled-messages", [
+            'encrypted_message' => base64_encode('first-ciphertext'),
+            'nonce' => base64_encode(str_repeat('a', 24)),
+            'scheduled_for' => now()->addMinutes(10)->toIso8601String(),
+        ])->assertCreated();
+
+        $id = $create->json('scheduled_message.id');
+        $newTime = now()->addMinutes(30)->toIso8601String();
+
+        $this->patchJson("/chats/{$chat->id}/scheduled-messages/{$id}", [
+            'encrypted_message' => base64_encode('updated-ciphertext'),
+            'nonce' => base64_encode(str_repeat('b', 24)),
+            'scheduled_for' => $newTime,
+        ])->assertOk()->assertJsonPath('status', 'success');
+
+        $this->assertDatabaseHas('chat_scheduled_messages', [
+            'id' => $id,
+            'encrypted_message' => base64_encode('updated-ciphertext'),
+            'nonce' => base64_encode(str_repeat('b', 24)),
+            'status' => 'pending',
+            'last_error' => null,
+        ]);
+    }
+
+    public function test_sender_cannot_edit_another_users_scheduled_message(): void
+    {
+        $sender = $this->createUser();
+        $otherUser = $this->createUser();
+        $chat = Chat::create(['name' => 'Scheduled edit access test', 'type' => 'group']);
+        $chat->users()->attach($sender->id, ['role' => 'member']);
+        $chat->users()->attach($otherUser->id, ['role' => 'member']);
+
+        $create = $this->actingAs($sender)->postJson("/chats/{$chat->id}/scheduled-messages", [
+            'encrypted_message' => base64_encode('private-ciphertext'),
+            'nonce' => base64_encode(str_repeat('c', 24)),
+            'scheduled_for' => now()->addMinutes(10)->toIso8601String(),
+        ])->assertCreated();
+
+        $id = $create->json('scheduled_message.id');
+
+        $this->actingAs($otherUser)->patchJson("/chats/{$chat->id}/scheduled-messages/{$id}", [
+            'encrypted_message' => base64_encode('tampered-ciphertext'),
+            'nonce' => base64_encode(str_repeat('d', 24)),
+            'scheduled_for' => now()->addMinutes(40)->toIso8601String(),
+        ])->assertNotFound();
+
+        $this->assertDatabaseHas('chat_scheduled_messages', [
+            'id' => $id,
+            'sender_id' => $sender->id,
+            'encrypted_message' => base64_encode('private-ciphertext'),
+            'status' => 'pending',
+        ]);
+    }
+
     public function test_non_member_cannot_schedule_messages(): void
     {
         $owner = $this->createUser();
