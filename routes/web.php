@@ -31,6 +31,8 @@ use App\Http\Controllers\{
     ChatController,
     ChatLinkPreviewController,
     ChatStoriesController,
+    ChatChannelStoriesController,
+    ChatChannelSettingsController,
     ChatContactsController,
     ChatScheduledMessageController,
     ChatCallController,
