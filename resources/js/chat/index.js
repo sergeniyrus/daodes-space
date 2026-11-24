@@ -30,6 +30,73 @@ document.addEventListener('DOMContentLoaded', async () => {
             },
         });
     }
+    const channelStoriesBar = document.getElementById('channelStoriesBar');
+    if (channelStoriesBar) {
+        initChatStories({
+            userId: config.userId,
+            csrfToken: config.csrfToken,
+            chatId: channelStoriesBar.dataset.chatId,
+            rootId: 'channelStoriesBar',
+            labels: {
+                views: channelStoriesBar.dataset.labelStoryViews,
+                delete: channelStoriesBar.dataset.labelStoryDelete,
+                empty: channelStoriesBar.dataset.labelStoriesEmpty,
+                uploadError: channelStoriesBar.dataset.labelStoryUploadError,
+            },
+        });
+    }
+
+    const channelSettingsForm = document.getElementById('channelSettingsForm');
+    channelSettingsForm?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const status = document.getElementById('channelSettingsStatus');
+        const formData = new FormData(channelSettingsForm);
+        const payload = {};
+        ['allow_admin_photo', 'allow_moderator_photo', 'allow_admin_stories', 'allow_moderator_stories']
+            .forEach(name => payload[name] = formData.has(name));
+        try {
+            const response = await fetch(channelSettingsForm.dataset.url, {
+                method: 'PUT',
+                headers: {
+                    'X-CSRF-TOKEN': config.csrfToken,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Не удалось сохранить права');
+            if (status) status.textContent = 'Права сохранены';
+        } catch (error) {
+            if (status) status.textContent = error.message || 'Ошибка сохранения';
+        }
+    });
+
+    const channelPhotoInput = document.getElementById('channelPhotoInput');
+    channelPhotoInput?.addEventListener('change', async () => {
+        const file = channelPhotoInput.files?.[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('photo', file);
+        try {
+            const response = await fetch(`/chats/${config.chatId}/channel-photo`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': config.csrfToken, Accept: 'application/json' },
+                credentials: 'same-origin',
+                body: formData,
+            });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Не удалось изменить фотографию');
+            const avatar = document.getElementById('channelHeaderPhoto');
+            if (avatar) avatar.src = data.photo_url;
+        } catch (error) {
+            window.alert(error.message || 'Ошибка загрузки фотографии');
+        } finally {
+            channelPhotoInput.value = '';
+        }
+    });
+
     const crypto = new ChatCrypto(null);
     const ui = new ChatUI(config);
     const sender = new MessageSender(config, ui, crypto);
