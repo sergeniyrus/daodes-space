@@ -596,6 +596,109 @@
     white-space: nowrap;
 }
 
+
+.chat-stories-bar {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    overflow-x: auto;
+    margin: 18px 0 28px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 215, 0, .24);
+    border-left: 3px solid #00e5ff;
+    border-radius: 13px;
+    background: linear-gradient(110deg, rgba(0,229,255,.045), rgba(255,215,0,.035));
+}
+.chat-story-add, .chat-story-card {
+    display: flex;
+    flex: 0 0 76px;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    color: #dbe4f0;
+    background: transparent;
+    font-size: .72rem;
+    cursor: pointer;
+}
+.chat-story-add-avatar, .chat-story-avatar {
+    display: grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    overflow: hidden;
+    border: 2px solid #00e5ff;
+    border-radius: 50%;
+    color: #ffd700;
+    background: #111827;
+    font-size: 1.55rem;
+    object-fit: cover;
+}
+.chat-story-card.unviewed .chat-story-avatar {
+    border: 3px solid transparent;
+    background:
+        linear-gradient(#111827,#111827) padding-box,
+        linear-gradient(135deg,#00e5ff,#ffd700) border-box;
+}
+.chat-story-card.viewed .chat-story-avatar { border-color: #64748b; opacity: .75; }
+.chat-story-name { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-story-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 100100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 12px 18px;
+    background: rgba(0,0,0,.96);
+}
+.chat-story-viewer[hidden] { display: none; }
+.chat-story-viewer-content {
+    max-width: min(94vw, 620px);
+    max-height: calc(100vh - 90px);
+    object-fit: contain;
+    border: 1px solid rgba(0,229,255,.35);
+    border-radius: 12px;
+}
+.chat-story-viewer-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(255,215,0,.5);
+    border-radius: 50%;
+    color: #ffd700;
+    background: #111827;
+    font-size: 28px;
+}
+.chat-story-viewer-info {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    color: #fff;
+    font-weight: 700;
+}
+.chat-story-viewer-actions {
+    position: absolute;
+    right: 16px;
+    bottom: 14px;
+    display: flex;
+    gap: 8px;
+}
+.chat-story-viewer-actions button {
+    padding: 8px 12px;
+    border: 1px solid rgba(0,229,255,.45);
+    border-radius: 8px;
+    color: #00e5ff;
+    background: rgba(12,18,30,.9);
+}
+@media (max-width: 600px) {
+    .chat-stories-bar { margin: 12px -8px 22px; border-radius: 0; }
+    .chat-story-viewer-content { max-width: 100%; max-height: calc(100vh - 80px); }
+}
+
 </style>
 
 
@@ -608,6 +711,17 @@
         <h1 class="big text-center chats-page-title">
             DESChat
         </h1>
+
+        <section class="chat-stories-bar" id="chatStoriesBar"
+                 data-user-id="{{ auth()->id() }}"
+                 data-csrf="{{ csrf_token() }}">
+            <button type="button" class="chat-story-add" id="addChatStoryBtn">
+                <span class="chat-story-add-avatar">＋</span>
+                <span>{{ __('chats.add_story') }}</span>
+            </button>
+            <div class="chat-stories-list" id="chatStoriesList" aria-live="polite"></div>
+            <input type="file" id="chatStoryFileInput" accept="image/*,video/*" hidden>
+        </section>
 
 
         {{-- =====================================================
