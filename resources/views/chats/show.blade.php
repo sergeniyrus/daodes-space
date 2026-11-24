@@ -112,6 +112,27 @@
    ЗАГОЛОВОК
    ========================================================= */
 
+.chat-person-heading {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+}
+.chat-header-avatar {
+    width: 54px;
+    height: 54px;
+    flex: 0 0 54px;
+    object-fit: cover;
+    border: 2px solid #00e5ff;
+    border-radius: 50%;
+    box-shadow: 0 0 16px rgba(0, 229, 255, .22);
+}
+.chat-person-heading-info { min-width: 0; }
+.chat-person-heading-info .chat-title,
+.chat-person-heading-info .chat-status { margin-top: 0; margin-bottom: 3px; }
+@media (max-width: 600px) {
+    .chat-header-avatar { width: 44px; height: 44px; flex-basis: 44px; }
+}
 .chat-header {
     text-align: center;
 
@@ -1614,11 +1635,16 @@ body.chat-media-viewer-open { overflow: hidden; }
 
         @if ($chat->type === 'personal' && $otherUser)
 
-            <h2 class="chat-title">
-                {{ $otherUser->name }}
-            </h2>
+            <div class="chat-person-heading">
+                <img
+                    class="chat-header-avatar"
+                    src="{{ $otherUser->profile?->avatar_url ?: '/img/main/default-avatar.png' }}"
+                    alt=""
+                >
+                <div class="chat-person-heading-info">
+                    <h2 class="chat-title">{{ $otherUser->name }}</h2>
 
-            <p class="chat-status">
+                    <p class="chat-status">
 
                 @if ($otherUser->isOnline())
 
@@ -1634,7 +1660,9 @@ body.chat-media-viewer-open { overflow: hidden; }
 
                 @endif
 
-            </p>
+                    </p>
+                </div>
+            </div>
 
         @else
 
