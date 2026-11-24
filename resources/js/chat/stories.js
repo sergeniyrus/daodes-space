@@ -8,11 +8,14 @@ function u8ToB64(value) {
     return btoa(String.fromCharCode(...value));
 }
 
-export function initChatStories({ userId, csrfToken, labels = {} }) {
-    const addButton = document.getElementById('addChatStoryBtn');
-    const fileInput = document.getElementById('chatStoryFileInput');
-    const list = document.getElementById('chatStoriesList');
-    if (!addButton || !fileInput || !list) return;
+export function initChatStories({ userId, csrfToken, labels = {}, chatId = null, rootId = 'chatStoriesBar' }) {
+    const root = document.getElementById(rootId);
+    if (!root) return;
+    const addButton = root.querySelector('button.chat-story-add');
+    const fileInput = root.querySelector('input[type="file"]');
+    const list = root.querySelector('.chat-stories-list');
+    if (!list) return;
+    const endpoint = chatId ? `/chats/${chatId}/stories` : '/stories';
 
     const privateKeyValue = localStorage.getItem(`userPrivateKey_${userId}`);
     const privateKey = privateKeyValue ? b64ToU8(privateKeyValue) : null;
@@ -28,7 +31,7 @@ export function initChatStories({ userId, csrfToken, labels = {} }) {
     };
 
     async function loadStories() {
-        const response = await fetch('/stories', {
+        const response = await fetch(endpoint, {
             headers: { Accept: 'application/json' },
             credentials: 'same-origin',
         });
@@ -78,7 +81,7 @@ export function initChatStories({ userId, csrfToken, labels = {} }) {
             : file.type.startsWith('video/') ? 'video' : null;
         if (!mediaType) throw new Error('Можно публиковать только изображения и видео');
 
-        const contactsResponse = await fetch('/stories/contacts', {
+        const contactsResponse = await fetch(`${endpoint}/contacts`, {
             headers: { Accept: 'application/json' },
             credentials: 'same-origin',
         });
@@ -130,7 +133,7 @@ export function initChatStories({ userId, csrfToken, labels = {} }) {
             form.append(`keys[${index}][nonce]`, item.nonce);
         });
 
-        const response = await fetch('/stories', {
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: requestHeaders,
             credentials: 'same-origin',
@@ -181,11 +184,11 @@ export function initChatStories({ userId, csrfToken, labels = {} }) {
 
         try {
             const [keyResponse, mediaResponse] = await Promise.all([
-                fetch(`/stories/${story.id}/key`, {
+                fetch(`${endpoint}/${story.id}/key`, {
                     headers: { Accept: 'application/json' },
                     credentials: 'same-origin',
                 }),
-                fetch(`/stories/${story.id}/media`, {
+                fetch(`${endpoint}/${story.id}/media`, {
                     headers: { Accept: 'application/octet-stream' },
                     credentials: 'same-origin',
                 }),
@@ -223,14 +226,14 @@ export function initChatStories({ userId, csrfToken, labels = {} }) {
             viewer.appendChild(media);
 
             if (!story.is_own) {
-                await fetch(`/stories/${story.id}/view`, {
+                await fetch(`${endpoint}/${story.id}/view`, {
                     method: 'POST',
                     headers: requestHeaders,
                     credentials: 'same-origin',
                 });
             }
 
-            if (story.is_own) {
+            if (story.is_own || story.can_manage) {
                 const actions = document.createElement('div');
                 actions.className = 'chat-story-viewer-actions';
 
@@ -238,7 +241,7 @@ export function initChatStories({ userId, csrfToken, labels = {} }) {
                 viewsButton.type = 'button';
                 viewsButton.textContent = labels.views || 'Views';
                 viewsButton.addEventListener('click', async () => {
-                    const response = await fetch(`/stories/${story.id}/views`, {
+                    const response = await fetch(`${endpoint}/${story.id}/views`, {
                         headers: { Accept: 'application/json' },
                         credentials: 'same-origin',
                     });
@@ -251,7 +254,7 @@ export function initChatStories({ userId, csrfToken, labels = {} }) {
                 deleteButton.type = 'button';
                 deleteButton.textContent = labels.delete || 'Delete';
                 deleteButton.addEventListener('click', async () => {
-                    const response = await fetch(`/stories/${story.id}`, {
+                    const response = await fetch(`${endpoint}/${story.id}`, {
                         method: 'DELETE',
                         headers: requestHeaders,
                         credentials: 'same-origin',
@@ -271,8 +274,8 @@ export function initChatStories({ userId, csrfToken, labels = {} }) {
         }
     }
 
-    addButton.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', async () => {
+    if (addButton && fileInput) addButton.addEventListener('click', () => fileInput.click());
+    if (fileInput && addButton) fileInput.addEventListener('change', async () => {
         const file = fileInput.files?.[0];
         if (!file) return;
         addButton.disabled = true;
