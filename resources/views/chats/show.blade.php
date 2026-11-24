@@ -1682,6 +1682,90 @@ body.chat-media-viewer-open { overflow: hidden; }
 }
 .telegram-sidebar-heading span { color: #00e5ff; font-size: .72rem; letter-spacing: .14em; }
 .telegram-sidebar-heading a { color: #00e5ff; text-decoration: none; font-size: 1.25rem; }
+.telegram-sidebar-stories .chat-story-add,
+.telegram-sidebar-stories .chat-story-card {
+    display: flex;
+    flex: 0 0 58px;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    border: 0;
+    color: #dbe4f0;
+    background: transparent;
+    font-size: .62rem;
+    cursor: pointer;
+}
+.telegram-sidebar-stories .chat-story-add-avatar,
+.telegram-sidebar-stories .chat-story-avatar {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    object-fit: cover;
+    overflow: hidden;
+    border: 2px solid #00e5ff;
+    border-radius: 50%;
+    color: #ffd700;
+    background: #111827;
+}
+.telegram-sidebar-stories .chat-story-card.unviewed .chat-story-avatar {
+    border: 3px solid transparent;
+    background: linear-gradient(#111827,#111827) padding-box, linear-gradient(135deg,#00e5ff,#ffd700) border-box;
+}
+.telegram-sidebar-stories .chat-story-card.viewed .chat-story-avatar { border-color: #64748b; opacity: .75; }
+.telegram-sidebar-stories .chat-story-name { max-width: 58px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-story-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 100100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 12px 18px;
+    background: rgba(0,0,0,.96);
+}
+.chat-story-viewer[hidden] { display: none; }
+.chat-story-viewer-content {
+    max-width: min(94vw, 620px);
+    max-height: calc(100vh - 90px);
+    object-fit: contain;
+    border: 1px solid rgba(0,229,255,.35);
+    border-radius: 12px;
+}
+.chat-story-viewer-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(255,215,0,.5);
+    border-radius: 50%;
+    color: #ffd700;
+    background: #111827;
+    font-size: 28px;
+}
+.chat-story-viewer-info {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    color: #fff;
+    font-weight: 700;
+}
+.chat-story-viewer-actions {
+    position: absolute;
+    right: 16px;
+    bottom: 14px;
+    display: flex;
+    gap: 8px;
+}
+.chat-story-viewer-actions button {
+    padding: 8px 12px;
+    border: 1px solid rgba(0,229,255,.45);
+    border-radius: 8px;
+    color: #00e5ff;
+    background: rgba(12,18,30,.9);
+}
 .telegram-sidebar-stories {
     display: flex;
     align-items: flex-start;
