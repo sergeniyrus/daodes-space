@@ -1,3 +1,4 @@
+import { initChatStories } from './stories.js';
 import nacl from 'tweetnacl';
 window.nacl = nacl;
 
@@ -11,6 +12,21 @@ import { connectChatRealtime } from './realtime.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const config = loadChatConfig();
+
+    const storiesBar = document.getElementById('chatStoriesBar');
+    if (storiesBar) {
+        initChatStories({
+            userId: config.userId,
+            csrfToken: config.csrfToken,
+            labels: {
+                myStory: storiesBar.dataset.labelMyStory,
+                views: storiesBar.dataset.labelStoryViews,
+                delete: storiesBar.dataset.labelStoryDelete,
+                empty: storiesBar.dataset.labelStoriesEmpty,
+                uploadError: storiesBar.dataset.labelStoryUploadError,
+            },
+        });
+    }
     const crypto = new ChatCrypto(null);
     const ui = new ChatUI(config);
     const sender = new MessageSender(config, ui, crypto);
