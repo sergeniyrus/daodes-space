@@ -15,6 +15,14 @@ class MessengerStoriesTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['cache.default' => 'array']);
+        $this->withoutMiddleware(\\Illuminate\\Routing\\Middleware\\ThrottleRequests::class);
+    }
+
     public function test_story_is_shared_only_with_direct_contacts_that_have_key_envelopes(): void
     {
         [$owner, $contact, $outsider, $storyId] = $this->createStoryWithContact();
