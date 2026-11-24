@@ -99,6 +99,7 @@ class MessengerPollsTest extends TestCase
             'message_id' => $message->id,
             'is_anonymous' => $anonymous,
             'allows_multiple' => $multiple,
+            'option_count' => 2,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
