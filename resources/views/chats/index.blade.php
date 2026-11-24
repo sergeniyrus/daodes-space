@@ -714,7 +714,12 @@
 
         <section class="chat-stories-bar" id="chatStoriesBar"
                  data-user-id="{{ auth()->id() }}"
-                 data-csrf="{{ csrf_token() }}">
+                 data-csrf="{{ csrf_token() }}"
+                 data-label-my-story="{{ __('chats.my_story') }}"
+                 data-label-story-views="{{ __('chats.story_views') }}"
+                 data-label-story-delete="{{ __('chats.story_delete') }}"
+                 data-label-stories-empty="{{ __('chats.stories_empty') }}"
+                 data-label-story-upload-error="{{ __('chats.story_upload_error') }}">
             <button type="button" class="chat-story-add" id="addChatStoryBtn">
                 <span class="chat-story-add-avatar">＋</span>
                 <span>{{ __('chats.add_story') }}</span>
