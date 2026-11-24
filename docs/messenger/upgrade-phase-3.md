@@ -25,11 +25,12 @@ This phase builds on the contacts/navigation work already included in the parent
 - One-to-one personal chats can start audio or video calls.
 - WebRTC media is peer-to-peer; the application server relays only signaling records.
 - SDP and ICE signaling payloads are encrypted in the browser with the chat key before storage.
-- Call signaling is restricted to the two participants in the personal chat.
+- Call signaling is restricted to the two participants in the personal chat; a chat-level row lock prevents simultaneous duplicate calls.
 - Calls are rejected when a contact block exists between the participants.
-- A public STUN server is configured for initial connectivity tests.
+- In-call controls include microphone mute, camera toggle and screen sharing for video calls.
+- STUN/TURN servers are configurable. The backend can issue short-lived coturn REST credentials using `CHAT_TURN_SECRET`; the shared secret is never sent to the browser.
 
-Production networking note: STUN alone cannot connect every NAT/firewall combination. For reliable production calls, deploy a TURN server (for example coturn) and issue short-lived TURN credentials from the backend. Until TURN is configured and tested, some users may be unable to connect even when both browsers have camera/microphone permission. Group calls and screen sharing are not part of this phase.
+Production networking note: the default public STUN server is only a connectivity fallback. For reliable production calls, deploy and test coturn, then configure `CHAT_TURN_URLS` and `CHAT_TURN_SECRET` in the server environment. Example URLs are `turn:turn.daodes.space:3478?transport=udp` and `turns:turn.daodes.space:5349?transport=tcp`. Set `CHAT_STUN_URLS` and `CHAT_TURN_TTL` as needed. The coturn `static-auth-secret` must match `CHAT_TURN_SECRET`. Until TURN is configured and tested, some users may be unable to connect behind restrictive NAT/firewalls. Group calls are not part of this phase.
 
 ### Scheduled meetings
 - Create encrypted meeting invitations with title and optional description.
@@ -57,6 +58,6 @@ All migrations are additive. Never use migrate:fresh, migrate:refresh or product
 6. Ensure php artisan schedule:run is invoked every minute by cron. The scheduler delivers due messages and runs expired-story cleanup.
 7. Verify the Supervisor queue worker and Reverb processes.
 8. Test contact requests, blocked-user story access, scheduled message delivery/cancellation, call signaling and meeting invitations on desktop and mobile.
-9. Configure and test TURN before announcing calling as universally available.
+9. Configure `CHAT_TURN_URLS`, `CHAT_TURN_SECRET`, `CHAT_STUN_URLS` and `CHAT_TURN_TTL` after deploying coturn; test calls from separate networks before announcing calling as universally available.
 
 No production merge or deployment is performed by this phase branch.
