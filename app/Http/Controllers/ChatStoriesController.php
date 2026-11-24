@@ -304,7 +304,7 @@ class ChatStoriesController extends Controller
                 $query->where('sender_id', $userId)->orWhere('recipient_id', $userId);
             })
             ->get(['sender_id', 'recipient_id'])
-            ->map(fn ($row) => (int) ($row->sender_id === $userId ? $row->recipient_id : $row->sender_id));
+            ->map(fn ($row) => (int) ((int) $row->sender_id === $userId ? $row->recipient_id : $row->sender_id));
 
         $blockedIds = DB::table('chat_contact_blocks')
             ->where('user_id', $userId)
