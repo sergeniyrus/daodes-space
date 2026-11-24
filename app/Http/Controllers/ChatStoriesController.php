@@ -279,14 +279,23 @@ class ChatStoriesController extends Controller
         return response()->json($views);
     }
 
-    public function destroy(int $story)
+    public function destroy(int $story, IPFSService $ipfs)
     {
-        $deleted = DB::table('chat_stories')
+        $storyRecord = DB::table('chat_stories')
             ->where('id', $story)
             ->where('user_id', Auth::id())
-            ->delete();
+            ->first();
 
-        abort_unless($deleted, 404);
+        abort_unless($storyRecord, 404);
+
+        try {
+            $ipfs->unpinFile($storyRecord->ipfs_cid);
+        } catch (\\Throwable $exception) {
+            report($exception);
+            return response()->json(['status' => 'error', 'message' => 'Could not remove story from IPFS'], 503);
+        }
+
+        DB::table('chat_stories')->where('id', $story)->delete();
 
         return response()->json(['status' => 'success']);
     }
