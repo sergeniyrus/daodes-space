@@ -37,7 +37,7 @@ class Chat extends Model
 public function getChatNameForUser($userId)
 {
     // Если это групповой чат, возвращаем общее название
-    if (in_array($this->type, ['group', 'channel'], true)) {
+    if (in_array($this->type, ['group', 'channel', 'saved'], true)) {
         return $this->name;
     }
 
