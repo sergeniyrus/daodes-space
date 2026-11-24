@@ -188,5 +188,5 @@ Schedule::call(function () {
             report($broadcastException);
         }
     }
-})->name('deliver-scheduled-chat-messages')->everyMinute()->withoutOverlapping();
+})->name('deliver-scheduled-chat-messages')->everyMinute()->withoutOverlapping(5);
 
