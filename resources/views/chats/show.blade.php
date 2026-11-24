@@ -2629,6 +2629,31 @@ body.chat-page .telegram-chat-layout .chat-container {
 }
 .edit-reply-quote:hover { color:#0b0c18; background:#00e5ff; }
 
+
+/* Меню действий не вытягивается длинной колонкой: две компактные колонки */
+.composer-tools-menu {
+    width: min(420px, calc(100vw - 24px));
+    max-height: min(72dvh, 520px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-y: auto;
+}
+.composer-tools-menu .composer-tool-btn {
+    min-width: 0;
+    min-height: 38px;
+    gap: 7px;
+    padding: 7px 8px;
+    font-size: .78rem;
+}
+.composer-tools-menu .composer-tool-btn > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.composer-tools-menu .chat-call-push-settings { grid-column: 1 / -1; }
+@media (max-width: 420px) {
+    .composer-tools-menu { width: min(340px, calc(100vw - 16px)); gap: 4px; padding: 6px; }
+    .composer-tools-menu .composer-tool-btn { font-size: .72rem; padding: 6px; }
+}
+
 </style>
 
 
