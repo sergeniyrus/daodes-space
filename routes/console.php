@@ -12,3 +12,26 @@ Artisan::command('inspire', function () {
 // Artisan::command('offers:process', function () {
 //     $this->call('offers:process');
 // })->describe('Process offers based on voting results every minute');
+
+
+// Автоматически удаляем истёкшие истории и снимаем pin с их зашифрованных файлов.
+Schedule::call(function () {
+    $expiredStories = DB::table('chat_stories')
+        ->where('expires_at', '<=', now())
+        ->get(['id', 'ipfs_cid']);
+
+    if ($expiredStories->isEmpty()) {
+        return;
+    }
+
+    $ipfs = app(IPFSService::class);
+
+    foreach ($expiredStories as $story) {
+        try {
+            $ipfs->unpinFile($story->ipfs_cid);
+            DB::table('chat_stories')->where('id', $story->id)->delete();
+        } catch (\\Throwable $exception) {
+            report($exception);
+        }
+    }
+})->hourly()->withoutOverlapping();
