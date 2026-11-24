@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const selectedText = input.value.slice(start, end).trim();
             // Single-word selections are commonly selected by the browser's
             // spell checker. Keep its native correction menu intact.
-            if (!selectedText || !/[\\s]/.test(selectedText)) {
+            if (!selectedText || !/[\s]/.test(selectedText)) {
                 hideSelectionMenu();
                 return;
             }
