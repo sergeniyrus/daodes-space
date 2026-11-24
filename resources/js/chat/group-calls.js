@@ -87,7 +87,7 @@ export function initGroupCalls(config, crypto) {
         if (track.kind === Track.Kind.Video) {
             track.attach(video);
             video.hidden = false;
-        } else if (track.kind === Track.Kind.Audio) {
+        } else if (track.kind === Track.Kind.Audio && !isLocal) {
             const audio = track.attach();
             audio.autoplay = true;
             audio.dataset.groupCallAudio = key;
@@ -222,7 +222,8 @@ export function initGroupCalls(config, crypto) {
         await room.setE2EEEnabled(true);
         await room.connect(tokenData.server_url, tokenData.token);
 
-        micEnabled = await room.localParticipant.setMicrophoneEnabled(true);
+        await room.localParticipant.setMicrophoneEnabled(true);
+        micEnabled = true;
         cameraEnabled = false;
         screenEnabled = false;
         updateButtons();
@@ -238,14 +239,7 @@ export function initGroupCalls(config, crypto) {
         } catch (error) {
             console.error('[GroupCall] Connection failed:', error);
             setStatus(error.message || 'Не удалось подключиться к звонку');
-            if (!room) {
-                modal.hidden = true;
-                document.body.style.overflow = '';
-                if (e2eeWorker) {
-                    e2eeWorker.terminate();
-                    e2eeWorker = null;
-                }
-            }
+            await cleanup();
             window.alert(error.message || 'Не удалось подключиться к групповому звонку');
         }
     });
@@ -253,8 +247,9 @@ export function initGroupCalls(config, crypto) {
     micButton.addEventListener('click', async () => {
         if (!room) return;
         try {
-            micEnabled = !micEnabled;
-            await room.localParticipant.setMicrophoneEnabled(micEnabled);
+            const nextEnabled = !micEnabled;
+            await room.localParticipant.setMicrophoneEnabled(nextEnabled);
+            micEnabled = nextEnabled;
             updateButtons();
         } catch (error) {
             micEnabled = !micEnabled;
@@ -266,8 +261,9 @@ export function initGroupCalls(config, crypto) {
     cameraButton.addEventListener('click', async () => {
         if (!room) return;
         try {
-            cameraEnabled = !cameraEnabled;
-            await room.localParticipant.setCameraEnabled(cameraEnabled);
+            const nextEnabled = !cameraEnabled;
+            await room.localParticipant.setCameraEnabled(nextEnabled);
+            cameraEnabled = nextEnabled;
             updateButtons();
         } catch (error) {
             cameraEnabled = !cameraEnabled;
@@ -279,8 +275,9 @@ export function initGroupCalls(config, crypto) {
     screenButton.addEventListener('click', async () => {
         if (!room) return;
         try {
-            screenEnabled = !screenEnabled;
-            await room.localParticipant.setScreenShareEnabled(screenEnabled);
+            const nextEnabled = !screenEnabled;
+            await room.localParticipant.setScreenShareEnabled(nextEnabled);
+            screenEnabled = nextEnabled;
             updateButtons();
         } catch (error) {
             screenEnabled = !screenEnabled;
