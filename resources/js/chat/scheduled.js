@@ -14,6 +14,13 @@ export function initScheduledMessages(config, crypto) {
         return btoa(binary);
     };
 
+    const decrypt = (cipherText, nonceText) => {
+        const nonce = new Uint8Array(atob(nonceText).split('').map(char => char.charCodeAt(0)));
+        const cipher = new Uint8Array(atob(cipherText).split('').map(char => char.charCodeAt(0)));
+        const plain = window.nacl.secretbox.open(cipher, nonce, crypto.chatKey);
+        return plain ? new TextDecoder().decode(plain) : 'Не удалось расшифровать';
+    };
+
     const setDefaultDate = () => {
         const date = new Date(Date.now() + 5 * 60 * 1000);
         date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
@@ -43,11 +50,13 @@ export function initScheduledMessages(config, crypto) {
             row.className = 'scheduled-message-row';
 
             const details = document.createElement('div');
-            const date = document.createElement('strong');
+            const preview = document.createElement('strong');
+            preview.textContent = decrypt(item.encrypted_message, item.nonce).slice(0, 120);
+            const date = document.createElement('small');
             date.textContent = new Date(item.scheduled_for).toLocaleString();
             const status = document.createElement('small');
             status.textContent = item.status === 'failed' ? 'Ошибка отправки' : 'Ожидает отправки';
-            details.append(date, status);
+            details.append(preview, date, status);
 
             const cancel = document.createElement('button');
             cancel.type = 'button';
