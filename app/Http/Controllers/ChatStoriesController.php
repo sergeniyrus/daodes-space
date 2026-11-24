@@ -260,6 +260,42 @@ class ChatStoriesController extends Controller
         return response()->json(['status' => 'success']);
     }
 
+    public function toggleReaction(Request $request, int $story)
+    {
+        $validated = $request->validate([
+            'reaction' => 'required|string|in:❤️,🔥,😂,😮,👏,😢',
+        ]);
+
+        $record = DB::table('chat_stories')
+            ->where('id', $story)
+            ->where('expires_at', '>', now())
+            ->first();
+        abort_unless($record, 404);
+        abort_unless(DB::table('chat_story_keys')
+            ->where('story_id', $story)
+            ->where('user_id', Auth::id())
+            ->exists(), 404);
+        abort_if($this->isBlockedBetween((int) $record->user_id, (int) Auth::id()), 404);
+
+        $existing = DB::table('chat_story_reactions')
+            ->where('story_id', $story)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if ($existing && $existing->reaction === $validated['reaction']) {
+            DB::table('chat_story_reactions')->where('id', $existing->id)->delete();
+            $active = false;
+        } else {
+            DB::table('chat_story_reactions')->updateOrInsert(
+                ['story_id' => $story, 'user_id' => Auth::id()],
+                ['reaction' => $validated['reaction'], 'created_at' => now(), 'updated_at' => now()]
+            );
+            $active = true;
+        }
+
+        return response()->json(['status' => 'success', 'active' => $active, 'reaction' => $active ? $validated['reaction'] : null]);
+    }
+
     public function views(int $story)
     {
         $storyRecord = DB::table('chat_stories')
