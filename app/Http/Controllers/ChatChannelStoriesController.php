@@ -261,6 +261,32 @@ class ChatChannelStoriesController extends Controller
         return response()->json(['status' => 'success']);
     }
 
+    public function toggleReaction(Request $request, Chat $chat, int $story)
+    {
+        $record = $this->accessibleStory($chat, $story);
+        $validated = $request->validate([
+            'reaction' => 'required|string|in:❤️,🔥,😂,😮,👏,😢',
+        ]);
+
+        $existing = DB::table('chat_channel_story_reactions')
+            ->where('story_id', $record->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if ($existing && $existing->reaction === $validated['reaction']) {
+            DB::table('chat_channel_story_reactions')->where('id', $existing->id)->delete();
+            $active = false;
+        } else {
+            DB::table('chat_channel_story_reactions')->updateOrInsert(
+                ['story_id' => $record->id, 'user_id' => Auth::id()],
+                ['reaction' => $validated['reaction'], 'created_at' => now(), 'updated_at' => now()]
+            );
+            $active = true;
+        }
+
+        return response()->json(['status' => 'success', 'active' => $active, 'reaction' => $active ? $validated['reaction'] : null]);
+    }
+
     public function views(Chat $chat, int $story)
     {
         $record = DB::table('chat_channel_stories')
