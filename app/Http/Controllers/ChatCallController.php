@@ -222,6 +222,26 @@ class ChatCallController extends Controller
                 ->exists(),
             403
         );
+
+        if (Schema::hasTable('chat_contact_blocks')) {
+            $otherUserId = (int) DB::table('chat_user')
+                ->where('chat_id', $chat->id)
+                ->where('user_id', '!=', Auth::id())
+                ->value('user_id');
+
+            if ($otherUserId > 0) {
+                $blocked = DB::table('chat_contact_blocks')
+                    ->where(function ($query) use ($otherUserId) {
+                        $query->where('user_id', Auth::id())->where('blocked_user_id', $otherUserId);
+                    })
+                    ->orWhere(function ($query) use ($otherUserId) {
+                        $query->where('user_id', $otherUserId)->where('blocked_user_id', Auth::id());
+                    })
+                    ->exists();
+
+                abort_if($blocked, 403);
+            }
+        }
     }
 
     private function ensureCallParticipant(int $callId): object
