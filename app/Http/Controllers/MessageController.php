@@ -851,7 +851,7 @@ class MessageController extends Controller
             return $poll->is_anonymous
                 ? hash_equals((string) $vote->voter_hash, hash_hmac('sha256', $poll->id . ':' . Auth::id(), (string) config('app.key')))
                 : (int) $vote->user_id === (int) Auth::id();
-        })->pluck('option_id')->map(fn($id) => (int) $id)->values();
+        })->pluck('option_id')->map(fn($id) => (int) $id)->sort()->values();
 
         $voters = [];
         if (!$poll->is_anonymous) {
