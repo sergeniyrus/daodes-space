@@ -33,6 +33,7 @@ use App\Http\Controllers\{
     ChatStoriesController,
     ChatContactsController,
     ChatScheduledMessageController,
+    ChatCallController,
     LanguageController,
     CaptchaController,
     NotificationController,
@@ -588,6 +589,16 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:20,1')->name('chats.scheduledMessages.store');
     Route::delete('/chats/{chat}/scheduled-messages/{scheduledMessage}', [ChatScheduledMessageController::class, 'destroy'])
         ->middleware('throttle:30,1')->name('chats.scheduledMessages.destroy');
+
+    // WebRTC signaling: SDP и ICE передаются только в зашифрованном виде.
+    Route::get('/chats/{chat}/calls/active', [ChatCallController::class, 'active'])
+        ->middleware('throttle:60,1')->name('chats.calls.active');
+    Route::post('/chats/{chat}/calls', [ChatCallController::class, 'start'])
+        ->middleware('throttle:10,1')->name('chats.calls.start');
+    Route::get('/calls/{call}/signals', [ChatCallController::class, 'signals'])
+        ->middleware('throttle:120,1')->name('chats.calls.signals');
+    Route::post('/calls/{call}/signals', [ChatCallController::class, 'signal'])
+        ->middleware('throttle:120,1')->name('chats.calls.signal');
 
     Route::get(
         '/chat/link-preview',
