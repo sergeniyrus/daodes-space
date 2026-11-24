@@ -62,6 +62,7 @@ class ChatChannelSettingsController extends Controller
 
     public function photo(Request $request, Chat $chat, IPFSService $ipfs)
     {
+        abort_unless($chat->type === 'channel', 404);
         abort_unless($this->canChangePhoto($chat), 403);
 
         $validated = $request->validate([
