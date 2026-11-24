@@ -329,6 +329,11 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
 
             const activeTrack = progress.children[sequenceIndex]?.querySelector('i');
             if (envelope.media_type === 'video') {
+                media.addEventListener('timeupdate', () => {
+                    if (activeTrack && Number.isFinite(media.duration) && media.duration > 0) {
+                        activeTrack.style.width = Math.min(100, (media.currentTime / media.duration) * 100) + '%';
+                    }
+                });
                 media.addEventListener('ended', () => next.click(), { once: true });
             } else {
                 const startedAt = Date.now();
