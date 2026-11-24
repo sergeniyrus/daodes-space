@@ -32,6 +32,7 @@ use App\Http\Controllers\{
     ChatLinkPreviewController,
     ChatStoriesController,
     ChatContactsController,
+    ChatScheduledMessageController,
     LanguageController,
     CaptchaController,
     NotificationController,
@@ -579,6 +580,14 @@ Route::middleware('auth')->group(function () {
     Route::delete('/contacts/{user}', [ChatContactsController::class, 'destroy'])->name('contacts.destroy');
     Route::post('/contacts/{user}/block', [ChatContactsController::class, 'block'])->name('contacts.block');
     Route::delete('/contacts/{user}/block', [ChatContactsController::class, 'unblock'])->name('contacts.unblock');
+
+    // Отложенные зашифрованные сообщения.
+    Route::get('/chats/{chat}/scheduled-messages', [ChatScheduledMessageController::class, 'index'])
+        ->middleware('throttle:60,1')->name('chats.scheduledMessages.index');
+    Route::post('/chats/{chat}/scheduled-messages', [ChatScheduledMessageController::class, 'store'])
+        ->middleware('throttle:20,1')->name('chats.scheduledMessages.store');
+    Route::delete('/chats/{chat}/scheduled-messages/{scheduledMessage}', [ChatScheduledMessageController::class, 'destroy'])
+        ->middleware('throttle:30,1')->name('chats.scheduledMessages.destroy');
 
     Route::get(
         '/chat/link-preview',
