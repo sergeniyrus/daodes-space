@@ -71,7 +71,7 @@ export class MessagePoller {
                     this.crypto
                 );
 
-            const isAttachment = ['media', 'file'].includes(messageType)
+            const isAttachment = ['media', 'file', 'video_note'].includes(messageType)
                 && renderEncryptedAttachment(
                     el,
                     txt,
