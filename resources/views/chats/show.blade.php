@@ -112,6 +112,33 @@
    ЗАГОЛОВОК
    ========================================================= */
 
+
+.chat-message-search { display: flex; align-items: center; gap: 7px; margin-top: 10px; }
+.chat-message-search > button {
+    min-width: 34px;
+    min-height: 34px;
+    border: 1px solid rgba(0,229,255,.35);
+    border-radius: 8px;
+    color: #00e5ff;
+    background: rgba(0,229,255,.05);
+}
+#messageSearchPanel { display: flex; align-items: center; gap: 6px; }
+#messageSearchPanel[hidden] { display: none; }
+#chatMessageSearchInput {
+    width: min(260px, 45vw);
+    padding: 7px 9px;
+    border: 1px solid rgba(0,229,255,.35);
+    border-radius: 8px;
+    color: #fff;
+    background: #090f1b;
+}
+#chatMessageSearchCount { color: #ffd700; font-size: .75rem; }
+#clearMessageSearch {
+    border: 1px solid rgba(255,215,0,.35);
+    border-radius: 7px;
+    color: #ffd700;
+    background: rgba(255,215,0,.05);
+}
 .chat-person-heading {
     display: flex;
     align-items: center;
@@ -2054,6 +2081,22 @@ body.chat-media-viewer-open { overflow: hidden; }
             </span>
         </div>
 
+        <div class="chat-message-search">
+            <button type="button" id="toggleMessageSearch" title="{{ __('chats.search_messages') }}">
+                <i class="fa fa-search" aria-hidden="true"></i>
+            </button>
+            <div id="messageSearchPanel" hidden>
+                <input
+                    type="search"
+                    id="chatMessageSearchInput"
+                    placeholder="{{ __('chats.search_loaded_messages') }}"
+                    autocomplete="off"
+                >
+                <span id="chatMessageSearchCount" aria-live="polite"></span>
+                <button type="button" id="clearMessageSearch" aria-label="{{ __('chats.clear_search') }}">×</button>
+            </div>
+        </div>
+
     </div>
 
 
@@ -2493,6 +2536,7 @@ body.chat-media-viewer-open { overflow: hidden; }
     data-translate-media-error="{{ __('chats.media_error') }}"
     data-translate-media-download="{{ __('chats.media_download') }}"
     data-translate-open-fullscreen="{{ __('chats.open_fullscreen') }}"
+    data-translate-search-messages="{{ __('chats.search_messages') }}"
     data-translate-role-member="{{ __('chats.role_member') }}"
     data-translate-role-moderator="{{ __('chats.role_moderator') }}"
     data-translate-role-admin="{{ __('chats.role_admin') }}"
