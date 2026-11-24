@@ -76,7 +76,108 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!event.target.closest('.composer-tools')) closeComposerTools();
     });
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape') closeComposerTools();
+        if (event.key === 'Escape') {
+            closeComposerTools();
+            closeEmojiPicker();
+            if (peerProfileModal && !peerProfileModal.hidden) closePeerProfile();
+        }
+    });
+
+
+    // Карточка собеседника открывается прямо из шапки личного чата.
+    const peerProfileTrigger = document.getElementById('openChatPeerProfile');
+    const peerProfileModal = document.getElementById('chatPeerProfileModal');
+    const closePeerProfileButton = document.getElementById('closeChatPeerProfile');
+    const closePeerProfile = () => {
+        if (!peerProfileModal) return;
+        peerProfileModal.hidden = true;
+        document.body.style.overflow = '';
+        peerProfileTrigger?.focus();
+    };
+    peerProfileTrigger?.addEventListener('click', () => {
+        if (!peerProfileModal) return;
+        peerProfileModal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        closePeerProfileButton?.focus();
+    });
+    closePeerProfileButton?.addEventListener('click', closePeerProfile);
+    peerProfileModal?.addEventListener('click', event => {
+        if (event.target === peerProfileModal) closePeerProfile();
+    });
+
+    // Полноценный emoji-picker с категориями, поиском и вариантами оттенков кожи.
+    const emojiToggle = document.getElementById('chatEmojiToggle');
+    const emojiPanel = document.getElementById('chatEmojiPanel');
+    const emojiPicker = document.getElementById('chatEmojiPicker');
+    const closeEmojiPicker = () => {
+        if (!emojiPanel || !emojiToggle) return;
+        emojiPanel.hidden = true;
+        emojiToggle.setAttribute('aria-expanded', 'false');
+    };
+    emojiToggle?.addEventListener('click', () => {
+        const opening = emojiPanel?.hidden ?? false;
+        if (!emojiPanel) return;
+        emojiPanel.hidden = !opening;
+        emojiToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        if (opening) input?.focus({ preventScroll: true });
+    });
+
+    const setupEmojiPicker = () => {
+        if (!emojiPicker || emojiPicker.dataset.chatBound === '1') return;
+        emojiPicker.dataset.chatBound = '1';
+        emojiPicker.i18n = {
+            categoriesLabel: 'Категории',
+            categories: {
+                custom: 'Мои эмодзи',
+                'smileys-emotion': 'Смайлы и эмоции',
+                'people-body': 'Люди и тело',
+                'animals-nature': 'Животные и природа',
+                'food-drink': 'Еда и напитки',
+                'travel-places': 'Путешествия и места',
+                activities: 'Активности',
+                objects: 'Предметы',
+                symbols: 'Символы',
+                flags: 'Флаги',
+            },
+            emojiUnsupportedMessage: 'Браузер не поддерживает цветные эмодзи.',
+            favoritesLabel: 'Избранное',
+            loadingMessage: 'Загрузка эмодзи…',
+            networkErrorMessage: 'Не удалось загрузить эмодзи.',
+            regionLabel: 'Выбор эмодзи',
+            searchDescription: 'После появления результатов используйте стрелки и Enter.',
+            searchLabel: 'Поиск эмодзи',
+            searchResultsLabel: 'Результаты поиска',
+            skinToneDescription: 'Выберите оттенок кожи.',
+            skinToneLabel: 'Выбрать оттенок кожи',
+            skinTones: ['По умолчанию', 'Светлый', 'Средне-светлый', 'Средний', 'Средне-тёмный', 'Тёмный'],
+            skinTonesLabel: 'Оттенки кожи',
+        };
+        emojiPicker.addEventListener('emoji-click', event => {
+            const emoji = event.detail?.unicode || event.detail?.emoji?.unicode;
+            if (!emoji || !input || input.disabled) return;
+
+            const start = input.selectionStart ?? input.value.length;
+            const end = input.selectionEnd ?? start;
+            input.setRangeText(emoji, start, end, 'end');
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.focus();
+        });
+    };
+
+    if (emojiPicker) {
+        if (customElements.get('emoji-picker')) {
+            setupEmojiPicker();
+        } else {
+            customElements.whenDefined('emoji-picker').then(setupEmojiPicker).catch(error => {
+                console.warn('Emoji picker could not be initialized:', error);
+            });
+        }
+    }
+
+    document.addEventListener('click', event => {
+        if (!event.target.closest('.chat-emoji-toggle, .chat-emoji-panel')) {
+            closeEmojiPicker();
+        }
     });
 
     const chatMessages = document.getElementById('chat-messages');
