@@ -2,11 +2,11 @@
 
 @section('title_page', __('chats.your_chats'))
 
-@section('main')
-
 @push('styles')
     @vite('resources/css/chat_index.css')
 @endpush
+
+@section('main')
 
 
 <style>
