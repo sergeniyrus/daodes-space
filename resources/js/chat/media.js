@@ -73,6 +73,16 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
                 image.src = objectUrl;
                 image.alt = payload.file_name || '';
                 image.loading = 'lazy';
+                image.tabIndex = 0;
+                image.setAttribute('role', 'button');
+                image.setAttribute('aria-label', config.translations.openFullscreen || 'Открыть изображение на весь экран');
+                image.addEventListener('click', () => openMediaViewer(objectUrl, 'image', image.alt));
+                image.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        openMediaViewer(objectUrl, 'image', image.alt);
+                    }
+                });
                 wrapper.appendChild(image);
                 button.remove();
             } else if (payload.media_type === 'video') {
@@ -81,6 +91,9 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
                 video.src = objectUrl;
                 video.controls = true;
                 video.preload = 'metadata';
+                video.addEventListener('dblclick', () => {
+                    if (video.requestFullscreen) video.requestFullscreen().catch(() => {});
+                });
                 wrapper.appendChild(video);
                 button.remove();
             } else {
@@ -108,4 +121,58 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
     }, { once: true });
 
     return true;
+}
+
+
+/**
+ * Показывает уже расшифрованный blob в полноэкранном просмотрщике.
+ * URL остаётся локальным blob URL и не раскрывает IPFS CID.
+ */
+function openMediaViewer(objectUrl, mediaType, title = '') {
+    document.querySelector('.chat-media-viewer')?.remove();
+
+    const viewer = document.createElement('div');
+    viewer.className = 'chat-media-viewer';
+    viewer.setAttribute('role', 'dialog');
+    viewer.setAttribute('aria-modal', 'true');
+    viewer.setAttribute('aria-label', title || 'Просмотр вложения');
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'chat-media-viewer-close';
+    close.textContent = '×';
+    close.setAttribute('aria-label', 'Закрыть');
+
+    const content = mediaType === 'image'
+        ? document.createElement('img')
+        : document.createElement('video');
+
+    content.className = 'chat-media-viewer-content';
+    content.src = objectUrl;
+    if (mediaType === 'image') {
+        content.alt = title;
+    } else {
+        content.controls = true;
+        content.autoplay = true;
+        content.playsInline = true;
+    }
+
+    const closeViewer = () => {
+        if (mediaType === 'video') content.pause();
+        viewer.remove();
+        document.body.classList.remove('chat-media-viewer-open');
+    };
+
+    close.addEventListener('click', closeViewer);
+    viewer.addEventListener('click', event => {
+        if (event.target === viewer) closeViewer();
+    });
+    viewer.addEventListener('keydown', event => {
+        if (event.key === 'Escape') closeViewer();
+    });
+
+    viewer.append(close, content);
+    document.body.appendChild(viewer);
+    document.body.classList.add('chat-media-viewer-open');
+    close.focus();
 }
