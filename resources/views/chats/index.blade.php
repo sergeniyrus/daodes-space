@@ -910,6 +910,96 @@
     }
 }
 
+
+/* Instagram-like story progress, navigation and reactions */
+.chat-story-progress {
+    position: absolute;
+    z-index: 3;
+    top: max(12px, env(safe-area-inset-top));
+    left: max(14px, env(safe-area-inset-left));
+    right: max(68px, env(safe-area-inset-right));
+    display: flex;
+    gap: 4px;
+}
+.chat-story-progress-track {
+    flex: 1 1 0;
+    height: 3px;
+    overflow: hidden;
+    background: rgba(255,255,255,.28);
+    border-radius: 5px;
+}
+.chat-story-progress-track i {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: #fff;
+    border-radius: inherit;
+    transition: width .05s linear;
+}
+.chat-story-navigation {
+    position: absolute;
+    z-index: 2;
+    inset: 64px 0 64px;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    pointer-events: none;
+}
+.chat-story-navigation button {
+    width: min(20vw, 110px);
+    color: transparent;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    pointer-events: auto;
+}
+.chat-story-navigation button:focus-visible {
+    color: #fff;
+    background: rgba(0,0,0,.2);
+    outline: 1px solid rgba(255,255,255,.4);
+}
+.chat-story-navigation button:disabled { visibility: hidden; }
+.chat-story-reactions {
+    position: absolute;
+    z-index: 4;
+    left: 50%;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    display: flex;
+    gap: 7px;
+    padding: 7px;
+    transform: translateX(-50%);
+    background: rgba(8,14,25,.78);
+    border: 1px solid rgba(0,229,255,.22);
+    border-radius: 28px;
+    backdrop-filter: blur(12px);
+}
+.chat-story-reactions button {
+    display: grid;
+    place-items: center;
+    width: 39px;
+    height: 39px;
+    padding: 0;
+    color: #fff;
+    background: rgba(255,255,255,.08);
+    border: 1px solid transparent;
+    border-radius: 50%;
+    font-size: 21px;
+    cursor: pointer;
+    transition: transform .16s ease, background .16s ease;
+}
+.chat-story-reactions button:hover { transform: translateY(-3px) scale(1.08); }
+.chat-story-reactions button.active {
+    background: rgba(0,229,255,.2);
+    border-color: #00e5ff;
+    box-shadow: 0 0 12px rgba(0,229,255,.28);
+}
+.chat-stories-list { flex-wrap: nowrap; }
+.chat-stories-list > .chat-story-card { flex: 0 0 76px; }
+@media (max-width: 600px) {
+    .chat-story-reactions { gap: 4px; padding: 5px; }
+    .chat-story-reactions button { width: 34px; height: 34px; font-size: 19px; }
+}
+
 </style>
 
 
