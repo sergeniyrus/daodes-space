@@ -3,6 +3,7 @@
     && config('services.firebase.client_email')
     && config('services.firebase.private_key')
     && config('services.firebase.web.api_key')
+    && config('services.firebase.web.auth_domain')
     && config('services.firebase.web.project_id')
     && config('services.firebase.web.messaging_sender_id')
     && config('services.firebase.web.app_id')
