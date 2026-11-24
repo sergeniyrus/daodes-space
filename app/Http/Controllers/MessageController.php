@@ -165,7 +165,9 @@ class MessageController extends Controller
             'nonce'   => 'required|string',
             'reply_to_message_id' => 'nullable|integer|exists:messages,id',
             'topic_id' => 'nullable|integer|exists:chat_topics,id',
-            'message_type' => 'nullable|string|in:text,voice,media,file',
+            'message_type' => 'nullable|string|in:text,voice,media,file,poll',
+            'poll_is_anonymous' => 'required_if:message_type,poll|boolean',
+            'poll_allows_multiple' => 'required_if:message_type,poll|boolean',
             'attachment_upload_ids' => 'nullable|array|max:10',
             'attachment_upload_ids.*' => 'required|integer|distinct|exists:chat_uploads,id',
             'mentioned_user_ids' => 'nullable|array|max:50',
@@ -221,6 +223,10 @@ class MessageController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Attachment message type is required'], 422);
             }
 
+            if ($messageType === 'poll' && $uploads->isNotEmpty()) {
+                return response()->json(['status' => 'error', 'message' => 'Poll messages cannot contain file attachments'], 422);
+            }
+
             if ($messageType === 'media' && $uploads->contains(fn($upload) => !in_array($upload->media_type, ['image', 'video'], true))) {
                 return response()->json(['status' => 'error', 'message' => 'Media messages support images and videos'], 422);
             }
@@ -250,15 +256,25 @@ class MessageController extends Controller
                 }
             }
 
-            $message = DB::transaction(function () use ($chat, $cid, $replyToId, $topicId, $validated, $uploads, $uploadIds, $mentionedUserIds) {
+            $message = DB::transaction(function () use ($chat, $cid, $replyToId, $topicId, $validated, $uploads, $uploadIds, $mentionedUserIds, $messageType) {
                 $message = Message::create([
                     'chat_id' => $chat->id,
                     'sender_id' => Auth::id(),
                     'ipfs_cid' => $cid,
                     'reply_to_message_id' => $replyToId,
                     'topic_id' => $topicId,
-                    'message_type' => $validated['message_type'] ?? 'text',
+                    'message_type' => $messageType,
                 ]);
+
+                if ($messageType === 'poll') {
+                    DB::table('chat_polls')->insert([
+                        'message_id' => $message->id,
+                        'is_anonymous' => (bool) $validated['poll_is_anonymous'],
+                        'allows_multiple' => (bool) $validated['poll_allows_multiple'],
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
 
                 foreach ($uploads as $position => $upload) {
                     $message->attachments()->create([
@@ -699,6 +715,152 @@ class MessageController extends Controller
         });
 
         return response()->json(['status' => 'success']);
+    }
+
+    /**
+     * Возвращает агрегированные результаты голосования без раскрытия IPFS CID.
+     */
+    public function pollResults(Message $message)
+    {
+        abort_unless($message->chat?->users()->where('users.id', Auth::id())->exists(), 403);
+
+        $poll = DB::table('chat_polls')->where('message_id', $message->id)->first();
+        abort_unless($poll, 404);
+
+        return response()->json($this->buildPollResults($poll));
+    }
+
+    /**
+     * Голосует за один или несколько вариантов. Для анонимного опроса
+     * вместо user_id сохраняется HMAC-идентификатор участника.
+     */
+    public function votePoll(Request $request, Message $message)
+    {
+        abort_unless($message->chat?->users()->where('users.id', Auth::id())->exists(), 403);
+
+        $poll = DB::table('chat_polls')->where('message_id', $message->id)->first();
+        abort_unless($poll, 404);
+
+        if ($poll->closed_at) {
+            return response()->json(['status' => 'error', 'message' => 'Poll is closed'], 409);
+        }
+
+        $validated = $request->validate([
+            'option_ids' => 'required|array|min:1|max:10',
+            'option_ids.*' => 'required|integer|min:0|max:9|distinct',
+        ]);
+
+        $optionIds = array_values(array_unique(array_map('intval', $validated['option_ids'])));
+        if (!$poll->allows_multiple && count($optionIds) !== 1) {
+            return response()->json(['status' => 'error', 'message' => 'This poll accepts one answer'], 422);
+        }
+
+        $voterHash = $poll->is_anonymous
+            ? hash_hmac('sha256', $poll->id . ':' . Auth::id(), (string) config('app.key'))
+            : null;
+
+        DB::transaction(function () use ($poll, $optionIds, $voterHash) {
+            $votes = DB::table('chat_poll_votes')->where('poll_id', $poll->id);
+
+            if ($poll->is_anonymous) {
+                $votes->where('voter_hash', $voterHash);
+            } else {
+                $votes->where('user_id', Auth::id());
+            }
+
+            $votes->delete();
+
+            foreach ($optionIds as $optionId) {
+                DB::table('chat_poll_votes')->insert([
+                    'poll_id' => $poll->id,
+                    'user_id' => $poll->is_anonymous ? null : Auth::id(),
+                    'voter_hash' => $voterHash,
+                    'option_id' => $optionId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
+        return response()->json($this->buildPollResults($poll));
+    }
+
+    /**
+     * Закрывает опрос его автором или модератором чата.
+     */
+    public function closePoll(Message $message)
+    {
+        $membership = DB::table('chat_user')
+            ->where('chat_id', $message->chat_id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        abort_unless($membership, 403);
+
+        $poll = DB::table('chat_polls')->where('message_id', $message->id)->first();
+        abort_unless($poll, 404);
+
+        $canModerate = in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true);
+        abort_unless($message->sender_id === Auth::id() || $canModerate, 403);
+
+        DB::table('chat_polls')
+            ->where('id', $poll->id)
+            ->update(['closed_at' => now(), 'updated_at' => now()]);
+
+        $poll->closed_at = now();
+
+        return response()->json($this->buildPollResults($poll));
+    }
+
+    /**
+     * Формирует только агрегаты и, для открытого опроса, имена проголосовавших.
+     * В анонимном режиме сервер не возвращает личности участников.
+     */
+    private function buildPollResults(object $poll): array
+    {
+        $votes = DB::table('chat_poll_votes as votes')
+            ->leftJoin('users', 'users.id', '=', 'votes.user_id')
+            ->where('votes.poll_id', $poll->id)
+            ->get([
+                'votes.option_id',
+                'votes.user_id',
+                'votes.voter_hash',
+                'users.name as voter_name',
+            ]);
+
+        $counts = $votes->groupBy('option_id')
+            ->map(fn($items, $optionId) => [
+                'option_id' => (int) $optionId,
+                'count' => $items->count(),
+            ])->values();
+
+        $mine = $votes->filter(function ($vote) use ($poll) {
+            return $poll->is_anonymous
+                ? hash_equals((string) $vote->voter_hash, hash_hmac('sha256', $poll->id . ':' . Auth::id(), (string) config('app.key')))
+                : (int) $vote->user_id === (int) Auth::id();
+        })->pluck('option_id')->map(fn($id) => (int) $id)->values();
+
+        $voters = [];
+        if (!$poll->is_anonymous) {
+            $voters = $votes->groupBy('option_id')
+                ->map(fn($items) => $items->pluck('voter_name')->filter()->unique()->values())
+                ->all();
+        }
+
+        $totalVoters = $poll->is_anonymous
+            ? $votes->pluck('voter_hash')->filter()->unique()->count()
+            : $votes->pluck('user_id')->filter()->unique()->count();
+
+        return [
+            'status' => 'success',
+            'is_anonymous' => (bool) $poll->is_anonymous,
+            'allows_multiple' => (bool) $poll->allows_multiple,
+            'closed_at' => $poll->closed_at,
+            'total_voters' => $totalVoters,
+            'counts' => $counts,
+            'my_option_ids' => $mine,
+            'voters' => $voters,
+        ];
     }
 
     /**
