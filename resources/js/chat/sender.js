@@ -103,6 +103,51 @@ export class MessageSender {
         }
     }
 
+    async sendPoll(question, options, isAnonymous, allowsMultiple) {
+        if (this.isSending || !this.crypto.chatKey) return;
+
+        this.isSending = true;
+        const payload = JSON.stringify({
+            type: 'poll',
+            question,
+            options: options.map((text, id) => ({ id, text })),
+        });
+
+        try {
+            const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+            const encrypted = nacl.secretbox(new TextEncoder().encode(payload), nonce, this.crypto.chatKey);
+            const body = {
+                message: u8ToB64(encrypted),
+                nonce: u8ToB64(nonce),
+                message_type: 'poll',
+                poll_is_anonymous: Boolean(isAnonymous),
+                poll_allows_multiple: Boolean(allowsMultiple),
+            };
+
+            if (this.config.topicId) body.topic_id = this.config.topicId;
+
+            const response = await fetch(this.config.sendUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': this.config.csrfToken,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(body),
+            });
+
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                throw new Error(data.message || this.config.translations.pollError || 'Could not create poll');
+            }
+
+            return true;
+        } finally {
+            this.isSending = false;
+        }
+    }
+
     commitEdit(data, nonceB64, encrypted, text) {
         const msgEl = document.querySelector(`.message[data-id="${this.ui.editingMessageId}"]`);
         if (!msgEl) return;
