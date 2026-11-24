@@ -593,6 +593,11 @@ Route::middleware('auth')->group(function () {
         [ChatController::class, 'store']
     )->name('chats.store');
 
+    Route::post(
+        '/chats/saved',
+        [ChatController::class, 'createSavedMessages']
+    )->middleware('throttle:10,1')->name('chats.saved');
+
 
     // Просмотр чата
     Route::get(
