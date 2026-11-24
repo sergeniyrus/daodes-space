@@ -187,8 +187,18 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
         viewer.addEventListener('click', event => {
             if (event.target === viewer) closeViewer();
         });
+        viewer.tabIndex = -1;
         viewer.addEventListener('keydown', event => {
-            if (event.key === 'Escape') closeViewer();
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeViewer();
+            } else if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                previous?.click();
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                next?.click();
+            }
         });
 
 
@@ -226,6 +236,7 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
         });
         navigation.append(previous, next);
         viewer.append(navigation);
+        viewer.focus({ preventScroll: true });
 
         viewer.append(info, close);
         document.body.appendChild(viewer);
