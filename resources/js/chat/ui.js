@@ -406,14 +406,18 @@ export class ChatUI {
 
         const attachment = messageEl?.querySelector('.chat-media-message, .chat-video-note, .chat-voice-message, .chat-file-message');
         let previewText = String(text || '').trim();
-        if (attachment) {
-            const fileName = attachment.querySelector('small')?.textContent?.trim();
-            const audio = attachment.querySelector('audio');
-            const video = attachment.querySelector('video');
-            const image = attachment.querySelector('img');
-            const label = audio ? '🎵 Голосовое сообщение'
-                : video ? '🎬 Видеосообщение'
-                : image ? '🖼 Изображение'
+        let payload = null;
+        try { payload = JSON.parse(previewText); } catch { /* ordinary text message */ }
+
+        if (attachment || payload?.type === 'attachment' || payload?.type === 'voice') {
+            const fileName = attachment?.querySelector('small')?.textContent?.trim() || payload?.file_name;
+            const audio = attachment?.querySelector('audio');
+            const video = attachment?.querySelector('video');
+            const image = attachment?.querySelector('img');
+            const mediaType = payload?.media_type;
+            const label = audio || payload?.type === 'voice' || mediaType === 'audio' ? '🎵 Голосовое сообщение'
+                : video || mediaType === 'video' ? '🎬 Видео'
+                : image || mediaType === 'image' ? '🖼 Изображение'
                 : '📎 Файл';
             previewText = fileName && !['Зашифрованное вложение', 'video-note'].includes(fileName)
                 ? label + ': ' + fileName
