@@ -111,7 +111,9 @@ class UserProfileController extends Controller
                 ->with('error', __('message.profile_not_found'));
         }
 
-        return view('user_profile.index', compact('profile'));
+        $userProfile = $profile;
+
+        return view('user_profile.index', compact('profile', 'userProfile'));
     }
 
     public function updateFullProfile(Request $request)
