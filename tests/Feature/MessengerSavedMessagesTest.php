@@ -18,7 +18,7 @@ class MessengerSavedMessagesTest extends TestCase
         parent::setUp();
 
         config(['cache.default' => 'array']);
-        $this->withoutMiddleware(\\Illuminate\\Routing\\Middleware\\ThrottleRequests::class);
+        $this->withoutMiddleware(\Illuminate\Routing\Middleware\ThrottleRequests::class);
     }
 
     public function test_user_can_create_and_reopen_private_saved_messages_chat(): void
