@@ -14,6 +14,7 @@ return new class extends Migration
                 $table->foreignId('message_id')->unique()->constrained('messages')->cascadeOnDelete();
                 $table->boolean('is_anonymous')->default(true);
                 $table->boolean('allows_multiple')->default(false);
+                $table->unsignedTinyInteger('option_count')->default(2);
                 $table->timestamp('closed_at')->nullable();
                 $table->timestamps();
             });
