@@ -222,11 +222,13 @@ export function initChatStories({ userId, csrfToken, labels = {} }) {
             }
             viewer.appendChild(media);
 
-            await fetch(`/stories/${story.id}/view`, {
-                method: 'POST',
-                headers: requestHeaders,
-                credentials: 'same-origin',
-            });
+            if (!story.is_own) {
+                await fetch(`/stories/${story.id}/view`, {
+                    method: 'POST',
+                    headers: requestHeaders,
+                    credentials: 'same-origin',
+                });
+            }
 
             if (story.is_own) {
                 const actions = document.createElement('div');
