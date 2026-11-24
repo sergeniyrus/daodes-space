@@ -2640,7 +2640,7 @@ body.chat-media-viewer-open { overflow: hidden; }
                         <p><i class="fa fa-globe" aria-hidden="true"></i><a href="{{ $otherUser->profile->card_website }}" target="_blank" rel="noopener noreferrer">{{ $otherUser->profile->card_website }}</a></p>
                     @endif
                     @if ($otherUser->profile?->nickname)
-                        <p><i class="fa fa-telegram" aria-hidden="true"></i><a href="https://t.me/{{ $otherUser->profile->nickname }}" target="_blank" rel="noopener noreferrer">@{{ $otherUser->profile->nickname }}</a></p>
+                        <p><i class="fa fa-telegram" aria-hidden="true"></i><a href="https://t.me/{{ $otherUser->profile->nickname }}" target="_blank" rel="noopener noreferrer">{{ '@' . $otherUser->profile->nickname }}</a></p>
                     @endif
                     @if (!$otherUser->profile || (!$otherUser->profile->card_position && !$otherUser->profile->card_company && !$otherUser->profile->card_location && !$otherUser->profile->card_about && !$otherUser->profile->card_website && !$otherUser->profile->nickname))
                         <p class="chat-peer-profile-empty">Пользователь пока не заполнил визитку.</p>
