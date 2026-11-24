@@ -2151,6 +2151,46 @@ body.chat-media-viewer-open { overflow: hidden; }
 }
 
 
+.group-call-modal {
+    position: fixed; inset: 0; z-index: 1350; display: grid; place-items: center;
+    padding: 16px; background: rgba(0,0,0,.88);
+}
+.group-call-modal[hidden] { display: none; }
+.group-call-panel {
+    width: min(100%, 980px); max-height: 92dvh; overflow: auto; padding: 20px;
+    color: #e8edf5; background: linear-gradient(145deg,#0b0c18,#151a29);
+    border: 1px solid rgba(255,215,0,.5); border-radius: 16px;
+    box-shadow: 0 12px 50px rgba(0,0,0,.55);
+}
+.group-call-panel h3 { margin: 0 0 8px; color: #ffd700; }
+.group-call-status { min-height: 22px; color: #aebbd0; }
+.group-call-participants {
+    display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,260px),1fr));
+    gap: 12px; min-height: 120px;
+}
+.group-call-tile {
+    position: relative; min-width: 0; overflow: hidden; aspect-ratio: 16 / 9;
+    background: #05070c; border: 1px solid rgba(0,229,255,.25); border-radius: 12px;
+}
+.group-call-tile video { display: block; width: 100%; height: 100%; object-fit: contain; }
+.group-call-tile-name {
+    position: absolute; left: 9px; bottom: 8px; padding: 4px 8px;
+    color: #fff; background: rgba(0,0,0,.65); border-radius: 6px; font-size: .82rem;
+}
+.group-call-actions {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 16px;
+}
+.group-call-actions button {
+    min-height: 40px; padding: 8px 13px; color: #00e5ff;
+    background: rgba(0,229,255,.06); border: 1px solid rgba(0,229,255,.4);
+    border-radius: 9px; cursor: pointer;
+}
+.group-call-actions button.danger { color: #ff9b9b; border-color: rgba(255,100,100,.5); }
+@media(max-width:560px) {
+    .group-call-panel { padding: 14px; }
+    .group-call-participants { grid-template-columns: 1fr; }
+}
+
 /* =========================================================
    КОМПАКТНАЯ ОБЛАСТЬ ЧАТА: ВЫСОТА ОКНА, БЕЗ ВНЕШНЕЙ ПРОКРУТКИ
    ========================================================= */
@@ -3008,6 +3048,23 @@ body.chat-media-viewer-open { overflow: hidden; }
                     </div>
                 </form>
                 <div id="chatMeetingsList" aria-live="polite"></div>
+            </section>
+        </div>
+    @endif
+
+    @if ($chat->type === 'group')
+        <div class="group-call-modal" id="groupCallModal" hidden>
+            <section class="group-call-panel" role="dialog" aria-modal="true" aria-labelledby="groupCallTitle">
+                <h3 id="groupCallTitle">Групповой звонок</h3>
+                <p class="group-call-status" id="groupCallStatus" aria-live="polite">Ожидание подключения…</p>
+                <div class="group-call-participants" id="groupCallParticipants"></div>
+                <div class="group-call-actions">
+                    <button type="button" id="groupCallMic">Выключить микрофон</button>
+                    <button type="button" id="groupCallCamera">Включить камеру</button>
+                    <button type="button" id="groupCallScreen">Поделиться экраном</button>
+                    <button type="button" id="groupCallLeave" class="danger">Покинуть звонок</button>
+                    <button type="button" id="groupCallClose">Закрыть</button>
+                </div>
             </section>
         </div>
     @endif
