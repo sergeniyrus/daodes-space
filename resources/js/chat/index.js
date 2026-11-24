@@ -67,9 +67,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             const data = await response.json();
             if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Не удалось сохранить права');
-            if (status) status.textContent = 'Права сохранены';
+            if (status) status.textContent = channelSettingsForm.dataset.labelSaved || 'Permissions saved';
         } catch (error) {
-            if (status) status.textContent = error.message || 'Ошибка сохранения';
+            if (status) status.textContent = error.message || channelSettingsForm.dataset.labelSaveError || 'Could not save permissions';
         }
     });
 
