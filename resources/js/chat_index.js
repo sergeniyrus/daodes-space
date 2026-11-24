@@ -22,6 +22,10 @@ import nacl from 'tweetnacl';
         const pubKey = u8ToB64(pair.publicKey);
 
         localStorage.setItem("userPrivateKey", privKey);
+        const savedMessagesButton = document.getElementById("openSavedMessages");
+        if (savedMessagesButton?.dataset.userId) {
+            localStorage.setItem(`userPrivateKey_${savedMessagesButton.dataset.userId}`, privKey);
+        }
 
         fetch("/profile/set-public-key", {
             method: "POST",
