@@ -95,6 +95,52 @@ class MessengerPinnedMessagesTest extends TestCase
 
         $this->assertSame(0, DB::table('chat_pinned_messages')->count());
     }
+    public function test_moderator_can_reorder_pinned_messages_and_member_can_unpin_own_pin(): void
+    {
+        $owner = $this->createUser();
+        $member = $this->createUser();
+
+        $chat = Chat::create([
+            'name' => 'Pinned ordering test',
+            'type' => 'group',
+        ]);
+        $chat->users()->attach($owner->id, ['role' => 'owner']);
+        $chat->users()->attach($member->id, ['role' => 'member']);
+
+        $first = Message::create([
+            'chat_id' => $chat->id,
+            'sender_id' => $owner->id,
+            'ipfs_cid' => 'bafy-pin-order-first',
+        ]);
+        $second = Message::create([
+            'chat_id' => $chat->id,
+            'sender_id' => $owner->id,
+            'ipfs_cid' => 'bafy-pin-order-second',
+        ]);
+
+        $this->actingAs($owner)->postJson("/messages/{$first->id}/pin")->assertOk();
+        $this->actingAs($owner)->postJson("/messages/{$second->id}/pin")->assertOk();
+
+        $this->actingAs($owner)
+            ->patchJson("/chats/{$chat->id}/pinned-messages/order", [
+                'message_ids' => [$second->id, $first->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('status', 'success');
+
+        $this->actingAs($owner)
+            ->getJson("/chats/{$chat->id}/pinned-messages")
+            ->assertOk()
+            ->assertJsonPath('0.message_id', $second->id)
+            ->assertJsonPath('1.message_id', $first->id);
+
+        $this->actingAs($member)
+            ->postJson("/messages/{$first->id}/pin")
+            ->assertForbidden();
+
+        $this->actingAs($owner)->deleteJson("/messages/{$first->id}/pin")->assertOk();
+    }
+
     private function createUser(): User
     {
         $user = new User();
