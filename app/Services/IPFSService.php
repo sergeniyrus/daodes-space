@@ -793,7 +793,7 @@ class IPFSService
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => [],
+            CURLOPT_POSTFIELDS => '',
             CURLOPT_CONNECTTIMEOUT => 20,
             CURLOPT_TIMEOUT => 60,
         ]);
