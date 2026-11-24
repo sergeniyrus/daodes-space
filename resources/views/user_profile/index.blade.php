@@ -117,6 +117,12 @@
                     <!-- Basic Information -->
                     <div class="category-block">
                         <div class="section-title">{{ __('user_profile.basic_information') }}</div>
+                        @if ($userProfile->status_text && (!$userProfile->status_expires_at || $userProfile->status_expires_at->isFuture()))
+                            <p class="card-text profile-status-text">
+                                <label>{{ __('user_profile.status_text') }}:</label>
+                                {{ $userProfile->status_emoji }} {{ $userProfile->status_text }}
+                            </p>
+                        @endif
                         <p class="card-text"><label>{{ __('user_profile.role') }}:</label>
                             {{ $userProfile->role ?? __('user_profile.not_specified') }}</p>
                             
