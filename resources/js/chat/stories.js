@@ -291,7 +291,9 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
                 reactionButton.type = 'button';
                 reactionButton.textContent = reaction;
                 reactionButton.setAttribute('aria-label', 'Реакция ' + reaction);
-                reactionButton.setAttribute('aria-pressed', 'false');
+                const selectedReaction = story.my_reaction === reaction;
+                reactionButton.classList.toggle('active', selectedReaction);
+                reactionButton.setAttribute('aria-pressed', selectedReaction ? 'true' : 'false');
                 reactionButton.addEventListener('click', async () => {
                     reactionButton.disabled = true;
                     try {
