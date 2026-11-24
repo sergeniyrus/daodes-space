@@ -63,6 +63,27 @@ class MessengerStoriesTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_story_owner_can_delete_story_and_unpin_encrypted_media(): void
+    {
+        [$owner, $contact, $outsider, $storyId] = $this->createStoryWithContact();
+
+        $this->mock(IPFSService::class, function ($mock) {
+            $mock->shouldReceive('unpinFile')
+                ->once()
+                ->with('bafy-private-story')
+                ->andReturn(true);
+        });
+
+        $this->actingAs($owner)
+            ->deleteJson("/stories/{$storyId}")
+            ->assertOk()
+            ->assertJsonPath('status', 'success');
+
+        $this->assertDatabaseMissing('chat_stories', ['id' => $storyId]);
+        $this->assertDatabaseMissing('chat_story_keys', ['story_id' => $storyId]);
+        $this->assertDatabaseMissing('chat_story_views', ['story_id' => $storyId]);
+    }
+
     public function test_story_upload_requires_an_envelope_for_every_allowed_recipient_only(): void
     {
         $owner = $this->createUser();
