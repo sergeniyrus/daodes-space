@@ -29,6 +29,7 @@ class ChatStoriesController extends Controller
             ->where('story_keys.user_id', $userId)
             ->where('stories.expires_at', '>', now())
             ->orderByDesc('stories.created_at')
+            ->limit(100)
             ->get([
                 'stories.id',
                 'stories.user_id',
