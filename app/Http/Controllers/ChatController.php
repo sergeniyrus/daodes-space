@@ -179,7 +179,7 @@ class ChatController extends Controller
 
         $sidebarChats = Chat::with('users.profile')
             ->withMax('messages', 'created_at')
-            ->whereHas('participants', fn($query) => $query->where('users.id', $userId))
+            ->whereHas('users', fn($query) => $query->where('users.id', $userId))
             ->orderByDesc('messages_max_created_at')
             ->orderByDesc('updated_at')
             ->limit(100)
