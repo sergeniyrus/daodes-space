@@ -61,6 +61,27 @@ class MessengerPollsTest extends TestCase
         $this->assertNotSame((string) $member->id, $vote->voter_hash);
     }
 
+    public function test_multiple_choice_poll_accepts_more_than_one_option(): void
+    {
+        [$owner, $member, $chat, $message] = $this->createPoll(false, true);
+
+        $this->actingAs($member)
+            ->postJson("/messages/{$message->id}/poll-votes", ['option_ids' => [0, 1]])
+            ->assertOk()
+            ->assertJsonPath('total_voters', 1)
+            ->assertJsonPath('my_option_ids', [0, 1]);
+    }
+
+    public function test_vote_rejects_option_outside_poll_option_count(): void
+    {
+        [$owner, $member, $chat, $message] = $this->createPoll(false, false);
+
+        $this->actingAs($member)
+            ->postJson("/messages/{$message->id}/poll-votes", ['option_ids' => [9]])
+            ->assertUnprocessable()
+            ->assertJsonPath('status', 'error');
+    }
+
     public function test_non_member_cannot_vote_and_closed_poll_rejects_votes(): void
     {
         [$owner, $member, $chat, $message] = $this->createPoll(false, false);
