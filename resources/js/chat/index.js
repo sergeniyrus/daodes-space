@@ -114,6 +114,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         composerStatus.hidden = !visible || !message;
     };
     const scrollToBottomButton = document.getElementById('chatScrollToBottom');
+    const editReplyQuoteButton = document.getElementById('editReplyQuote');
+    editReplyQuoteButton?.addEventListener('click', () => {
+        const preview = document.getElementById('replyPreview');
+        const quotedText = preview?.dataset.replyText;
+        if (!quotedText || !input) return;
+        const editableQuote = quotedText.split('\n').map(line => '> ' + line).join('\n') + '\n\n';
+        const cursor = input.selectionStart ?? input.value.length;
+        input.setRangeText(editableQuote, cursor, cursor, 'end');
+        input.focus();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
     const scrollChatToBottom = () => {
         if (!chatMessages) return;
         chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
