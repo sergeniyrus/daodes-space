@@ -2539,6 +2539,42 @@ body.chat-page .telegram-chat-layout .chat-container {
     .card-text { line-height: 1.6; }
 }
 
+
+.chat-channel-info-trigger {
+    display:grid; place-items:center; width:34px; height:34px; flex:0 0 34px;
+    color:#00e5ff; background:rgba(0,229,255,.07); border:1px solid rgba(0,229,255,.3);
+    border-radius:50%; cursor:pointer;
+}
+.chat-channel-info-trigger:hover { color:#0b0c18; background:#00e5ff; }
+.chat-channel-info-modal {
+    position:fixed; inset:0; z-index:140100; display:grid; place-items:center;
+    padding:14px; background:rgba(0,0,0,.8);
+}
+.chat-channel-info-modal[hidden] { display:none; }
+.chat-channel-info-card {
+    position:relative; width:min(100%,520px); max-height:88dvh; overflow-y:auto;
+    padding:22px; color:#e8edf5; background:linear-gradient(145deg,#0b0c18,#151a29);
+    border:1px solid rgba(0,229,255,.45); border-radius:16px; box-shadow:0 18px 60px rgba(0,0,0,.65);
+}
+.chat-channel-info-heading { display:flex; align-items:center; gap:14px; padding-right:30px; }
+.chat-channel-info-heading img { width:64px; height:64px; flex:0 0 64px; object-fit:cover; border:2px solid #00e5ff; border-radius:50%; }
+.chat-channel-info-heading h3 { margin:0; color:#ffd700; }
+.chat-channel-info-heading p { margin:4px 0 0; color:#00e5ff; }
+.chat-channel-info-stats { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; }
+.chat-channel-info-stats span { padding:8px 10px; color:#cbd5e1; background:rgba(0,229,255,.05); border:1px solid rgba(0,229,255,.16); border-radius:9px; font-size:.8rem; }
+.chat-channel-info-stats strong { color:#ffd700; }
+.chat-channel-info-subtitle { margin:14px 0 8px; color:#00e5ff; font-size:.9rem; }
+.chat-channel-info-members { display:grid; gap:5px; max-height:220px; overflow:auto; }
+.chat-channel-info-members > div { display:flex; justify-content:space-between; gap:10px; padding:7px 9px; background:rgba(255,255,255,.025); border-radius:7px; }
+.chat-channel-info-members small { color:#94a3b8; }
+.chat-format-toolbar { display:flex; flex-wrap:wrap; gap:5px; margin:0 0 7px; }
+.chat-format-toolbar button { min-width:34px; min-height:30px; padding:4px 8px; color:#c8d5e3; background:rgba(0,229,255,.05); border:1px solid rgba(0,229,255,.2); border-radius:7px; cursor:pointer; }
+.chat-format-toolbar button:hover { color:#ffd700; border-color:rgba(255,215,0,.45); }
+.chat-format-toolbar button[data-format="bold"] { font-weight:800; }
+.chat-format-toolbar button[data-format="italic"] { font-style:italic; }
+.chat-format-toolbar button[data-format="strike"] { text-decoration:line-through; }
+.chat-format-toolbar button[data-format="code"] { font-family:monospace; }
+
 </style>
 
 
@@ -2749,24 +2785,15 @@ body.chat-page .telegram-chat-layout .chat-container {
                     <h2 class="chat-title">{{ $chat->name }}</h2>
                     <p class="chat-status">{{ __('chats.online_participants', ['online' => $chat->onlineParticipantsCount(), 'total' => $chat->totalParticipantsCount()]) }}</p>
                 </div>
+                <button type="button" class="chat-channel-info-trigger" id="openChatChannelInfo" aria-label="Информация о канале" title="Информация о канале">
+                    <i class="fa fa-info-circle" aria-hidden="true"></i>
+                </button>
             </div>
             @if ($currentRole === 'owner' || ($currentRole === 'admin' && $chat->allow_admin_photo) || ($currentRole === 'moderator' && $chat->allow_moderator_photo))
                 <label class="chat-topic-create" for="channelPhotoInput">{{ __('chats.channel_photo_change') }}</label>
                 <input type="file" id="channelPhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
             @endif
-            @if ($currentRole === 'owner')
-                <details class="chat-channel-settings">
-                    <summary>{{ __('chats.channel_settings_permissions') }}</summary>
-                    <form id="channelSettingsForm" data-url="{{ route('chats.channel.settings', $chat->id) }}" data-label-saved="{{ __('chats.channel_permissions_saved') }}" data-label-save-error="{{ __('chats.channel_permissions_save_error') }}">
-                        <label><input type="checkbox" name="allow_admin_photo" value="1" @checked($chat->allow_admin_photo)> {{ __('chats.channel_admin_photo_permission') }}</label>
-                        <label><input type="checkbox" name="allow_moderator_photo" value="1" @checked($chat->allow_moderator_photo)> {{ __('chats.channel_moderator_photo_permission') }}</label>
-                        <label><input type="checkbox" name="allow_admin_stories" value="1" @checked($chat->allow_admin_stories)> {{ __('chats.channel_admin_stories_permission') }}</label>
-                        <label><input type="checkbox" name="allow_moderator_stories" value="1" @checked($chat->allow_moderator_stories)> {{ __('chats.channel_moderator_stories_permission') }}</label>
-                        <button type="submit">Сохранить права</button>
-                        <span id="channelSettingsStatus" aria-live="polite"></span>
-                    </form>
-                </details>
-            @endif
+
 
         @else
 
@@ -2823,6 +2850,42 @@ body.chat-page .telegram-chat-layout .chat-container {
 
     </div>
 
+
+    @if ($chat->type === 'channel')
+        <div class="chat-channel-info-modal" id="chatChannelInfoModal" hidden>
+            <section class="chat-channel-info-card" role="dialog" aria-modal="true" aria-labelledby="chatChannelInfoTitle">
+                <button type="button" class="chat-peer-profile-close" id="closeChatChannelInfo" aria-label="Закрыть">×</button>
+                <div class="chat-channel-info-heading">
+                    <img src="{{ $chat->photo_cid ? '/ipfs/' . $chat->photo_cid : '/img/main/default-avatar.png' }}" alt="">
+                    <div><h3 id="chatChannelInfoTitle">{{ $chat->name }}</h3><p>{{ __('chats.channel') }}</p></div>
+                </div>
+                <div class="chat-channel-info-stats">
+                    <span><strong>{{ $chat->totalParticipantsCount() }}</strong> участников</span>
+                    <span><strong>{{ $chat->onlineParticipantsCount() }}</strong> в сети</span>
+                    <span><strong>{{ __('chats.role_' . $currentRole) }}</strong> — ваша роль</span>
+                </div>
+                <h4 class="chat-channel-info-subtitle">{{ __('chats.participants') }}</h4>
+                <div class="chat-channel-info-members">
+                    @foreach ($chat->users as $channelMember)
+                        <div><span>{{ $channelMember->name }}</span><small>{{ __('chats.role_' . ($channelMember->pivot->role ?? 'member')) }}</small></div>
+                    @endforeach
+                </div>
+                @if ($currentRole === 'owner')
+                    <details class="chat-channel-settings" open>
+                        <summary>{{ __('chats.channel_settings_permissions') }}</summary>
+                        <form id="channelSettingsForm" data-url="{{ route('chats.channel.settings', $chat->id) }}" data-label-saved="{{ __('chats.channel_permissions_saved') }}" data-label-save-error="{{ __('chats.channel_permissions_save_error') }}">
+                            <label><input type="checkbox" name="allow_admin_photo" value="1" @checked($chat->allow_admin_photo)> {{ __('chats.channel_admin_photo_permission') }}</label>
+                            <label><input type="checkbox" name="allow_moderator_photo" value="1" @checked($chat->allow_moderator_photo)> {{ __('chats.channel_moderator_photo_permission') }}</label>
+                            <label><input type="checkbox" name="allow_admin_stories" value="1" @checked($chat->allow_admin_stories)> {{ __('chats.channel_admin_stories_permission') }}</label>
+                            <label><input type="checkbox" name="allow_moderator_stories" value="1" @checked($chat->allow_moderator_stories)> {{ __('chats.channel_moderator_stories_permission') }}</label>
+                            <button type="submit">Сохранить права</button>
+                            <span id="channelSettingsStatus" aria-live="polite"></span>
+                        </form>
+                    </details>
+                @endif
+            </section>
+        </div>
+    @endif
 
     @if ($chat->type === 'personal' && $otherUser)
         <div class="chat-peer-profile-modal" id="chatPeerProfileModal" hidden>
@@ -3181,6 +3244,15 @@ body.chat-page .telegram-chat-layout .chat-container {
     >
 
         @csrf
+
+        <div class="chat-format-toolbar" id="chatFormatToolbar" role="toolbar" aria-label="Форматирование сообщения">
+            <button type="button" data-format="bold" title="Жирный"><strong>B</strong></button>
+            <button type="button" data-format="italic" title="Курсив"><em>I</em></button>
+            <button type="button" data-format="quote" title="Цитата">❝</button>
+            <button type="button" data-format="strike" title="Зачёркнутый"><s>S</s></button>
+            <button type="button" data-format="code" title="Код">&lt;/&gt;</button>
+            <button type="button" data-format="normal" title="Обычный текст">T</button>
+        </div>
 
         <div class="input-group">
 
