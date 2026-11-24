@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Schedule;
 use App\Services\IPFSService;
 
@@ -19,6 +20,10 @@ Artisan::command('inspire', function () {
 
 // Автоматически удаляем истёкшие истории и снимаем pin с их зашифрованных файлов.
 Schedule::call(function () {
+    if (!Schema::hasTable('chat_stories')) {
+        return;
+    }
+
     $expiredStories = DB::table('chat_stories')
         ->where('expires_at', '<=', now())
         ->get(['id', 'ipfs_cid']);
