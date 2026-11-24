@@ -60,6 +60,20 @@ export class MessagePoller {
 
             const txt = this.crypto.decrypt(encrypted);
             const messageType = messageEl.dataset.messageType || 'text';
+
+            let searchableText = txt;
+            try {
+                const decoded = JSON.parse(txt);
+                if (decoded?.type === 'poll') {
+                    searchableText = [decoded.question, ...(decoded.options || []).map(option => typeof option === 'object' ? option.text : option)].join(' ');
+                } else if (decoded?.type === 'attachment') {
+                    searchableText = decoded.file_name || 'attachment';
+                }
+            } catch {
+                // Обычный текст сообщения.
+            }
+            messageEl.dataset.searchText = searchableText.toLocaleLowerCase();
+            document.dispatchEvent(new Event('chat:message-decrypted'));
             const attachmentId = Number(messageEl.dataset.attachmentId || 0);
             const isVoice = messageType === 'voice'
                 && renderVoiceMessage(
@@ -78,7 +92,8 @@ export class MessagePoller {
                     Number(messageEl.dataset.id),
                     attachmentId,
                     this.config,
-                    this.crypto
+                    this.crypto,
+                    messageType
                 );
             const isPoll = messageType === 'poll'
                 && renderPollMessage(el, txt, Number(messageEl.dataset.id), this.config, messageEl);
