@@ -113,6 +113,88 @@ document.addEventListener('DOMContentLoaded', async () => {
         composerStatus.textContent = message;
         composerStatus.hidden = !visible || !message;
     };
+
+    // Composer: grow to eight lines, then scroll internally.
+    const resizeComposer = () => {
+        if (!input) return;
+        const style = window.getComputedStyle(input);
+        const lineHeight = Number.parseFloat(style.lineHeight) || 22;
+        const maxHeight = lineHeight * 8
+            + Number.parseFloat(style.paddingTop || 0)
+            + Number.parseFloat(style.paddingBottom || 0)
+            + Number.parseFloat(style.borderTopWidth || 0)
+            + Number.parseFloat(style.borderBottomWidth || 0);
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, maxHeight) + 'px';
+        input.style.overflowY = input.scrollHeight > maxHeight ? 'auto' : 'hidden';
+    };
+    if (input) {
+        input.setAttribute('rows', '1');
+        input.setAttribute('spellcheck', 'true');
+        input.setAttribute('lang', document.documentElement.lang || 'ru');
+        input.addEventListener('input', resizeComposer);
+        resizeComposer();
+    }
+
+    // Right-click on selected text opens formatting actions. When no text
+    // is selected, leave the native browser context menu available for spelling.
+    if (input) {
+        const selectionMenu = document.createElement('div');
+        selectionMenu.className = 'chat-selection-format-menu';
+        selectionMenu.setAttribute('role', 'toolbar');
+        selectionMenu.setAttribute('aria-label', 'Форматирование выделенного текста');
+        selectionMenu.hidden = true;
+        const formats = [
+            ['bold', 'Жирный', 'B'],
+            ['italic', 'Курсив', 'I'],
+            ['strike', 'Зачёркнутый', 'S'],
+            ['code', 'Код', '</>'],
+            ['quote', 'Цитата', '❝'],
+            ['normal', 'Обычный', 'T'],
+        ];
+        formats.forEach(([format, title, label]) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.format = format;
+            button.title = title;
+            button.textContent = label;
+            button.addEventListener('mousedown', event => event.preventDefault());
+            button.addEventListener('click', () => {
+                const toolbarButton = document.querySelector('#chatFormatToolbar [data-format="' + format + '"]');
+                hideSelectionMenu();
+                toolbarButton?.click();
+                input.focus();
+            });
+            selectionMenu.appendChild(button);
+        });
+        document.body.appendChild(selectionMenu);
+
+        const hideSelectionMenu = () => {
+            selectionMenu.hidden = true;
+        };
+        input.addEventListener('contextmenu', event => {
+            const start = input.selectionStart ?? 0;
+            const end = input.selectionEnd ?? 0;
+            if (start === end || !input.value.slice(start, end).trim()) {
+                hideSelectionMenu();
+                return; // native spell-check suggestions remain available
+            }
+            event.preventDefault();
+            selectionMenu.hidden = false;
+            const width = selectionMenu.offsetWidth || 230;
+            const height = selectionMenu.offsetHeight || 48;
+            selectionMenu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - width - 8)) + 'px';
+            selectionMenu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - height - 8)) + 'px';
+        });
+        document.addEventListener('pointerdown', event => {
+            if (!selectionMenu.contains(event.target)) hideSelectionMenu();
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') hideSelectionMenu();
+        });
+        window.addEventListener('resize', hideSelectionMenu);
+        window.addEventListener('scroll', hideSelectionMenu, true);
+    }
     const scrollToBottomButton = document.getElementById('chatScrollToBottom');
     const editReplyQuoteButton = document.getElementById('editReplyQuote');
     editReplyQuoteButton?.addEventListener('click', () => {
