@@ -1000,6 +1000,27 @@
     .chat-story-reactions button { width: 34px; height: 34px; font-size: 19px; }
 }
 
+
+.chat-story-private-reply {
+    position: absolute;
+    z-index: 5;
+    left: 50%;
+    bottom: max(68px, calc(env(safe-area-inset-bottom) + 62px));
+    transform: translateX(-50%);
+    min-height: 38px;
+    padding: 8px 14px;
+    color: #071018;
+    background: linear-gradient(135deg, #00e5ff, #5eead4);
+    border: 0;
+    border-radius: 20px;
+    font-size: .82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 6px 22px rgba(0,0,0,.4);
+    cursor: pointer;
+}
+.chat-story-private-reply:hover { filter: brightness(1.08); }
+
 </style>
 
 
