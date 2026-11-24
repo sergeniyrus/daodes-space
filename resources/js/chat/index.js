@@ -185,9 +185,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         input.addEventListener('contextmenu', event => {
             const start = input.selectionStart ?? 0;
             const end = input.selectionEnd ?? 0;
-            if (start === end || !input.value.slice(start, end).trim()) {
+            const selectedText = input.value.slice(start, end).trim();
+            // Single-word selections are commonly selected by the browser's
+            // spell checker. Keep its native correction menu intact.
+            if (!selectedText || !/[\\s]/.test(selectedText)) {
                 hideSelectionMenu();
-                return; // native spell-check suggestions remain available
+                return;
             }
             event.preventDefault();
             selectionMenu.hidden = false;
