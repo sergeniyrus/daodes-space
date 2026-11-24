@@ -1597,7 +1597,7 @@ body.chat-media-viewer-open { overflow: hidden; }
                         <span class="chat-member-name">{{ $member->name }}</span>
                         <span class="chat-member-role">{{ __('chats.role_' . ($member->pivot->role ?? 'member')) }}</span>
 
-                        @if (in_array($currentRole, ['owner', 'admin'], true) && $chat->type !== 'personal' && $member->id !== auth()->id() && ($member->pivot->role ?? 'member') !== 'owner' && ($currentRole === 'owner' || ($member->pivot->role ?? 'member') !== 'admin'))
+                        @if (in_array($currentRole, ['owner', 'admin'], true) && !in_array($chat->type, ['personal', 'saved'], true) && $member->id !== auth()->id() && ($member->pivot->role ?? 'member') !== 'owner' && ($currentRole === 'owner' || ($member->pivot->role ?? 'member') !== 'admin'))
                             @if ($currentRole === 'owner')
                                 <select class="chat-member-role-select" aria-label="Role">
                                     <option value="member" @selected(($member->pivot->role ?? 'member') === 'member')>{{ __('chats.role_member') }}</option>
@@ -1614,7 +1614,7 @@ body.chat-media-viewer-open { overflow: hidden; }
             </div>
         </details>
 
-        @if (in_array($currentRole, ['owner', 'admin'], true) && $chat->type !== 'personal')
+        @if (in_array($currentRole, ['owner', 'admin'], true) && !in_array($chat->type, ['personal', 'saved'], true))
             <button type="button" class="chat-topic-create" id="addChatParticipant">
                 + {{ __('chats.add_participant') }}
             </button>
