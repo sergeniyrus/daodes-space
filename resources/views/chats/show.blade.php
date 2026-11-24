@@ -2508,7 +2508,7 @@ body.chat-media-viewer-open { overflow: hidden; }
                 id="openChatPeerProfile"
                 aria-haspopup="dialog"
                 aria-controls="chatPeerProfileModal"
-                title="Открыть визитку пользователя"
+                title="{{ __('user_profile.open_profile_card') }}"
             >
                 <img
                     class="chat-header-avatar"
@@ -2529,7 +2529,7 @@ body.chat-media-viewer-open { overflow: hidden; }
                             {{ $otherUser->profile->status_emoji }} {{ $otherUser->profile->status_text }}
                         </span>
                     @endif
-                    <span class="chat-profile-hint"><i class="fa fa-address-card-o" aria-hidden="true"></i> Визитка</span>
+                    <span class="chat-profile-hint"><i class="fa fa-address-card-o" aria-hidden="true"></i> {{ __('user_profile.business_card') }}</span>
                 </span>
             </button>
 
@@ -2643,12 +2643,12 @@ body.chat-media-viewer-open { overflow: hidden; }
                         <p><i class="fa fa-telegram" aria-hidden="true"></i><a href="https://t.me/{{ $otherUser->profile->nickname }}" target="_blank" rel="noopener noreferrer">{{ '@' . $otherUser->profile->nickname }}</a></p>
                     @endif
                     @if (!$otherUser->profile || (!$otherUser->profile->card_position && !$otherUser->profile->card_company && !$otherUser->profile->card_location && !$otherUser->profile->card_about && !$otherUser->profile->card_website && !$otherUser->profile->nickname))
-                        <p class="chat-peer-profile-empty">Пользователь пока не заполнил визитку.</p>
+                        <p class="chat-peer-profile-empty">{{ __('user_profile.business_card_empty') }}</p>
                     @endif
                 </div>
 
                 @if ($otherUser->profile)
-                    <a class="chat-peer-profile-link" href="{{ route('user_profile.show', $otherUser->id) }}">Открыть полный профиль</a>
+                    <a class="chat-peer-profile-link" href="{{ route('user_profile.show', $otherUser->id) }}">{{ __('user_profile.open_full_profile') }}</a>
                 @endif
             </section>
         </div>
