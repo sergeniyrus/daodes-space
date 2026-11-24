@@ -147,6 +147,27 @@
                             {{ $userProfile->languages ?? __('user_profile.not_specified') }}</p>
                     </div>
 
+                    @if ($userProfile->card_position || $userProfile->card_company || $userProfile->card_location || $userProfile->card_about || $userProfile->card_website)
+                        <div class="category-block">
+                            <div class="section-title">Визитка DAODES</div>
+                            @if ($userProfile->card_position)
+                                <p class="card-text"><label>Должность / специализация:</label> {{ $userProfile->card_position }}</p>
+                            @endif
+                            @if ($userProfile->card_company)
+                                <p class="card-text"><label>Компания / проект:</label> {{ $userProfile->card_company }}</p>
+                            @endif
+                            @if ($userProfile->card_location)
+                                <p class="card-text"><label>Местоположение:</label> {{ $userProfile->card_location }}</p>
+                            @endif
+                            @if ($userProfile->card_about)
+                                <p class="card-text"><label>О себе:</label> {{ $userProfile->card_about }}</p>
+                            @endif
+                            @if ($userProfile->card_website)
+                                <p class="card-text"><label>Сайт:</label> <a href="{{ $userProfile->card_website }}" target="_blank" rel="noopener noreferrer" style="color:aqua">{{ $userProfile->card_website }}</a></p>
+                            @endif
+                        </div>
+                    @endif
+
                     <!-- Education and Skills -->
                     <div class="category-block">
                         <div class="section-title">{{ __('user_profile.education_and_skills') }}</div>
