@@ -2653,6 +2653,7 @@ body.chat-media-viewer-open { overflow: hidden; }
                 <button type="button" id="startAudioCall"><i class="fa fa-phone" aria-hidden="true"></i> Аудиозвонок</button>
                 <button type="button" id="startVideoCall"><i class="fa fa-video-camera" aria-hidden="true"></i> Видеозвонок</button>
             </div>
+            @include('components.chat-call-push-subscription')
         @endif
 
         @if ($chat->type !== 'saved')
