@@ -1,3 +1,5 @@
+import { initChatStories } from './chat/stories.js';
+
 import nacl from 'tweetnacl';
 
 (function () {
@@ -159,5 +161,16 @@ document.addEventListener('DOMContentLoaded', () => {
             button.disabled = false;
             button.textContent = originalText;
         }
+    });
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const storiesBar = document.getElementById('chatStoriesBar');
+    if (!storiesBar) return;
+
+    initChatStories({
+        userId: Number(storiesBar.dataset.userId),
+        csrfToken: storiesBar.dataset.csrf,
     });
 });
