@@ -1,6 +1,7 @@
 <?php
 return [
     'your_chats' => 'Your chats',
+    'saved_messages' => 'Saved Messages',
     'group_chats' => 'Group chats',
     'private_messages' => 'Private messages',
     'chat_name' => 'Chat name',
