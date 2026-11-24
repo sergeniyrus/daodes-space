@@ -564,6 +564,13 @@ class MessageController extends Controller
             ], 422);
         }
 
+        if (DB::table('message_transcriptions')->where('message_id', $message->id)->exists()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Для этого голосового сообщения текст уже создан',
+            ], 409);
+        }
+
         $apiKey = config('services.openai.api_key');
         if (!$apiKey) {
             return response()->json([
