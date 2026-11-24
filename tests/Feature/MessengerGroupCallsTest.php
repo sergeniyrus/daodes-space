@@ -42,6 +42,14 @@ class MessengerGroupCallsTest extends TestCase
         $parts = explode('.', $response->json('token'));
         $this->assertCount(3, $parts);
 
+        $expectedSignature = rtrim(strtr(base64_encode(hash_hmac(
+            'sha256',
+            $parts[0] . '.' . $parts[1],
+            'daodes-test-secret-that-is-not-production',
+            true
+        )), '+/', '-_'), '=');
+        $this->assertSame($expectedSignature, $parts[2]);
+
         $claims = json_decode(
             base64_decode(strtr($parts[1], '-_', '+/')),
             true,
@@ -99,6 +107,20 @@ class MessengerGroupCallsTest extends TestCase
         $this->actingAs($user)
             ->postJson("/meetings/{$meetingId}/livekit-token")
             ->assertStatus(503);
+    }
+
+
+    public function test_removed_chat_member_cannot_get_group_call_token(): void
+    {
+        $user = $this->createUser();
+        $chat = Chat::create(['name' => 'Removed member', 'type' => 'group']);
+        $chat->users()->attach($user->id, ['role' => 'member']);
+        $meetingId = $this->createMeeting($chat, $user, 'accepted');
+        $chat->users()->detach($user->id);
+
+        $this->actingAs($user)
+            ->postJson("/meetings/{$meetingId}/livekit-token")
+            ->assertForbidden();
     }
 
     private function createMeeting(Chat $chat, User $user, string $response): int
