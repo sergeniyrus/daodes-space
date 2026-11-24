@@ -8,6 +8,7 @@ import { ChatUI } from './ui.js';
 import { MessageSender } from './sender.js';
 import { MessagePoller } from './polling.js';
 import { u8ToB64 } from './utils.js';
+import { validateChatAttachment, recordingFileName } from './file-validation.js';
 import { connectChatRealtime } from './realtime.js';
 import { initScheduledMessages } from './scheduled.js';
 import { initChatCalls } from './calls.js';
@@ -932,6 +933,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const uploadForm = new FormData();
                         uploadForm.append('file', encryptedFile);
                         uploadForm.append('media_type', 'audio');
+                        uploadForm.append('original_file_name', recordingFileName(audioBlob.type || mimeType || 'audio/webm', 'voice'));
                         uploadForm.append('encrypted', '1');
 
                         const uploadResponse = await fetch(`/chats/${config.chatId}/attachments`, {
@@ -1103,6 +1105,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const uploadForm = new FormData();
                         uploadForm.append('file', encryptedFile);
                         uploadForm.append('media_type', 'video');
+                        uploadForm.append('original_file_name', recordingFileName(videoBlob.type || recordedMimeType, 'video-note'));
                         uploadForm.append('encrypted', '1');
 
                         const uploadResponse = await fetch(`/chats/${config.chatId}/attachments`, {
@@ -1193,6 +1196,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const file = attachmentInput.files?.[0];
             if (!file) return;
 
+            const fileValidation = validateChatAttachment(file);
+            if (!fileValidation.valid) {
+                window.alert(fileValidation.message);
+                attachmentInput.value = '';
+                return;
+            }
+
             if (file.size > 50 * 1024 * 1024) {
                 window.alert('Максимальный размер вложения — 50 МБ');
                 attachmentInput.value = '';
@@ -1204,13 +1214,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const finishComposerLoading = beginComposerLoading();
 
             try {
-                const mediaType = file.type.startsWith('image/')
-                    ? 'image'
-                    : file.type.startsWith('video/')
-                        ? 'video'
-                        : file.type.startsWith('audio/')
-                            ? 'audio'
-                            : 'file';
+                const mediaType = fileValidation.mediaType;
 
                 const fileBytes = new Uint8Array(await file.arrayBuffer());
                 const fileNonce = nacl.randomBytes(nacl.secretbox.nonceLength);
@@ -1224,6 +1228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const uploadForm = new FormData();
                 uploadForm.append('file', encryptedFile);
                 uploadForm.append('media_type', mediaType);
+                uploadForm.append('original_file_name', file.name);
                 uploadForm.append('encrypted', '1');
 
                 const uploadResponse = await fetch(`/chats/${config.chatId}/attachments`, {
