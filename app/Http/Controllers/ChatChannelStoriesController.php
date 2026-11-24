@@ -57,7 +57,7 @@ class ChatChannelStoriesController extends Controller
             })
             ->where('stories.chat_id', $chat->id)
             ->where('story_keys.user_id', $userId)
-            ->leftJoin('chat_channel_story_reactions' as reactions, function ($join) use ($userId) {
+            ->leftJoin('chat_channel_story_reactions as reactions', function ($join) use ($userId) {
                 $join->on('reactions.story_id', '=', 'stories.id')
                     ->where('reactions.user_id', '=', $userId);
             })
