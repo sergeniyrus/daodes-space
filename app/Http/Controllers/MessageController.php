@@ -814,7 +814,7 @@ class MessageController extends Controller
         abort_unless($poll, 404);
 
         $canModerate = in_array($membership->role ?? 'member', ['owner', 'admin', 'moderator'], true);
-        abort_unless($message->sender_id === Auth::id() || $canModerate, 403);
+        abort_unless((int) $message->sender_id === (int) Auth::id() || $canModerate, 403);
 
         DB::table('chat_polls')
             ->where('id', $poll->id)
