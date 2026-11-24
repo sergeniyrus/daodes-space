@@ -2443,7 +2443,7 @@ body.chat-media-viewer-open { overflow: hidden; }
                 @if ($currentRole === 'owner' || ($currentRole === 'admin' && $chat->allow_admin_stories) || ($currentRole === 'moderator' && $chat->allow_moderator_stories))
                     <button type="button" class="chat-story-add" id="addChannelStoryBtn">
                         <span class="chat-story-add-avatar">＋</span>
-                        <span>Сторис канала</span>
+                        <span>{{ __('chats.channel_stories') }}</span>
                     </button>
                     <input type="file" id="channelStoryFileInput" accept="image/*,video/*" hidden>
                 @endif
@@ -2614,17 +2614,17 @@ body.chat-media-viewer-open { overflow: hidden; }
                 </div>
             </div>
             @if ($currentRole === 'owner' || ($currentRole === 'admin' && $chat->allow_admin_photo) || ($currentRole === 'moderator' && $chat->allow_moderator_photo))
-                <label class="chat-topic-create" for="channelPhotoInput">Изменить фотографию</label>
+                <label class="chat-topic-create" for="channelPhotoInput">{{ __('chats.channel_photo_change') }}</label>
                 <input type="file" id="channelPhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
             @endif
             @if ($currentRole === 'owner')
                 <details class="chat-channel-settings">
-                    <summary>Настройки канала и права</summary>
-                    <form id="channelSettingsForm" data-url="{{ route('chats.channel.settings', $chat->id) }}">
-                        <label><input type="checkbox" name="allow_admin_photo" value="1" @checked($chat->allow_admin_photo)> Администраторам разрешено менять фотографию</label>
-                        <label><input type="checkbox" name="allow_moderator_photo" value="1" @checked($chat->allow_moderator_photo)> Модераторам разрешено менять фотографию</label>
-                        <label><input type="checkbox" name="allow_admin_stories" value="1" @checked($chat->allow_admin_stories)> Администраторам разрешено публиковать сторис</label>
-                        <label><input type="checkbox" name="allow_moderator_stories" value="1" @checked($chat->allow_moderator_stories)> Модераторам разрешено публиковать сторис</label>
+                    <summary>{{ __('chats.channel_settings_permissions') }}</summary>
+                    <form id="channelSettingsForm" data-url="{{ route('chats.channel.settings', $chat->id) }}" data-label-saved="{{ __('chats.channel_permissions_saved') }}" data-label-save-error="{{ __('chats.channel_permissions_save_error') }}">
+                        <label><input type="checkbox" name="allow_admin_photo" value="1" @checked($chat->allow_admin_photo)> {{ __('chats.channel_admin_photo_permission') }}</label>
+                        <label><input type="checkbox" name="allow_moderator_photo" value="1" @checked($chat->allow_moderator_photo)> {{ __('chats.channel_moderator_photo_permission') }}</label>
+                        <label><input type="checkbox" name="allow_admin_stories" value="1" @checked($chat->allow_admin_stories)> {{ __('chats.channel_admin_stories_permission') }}</label>
+                        <label><input type="checkbox" name="allow_moderator_stories" value="1" @checked($chat->allow_moderator_stories)> {{ __('chats.channel_moderator_stories_permission') }}</label>
                         <button type="submit">Сохранить права</button>
                         <span id="channelSettingsStatus" aria-live="polite"></span>
                     </form>
