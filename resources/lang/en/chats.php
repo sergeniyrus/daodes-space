@@ -128,4 +128,5 @@ return [
     'search_messages' => 'Search messages',
     'search_loaded_messages' => 'Search loaded messages',
     'clear_search' => 'Clear search',
+    'saved_messages_description' => 'Your private space for notes and files',
 ];
