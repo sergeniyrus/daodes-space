@@ -129,4 +129,13 @@ return [
     'search_loaded_messages' => 'Search loaded messages',
     'clear_search' => 'Clear search',
     'saved_messages_description' => 'Your private space for notes and files',
+    'channel_stories' => 'Channel stories',
+    'channel_photo_change' => 'Change channel photo',
+    'channel_settings_permissions' => 'Channel settings and permissions',
+    'channel_admin_photo_permission' => 'Allow administrators to change the photo',
+    'channel_moderator_photo_permission' => 'Allow moderators to change the photo',
+    'channel_admin_stories_permission' => 'Allow administrators to publish stories',
+    'channel_moderator_stories_permission' => 'Allow moderators to publish stories',
+    'channel_permissions_saved' => 'Permissions saved',
+    'channel_permissions_save_error' => 'Could not save permissions',
 ];
