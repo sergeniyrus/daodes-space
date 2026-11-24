@@ -146,7 +146,7 @@ class UserProfileController extends Controller
             'card_company' => 'nullable|string|max:120',
             'card_location' => 'nullable|string|max:120',
             'card_about' => 'nullable|string|max:1200',
-            'card_website' => 'nullable|url|max:255',
+            'card_website' => 'nullable|url:http,https|max:255',
         ]);
 
         $profile = $user->profile ?? new UserProfile(['user_id' => $user->id]);
