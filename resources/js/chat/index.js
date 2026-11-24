@@ -169,6 +169,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
+            if (toolsMenu?.classList.contains('is-recording')) {
+                event.preventDefault();
+                return;
+            }
             closeComposerTools();
             closeEmojiPicker();
             if (peerProfileModal && !peerProfileModal.hidden) closePeerProfile();
@@ -1100,6 +1104,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         await poller.load();
                     } catch (error) {
                         console.error('Voice message send failed:', error);
+                        setComposerStatus('Ошибка отправки: ' + (error.message || 'не удалось отправить голосовое сообщение'));
+                        window.setTimeout(() => setComposerStatus('', false), 6000);
                         window.alert(error.message || 'Не удалось отправить голосовое сообщение');
                     } finally {
                         finishComposerLoading();
