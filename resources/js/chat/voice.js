@@ -174,6 +174,7 @@ export function renderVoiceMessage(container, encryptedPayload, messageId, attac
                         config.translations.voiceTranscriptConsent
                         || 'Аудиозапись будет передана OpenAI для распознавания речи. Продолжить?'
                     )) {
+                        transcribeButton.textContent = config.translations.voiceTranscribe || 'Открыть как текст';
                         return;
                     }
 
