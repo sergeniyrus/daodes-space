@@ -8,7 +8,7 @@ function u8ToB64(value) {
     return btoa(String.fromCharCode(...value));
 }
 
-export function initChatStories({ userId, csrfToken }) {
+export function initChatStories({ userId, csrfToken, labels = {} }) {
     const addButton = document.getElementById('addChatStoryBtn');
     const fileInput = document.getElementById('chatStoryFileInput');
     const list = document.getElementById('chatStoriesList');
@@ -42,7 +42,7 @@ export function initChatStories({ userId, csrfToken }) {
         if (!stories.length) {
             const empty = document.createElement('span');
             empty.className = 'chat-story-name';
-            empty.textContent = '—';
+            empty.textContent = labels.empty || '—';
             list.appendChild(empty);
             return;
         }
@@ -60,7 +60,7 @@ export function initChatStories({ userId, csrfToken }) {
 
             const name = document.createElement('span');
             name.className = 'chat-story-name';
-            name.textContent = story.is_own ? 'Моя история' : story.author_name;
+            name.textContent = story.is_own ? (labels.myStory || 'My story') : story.author_name;
 
             button.append(avatar, name);
             button.addEventListener('click', () => openStory(story));
@@ -138,7 +138,7 @@ export function initChatStories({ userId, csrfToken }) {
         });
         const data = await response.json();
         if (!response.ok || data.status !== 'success') {
-            throw new Error(data.message || 'Не удалось опубликовать историю');
+            throw new Error(data.message || labels.uploadError || 'Could not publish story');
         }
         await loadStories();
     }
@@ -234,7 +234,7 @@ export function initChatStories({ userId, csrfToken }) {
 
                 const viewsButton = document.createElement('button');
                 viewsButton.type = 'button';
-                viewsButton.textContent = 'Просмотры';
+                viewsButton.textContent = labels.views || 'Views';
                 viewsButton.addEventListener('click', async () => {
                     const response = await fetch(`/stories/${story.id}/views`, {
                         headers: { Accept: 'application/json' },
@@ -242,12 +242,12 @@ export function initChatStories({ userId, csrfToken }) {
                     });
                     if (!response.ok) return;
                     const views = await response.json();
-                    window.alert(views.map(item => item.name).join('\\n') || 'Пока нет просмотров');
+                    window.alert(views.map(item => item.name).join('\\n') || 'No views yet');
                 });
 
                 const deleteButton = document.createElement('button');
                 deleteButton.type = 'button';
-                deleteButton.textContent = 'Удалить';
+                deleteButton.textContent = labels.delete || 'Delete';
                 deleteButton.addEventListener('click', async () => {
                     const response = await fetch(`/stories/${story.id}`, {
                         method: 'DELETE',
