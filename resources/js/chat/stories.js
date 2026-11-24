@@ -312,7 +312,7 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
             });
             viewer.appendChild(reactionBar);
 
-            if (!story.is_own && !story.is_channel && story.direct_chat_id) {
+            if (!story.is_own && story.direct_chat_id) {
                 const replyButton = document.createElement('button');
                 replyButton.type = 'button';
                 replyButton.className = 'chat-story-private-reply';
@@ -320,7 +320,7 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
                 replyButton.addEventListener('click', () => {
                     const query = new URLSearchParams({
                         story_reply: String(story.id),
-                        story_author: story.author_name || 'пользователь',
+                        story_author: story.publisher_name || story.author_name || 'пользователь',
                     });
                     window.location.assign(`/chats/${story.direct_chat_id}?${query.toString()}`);
                 });
