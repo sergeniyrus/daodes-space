@@ -127,4 +127,5 @@ return [
     'search_messages' => 'Поиск сообщений',
     'search_loaded_messages' => 'Поиск по загруженным сообщениям',
     'clear_search' => 'Очистить поиск',
+    'saved_messages_description' => 'Ваше личное пространство для заметок и файлов',
 ];
