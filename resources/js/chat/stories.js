@@ -177,7 +177,9 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
         info.className = 'chat-story-viewer-info';
         info.textContent = story.author_name;
 
+        let progressTimer = null;
         const closeViewer = () => {
+            if (progressTimer) window.clearInterval(progressTimer);
             viewer.remove();
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
@@ -272,7 +274,6 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
             viewer.appendChild(media);
 
             const activeTrack = progress.children[sequenceIndex]?.querySelector('i');
-            let progressTimer = null;
             if (envelope.media_type === 'video') {
                 media.addEventListener('ended', () => next.click(), { once: true });
             } else {
@@ -286,13 +287,6 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
                     }
                 }, 50);
             }
-            const originalClose = closeViewer;
-            const closeViewerWithTimer = () => {
-                if (progressTimer) window.clearInterval(progressTimer);
-                originalClose();
-            };
-            close.addEventListener('click', closeViewerWithTimer, { once: true });
-
             if (!story.is_own) {
                 await fetch(`${endpoint}/${story.id}/view`, {
                     method: 'POST',
