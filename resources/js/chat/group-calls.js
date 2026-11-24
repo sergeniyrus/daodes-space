@@ -23,7 +23,6 @@ export function initGroupCalls(config, crypto) {
     let room = null;
     let connecting = false;
     let e2eeWorker = null;
-    let activeMeetingId = null;
     let micEnabled = false;
     let cameraEnabled = false;
     let screenEnabled = false;
@@ -83,9 +82,8 @@ export function initGroupCalls(config, crypto) {
         const source = publication.source || track.source;
         const key = (isLocal ? 'local-' : participant.sid + '-') + String(source || track.kind);
         const label = isLocal ? 'Вы' : participantLabel(participant);
-        const { video } = makeTile(key, label, isLocal);
-
         if (track.kind === Track.Kind.Video) {
+            const { video } = makeTile(key, label, isLocal);
             track.attach(video);
             video.hidden = false;
         } else if (track.kind === Track.Kind.Audio && !isLocal) {
@@ -135,8 +133,10 @@ export function initGroupCalls(config, crypto) {
         }
 
         clearTiles();
-        activeMeetingId = null;
         connecting = false;
+        [micButton, cameraButton, screenButton, leaveButton, closeButton].forEach(button => {
+            if (button) button.disabled = false;
+        });
         micEnabled = false;
         cameraEnabled = false;
         screenEnabled = false;
@@ -154,7 +154,10 @@ export function initGroupCalls(config, crypto) {
             throw new Error('Не удалось получить ключ шифрования этого чата. Звонок не запущен.');
         }
 
-        activeMeetingId = Number(meetingId);
+        const activeMeetingId = Number(meetingId);
+        [micButton, cameraButton, screenButton, leaveButton, closeButton].forEach(button => {
+            if (button) button.disabled = true;
+        });
         modal.hidden = false;
         document.body.style.overflow = 'hidden';
         title.textContent = 'Групповой звонок';
@@ -209,6 +212,9 @@ export function initGroupCalls(config, crypto) {
             [...participantTiles.keys()]
                 .filter(key => key.startsWith(participant.sid + '-'))
                 .forEach(removeTile);
+            document.querySelectorAll('[data-group-call-audio]').forEach(audio => {
+                if (audio.dataset.groupCallAudio.startsWith(participant.sid + '-')) audio.remove();
+            });
         });
         room.on(RoomEvent.LocalTrackPublished, publication => {
             if (publication.track) attachTrack(publication.track, publication, room.localParticipant);
@@ -226,6 +232,9 @@ export function initGroupCalls(config, crypto) {
         await room.setE2EEEnabled(true);
         await room.connect(tokenData.server_url, tokenData.token);
         connecting = false;
+        [micButton, cameraButton, screenButton, leaveButton, closeButton].forEach(button => {
+            if (button) button.disabled = false;
+        });
 
         await room.localParticipant.setMicrophoneEnabled(true);
         micEnabled = true;
@@ -258,7 +267,6 @@ export function initGroupCalls(config, crypto) {
             micEnabled = nextEnabled;
             updateButtons();
         } catch (error) {
-            micEnabled = !micEnabled;
             updateButtons();
             window.alert('Не удалось изменить состояние микрофона');
         }
@@ -272,7 +280,6 @@ export function initGroupCalls(config, crypto) {
             cameraEnabled = nextEnabled;
             updateButtons();
         } catch (error) {
-            cameraEnabled = !cameraEnabled;
             updateButtons();
             window.alert('Не удалось изменить состояние камеры');
         }
@@ -286,7 +293,6 @@ export function initGroupCalls(config, crypto) {
             screenEnabled = nextEnabled;
             updateButtons();
         } catch (error) {
-            screenEnabled = !screenEnabled;
             updateButtons();
             window.alert('Не удалось запустить демонстрацию экрана');
         }
