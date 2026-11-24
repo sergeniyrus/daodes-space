@@ -290,7 +290,7 @@ class ChatStoriesController extends Controller
 
         try {
             $ipfs->unpinFile($storyRecord->ipfs_cid);
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             report($exception);
             return response()->json(['status' => 'error', 'message' => 'Could not remove story from IPFS'], 503);
         }
