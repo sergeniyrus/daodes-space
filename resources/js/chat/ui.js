@@ -64,7 +64,7 @@ export class ChatUI {
             const senderName = titleEl
                 ? titleEl.childNodes[0]?.textContent.trim() || ''
                 : '';
-            this.startReply(messageId, senderName, text);
+            this.startReply(messageId, senderName, text, messageEl);
         };
 
         // Кнопка Копировать — с переводом и иконкой
@@ -118,7 +118,7 @@ export class ChatUI {
                 ? titleEl.childNodes[0]?.textContent.trim() || ''
                 : '';
             const currentText = messageEl.querySelector('.card-text')?.dataset.plaintext || text;
-            this.startReply(messageId, senderName, currentText);
+            this.startReply(messageId, senderName, currentText, messageEl);
         };
 
         // Кнопка Редактировать — с переводом и иконкой
@@ -396,14 +396,34 @@ export class ChatUI {
         sendBtn.innerHTML = '<i class="fa fa-paper-plane" aria-hidden="true"></i>';
     }
 
-    startReply(messageId, senderName, text) {
+    startReply(messageId, senderName, text, messageEl = null) {
         this.cancelEditing();
         this.replyingToMessageId = messageId;
         const preview = document.getElementById('replyPreview');
         if (!preview) return;
+
+        const attachment = messageEl?.querySelector('.chat-media-message, .chat-video-note, .chat-voice-message, .chat-file-message');
+        let previewText = String(text || '').trim();
+        if (attachment) {
+            const fileName = attachment.querySelector('small')?.textContent?.trim();
+            const audio = attachment.querySelector('audio');
+            const video = attachment.querySelector('video');
+            const image = attachment.querySelector('img');
+            const label = audio ? '🎵 Голосовое сообщение'
+                : video ? '🎬 Видеосообщение'
+                : image ? '🖼 Изображение'
+                : '📎 Файл';
+            previewText = fileName && !['Зашифрованное вложение', 'video-note'].includes(fileName)
+                ? label + ': ' + fileName
+                : label;
+        } else if (!previewText) {
+            previewText = 'Сообщение';
+        }
+
         preview.querySelector('.reply-to-name').textContent = senderName;
-        preview.querySelector('.reply-to-text').textContent = text.substring(0, 100);
-        preview.dataset.replyText = text;
+        preview.querySelector('.reply-to-text').textContent = previewText.substring(0, 100);
+        preview.dataset.replyText = String(text || '');
+        preview.dataset.replyType = attachment ? 'attachment' : 'text';
         preview.style.display = 'flex';
         preview.dataset.replyId = messageId;
         document.getElementById('messageInput').focus();
@@ -416,6 +436,7 @@ export class ChatUI {
             preview.style.display = 'none';
             delete preview.dataset.replyId;
             delete preview.dataset.replyText;
+            delete preview.dataset.replyType;
         }
     }
 
