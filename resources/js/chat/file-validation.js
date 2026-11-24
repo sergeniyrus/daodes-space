@@ -17,7 +17,7 @@ const SAFE_EXTENSIONS = new Set([
     'vsdx', 'vsd', 'drawio',
     'java', 'kt', 'kts', 'c', 'h', 'cpp', 'hpp', 'cs', 'go', 'rs',
     'rb', 'swift', 'dart', 'vue', 'jsx', 'tsx', 'css', 'scss', 'less',
-    'gradle', 'properties', 'env.example',
+    'gradle', 'properties', 'ts',
 ]);
 
 const BLOCKED_EXTENSIONS = new Set([
@@ -38,7 +38,7 @@ const IMAGE_EXTENSIONS = new Set([
 ]);
 const VIDEO_EXTENSIONS = new Set([
     'mp4', 'm4v', 'mov', 'mkv', 'webm', 'avi', 'mpeg', 'mpg', '3gp',
-    '3g2', 'ts', 'mts', 'm2ts',
+    '3g2', 'mts', 'm2ts',
 ]);
 const AUDIO_EXTENSIONS = new Set([
     'mp3', 'wav', 'ogg', 'oga', 'opus', 'm4a', 'aac', 'flac', 'aiff', 'aif',
@@ -82,6 +82,12 @@ export function validateChatAttachment(file) {
 
 export function recordingFileName(mimeType, baseName) {
     const mime = String(mimeType || '').toLowerCase().split(';')[0].trim();
-    const extension = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm';
+    const extension = mime.startsWith('video/')
+        ? (mime.includes('mp4') ? 'mp4' : 'webm')
+        : mime.includes('mp4')
+            ? 'm4a'
+            : mime.includes('ogg')
+                ? 'ogg'
+                : 'webm';
     return `${baseName}.${extension}`;
 }
