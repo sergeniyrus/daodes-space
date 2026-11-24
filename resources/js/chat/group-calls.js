@@ -21,6 +21,7 @@ export function initGroupCalls(config, crypto) {
     if (!modal || !participants || !micButton || !cameraButton || !screenButton || !leaveButton) return;
 
     let room = null;
+    let connecting = false;
     let e2eeWorker = null;
     let activeMeetingId = null;
     let micEnabled = false;
@@ -135,6 +136,7 @@ export function initGroupCalls(config, crypto) {
 
         clearTiles();
         activeMeetingId = null;
+        connecting = false;
         micEnabled = false;
         cameraEnabled = false;
         screenEnabled = false;
@@ -144,9 +146,11 @@ export function initGroupCalls(config, crypto) {
     };
 
     const connect = async meetingId => {
-        if (room) return;
+        if (room || connecting) return;
+        connecting = true;
 
         if (!(crypto.chatKey instanceof Uint8Array) || crypto.chatKey.byteLength !== 32) {
+            connecting = false;
             throw new Error('Не удалось получить ключ шифрования этого чата. Звонок не запущен.');
         }
 
@@ -221,6 +225,7 @@ export function initGroupCalls(config, crypto) {
 
         await room.setE2EEEnabled(true);
         await room.connect(tokenData.server_url, tokenData.token);
+        connecting = false;
 
         await room.localParticipant.setMicrophoneEnabled(true);
         micEnabled = true;
@@ -237,6 +242,7 @@ export function initGroupCalls(config, crypto) {
         try {
             await connect(event.detail.meetingId);
         } catch (error) {
+            connecting = false;
             console.error('[GroupCall] Connection failed:', error);
             setStatus(error.message || 'Не удалось подключиться к звонку');
             await cleanup();
