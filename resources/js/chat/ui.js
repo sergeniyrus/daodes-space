@@ -403,6 +403,7 @@ export class ChatUI {
         if (!preview) return;
         preview.querySelector('.reply-to-name').textContent = senderName;
         preview.querySelector('.reply-to-text').textContent = text.substring(0, 100);
+        preview.dataset.replyText = text;
         preview.style.display = 'flex';
         preview.dataset.replyId = messageId;
         document.getElementById('messageInput').focus();
@@ -414,6 +415,7 @@ export class ChatUI {
         if (preview) {
             preview.style.display = 'none';
             delete preview.dataset.replyId;
+            delete preview.dataset.replyText;
         }
     }
 
