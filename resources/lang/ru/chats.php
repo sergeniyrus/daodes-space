@@ -122,4 +122,5 @@ return [
     'mute_30_days' => 'На 30 дней',
     'muted_until' => 'Отключены до :date',
     'notifications_enabled' => 'Уведомления включены',
+    'search_chats' => 'Поиск чатов…',
 ];
