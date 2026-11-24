@@ -1931,7 +1931,7 @@ body.chat-media-viewer-open { overflow: hidden; }
                 <a
                     href="{{ route('chats.show', $sidebarChat->id) }}"
                     class="telegram-chat-row {{ $sidebarChat->id === $chat->id ? 'active' : '' }}"
-                    data-search="{{ strtolower($sidebarName) }}"
+                    data-search="{{ mb_strtolower($sidebarName) }}"
                 >
                     @if ($sidebarChat->type === 'saved')
                         <span class="telegram-chat-avatar saved"><i class="fa fa-bookmark"></i></span>
