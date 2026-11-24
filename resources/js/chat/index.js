@@ -13,6 +13,7 @@ import { connectChatRealtime } from './realtime.js';
 import { initScheduledMessages } from './scheduled.js';
 import { initChatCalls } from './calls.js';
 import { initChatMeetings } from './meetings.js';
+import { initGroupCalls } from './group-calls.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const config = loadChatConfig();
@@ -603,6 +604,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         initScheduledMessages(config, crypto);
         initChatCalls(config, crypto);
         initChatMeetings(config, crypto);
+        initGroupCalls(config, crypto);
 
         try {
             const mentionResponse = await fetch(`/chats/${config.chatId}/mention-users`, {

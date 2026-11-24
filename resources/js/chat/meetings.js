@@ -118,6 +118,25 @@ export function initChatMeetings(config, crypto) {
                 card.appendChild(join);
             }
 
+            const endsAt = startsAt.getTime() + Number(meeting.duration_minutes) * 60000;
+            const canJoinGroupCall = config.chatType === 'group'
+                && meeting.response === 'accepted'
+                && meeting.status === 'scheduled'
+                && startsAt.getTime() <= Date.now() + 10 * 60000
+                && endsAt > Date.now();
+
+            if (canJoinGroupCall) {
+                const join = document.createElement('button');
+                join.type = 'button';
+                join.textContent = 'Войти в групповой звонок';
+                join.addEventListener('click', () => {
+                    document.dispatchEvent(new CustomEvent('chat:join-group-call', {
+                        detail: { meetingId: Number(meeting.id) },
+                    }));
+                });
+                card.appendChild(join);
+            }
+
             list.appendChild(card);
         });
     };

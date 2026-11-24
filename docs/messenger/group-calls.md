@@ -30,6 +30,12 @@ It issues a short-lived JWT only when all of the following are true:
 
 The token is restricted to one room and grants only room join, publish, subscribe, and data publishing. The identity and room name are opaque identifiers, not profile names.
 
+## Browser client
+
+The chat frontend uses the pinned `livekit-client` 2.25.0 npm package. Vite bundles the SDK and its E2EE worker; do not load the SDK or worker from an external CDN.
+
+For group meetings, an accepted participant can join from the meeting card when the meeting is already active or starts within 10 minutes. The call interface supports microphone, camera, screen sharing, and leaving the room. Personal WebRTC controls and signaling are separate and unchanged.
+
 ## End-to-end encryption
 
 The endpoint does not return media encryption keys. The browser must initialize LiveKit E2EE with the existing decrypted `crypto.chatKey` from the current chat session and must refuse to connect if that key is unavailable.
