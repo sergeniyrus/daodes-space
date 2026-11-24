@@ -20,6 +20,7 @@ export function initChatCalls(config, crypto) {
     let lastSignalId = 0;
     let polling = false;
     let pendingCandidates = [];
+    let pendingRemoteCandidates = [];
     let answering = false;
 
     const encode = value => {
@@ -75,6 +76,7 @@ export function initChatCalls(config, crypto) {
         if (localVideo) localVideo.srcObject = null;
         if (remoteVideo) remoteVideo.srcObject = null;
         pendingCandidates = [];
+        pendingRemoteCandidates = [];
         answering = false;
     };
 
@@ -138,6 +140,9 @@ export function initChatCalls(config, crypto) {
             const payload = decode(signal.encrypted_payload);
             if (signal.signal_type === 'offer') {
                 await pc.setRemoteDescription(new RTCSessionDescription(payload));
+                for (const candidate of pendingRemoteCandidates.splice(0)) {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                }
                 if (!answering) {
                     answering = true;
                     const answer = await pc.createAnswer();
@@ -148,13 +153,20 @@ export function initChatCalls(config, crypto) {
                 }
             } else if (signal.signal_type === 'answer') {
                 await pc.setRemoteDescription(new RTCSessionDescription(payload));
+                for (const candidate of pendingRemoteCandidates.splice(0)) {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                }
                 await flushCandidates();
                 status.textContent = 'Соединение установлено';
             } else if (signal.signal_type === 'ice') {
-                try {
-                    await pc.addIceCandidate(new RTCIceCandidate(payload));
-                } catch (error) {
-                    console.warn('[ChatCall] ICE candidate skipped:', error);
+                if (!pc.remoteDescription) {
+                    pendingRemoteCandidates.push(payload);
+                } else {
+                    try {
+                        await pc.addIceCandidate(new RTCIceCandidate(payload));
+                    } catch (error) {
+                        console.warn('[ChatCall] ICE candidate skipped:', error);
+                    }
                 }
             }
         }
@@ -183,8 +195,10 @@ export function initChatCalls(config, crypto) {
                         endButton.hidden = true;
                         modal.hidden = false;
                     }
-                } else if (data.call && call && Number(data.call.id) === Number(call.id)) {
-                    if (pc) await processSignals();
+                }
+
+                if (call && pc) {
+                    await processSignals();
                 } else if (!data.call && call && !pc) {
                     finish('Звонок не состоялся');
                 }
