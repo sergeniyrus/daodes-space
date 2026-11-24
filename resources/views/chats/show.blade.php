@@ -1646,14 +1646,221 @@ body.chat-media-viewer-open { overflow: hidden; }
     padding: 0 4px;
 }
 
+
+.telegram-chat-layout {
+    display: grid;
+    grid-template-columns: 310px minmax(0, 1fr);
+    gap: 14px;
+    width: min(100%, 1600px);
+    margin: 12px auto 28px;
+    padding: 0 14px;
+    box-sizing: border-box;
+    align-items: start;
+}
+.telegram-chat-sidebar {
+    position: sticky;
+    top: 78px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: calc(100vh - 96px);
+    max-height: 900px;
+    overflow: hidden;
+    border: 1px solid rgba(0,229,255,.28);
+    border-left: 3px solid #00e5ff;
+    border-radius: 16px;
+    background: linear-gradient(150deg,#0c1220,#111827 58%,#0b0c18);
+    box-shadow: 0 12px 35px rgba(0,0,0,.4);
+}
+.telegram-sidebar-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 16px 12px;
+    color: #ffd700;
+    border-bottom: 1px solid rgba(255,215,0,.18);
+}
+.telegram-sidebar-heading span { color: #00e5ff; font-size: .72rem; letter-spacing: .14em; }
+.telegram-sidebar-heading a { color: #00e5ff; text-decoration: none; font-size: 1.25rem; }
+.telegram-chat-search {
+    margin: 12px;
+    padding: 10px 12px;
+    color: #fff;
+    background: #090f1b;
+    border: 1px solid rgba(0,229,255,.28);
+    border-radius: 10px;
+    outline: none;
+}
+.telegram-chat-search:focus { border-color: #ffd700; box-shadow: 0 0 0 2px rgba(255,215,0,.08); }
+.telegram-chat-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 12px; }
+.telegram-chat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 10px 9px;
+    color: #e5e7eb;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255,255,255,.045);
+    border-left: 3px solid transparent;
+    border-radius: 9px;
+}
+.telegram-chat-row:hover { background: rgba(0,229,255,.07); color: #fff; }
+.telegram-chat-row.active {
+    border-left-color: #ffd700;
+    background: linear-gradient(90deg,rgba(255,215,0,.12),rgba(0,229,255,.055));
+}
+.telegram-chat-avatar {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    object-fit: cover;
+    border: 1px solid rgba(0,229,255,.55);
+    border-radius: 50%;
+    color: #ffd700;
+    background: #151b29;
+}
+.telegram-chat-avatar.saved { border-color: rgba(255,215,0,.6); }
+.telegram-chat-row-body { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 4px; }
+.telegram-chat-row-body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f8fafc; font-size: .9rem; }
+.telegram-chat-row-body small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #94a3b8; font-size: .72rem; }
+.telegram-chat-unread {
+    display: inline-grid;
+    place-items: center;
+    min-width: 21px;
+    height: 21px;
+    padding: 0 5px;
+    border-radius: 20px;
+    color: #08111d;
+    background: #00e5ff;
+    font-size: .7rem;
+    font-weight: 800;
+}
+.telegram-new-chat {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 8px 12px 12px;
+    padding: 11px;
+    color: #ffd700;
+    border: 1px solid rgba(255,215,0,.4);
+    border-radius: 10px;
+    text-decoration: none;
+    background: rgba(255,215,0,.05);
+}
+.telegram-chat-main { min-width: 0; }
+.telegram-chat-layout .chat-container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    min-width: 0;
+}
+.telegram-mobile-back { display: none; }
+@media (max-width: 980px) {
+    .telegram-chat-layout { grid-template-columns: 260px minmax(0,1fr); gap: 10px; padding: 0 8px; }
+    .telegram-chat-sidebar { height: calc(100vh - 90px); }
+    .telegram-chat-layout .chat-container { padding: 20px; }
+}
+@media (max-width: 720px) {
+    .telegram-chat-layout { display: block; margin: 0; padding: 0; }
+    .telegram-chat-sidebar { display: none; }
+    .telegram-chat-layout .chat-container {
+        width: 100%;
+        margin: 0;
+        padding: 14px 10px 20px;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+    }
+    .telegram-mobile-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin: 0 0 12px;
+        color: #00e5ff;
+        text-decoration: none;
+        font-size: .88rem;
+    }
+    .chat-title { font-size: 1.35rem; }
+}
+
 </style>
 
 
+<div class="telegram-chat-layout">
+    <aside class="telegram-chat-sidebar">
+        <div class="telegram-sidebar-heading">
+            <strong>DAODES <span>MESSENGER</span></strong>
+            <a href="{{ route('chats.index') }}" aria-label="{{ __('chats.to_chats') }}">⌂</a>
+        </div>
+        <input
+            type="search"
+            id="telegramChatSearch"
+            class="telegram-chat-search"
+            placeholder="{{ __('chats.search_chats') }}"
+            autocomplete="off"
+        >
+        <nav class="telegram-chat-list" id="telegramChatList" aria-label="{{ __('chats.your_chats') }}">
+            @foreach ($sidebarChats as $sidebarChat)
+                @php
+                    $sidebarOther = $sidebarChat->type === 'personal'
+                        ? $sidebarChat->users->first(fn($participant) => $participant->id !== auth()->id())
+                        : null;
+                    $sidebarName = $sidebarChat->getChatNameForUser(auth()->id());
+                @endphp
+                <a
+                    href="{{ route('chats.show', $sidebarChat->id) }}"
+                    class="telegram-chat-row {{ $sidebarChat->id === $chat->id ? 'active' : '' }}"
+                    data-search="{{ strtolower($sidebarName) }}"
+                >
+                    @if ($sidebarChat->type === 'saved')
+                        <span class="telegram-chat-avatar saved"><i class="fa fa-bookmark"></i></span>
+                    @elseif ($sidebarOther)
+                        <img
+                            class="telegram-chat-avatar"
+                            src="{{ $sidebarOther->profile?->avatar_url ?: '/img/main/default-avatar.png' }}"
+                            alt=""
+                        >
+                    @else
+                        <span class="telegram-chat-avatar group"><i class="fa fa-users"></i></span>
+                    @endif
+                    <span class="telegram-chat-row-body">
+                        <strong>{{ $sidebarName }}</strong>
+                        <small>
+                            @if ($sidebarOther)
+                                {{ $sidebarOther->isOnline() ? __('chats.online') : $sidebarOther->lastSeenHuman() }}
+                            @elseif ($sidebarChat->type === 'channel')
+                                {{ __('chats.channel') }}
+                            @elseif ($sidebarChat->type === 'saved')
+                                {{ __('chats.saved_messages') }}
+                            @else
+                                {{ __('chats.group_chat') }}
+                            @endif
+                        </small>
+                    </span>
+                    @if (($sidebarUnread[$sidebarChat->id] ?? 0) > 0)
+                        <span class="telegram-chat-unread">{{ $sidebarUnread[$sidebarChat->id] }}</span>
+                    @endif
+                </a>
+            @endforeach
+        </nav>
+        <a class="telegram-new-chat" href="{{ route('chats.create') }}">
+            <i class="fa fa-plus" aria-hidden="true"></i> {{ __('chats.create_chat') }}
+        </a>
+    </aside>
+    <main class="telegram-chat-main">
 <div class="chat-container">
 
     {{-- =====================================================
          ЗАГОЛОВОК ЧАТА
          ===================================================== --}}
+
+    <a class="telegram-mobile-back" href="{{ route('chats.index') }}">
+        <i class="fa fa-arrow-left" aria-hidden="true"></i> {{ __('chats.to_chats') }}
+    </a>
 
     <div class="chat-header">
 
@@ -2106,6 +2313,8 @@ body.chat-media-viewer-open { overflow: hidden; }
     >
     </div>
 
+</div>
+    </main>
 </div>
 
 
