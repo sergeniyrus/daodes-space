@@ -27,6 +27,10 @@ class ChatStoriesController extends Controller
                     ->where('views.user_id', '=', $userId);
             })
             ->where('story_keys.user_id', $userId)
+            ->leftJoin('chat_story_reactions' as reactions, function ($join) use ($userId) {
+                $join->on('reactions.story_id', '=', 'stories.id')
+                    ->where('reactions.user_id', '=', $userId);
+            })
             ->where('stories.expires_at', '>', now())
             ->whereNotExists(function ($query) use ($userId) {
                 $query->select(DB::raw(1))
@@ -61,6 +65,7 @@ class ChatStoriesController extends Controller
                 'stories.created_at',
                 'stories.expires_at',
                 'views.id as viewed_id',
+                'reactions.reaction as my_reaction',
             ])
             ->map(fn($story) => [
                 'id' => (int) $story->id,
@@ -74,6 +79,7 @@ class ChatStoriesController extends Controller
                 'created_at' => $story->created_at,
                 'expires_at' => $story->expires_at,
                 'viewed' => $story->viewed_id !== null,
+                'my_reaction' => $story->my_reaction,
                 'is_own' => (int) $story->user_id === (int) $userId,
             ])
             ->values();
