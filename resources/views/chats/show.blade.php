@@ -1215,6 +1215,47 @@
     background: #000;
 }
 
+.chat-media-image { cursor: zoom-in; }
+.chat-media-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 56px 20px 20px;
+    background: rgba(0, 0, 0, .94);
+    backdrop-filter: blur(10px);
+}
+.chat-media-viewer-content {
+    display: block;
+    max-width: min(96vw, 1600px);
+    max-height: calc(100vh - 90px);
+    object-fit: contain;
+    border: 1px solid rgba(0, 229, 255, .35);
+    border-radius: 10px;
+    box-shadow: 0 0 35px rgba(0, 229, 255, .12);
+}
+.chat-media-viewer-close {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 215, 0, .55);
+    border-radius: 50%;
+    color: #ffd700;
+    background: rgba(15, 17, 28, .9);
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+}
+body.chat-media-viewer-open { overflow: hidden; }
+@media (max-width: 600px) {
+    .chat-media-viewer { padding: 54px 8px 8px; }
+    .chat-media-viewer-content { max-width: 100%; max-height: calc(100vh - 70px); }
+}
+
 /* =========================================================
    ГОЛОСОВЫЕ СООБЩЕНИЯ
    ========================================================= */
