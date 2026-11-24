@@ -104,6 +104,16 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
                 link.download = payload.file_name || 'daodes-file';
                 link.textContent = '↓ ' + (config.translations.mediaDownload || 'Скачать файл');
                 wrapper.appendChild(link);
+
+                const mimeType = String(payload.mime_type || '').toLowerCase();
+                if (mimeType === 'application/pdf' || mimeType.startsWith('text/')) {
+                    const openButton = document.createElement('button');
+                    openButton.type = 'button';
+                    openButton.className = 'chat-media-load';
+                    openButton.textContent = config.translations.openFullscreen || 'Открыть на весь экран';
+                    openButton.addEventListener('click', () => openMediaViewer(objectUrl, 'document', payload.file_name || 'Документ'));
+                    wrapper.appendChild(openButton);
+                }
                 button.remove();
             }
 
@@ -146,12 +156,17 @@ function openMediaViewer(objectUrl, mediaType, title = '') {
 
     const content = mediaType === 'image'
         ? document.createElement('img')
-        : document.createElement('video');
+        : mediaType === 'document'
+            ? document.createElement('iframe')
+            : document.createElement('video');
 
     content.className = 'chat-media-viewer-content';
     content.src = objectUrl;
     if (mediaType === 'image') {
         content.alt = title;
+    } else if (mediaType === 'document') {
+        content.title = title;
+        content.setAttribute('sandbox', 'allow-scripts');
     } else {
         content.controls = true;
         content.autoplay = true;
