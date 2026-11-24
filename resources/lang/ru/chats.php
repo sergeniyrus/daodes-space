@@ -123,4 +123,5 @@ return [
     'muted_until' => 'Отключены до :date',
     'notifications_enabled' => 'Уведомления включены',
     'search_chats' => 'Поиск чатов…',
+    'open_fullscreen' => 'Открыть на весь экран',
 ];
