@@ -1198,3 +1198,28 @@
     .chat-story-reactions { gap: 4px; padding: 5px; }
     .chat-story-reactions button { width: 34px; height: 34px; font-size: 19px; }
 }
+
+
+/* Header: title first, compact search and notification icons on the same line. */
+.telegram-chat-layout .chat-header:has(.chat-person-heading) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px 8px;
+}
+.telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-person-heading {
+    flex: 1 1 100%;
+    min-width: 0;
+}
+.telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-mute-controls,
+.telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-message-search {
+    flex: 0 0 auto;
+    margin: 0;
+}
+.telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-mute-controls {
+    margin-left: auto;
+}
+@media (max-width: 720px) {
+    .telegram-chat-layout .chat-header:has(.chat-person-heading) { gap: 4px 6px; }
+    .telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-mute-controls { margin-left: auto; }
+}
