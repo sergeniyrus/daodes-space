@@ -13,6 +13,14 @@ class MessengerSavedMessagesTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['cache.default' => 'array']);
+        $this->withoutMiddleware(\\Illuminate\\Routing\\Middleware\\ThrottleRequests::class);
+    }
+
     public function test_user_can_create_and_reopen_private_saved_messages_chat(): void
     {
         $user = $this->createUser();
