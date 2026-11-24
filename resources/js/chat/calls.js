@@ -9,6 +9,10 @@ export function initChatCalls(config, crypto) {
     const status = document.getElementById('chatCallStatus');
     const localVideo = document.getElementById('chatCallLocalVideo');
     const remoteVideo = document.getElementById('chatCallRemoteVideo');
+    const remoteAudio = document.getElementById('chatCallRemoteAudio');
+    const micButton = document.getElementById('toggleChatCallMic');
+    const cameraButton = document.getElementById('toggleChatCallCamera');
+    const screenButton = document.getElementById('shareChatCallScreen');
     const acceptButton = document.getElementById('acceptChatCall');
     const rejectButton = document.getElementById('rejectChatCall');
     const endButton = document.getElementById('endChatCall');
@@ -22,6 +26,8 @@ export function initChatCalls(config, crypto) {
     let pendingCandidates = [];
     let pendingRemoteCandidates = [];
     let answering = false;
+    let videoSender = null;
+    let screenTrack = null;
 
     const encode = value => {
         const nonce = window.nacl.randomBytes(window.nacl.secretbox.nonceLength);
@@ -75,6 +81,16 @@ export function initChatCalls(config, crypto) {
         }
         if (localVideo) localVideo.srcObject = null;
         if (remoteVideo) remoteVideo.srcObject = null;
+        if (remoteAudio) remoteAudio.srcObject = null;
+        if (screenTrack) {
+            screenTrack.onended = null;
+            screenTrack.stop();
+            screenTrack = null;
+        }
+        videoSender = null;
+        if (micButton) { micButton.hidden = true; micButton.textContent = 'Выключить микрофон'; }
+        if (cameraButton) { cameraButton.hidden = true; cameraButton.textContent = 'Выключить камеру'; }
+        if (screenButton) { screenButton.hidden = true; screenButton.textContent = 'Поделиться экраном'; }
         pendingCandidates = [];
         pendingRemoteCandidates = [];
         answering = false;
@@ -102,11 +118,17 @@ export function initChatCalls(config, crypto) {
         pc = new RTCPeerConnection({
             iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
         });
-        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+        localStream.getTracks().forEach(track => {
+            const sender = pc.addTrack(track, localStream);
+            if (track.kind === 'video') videoSender = sender;
+        });
         pc.ontrack = event => {
-            if (remoteVideo) {
+            if (remoteVideo && event.track.kind === 'video') {
                 remoteVideo.srcObject = event.streams[0];
                 remoteVideo.hidden = false;
+            }
+            if (remoteAudio && event.track.kind === 'audio') {
+                remoteAudio.srcObject = event.streams[0];
             }
         };
         pc.onicecandidate = event => {
@@ -114,6 +136,16 @@ export function initChatCalls(config, crypto) {
             const candidate = event.candidate.toJSON();
             if (!call) pendingCandidates.push(candidate);
             else postSignal('ice', candidate).catch(error => console.error('[ChatCall] ICE:', error));
+        };
+        pc.onconnectionstatechange = () => {
+            if (pc?.connectionState === 'connected') {
+                status.textContent = 'Соединение установлено';
+                if (micButton) micButton.hidden = false;
+                if (cameraButton) cameraButton.hidden = !localStream?.getVideoTracks().length;
+                if (screenButton) screenButton.hidden = !videoSender;
+            } else if (pc?.connectionState === 'failed') {
+                status.textContent = 'Не удалось установить соединение. Проверьте TURN/STUN и сеть.';
+            }
         };
     };
 
@@ -278,6 +310,55 @@ export function initChatCalls(config, crypto) {
         }
         finish(reject ? 'Вызов отклонён' : 'Звонок завершён');
     };
+
+    micButton?.addEventListener('click', () => {
+        const tracks = localStream?.getAudioTracks() || [];
+        if (!tracks.length) return;
+        const enabled = !tracks[0].enabled;
+        tracks.forEach(track => { track.enabled = enabled; });
+        micButton.textContent = enabled ? 'Выключить микрофон' : 'Включить микрофон';
+    });
+
+    cameraButton?.addEventListener('click', () => {
+        const tracks = localStream?.getVideoTracks() || [];
+        if (!tracks.length) return;
+        const enabled = !tracks[0].enabled;
+        tracks.forEach(track => { track.enabled = enabled; });
+        cameraButton.textContent = enabled ? 'Выключить камеру' : 'Включить камеру';
+    });
+
+    const restoreCamera = async () => {
+        if (!screenTrack) return;
+        screenTrack.onended = null;
+        screenTrack.stop();
+        screenTrack = null;
+        const cameraTrack = localStream?.getVideoTracks()[0] || null;
+        if (videoSender) await videoSender.replaceTrack(cameraTrack);
+        if (localVideo) localVideo.srcObject = localStream;
+        if (screenButton) screenButton.textContent = 'Поделиться экраном';
+    };
+
+    screenButton?.addEventListener('click', async () => {
+        if (!videoSender || !navigator.mediaDevices?.getDisplayMedia) {
+            window.alert('Демонстрация экрана недоступна в этом браузере или аудиозвонке.');
+            return;
+        }
+        try {
+            if (screenTrack) {
+                await restoreCamera();
+                return;
+            }
+            const display = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+            screenTrack = display.getVideoTracks()[0] || null;
+            if (!screenTrack) return;
+            await videoSender.replaceTrack(screenTrack);
+            if (localVideo) localVideo.srcObject = display;
+            screenButton.textContent = 'Остановить демонстрацию';
+            screenTrack.onended = () => restoreCamera().catch(error => console.error('[ChatCall] Restore camera:', error));
+        } catch (error) {
+            if (error.name !== 'NotAllowedError') window.alert(error.message || 'Не удалось включить демонстрацию экрана.');
+        }
+    });
 
     audioButton.addEventListener('click', () => start('audio'));
     videoButton.addEventListener('click', () => start('video'));
