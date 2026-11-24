@@ -65,7 +65,8 @@ export class MessagePoller {
             try {
                 const decoded = JSON.parse(txt);
                 if (decoded?.type === 'poll') {
-                    searchableText = [decoded.question, ...(decoded.options || []).map(option => typeof option === 'object' ? option.text : option)].join(' ');
+                    const pollOptions = Array.isArray(decoded.options) ? decoded.options : [];
+                    searchableText = [decoded.question, ...pollOptions.map(option => option && typeof option === 'object' ? option.text : option)].join(' ');
                 } else if (decoded?.type === 'attachment') {
                     searchableText = decoded.file_name || 'attachment';
                 }
