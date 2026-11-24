@@ -1,14 +1,14 @@
 @extends('template')
 
 @section('title_page', __('chats.chat'))
-
-@section('main')
 @section('body_class', 'chat-page')
 @section('hide_footer', true)
 
 @push('styles')
     @vite('resources/css/chat_show.css')
 @endpush
+
+@section('main')
 
 <style>
 
