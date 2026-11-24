@@ -2617,6 +2617,14 @@ body.chat-page .telegram-chat-layout .chat-container {
     .chat-format-toolbar button { min-width: 31px; min-height: 29px; padding: 3px 6px; }
 }
 
+
+.edit-reply-quote {
+    flex:0 0 32px; width:32px; height:32px; color:#00e5ff;
+    background:rgba(0,229,255,.06); border:1px solid rgba(0,229,255,.28);
+    border-radius:50%; cursor:pointer;
+}
+.edit-reply-quote:hover { color:#0b0c18; background:#00e5ff; }
+
 </style>
 
 
@@ -3152,6 +3160,9 @@ body.chat-page .telegram-chat-layout .chat-container {
 
         </div>
 
+        <button type="button" id="editReplyQuote" class="edit-reply-quote" title="Вставить редактируемую копию цитаты">
+            <i class="fa fa-quote-right" aria-hidden="true"></i>
+        </button>
 
         <button
             type="button"
