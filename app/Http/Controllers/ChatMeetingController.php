@@ -111,6 +111,14 @@ class ChatMeetingController extends Controller
             'response' => 'required|in:accepted,declined',
         ]);
 
+        $isUpcoming = DB::table('chat_meetings')
+            ->where('id', $meeting)
+            ->where('status', 'scheduled')
+            ->where('starts_at', '>', now())
+            ->exists();
+
+        abort_unless($isUpcoming, 409, 'Встреча уже началась, завершена или отменена.');
+
         $participant = DB::table('chat_meeting_participants')
             ->where('meeting_id', $meeting)
             ->where('user_id', Auth::id())
