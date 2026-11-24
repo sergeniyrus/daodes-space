@@ -91,6 +91,8 @@ export class MessagePoller {
             let replyText = txt;
             if (isVoice) {
                 replyText = '🎤 Голосовое сообщение';
+            } else if (messageType === 'video_note') {
+                replyText = '🎥 Видеосообщение';
             } else if (isAttachment) {
                 try {
                     const attachmentPayload = JSON.parse(txt);
