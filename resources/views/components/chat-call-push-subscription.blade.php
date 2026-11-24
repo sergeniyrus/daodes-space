@@ -136,6 +136,12 @@
                 }
 
                 async function restoreSubscriptionState() {
+                    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+                        button.disabled = true;
+                        setStatus('Этот браузер не поддерживает push-уведомления.');
+                        return;
+                    }
+
                     if (Notification.permission !== 'granted') return;
 
                     try {
