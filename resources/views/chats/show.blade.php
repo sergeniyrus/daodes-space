@@ -1988,6 +1988,34 @@ body.chat-media-viewer-open { overflow: hidden; }
 .scheduled-messages-empty { color: #9aa8bc; }
 .scheduled-message-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 
+
+.chat-call-toolbar { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.chat-call-toolbar button {
+    min-height:36px; padding:7px 12px; color:#00e5ff; background:rgba(0,229,255,.06);
+    border:1px solid rgba(0,229,255,.4); border-radius:9px; cursor:pointer;
+}
+.chat-call-modal {
+    position:fixed; inset:0; z-index:1300; display:grid; place-items:center;
+    padding:18px; background:rgba(0,0,0,.84);
+}
+.chat-call-modal[hidden] { display:none; }
+.chat-call-panel {
+    width:min(100%,650px); padding:20px; color:#e8edf5;
+    background:linear-gradient(145deg,#0b0c18,#151a29);
+    border:1px solid rgba(0,229,255,.45); border-radius:16px; text-align:center;
+}
+.chat-call-panel h3 { color:#ffd700; margin-top:0; }
+.chat-call-status { color:#b7c3d4; min-height:24px; }
+.chat-call-videos { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.chat-call-videos video { width:100%; max-height:260px; background:#05070c; border-radius:10px; }
+.chat-call-actions { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:14px; }
+.chat-call-actions button {
+    padding:9px 14px; color:#00e5ff; background:rgba(0,229,255,.06);
+    border:1px solid rgba(0,229,255,.4); border-radius:8px; cursor:pointer;
+}
+.chat-call-actions button.danger { color:#ff9b9b; border-color:rgba(255,100,100,.5); }
+@media(max-width:560px) { .chat-call-videos { grid-template-columns:1fr; } }
+
 </style>
 
 
@@ -2005,6 +2033,7 @@ body.chat-media-viewer-open { overflow: hidden; }
         </nav>
         <section class="telegram-sidebar-stories" id="chatStoriesBar"
                  data-user-id="{{ auth()->id() }}"
+    data-peer-user-id="{{ $otherUser?->id ?? '' }}"
                  data-csrf="{{ csrf_token() }}"
                  data-label-my-story="{{ __('chats.my_story') }}"
                  data-label-story-views="{{ __('chats.story_views') }}"
@@ -2186,6 +2215,13 @@ body.chat-media-viewer-open { overflow: hidden; }
 
             </p>
 
+        @endif
+
+        @if ($chat->type === 'personal' && $otherUser)
+            <div class="chat-call-toolbar">
+                <button type="button" id="startAudioCall"><i class="fa fa-phone" aria-hidden="true"></i> Аудиозвонок</button>
+                <button type="button" id="startVideoCall"><i class="fa fa-video-camera" aria-hidden="true"></i> Видеозвонок</button>
+            </div>
         @endif
 
         <div class="chat-mute-controls">
@@ -2432,6 +2468,24 @@ body.chat-media-viewer-open { overflow: hidden; }
             </div>
         </form>
     </div>
+
+    @if ($chat->type === 'personal' && $otherUser)
+        <div class="chat-call-modal" id="chatCallModal" hidden>
+            <section class="chat-call-panel" role="dialog" aria-modal="true" aria-labelledby="chatCallTitle">
+                <h3 id="chatCallTitle">Звонок</h3>
+                <p class="chat-call-status" id="chatCallStatus" aria-live="polite">Ожидание…</p>
+                <div class="chat-call-videos">
+                    <video id="chatCallRemoteVideo" autoplay playsinline></video>
+                    <video id="chatCallLocalVideo" autoplay muted playsinline></video>
+                </div>
+                <div class="chat-call-actions">
+                    <button type="button" id="acceptChatCall" hidden>Принять</button>
+                    <button type="button" id="rejectChatCall" class="danger" hidden>Отклонить</button>
+                    <button type="button" id="endChatCall" class="danger" hidden>Завершить</button>
+                </div>
+            </section>
+        </div>
+    @endif
 
     <div class="scheduled-message-modal" id="scheduledMessagesModal" hidden>
         <section class="scheduled-message-panel" role="dialog" aria-modal="true" aria-labelledby="scheduledMessagesTitle">
