@@ -38,9 +38,9 @@ class ChatGroupCallController extends Controller
 
         abort_if($endsAt->lte(now()), 409, 'Время встречи истекло.');
 
-        $serverUrl = (string) config('services.livekit.url');
-        $apiKey = (string) config('services.livekit.api_key');
-        $apiSecret = (string) config('services.livekit.api_secret');
+        $serverUrl = (string) config('livekit.url');
+        $apiKey = (string) config('livekit.api_key');
+        $apiSecret = (string) config('livekit.api_secret');
 
         abort_unless(
             Str::startsWith($serverUrl, 'wss://') && $apiKey !== '' && $apiSecret !== '',
