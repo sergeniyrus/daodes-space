@@ -172,5 +172,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initChatStories({
         userId: Number(storiesBar.dataset.userId),
         csrfToken: storiesBar.dataset.csrf,
+        labels: {
+            myStory: storiesBar.dataset.labelMyStory,
+            views: storiesBar.dataset.labelStoryViews,
+            delete: storiesBar.dataset.labelStoryDelete,
+            empty: storiesBar.dataset.labelStoriesEmpty,
+            uploadError: storiesBar.dataset.labelStoryUploadError,
+        },
     });
 });
