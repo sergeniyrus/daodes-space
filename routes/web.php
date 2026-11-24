@@ -591,6 +591,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('/chats/{chat}/scheduled-messages/{scheduledMessage}', [ChatScheduledMessageController::class, 'destroy'])
         ->middleware('throttle:30,1')->name('chats.scheduledMessages.destroy');
 
+    // Временные TURN credentials выдаются только участникам личного чата.
+    Route::get('/chats/{chat}/calls/ice-servers', [ChatCallController::class, 'iceServers'])
+        ->middleware('throttle:20,1')->name('chats.calls.iceServers');
+
     // WebRTC signaling: SDP и ICE передаются только в зашифрованном виде.
     Route::get('/chats/{chat}/calls/active', [ChatCallController::class, 'active'])
         ->middleware('throttle:60,1')->name('chats.calls.active');
