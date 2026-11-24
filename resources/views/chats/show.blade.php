@@ -2493,10 +2493,14 @@ body.chat-media-viewer-open { overflow: hidden; }
                 <h3 id="chatCallTitle">Звонок</h3>
                 <p class="chat-call-status" id="chatCallStatus" aria-live="polite">Ожидание…</p>
                 <div class="chat-call-videos">
-                    <video id="chatCallRemoteVideo" autoplay playsinline></video>
+                    <video id="chatCallRemoteVideo" autoplay playsinline muted></video>
                     <video id="chatCallLocalVideo" autoplay muted playsinline></video>
+                    <audio id="chatCallRemoteAudio" autoplay></audio>
                 </div>
                 <div class="chat-call-actions">
+                    <button type="button" id="toggleChatCallMic" hidden>Выключить микрофон</button>
+                    <button type="button" id="toggleChatCallCamera" hidden>Выключить камеру</button>
+                    <button type="button" id="shareChatCallScreen" hidden>Поделиться экраном</button>
                     <button type="button" id="acceptChatCall" hidden>Принять</button>
                     <button type="button" id="rejectChatCall" class="danger" hidden>Отклонить</button>
                     <button type="button" id="endChatCall" class="danger" hidden>Завершить</button>
