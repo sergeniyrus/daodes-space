@@ -599,11 +599,11 @@
 
 .chat-stories-bar {
     display: flex;
-    align-items: flex-start;
-    gap: 14px;
+    align-items: center;
+    gap: 8px;
     overflow-x: auto;
-    margin: 18px 0 28px;
-    padding: 12px 14px;
+    margin: 14px 0 20px;
+    padding: 8px 10px;
     border: 1px solid rgba(255, 215, 0, .24);
     border-left: 3px solid #00e5ff;
     border-radius: 13px;
@@ -611,28 +611,28 @@
 }
 .chat-story-add, .chat-story-card {
     display: flex;
-    flex: 0 0 76px;
+    flex: 0 0 62px;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     padding: 0;
     border: 0;
     color: #dbe4f0;
     background: transparent;
-    font-size: .72rem;
+    font-size: .66rem;
     cursor: pointer;
 }
 .chat-story-add-avatar, .chat-story-avatar {
     display: grid;
     place-items: center;
-    width: 58px;
-    height: 58px;
+    width: 46px;
+    height: 46px;
     overflow: hidden;
     border: 2px solid #00e5ff;
     border-radius: 50%;
     color: #ffd700;
     background: #111827;
-    font-size: 1.55rem;
+    font-size: 1.25rem;
     object-fit: cover;
 }
 .chat-story-card.unviewed .chat-story-avatar {
@@ -642,7 +642,7 @@
         linear-gradient(135deg,#00e5ff,#ffd700) border-box;
 }
 .chat-story-card.viewed .chat-story-avatar { border-color: #64748b; opacity: .75; }
-.chat-story-name { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-story-name { max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-story-viewer {
     position: fixed;
     inset: 0;
