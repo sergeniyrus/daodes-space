@@ -183,6 +183,10 @@ export function initChatCalls(config, crypto) {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
             });
+            if (response.status === 403) {
+                if (call) finish('Звонок недоступен');
+                return;
+            }
             if (response.ok) {
                 const data = await response.json();
                 if (data.call && !call) {
