@@ -2472,6 +2472,8 @@ body.chat-media-viewer-open { overflow: hidden; }
                 >
                     @if ($sidebarChat->type === 'saved')
                         <span class="telegram-chat-avatar saved"><i class="fa fa-bookmark"></i></span>
+                    @elseif ($sidebarChat->type === 'channel' && $sidebarChat->photo_cid)
+                        <img class="telegram-chat-avatar" src="{{ '/ipfs/' . $sidebarChat->photo_cid }}" alt="">
                     @elseif ($sidebarOther)
                         <img
                             class="telegram-chat-avatar"
