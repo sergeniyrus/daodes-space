@@ -125,4 +125,7 @@ return [
     'notifications_enabled' => 'Notifications enabled',
     'search_chats' => 'Search chats…',
     'open_fullscreen' => 'Open full screen',
+    'search_messages' => 'Search messages',
+    'search_loaded_messages' => 'Search loaded messages',
+    'clear_search' => 'Clear search',
 ];
