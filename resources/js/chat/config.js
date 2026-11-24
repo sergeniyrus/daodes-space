@@ -56,7 +56,10 @@ export function loadChatConfig() {
             pollVoters: el.dataset.translatePollVoters,
             pollClose: el.dataset.translatePollClose,
             pollError: el.dataset.translatePollError,
-            pollValidation: el.dataset.translatePollValidation
+            pollValidation: el.dataset.translatePollValidation,
+            videoNoteRecord: el.dataset.translateVideoNoteRecord,
+            videoNoteStop: el.dataset.translateVideoNoteStop,
+            videoNoteError: el.dataset.translateVideoNoteError
         },
     };
 }
