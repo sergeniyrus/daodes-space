@@ -1959,6 +1959,35 @@ body.chat-media-viewer-open { overflow: hidden; }
 }
 .chat-topics-mobile { display: none; margin: 8px 0 12px; padding: 7px 10px; border: 1px solid rgba(0,229,255,.25); border-radius: 9px; }
 @media (max-width: 700px) { .chat-topics-mobile { display: block; } }
+
+.scheduled-message-modal {
+    position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center;
+    padding: 18px; background: rgba(0,0,0,.78);
+}
+.scheduled-message-modal[hidden] { display: none; }
+.scheduled-message-panel {
+    width: min(100%, 520px); max-height: 85vh; overflow: auto; padding: 22px;
+    color: #e8edf5; background: linear-gradient(145deg,#0b0c18,#151a29);
+    border: 1px solid rgba(0,229,255,.45); border-radius: 16px;
+}
+.scheduled-message-panel h3 { color: #ffd700; margin-top: 0; }
+.scheduled-message-panel label { display: block; margin: 12px 0 6px; color: #b9c5d6; }
+.scheduled-message-panel input {
+    width: 100%; box-sizing: border-box; padding: 10px; color: #fff;
+    background: #080d17; border: 1px solid rgba(0,229,255,.35); border-radius: 8px;
+}
+.scheduled-message-panel button {
+    padding: 8px 12px; color: #00e5ff; background: rgba(0,229,255,.06);
+    border: 1px solid rgba(0,229,255,.35); border-radius: 8px; cursor: pointer;
+}
+.scheduled-message-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.09);
+}
+.scheduled-message-row small { display: block; color: #9aa8bc; margin-top: 4px; }
+.scheduled-messages-empty { color: #9aa8bc; }
+.scheduled-message-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
 </style>
 
 
@@ -2404,6 +2433,21 @@ body.chat-media-viewer-open { overflow: hidden; }
         </form>
     </div>
 
+    <div class="scheduled-message-modal" id="scheduledMessagesModal" hidden>
+        <section class="scheduled-message-panel" role="dialog" aria-modal="true" aria-labelledby="scheduledMessagesTitle">
+            <h3 id="scheduledMessagesTitle">Отложенные сообщения</h3>
+            <form id="scheduledMessageForm">
+                <label for="scheduledMessageDate">Дата и время отправки</label>
+                <input id="scheduledMessageDate" type="datetime-local" required>
+                <div class="scheduled-message-actions">
+                    <button type="button" id="closeScheduledMessages">Закрыть</button>
+                    <button type="submit">Запланировать</button>
+                </div>
+            </form>
+            <div id="scheduledMessagesList" aria-live="polite"></div>
+        </section>
+    </div>
+
     {{-- =====================================================
          ФОРМА ОТПРАВКИ
          ===================================================== --}}
@@ -2433,6 +2477,17 @@ body.chat-media-viewer-open { overflow: hidden; }
 
             </div>
 
+
+            <button
+                type="button"
+                id="openScheduledMessages"
+                class="voice-record-btn"
+                aria-label="Отложенные сообщения"
+                title="Отложенные сообщения"
+                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+            >
+                <i class="fa fa-clock-o" aria-hidden="true"></i>
+            </button>
 
             <button
                 type="button"
