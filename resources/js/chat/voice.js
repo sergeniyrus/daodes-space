@@ -172,7 +172,7 @@ export function renderVoiceMessage(container, encryptedPayload, messageId, attac
                 } else {
                     if (!window.confirm(
                         config.translations.voiceTranscriptConsent
-                        || 'Аудиозапись будет передана OpenAI для распознавания речи. Продолжить?'
+                        || 'Аудиозапись будет обработана локально на сервере DAODES и не будет отправлена стороннему API. Продолжить?'
                     )) {
                         transcribeButton.textContent = config.translations.voiceTranscribe || 'Открыть как текст';
                         return;
