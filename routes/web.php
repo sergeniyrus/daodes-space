@@ -709,6 +709,21 @@ Route::middleware('auth')->group(function () {
         [MessageController::class, 'downloadAttachment']
     )->name('messages.attachments.download');
 
+    Route::get(
+        '/messages/{message}/transcription',
+        [MessageController::class, 'getVoiceTranscription']
+    )->middleware('throttle:60,1')->name('messages.transcription.show');
+
+    Route::post(
+        '/messages/{message}/transcribe',
+        [MessageController::class, 'transcribeVoice']
+    )->middleware('throttle:10,1')->name('messages.transcription.create');
+
+    Route::post(
+        '/messages/{message}/transcription',
+        [MessageController::class, 'storeVoiceTranscription']
+    )->middleware('throttle:30,1')->name('messages.transcription.store');
+
     Route::post(
         '/chats/{chat}/messages',
         [MessageController::class, 'store']
