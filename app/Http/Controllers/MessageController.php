@@ -15,11 +15,69 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use App\Services\TelegramNotifier;
 use App\Services\IPFSService;
 
 class MessageController extends Controller
 {
+
+    private const SAFE_ATTACHMENT_EXTENSIONS = [
+        'pdf', 'txt', 'md', 'markdown', 'rtf', 'csv', 'tsv', 'log',
+        'json', 'jsonl', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf',
+        'sql', 'patch', 'diff', 'ipynb', 'tex', 'bib',
+        'doc', 'docx', 'odt', 'ott', 'xls', 'xlsx', 'ods', 'ppt', 'pptx', 'odp',
+        'epub', 'mobi', 'azw', 'azw3',
+        'zip', '7z', 'rar', 'tar', 'gz', 'bz2', 'xz', 'zst', 'lz4',
+        'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'tif', 'tiff',
+        'heic', 'heif', 'ico',
+        'mp3', 'wav', 'ogg', 'oga', 'opus', 'm4a', 'aac', 'flac', 'aiff', 'aif',
+        'mp4', 'm4v', 'mov', 'mkv', 'webm', 'avi', 'mpeg', 'mpg', '3gp', '3g2',
+        'mts', 'm2ts',
+        'woff', 'woff2', 'ttf', 'otf', 'eot',
+        'blend', 'obj', 'stl', 'gltf', 'glb', 'fbx', 'dae',
+        'dwg', 'dxf', 'step', 'stp', 'iges', 'igs',
+        'psd', 'ai', 'eps', 'indd', 'sketch', 'fig', 'xd', 'xcf', 'kra',
+        'vsdx', 'vsd', 'drawio',
+        'java', 'kt', 'kts', 'c', 'h', 'cpp', 'hpp', 'cs', 'go', 'rs',
+        'rb', 'swift', 'dart', 'vue', 'jsx', 'tsx', 'css', 'scss', 'less',
+        'gradle', 'properties', 'ts',
+    ];
+
+    private const BLOCKED_ATTACHMENT_EXTENSIONS = [
+        'exe', 'com', 'scr', 'msi', 'msp', 'dll', 'so', 'dylib', 'sys', 'drv',
+        'bat', 'cmd', 'ps1', 'psm1', 'vbs', 'vbe', 'js', 'jse', 'mjs', 'cjs',
+        'hta', 'wsf', 'wsh', 'sh', 'bash', 'zsh', 'fish',
+        'php', 'phtml', 'phar', 'asp', 'aspx', 'jsp', 'cgi',
+        'html', 'htm', 'xhtml', 'shtml', 'svg', 'xsl', 'xslt',
+        'jar', 'war', 'ear', 'class', 'apk', 'aab', 'ipa', 'app',
+        'deb', 'rpm', 'dmg', 'iso', 'img', 'vhd', 'vhdx',
+        'reg', 'lnk', 'url', 'desktop', 'crx', 'xpi',
+        'docm', 'dotm', 'xlsm', 'xlam', 'pptm', 'ppsm',
+    ];
+
+    private function isSafeAttachmentName(string $name): bool
+    {
+        $name = trim($name);
+
+        if (
+            $name === ''
+            || mb_strlen($name) > 255
+            || str_contains($name, '/')
+            || str_contains($name, '\\')
+            || preg_match('/[\x00-\x1F\x7F]/', $name)
+        ) {
+            return false;
+        }
+
+        $parts = explode('.', strtolower($name));
+        $extension = array_pop($parts);
+
+        return in_array($extension, self::SAFE_ATTACHMENT_EXTENSIONS, true)
+            && count(array_intersect($parts, self::BLOCKED_ATTACHMENT_EXTENSIONS)) === 0;
+    }
+
+
     /**
      * TTL кэша для списка сообщений (в секундах)
      * Короткий TTL для активной переписки и быстрой синхронизации
@@ -413,8 +471,33 @@ class MessageController extends Controller
         $validated = $request->validate([
             'file' => 'required|file|max:51200',
             'media_type' => 'required|string|in:image,video,audio,file',
+            'original_file_name' => 'required|string|max:255',
             'encrypted' => 'required|accepted',
         ]);
+
+        if (!$this->isSafeAttachmentName($validated['original_file_name'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Недопустимый или небезопасный тип файла',
+            ], 422);
+        }
+
+        $extension = strtolower(pathinfo($validated['original_file_name'], PATHINFO_EXTENSION));
+        $mediaExtensions = [
+            'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'tif', 'tiff', 'heic', 'heif', 'ico'],
+            'video' => ['mp4', 'm4v', 'mov', 'mkv', 'webm', 'avi', 'mpeg', 'mpg', '3gp', '3g2', 'mts', 'm2ts'],
+            'audio' => ['mp3', 'wav', 'ogg', 'oga', 'opus', 'm4a', 'aac', 'flac', 'aiff', 'aif'],
+        ];
+
+        if (
+            $validated['media_type'] !== 'file'
+            && !in_array($extension, $mediaExtensions[$validated['media_type']], true)
+        ) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Расширение файла не соответствует его типу',
+            ], 422);
+        }
 
         ChatUpload::where('expires_at', '<=', now())->delete();
 
@@ -446,6 +529,173 @@ class MessageController extends Controller
 
             return response()->json(['status' => 'error', 'message' => 'Attachment upload failed'], 503);
         }
+    }
+
+
+    /**
+     * Передаёт аудио на распознавание только по явному действию участника чата.
+     * Само аудио на сервере не сохраняется.
+     */
+    public function transcribeVoice(Request $request, Message $message)
+    {
+        $chat = $message->chat;
+
+        if (!$chat || !$chat->users()->where('user_id', Auth::id())->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
+        if ($message->message_type !== 'voice') {
+            return response()->json(['status' => 'error', 'message' => 'Это не голосовое сообщение'], 422);
+        }
+
+        $validated = $request->validate([
+            'audio' => 'required|file|max:25600',
+            'file_name' => 'required|string|max:40',
+        ]);
+
+        $audio = $request->file('audio');
+        $extension = strtolower(pathinfo($validated['file_name'], PATHINFO_EXTENSION));
+        $supportedExtensions = ['webm', 'ogg', 'wav', 'mp3', 'mp4', 'm4a', 'flac', 'mpeg', 'mpga'];
+
+        if (!in_array($extension, $supportedExtensions, true)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Формат аудио не поддерживается для распознавания',
+            ], 422);
+        }
+
+        $apiKey = config('services.openai.api_key');
+        if (!$apiKey) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Распознавание речи не настроено на сервере',
+            ], 503);
+        }
+
+        try {
+            $audioContents = file_get_contents($audio->getRealPath());
+            if ($audioContents === false) {
+                throw new \RuntimeException('Unable to read uploaded voice recording');
+            }
+
+            $response = Http::withToken($apiKey)
+                ->acceptJson()
+                ->timeout(120)
+                ->connectTimeout(15)
+                ->attach(
+                    'file',
+                    $audioContents,
+                    'voice.' . $extension,
+                    ['Content-Type' => $audio->getMimeType() ?: 'application/octet-stream']
+                )
+                ->post('https://api.openai.com/v1/audio/transcriptions', [
+                    'model' => config('services.openai.transcription_model', 'gpt-transcribe'),
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning('OpenAI voice transcription failed', [
+                    'message_id' => $message->id,
+                    'http_status' => $response->status(),
+                ]);
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Сервис распознавания речи вернул ошибку',
+                ], 502);
+            }
+
+            $transcription = trim((string) $response->json('text', ''));
+
+            if ($transcription === '') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'В аудиозаписи не удалось распознать речь',
+                ], 422);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'text' => $transcription,
+            ]);
+        } catch (\Throwable $exception) {
+            Log::error('Voice transcription request failed', [
+                'message_id' => $message->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Не удалось преобразовать голосовое сообщение в текст',
+            ], 502);
+        }
+    }
+
+    /**
+     * Возвращает только зашифрованную расшифровку голосового сообщения.
+     */
+    public function getVoiceTranscription(Message $message)
+    {
+        $chat = $message->chat;
+
+        if (!$chat || !$chat->users()->where('user_id', Auth::id())->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
+        if ($message->message_type !== 'voice') {
+            return response()->json(['status' => 'error', 'message' => 'Это не голосовое сообщение'], 422);
+        }
+
+        $transcription = DB::table('message_transcriptions')
+            ->where('message_id', $message->id)
+            ->value('encrypted_text');
+
+        return response()->json([
+            'status' => 'success',
+            'transcription' => $transcription,
+        ]);
+    }
+
+    /**
+     * Сохраняет расшифровку только в зашифрованном виде.
+     */
+    public function storeVoiceTranscription(Request $request, Message $message)
+    {
+        $chat = $message->chat;
+
+        if (!$chat || !$chat->users()->where('user_id', Auth::id())->exists()) {
+            return response()->json(['status' => 'error', 'message' => 'Forbidden'], 403);
+        }
+
+        if ($message->message_type !== 'voice') {
+            return response()->json(['status' => 'error', 'message' => 'Это не голосовое сообщение'], 422);
+        }
+
+        $validated = $request->validate([
+            'nonce' => 'required|string|max:64',
+            'ciphertext' => 'required|string|max:100000',
+        ]);
+
+        $nonce = base64_decode($validated['nonce'], true);
+        $ciphertext = base64_decode($validated['ciphertext'], true);
+
+        if ($nonce === false || strlen($nonce) !== 24 || $ciphertext === false || strlen($ciphertext) < 16) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Некорректная зашифрованная расшифровка',
+            ], 422);
+        }
+
+        DB::table('message_transcriptions')->updateOrInsert(
+            ['message_id' => $message->id],
+            [
+                'created_by' => Auth::id(),
+                'encrypted_text' => $validated['nonce'] . '|' . $validated['ciphertext'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        return response()->json(['status' => 'success']);
     }
 
     /**
