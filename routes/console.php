@@ -256,4 +256,7 @@ Schedule::call(function () {
     }
 })->name('maintain-chat-calls-and-meetings')->everyMinute()->withoutOverlapping(5);
 
-
+// Отправляем push-напоминания участникам за 15 минут до начала встречи.
+Schedule::command('chat:send-meeting-reminders')
+    ->everyMinute()
+    ->withoutOverlapping(5);
