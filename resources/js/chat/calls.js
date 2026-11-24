@@ -115,9 +115,22 @@ export function initChatCalls(config, crypto) {
             localVideo.srcObject = localStream;
             localVideo.hidden = !video;
         }
-        pc = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-        });
+        let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+        try {
+            const iceResponse = await fetch('/chats/' + config.chatId + '/calls/ice-servers', {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            if (iceResponse.ok) {
+                const iceData = await iceResponse.json();
+                if (Array.isArray(iceData.ice_servers) && iceData.ice_servers.length) {
+                    iceServers = iceData.ice_servers;
+                }
+            }
+        } catch (error) {
+            console.warn('[ChatCall] Could not load configured ICE servers; using public STUN:', error);
+        }
+        pc = new RTCPeerConnection({ iceServers });
         localStream.getTracks().forEach(track => {
             const sender = pc.addTrack(track, localStream);
             if (track.kind === 'video') videoSender = sender;
