@@ -105,7 +105,7 @@ class ChatScheduledMessageController extends Controller
             'reply_to_message_id' => 'sometimes|nullable|integer',
         ]);
 
-        $scheduledFor = \\Illuminate\\Support\\Carbon::parse($validated['scheduled_for']);
+        $scheduledFor = \Illuminate\Support\Carbon::parse($validated['scheduled_for']);
         if ($scheduledFor->lt(now()->addMinute()) || $scheduledFor->gt(now()->addYear())) {
             return response()->json([
                 'status' => 'error',
@@ -117,6 +117,7 @@ class ChatScheduledMessageController extends Controller
             'encrypted_message' => $validated['encrypted_message'],
             'nonce' => $validated['nonce'],
             'scheduled_for' => $scheduledFor,
+            'status' => 'pending',
             'last_error' => null,
             'updated_at' => now(),
         ];
