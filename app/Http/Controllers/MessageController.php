@@ -692,15 +692,14 @@ class MessageController extends Controller
             ], 422);
         }
 
-        DB::table('message_transcriptions')->updateOrInsert(
-            ['message_id' => $message->id],
+        DB::table('message_transcriptions')->insertOrIgnore([
+            'message_id' => $message->id,
             [
-                'created_by' => Auth::id(),
-                'encrypted_text' => $validated['nonce'] . '|' . $validated['ciphertext'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
+            'created_by' => Auth::id(),
+            'encrypted_text' => $validated['nonce'] . '|' . $validated['ciphertext'],
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return response()->json(['status' => 'success']);
     }
