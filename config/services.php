@@ -68,8 +68,8 @@ return [
         ],
     ],
 
-    'openai' => [
-        'api_key' => env('OPENAI_API_KEY'),
-        'transcription_model' => env('OPENAI_TRANSCRIPTION_MODEL', 'gpt-transcribe'),
+    'transcription' => [
+        'url' => env('LOCAL_TRANSCRIPTION_URL', 'http://127.0.0.1:8765'),
+        'token' => env('LOCAL_TRANSCRIPTION_TOKEN'),
     ],
 ];
