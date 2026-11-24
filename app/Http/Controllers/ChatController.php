@@ -177,6 +177,16 @@ class ChatController extends Controller
 
         $chat = Chat::with('users.profile')->findOrFail($chatId);
 
+        $sidebarChats = Chat::with('users.profile')
+            ->withMax('messages', 'created_at')
+            ->whereHas('participants', fn($query) => $query->where('users.id', $userId))
+            ->orderByDesc('messages_max_created_at')
+            ->orderByDesc('updated_at')
+            ->limit(100)
+            ->get();
+
+        $sidebarUnread = $this->getUnreadMessagesCount($sidebarChats);
+
         // Не загружаем сообщения и их IPFS payload до проверки членства.
         abort_unless(
             $chat->users()->where('users.id', $userId)->exists(),
@@ -231,7 +241,9 @@ class ChatController extends Controller
             'firstUnreadMessageId',
             'topics',
             'currentRole',
-            'mutedUntil'
+            'mutedUntil',
+            'sidebarChats',
+            'sidebarUnread'
         ));
     }
 
