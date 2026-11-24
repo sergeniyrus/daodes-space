@@ -25,6 +25,7 @@ export class MessageSender {
 
         const originalInputValue = input.value;
         input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
 
         // Сохраняем replyingToMessageId ДО вызова cancelReply
         const replyToMessageId = this.ui.replyingToMessageId;
@@ -100,6 +101,7 @@ export class MessageSender {
         } catch (err) {
             console.error('Send error:', err);
             input.value = originalInputValue;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
             alert(this.config.translations.sendError);
         } finally {
             this.isSending = false;
