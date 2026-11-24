@@ -57,6 +57,10 @@ class ChatChannelStoriesController extends Controller
             })
             ->where('stories.chat_id', $chat->id)
             ->where('story_keys.user_id', $userId)
+            ->leftJoin('chat_channel_story_reactions' as reactions, function ($join) use ($userId) {
+                $join->on('reactions.story_id', '=', 'stories.id')
+                    ->where('reactions.user_id', '=', $userId);
+            })
             ->where('stories.expires_at', '>', now())
             ->addSelect(DB::raw('(SELECT direct_chats.id
                 FROM chats AS direct_chats
@@ -79,6 +83,7 @@ class ChatChannelStoriesController extends Controller
                 'stories.created_at',
                 'stories.expires_at',
                 'views.id as viewed_id',
+                'reactions.reaction as my_reaction',
             ])
             ->map(fn ($story) => [
                 'id' => (int) $story->id,
@@ -93,6 +98,7 @@ class ChatChannelStoriesController extends Controller
                 'created_at' => $story->created_at,
                 'expires_at' => $story->expires_at,
                 'viewed' => $story->viewed_id !== null,
+                'my_reaction' => $story->my_reaction,
                 'is_own' => (int) $story->published_by === $userId,
                 'is_channel' => true,
                 'can_manage' => ($membership->role ?? 'member') === 'owner'
