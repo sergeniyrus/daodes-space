@@ -2655,9 +2655,68 @@ body.chat-page .telegram-chat-layout .chat-container {
 }
 .composer-tools-menu .composer-tool-btn.recording > i { color: #ff8a80; }
 .composer-tools-menu .chat-call-push-settings { grid-column: 1 / -1; }
+/* Мобильное меню действий: компактная панель над composer,
+   не выходит за границы экрана и учитывает нижнюю safe-area. */
+@media (max-width: 720px) {
+    .composer-tools-menu {
+        position: fixed;
+        z-index: 160000;
+        left: 12px;
+        right: 12px;
+        bottom: calc(68px + env(safe-area-inset-bottom));
+        width: auto;
+        max-width: 380px;
+        max-height: min(46dvh, 340px);
+        margin-left: auto;
+        box-sizing: border-box;
+        gap: 3px;
+        padding: 6px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border-radius: 12px;
+    }
+    .composer-tools-menu .composer-tool-btn {
+        min-height: 34px;
+        gap: 6px;
+        padding: 5px 6px;
+        font-size: .74rem;
+        line-height: 1.2;
+    }
+    .composer-tools-menu .composer-tool-btn > i {
+        width: 17px;
+        flex-basis: 17px;
+        font-size: .9rem;
+    }
+    .composer-tools-menu .chat-call-push-settings {
+        padding: 4px 6px;
+    }
+    .composer-tools-menu #chat-call-push-toggle {
+        min-width: 0;
+        font-size: .74rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+    .composer-tools-menu #chat-call-push-status {
+        font-size: .68rem;
+        overflow-wrap: anywhere;
+    }
+}
 @media (max-width: 420px) {
-    .composer-tools-menu { width: min(340px, calc(100vw - 16px)); gap: 4px; padding: 6px; }
-    .composer-tools-menu .composer-tool-btn { font-size: .72rem; padding: 6px; }
+    .composer-tools-menu {
+        left: 8px;
+        right: 8px;
+        bottom: calc(64px + env(safe-area-inset-bottom));
+        max-width: none;
+        max-height: min(44dvh, 310px);
+        gap: 2px;
+        padding: 5px;
+    }
+    .composer-tools-menu .composer-tool-btn {
+        min-height: 32px;
+        font-size: .7rem;
+        padding: 4px 5px;
+    }
 }
 
 </style>
