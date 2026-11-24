@@ -753,6 +753,40 @@
 .send-btn:active {
     transform: scale(0.95);
 }
+.send-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 0;
+    line-height: 1;
+}
+.send-btn > i {
+    display: block;
+    line-height: 1;
+    transition: opacity .15s ease;
+}
+.send-btn.is-loading {
+    cursor: wait;
+    filter: brightness(.92);
+    transform: none;
+}
+.send-btn.is-loading > i { opacity: 0; }
+.send-btn.is-loading::after {
+    content: "";
+    position: absolute;
+    width: 23px;
+    height: 23px;
+    border: 3px solid rgba(11, 12, 24, .28);
+    border-top-color: #0b0c18;
+    border-right-color: #0b0c18;
+    border-radius: 50%;
+    animation: composer-send-spin .7s linear infinite;
+}
+@keyframes composer-send-spin {
+    to { transform: rotate(360deg); }
+}
+.send-btn:disabled { cursor: not-allowed; opacity: .8; }
 
 
 /* =========================================================
@@ -974,6 +1008,16 @@
         font-size: 0.95rem;
     }
 
+
+    .composer-tools {
+        flex: 0 0 44px;
+    }
+
+    .composer-tools-toggle {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+    }
 
     .send-btn {
         flex: 0 0 48px;
@@ -1454,6 +1498,84 @@ body.chat-media-viewer-open { overflow: hidden; }
     background: #c62828;
     border-color: #ff5252;
     animation: voice-record-pulse 1s infinite;
+}
+
+/* Компактное меню дополнительных действий */
+.composer-tools {
+    position: relative;
+    flex: 0 0 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.composer-tools-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+    color: #00e5ff;
+    background: rgba(0, 229, 255, .08);
+    border: 1px solid rgba(0, 229, 255, .55);
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform .2s ease, background .2s ease, color .2s ease;
+}
+.composer-tools-toggle:hover,
+.composer-tools-toggle[aria-expanded="true"] {
+    color: #0b0c18;
+    background: #00e5ff;
+    transform: rotate(45deg);
+}
+.composer-tools-menu {
+    position: absolute;
+    z-index: 100;
+    right: 0;
+    bottom: calc(100% + 10px);
+    display: grid;
+    gap: 5px;
+    width: min(270px, calc(100vw - 48px));
+    padding: 8px;
+    background: #101624;
+    border: 1px solid rgba(0, 229, 255, .38);
+    border-radius: 14px;
+    box-shadow: 0 14px 38px rgba(0, 0, 0, .48), 0 0 18px rgba(0, 229, 255, .08);
+}
+.composer-tools-menu[hidden] { display: none; }
+.composer-tool-btn {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 11px;
+    color: #e5edf5;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    cursor: pointer;
+    font: inherit;
+    font-size: .9rem;
+}
+.composer-tool-btn > i {
+    width: 19px;
+    flex: 0 0 19px;
+    color: #00e5ff;
+    text-align: center;
+    font-size: 1rem;
+}
+.composer-tool-btn:hover:not(:disabled) {
+    color: #ffd700;
+    background: rgba(0, 229, 255, .08);
+    border-color: rgba(0, 229, 255, .2);
+}
+.composer-tool-btn:disabled,
+.composer-tools-toggle:disabled {
+    opacity: .45;
+    cursor: not-allowed;
 }
 @keyframes voice-record-pulse {
     50% { box-shadow: 0 0 0 7px rgba(255, 82, 82, .16); }
@@ -2595,72 +2717,96 @@ body.chat-media-viewer-open { overflow: hidden; }
             </div>
 
 
-            <button
-                type="button"
-                id="openScheduledMessages"
-                class="voice-record-btn"
-                aria-label="Отложенные сообщения"
-                title="Отложенные сообщения"
-                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
-            >
-                <i class="fa fa-clock-o" aria-hidden="true"></i>
-            </button>
+            <div class="composer-tools">
+                <button
+                    type="button"
+                    id="toggleComposerTools"
+                    class="composer-tools-toggle"
+                    aria-label="Дополнительные действия"
+                    title="Дополнительные действия"
+                    aria-expanded="false"
+                    aria-controls="composerToolsMenu"
+                    @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                >
+                    <i class="fa fa-plus" aria-hidden="true"></i>
+                </button>
 
-            <button
-                type="button"
-                id="createPollBtn"
-                class="voice-record-btn"
-                aria-label="{{ __('chats.poll_create') }}"
-                title="{{ __('chats.poll_create') }}"
-                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
-            >
-                <i class="fa fa-bar-chart" aria-hidden="true"></i>
-            </button>
+                <div class="composer-tools-menu" id="composerToolsMenu" hidden>
+                    <button
+                        type="button"
+                        id="openScheduledMessages"
+                        class="composer-tool-btn"
+                        aria-label="Отложенные сообщения"
+                        title="Отложенные сообщения"
+                        @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                    >
+                        <i class="fa fa-clock-o" aria-hidden="true"></i>
+                        <span>Отложенные сообщения</span>
+                    </button>
 
-            <button
-                type="button"
-                id="attachChatFileBtn"
-                class="voice-record-btn"
-                aria-label="{{ __('chats.attach_file') }}"
-                title="{{ __('chats.attach_file') }}"
-                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
-            >
-                <i class="fa fa-paperclip" aria-hidden="true"></i>
-            </button>
+                    <button
+                        type="button"
+                        id="createPollBtn"
+                        class="composer-tool-btn"
+                        aria-label="{{ __('chats.poll_create') }}"
+                        title="{{ __('chats.poll_create') }}"
+                        @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                    >
+                        <i class="fa fa-bar-chart" aria-hidden="true"></i>
+                        <span>{{ __('chats.poll_create') }}</span>
+                    </button>
 
-            <input
-                type="file"
-                id="chatAttachmentInput"
-                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
-                hidden
-            >
+                    <button
+                        type="button"
+                        id="attachChatFileBtn"
+                        class="composer-tool-btn"
+                        aria-label="{{ __('chats.attach_file') }}"
+                        title="{{ __('chats.attach_file') }}"
+                        @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                    >
+                        <i class="fa fa-paperclip" aria-hidden="true"></i>
+                        <span>{{ __('chats.attach_file') }}</span>
+                    </button>
 
-            <button
-                type="button"
-                id="recordVideoNoteBtn"
-                class="voice-record-btn"
-                aria-label="{{ __('chats.video_note_record') }}"
-                title="{{ __('chats.video_note_record') }}"
-                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
-            >
-                <i class="fa fa-video-camera" aria-hidden="true"></i>
-            </button>
+                    <button
+                        type="button"
+                        id="recordVideoNoteBtn"
+                        class="composer-tool-btn"
+                        aria-label="{{ __('chats.video_note_record') }}"
+                        title="{{ __('chats.video_note_record') }}"
+                        @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                    >
+                        <i class="fa fa-video-camera" aria-hidden="true"></i>
+                        <span>{{ __('chats.video_note_record') }}</span>
+                    </button>
 
-            <button
-                type="button"
-                id="recordVoiceBtn"
-                class="voice-record-btn"
-                aria-label="{{ __('chats.voice_record') }}"
-                title="{{ __('chats.voice_record') }}"
-                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
-            >
-                <i class="fa fa-microphone" aria-hidden="true"></i>
-            </button>
+                    <button
+                        type="button"
+                        id="recordVoiceBtn"
+                        class="composer-tool-btn"
+                        aria-label="{{ __('chats.voice_record') }}"
+                        title="{{ __('chats.voice_record') }}"
+                        @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                    >
+                        <i class="fa fa-microphone" aria-hidden="true"></i>
+                        <span>{{ __('chats.voice_record') }}</span>
+                    </button>
+                </div>
+
+                <input
+                    type="file"
+                    id="chatAttachmentInput"
+                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
+                    hidden
+                >
+            </div>
 
             <button
                 type="button"
                 id="sendBtn"
                 class="send-btn"
+                aria-label="Отправить сообщение"
+                title="Отправить сообщение"
                 @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
             >
 
