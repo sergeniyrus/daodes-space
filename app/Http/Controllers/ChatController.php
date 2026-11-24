@@ -171,13 +171,13 @@ class ChatController extends Controller
         return redirect()->route('chats.show', $chat->id);
     }
 
-    public function show($chatId)
+    public function show(Request $request, $chatId)
     {
         $userId = Auth::id();
 
         $chat = Chat::with('users.profile')->findOrFail($chatId);
 
-        $sidebarChats = Chat::with('users.profile')
+        $sidebarChats = Chat::with(['users.profile', 'topics'])
             ->withMax('messages', 'created_at')
             ->whereHas('users', fn($query) => $query->where('users.id', $userId))
             ->orderByDesc('messages_max_created_at')
@@ -201,6 +201,11 @@ class ChatController extends Controller
         $topics = $chat->topics()
             ->orderBy('created_at')
             ->get();
+
+        $requestedTopicId = $request->query('topic_id');
+        $initialTopicId = $requestedTopicId && $topics->contains(
+            fn ($topic) => (int) $topic->id === (int) $requestedTopicId
+        ) ? (int) $requestedTopicId : null;
 
         $currentMembership = $chat->users->firstWhere('id', $userId)?->pivot;
         $currentRole = $currentMembership?->role ?? 'member';
@@ -240,6 +245,7 @@ class ChatController extends Controller
             'otherUser',
             'firstUnreadMessageId',
             'topics',
+            'initialTopicId',
             'currentRole',
             'mutedUntil',
             'sidebarChats',
