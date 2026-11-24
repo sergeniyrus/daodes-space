@@ -222,6 +222,56 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     sendBtn.addEventListener('click', () => sender.send(input, sendBtn, chatMessages));
 
+    const pollButton = document.getElementById('createPollBtn');
+    const pollModal = document.getElementById('chatPollModal');
+    const pollForm = document.getElementById('chatPollForm');
+    const cancelPollButton = document.getElementById('cancelPollBtn');
+
+    pollButton?.addEventListener('click', () => {
+        if (!crypto.chatKey) return;
+        pollModal.hidden = false;
+        pollForm.querySelector('[name="question"]')?.focus();
+    });
+
+    cancelPollButton?.addEventListener('click', () => {
+        pollModal.hidden = true;
+    });
+
+    pollForm?.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const formData = new FormData(pollForm);
+        const question = String(formData.get('question') || '').trim();
+        const options = String(formData.get('options') || '')
+            .split(/\\r?\\n/)
+            .map(option => option.trim())
+            .filter(Boolean);
+
+        if (!question || options.length < 2 || options.length > 10) {
+            window.alert(config.translations.pollValidation || 'Укажите вопрос и от 2 до 10 вариантов ответа');
+            return;
+        }
+
+        const submitButton = pollForm.querySelector('[type="submit"]');
+        submitButton.disabled = true;
+        try {
+            await sender.sendPoll(
+                question,
+                options,
+                formData.get('is_anonymous') === 'on',
+                formData.get('allows_multiple') === 'on'
+            );
+            pollForm.reset();
+            pollModal.hidden = true;
+        } catch (error) {
+            console.error('Poll creation failed:', error);
+            window.alert(error.message || config.translations.pollError);
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
+
+
     const cancelReplyBtn = document.getElementById('cancelReply');
     if (cancelReplyBtn) {
         cancelReplyBtn.addEventListener('click', () => ui.cancelReply());
