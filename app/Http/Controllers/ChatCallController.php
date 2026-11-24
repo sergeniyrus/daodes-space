@@ -14,6 +14,12 @@ class ChatCallController extends Controller
     {
         $this->ensurePersonalMember($chat);
 
+        abort_unless(
+            DB::table('chat_user')->where('chat_id', $chat->id)->count() === 2,
+            422,
+            'Звонки доступны только в личном чате один на один.'
+        );
+
         $stunUrls = array_values(array_filter(array_map(
             'trim',
             explode(',', (string) config('chat_calls.stun_urls', 'stun:stun.l.google.com:19302'))
