@@ -10,13 +10,14 @@ export function renderPollMessage(container, encryptedPayload, messageId, config
 
     const options = payload.options
         .map((option, index) => ({
-            id: Number(typeof option === 'object' ? option.id : index),
-            text: String(typeof option === 'object' ? option.text : option),
+            id: Number(option && typeof option === 'object' ? option.id : index),
+            text: String(option && typeof option === 'object' ? option.text : option),
         }))
         .filter(option => Number.isInteger(option.id) && option.id >= 0 && option.id <= 9 && option.text.trim())
         .slice(0, 10);
 
     if (options.length < 2 || !String(payload.question || '').trim()) return false;
+    if (new Set(options.map(option => option.id)).size !== options.length) return false;
 
     container.replaceChildren();
     const root = document.createElement('div');
