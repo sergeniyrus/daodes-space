@@ -65,4 +65,10 @@ return [
     'specialization_placeholder' => 'Enter your specialization',
     'resume_placeholder' => 'A brief description of your skills',
     'portfolio_placeholder' => 'Example: {"project1": "https://...", "project2": "https://..."}',
+    'status_text' => 'Status',
+    'status_placeholder' => 'What are you up to?',
+    'status_emoji' => 'Status emoji (optional)',
+    'status_24h' => 'For 24 hours',
+    'status_7d' => 'For 7 days',
+    'status_forever' => 'No expiry',
 ];
