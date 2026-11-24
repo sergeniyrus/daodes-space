@@ -2719,6 +2719,145 @@ body.chat-page .telegram-chat-layout .chat-container {
     }
 }
 
+
+
+/* =========================================================
+   COMPOSER ACTIONS — refined responsive panel
+   ========================================================= */
+.composer-tools-menu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 7px;
+    padding: 10px;
+    color: #e8eef7;
+    background: linear-gradient(145deg, rgba(13, 20, 34, .98), rgba(9, 15, 27, .98));
+    border: 1px solid rgba(0, 229, 255, .38);
+    border-radius: 16px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, .58), 0 0 22px rgba(0, 229, 255, .08);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+.composer-tools-menu[hidden] { display: none !important; }
+.composer-tools-menu .composer-tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 0;
+    min-height: 44px;
+    gap: 9px;
+    padding: 9px 10px;
+    color: #d5e0ed;
+    text-align: left;
+    line-height: 1.25;
+    background: rgba(255, 255, 255, .025);
+    border: 1px solid rgba(0, 229, 255, .13);
+    border-radius: 10px;
+    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+.composer-tools-menu .composer-tool-btn:hover,
+.composer-tools-menu .composer-tool-btn:focus-visible {
+    color: #fff;
+    background: rgba(0, 229, 255, .10);
+    border-color: rgba(0, 229, 255, .55);
+    outline: none;
+}
+.composer-tools-menu .composer-tool-btn:active { transform: scale(.985); }
+.composer-tools-menu .composer-tool-btn > i {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 20px;
+    width: 20px;
+    color: #00d9ef;
+    font-size: 1rem;
+}
+.composer-tools-menu .composer-tool-btn > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.composer-tools-menu .composer-tool-btn.recording {
+    color: #fff;
+    background: rgba(190, 35, 52, .20);
+    border-color: rgba(255, 90, 105, .72);
+}
+.composer-tools-menu .composer-tool-btn.recording > i { color: #ff7785; }
+.composer-tools-menu .chat-call-push-settings {
+    grid-column: 1 / -1;
+    gap: 7px;
+    padding: 9px 2px 2px;
+    border-top: 1px solid rgba(0, 229, 255, .16);
+}
+.composer-tools-menu #chat-call-push-toggle {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 11px;
+    color: #a9eaf2;
+    text-align: left;
+    background: rgba(0, 229, 255, .055);
+    border: 1px solid rgba(0, 229, 255, .24);
+    border-radius: 9px;
+    cursor: pointer;
+}
+.composer-tools-menu #chat-call-push-status {
+    color: #9aa8bc;
+    font-size: .72rem;
+    line-height: 1.35;
+}
+.composer-tools-toggle {
+    box-shadow: 0 4px 14px rgba(0, 229, 255, .12);
+}
+.composer-tools-toggle[aria-expanded="true"] {
+    color: #071018;
+    background: linear-gradient(135deg, #00e5ff, #00bcd4);
+    border-color: #00e5ff;
+}
+@media (max-width: 720px) {
+    .composer-tools-menu {
+        position: fixed;
+        z-index: 160000;
+        left: max(10px, env(safe-area-inset-left));
+        right: max(10px, env(safe-area-inset-right));
+        bottom: calc(72px + env(safe-area-inset-bottom));
+        width: auto;
+        max-width: 440px;
+        max-height: min(52dvh, 390px);
+        margin-inline: auto;
+        gap: 6px;
+        padding: 9px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border-radius: 15px;
+    }
+    .composer-tools-menu .composer-tool-btn {
+        min-height: 42px;
+        padding: 8px 9px;
+        font-size: .78rem;
+    }
+}
+@media (max-width: 420px) {
+    .composer-tools-menu {
+        left: max(8px, env(safe-area-inset-left));
+        right: max(8px, env(safe-area-inset-right));
+        bottom: calc(68px + env(safe-area-inset-bottom));
+        max-width: none;
+        max-height: min(54dvh, 390px);
+        gap: 5px;
+        padding: 7px;
+    }
+    .composer-tools-menu .composer-tool-btn {
+        min-height: 40px;
+        gap: 7px;
+        padding: 7px;
+        font-size: .74rem;
+    }
+    .composer-tools-menu .composer-tool-btn > i {
+        flex-basis: 18px;
+        width: 18px;
+        font-size: .9rem;
+    }
+}
+
 </style>
 
 
