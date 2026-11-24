@@ -33,6 +33,7 @@ class ChatCallPushDeviceController extends Controller
         $web = config('services.firebase.web', []);
         abort_unless(
             filled($web['api_key'] ?? null)
+                && filled($web['auth_domain'] ?? null)
                 && filled($web['project_id'] ?? null)
                 && filled($web['messaging_sender_id'] ?? null)
                 && filled($web['app_id'] ?? null)
