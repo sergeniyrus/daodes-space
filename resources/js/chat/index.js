@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const formData = new FormData(pollForm);
         const question = String(formData.get('question') || '').trim();
         const options = String(formData.get('options') || '')
-            .split(/\\r?\\n/)
+            .split(/\r?\n/)
             .map(option => option.trim())
             .filter(Boolean);
 
