@@ -138,6 +138,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (storyReplyId && /^\d+$/.test(storyReplyId)) {
             const storyAuthor = (storyReplyParams.get('story_author') || 'пользователь').slice(0, 80);
             input.value = `↪️ Ответ на историю #${storyReplyId} от ${storyAuthor}\n`;
+            storyReplyParams.delete('story_reply');
+            storyReplyParams.delete('story_author');
+            const cleanChatUrl = new URL(window.location.href);
+            cleanChatUrl.searchParams.delete('story_reply');
+            cleanChatUrl.searchParams.delete('story_author');
+            window.history.replaceState({}, '', cleanChatUrl);
             input.setSelectionRange(input.value.length, input.value.length);
             resizeComposer();
             input.focus({ preventScroll: true });
