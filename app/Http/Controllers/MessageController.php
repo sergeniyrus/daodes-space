@@ -553,7 +553,6 @@ class MessageController extends Controller
             'file_name' => 'required|string|max:40',
         ]);
 
-        $audio = $request->file('audio');
         $extension = strtolower(pathinfo($validated['file_name'], PATHINFO_EXTENSION));
         $supportedExtensions = ['webm', 'ogg', 'wav', 'mp3', 'mp4', 'm4a', 'flac', 'mpeg', 'mpga'];
 
@@ -571,43 +570,44 @@ class MessageController extends Controller
             ], 409);
         }
 
-        $apiKey = config('services.openai.api_key');
-        if (!$apiKey) {
+        $serviceUrl = rtrim((string) config('services.transcription.url'), '/');
+        $serviceToken = (string) config('services.transcription.token');
+
+        if ($serviceUrl === '' || $serviceToken === '') {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Распознавание речи не настроено на сервере',
+                'message' => 'Локальный сервис распознавания речи не настроен',
             ], 503);
         }
 
         try {
-            $audioContents = file_get_contents($audio->getRealPath());
-            if ($audioContents === false) {
-                throw new \RuntimeException('Unable to read uploaded voice recording');
+            $audioContents = file_get_contents($request->file('audio')->getRealPath());
+
+            if ($audioContents === false || $audioContents === '') {
+                throw new \\RuntimeException('Unable to read uploaded voice recording');
             }
 
-            $response = Http::withToken($apiKey)
+            $response = Http::withToken($serviceToken)
                 ->acceptJson()
-                ->timeout(120)
-                ->connectTimeout(15)
+                ->timeout(300)
+                ->connectTimeout(5)
                 ->attach(
                     'file',
                     $audioContents,
                     'voice.' . $extension,
-                    ['Content-Type' => $audio->getMimeType() ?: 'application/octet-stream']
+                    ['Content-Type' => $request->file('audio')->getMimeType() ?: 'application/octet-stream']
                 )
-                ->post('https://api.openai.com/v1/audio/transcriptions', [
-                    'model' => config('services.openai.transcription_model', 'gpt-transcribe'),
-                ]);
+                ->post($serviceUrl . '/transcribe');
 
             if (!$response->successful()) {
-                Log::warning('OpenAI voice transcription failed', [
+                Log::warning('Local voice transcription service failed', [
                     'message_id' => $message->id,
                     'http_status' => $response->status(),
                 ]);
 
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Сервис распознавания речи вернул ошибку',
+                    'message' => 'Локальный сервис распознавания речи вернул ошибку',
                 ], 502);
             }
 
@@ -624,8 +624,8 @@ class MessageController extends Controller
                 'status' => 'success',
                 'text' => $transcription,
             ]);
-        } catch (\Throwable $exception) {
-            Log::error('Voice transcription request failed', [
+        } catch (\\Throwable $exception) {
+            Log::error('Local voice transcription request failed', [
                 'message_id' => $message->id,
                 'error' => $exception->getMessage(),
             ]);
@@ -637,9 +637,6 @@ class MessageController extends Controller
         }
     }
 
-    /**
-     * Возвращает только зашифрованную расшифровку голосового сообщения.
-     */
     public function getVoiceTranscription(Message $message)
     {
         $chat = $message->chat;
