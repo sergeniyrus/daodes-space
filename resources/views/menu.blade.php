@@ -8,12 +8,10 @@
 
         <!-- Переключатель языков -->
         @auth
-            @if (Auth::user()->access_level >= 3)
-                <div class="language-switcher">
-                    <a href="{{ route('language.change', 'en') }}" class="{{ app()->getLocale() === 'en' ? 'active' : '' }}">EN</a>
-                    <a href="{{ route('language.change', 'ru') }}" class="{{ app()->getLocale() === 'ru' ? 'active' : '' }}">RU</a>
-                </div>
-            @endif
+            <div class="language-switcher" aria-label="Language">
+                <a href="{{ route('language.change', 'en') }}" class="{{ app()->getLocale() === 'en' ? 'active' : '' }}">EN</a>
+                <a href="{{ route('language.change', 'ru') }}" class="{{ app()->getLocale() === 'ru' ? 'active' : '' }}">RU</a>
+            </div>
         @endauth
     </div>
 
