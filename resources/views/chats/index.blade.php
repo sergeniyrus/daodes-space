@@ -195,6 +195,30 @@
 }
 
 
+.chat-name-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+.chat-list-avatar {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    object-fit: cover;
+    border: 1px solid rgba(0, 229, 255, .55);
+    border-radius: 50%;
+    box-shadow: 0 0 12px rgba(0, 229, 255, .12);
+}
+.chat-list-avatar-group,
+.chat-list-avatar-saved {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffd700;
+    background: rgba(255, 215, 0, .08);
+    font-size: 1rem;
+}
 .chat-name-wrapper {
     display: flex;
 
@@ -628,6 +652,12 @@
 
                             <div class="chat-name-line">
 
+                                @if ($chat->type === 'channel' || $chat->type === 'group')
+                                    <span class="chat-list-avatar chat-list-avatar-group" aria-hidden="true">
+                                        <i class="fa fa-users"></i>
+                                    </span>
+                                @endif
+
                                 <a
                                     href="{{ route('chats.show', $chat->id) }}"
                                     class="chat-name-link"
@@ -758,6 +788,22 @@
                         <td class="chat-name-cell">
 
                             <div class="chat-name-line">
+
+                                @if ($chat->type === 'saved')
+                                    <span class="chat-list-avatar chat-list-avatar-saved" aria-hidden="true">
+                                        <i class="fa fa-bookmark"></i>
+                                    </span>
+                                @else
+                                    @php
+                                        $chatOtherUser = $chat->users->first(fn($participant) => $participant->id !== auth()->id());
+                                    @endphp
+                                    <img
+                                        class="chat-list-avatar"
+                                        src="{{ $chatOtherUser?->profile?->avatar_url ?: '/img/main/default-avatar.png' }}"
+                                        alt=""
+                                        loading="lazy"
+                                    >
+                                @endif
 
                                 <a
                                     href="{{ route('chats.show', $chat->id) }}"
