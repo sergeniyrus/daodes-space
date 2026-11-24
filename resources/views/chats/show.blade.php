@@ -2393,6 +2393,23 @@ body.chat-media-viewer-open { overflow: hidden; }
             <div class="chat-stories-list" id="chatStoriesList"></div>
             <input type="file" id="chatStoryFileInput" accept="image/*,video/*" hidden>
         </section>
+        @if ($chat->type === 'channel')
+            <section class="telegram-sidebar-stories" id="channelStoriesBar"
+                     data-chat-id="{{ $chat->id }}"
+                     data-label-story-views="{{ __('chats.story_views') }}"
+                     data-label-story-delete="{{ __('chats.story_delete') }}"
+                     data-label-stories-empty="{{ __('chats.stories_empty') }}"
+                     data-label-story-upload-error="{{ __('chats.story_upload_error') }}">
+                @if ($currentRole === 'owner' || ($currentRole === 'admin' && $chat->allow_admin_stories) || ($currentRole === 'moderator' && $chat->allow_moderator_stories))
+                    <button type="button" class="chat-story-add" id="addChannelStoryBtn">
+                        <span class="chat-story-add-avatar">＋</span>
+                        <span>Сторис канала</span>
+                    </button>
+                    <input type="file" id="channelStoryFileInput" accept="image/*,video/*" hidden>
+                @endif
+                <div class="chat-stories-list" id="channelStoriesList"></div>
+            </section>
+        @endif
         <input
             type="search"
             id="telegramChatSearch"
@@ -2542,6 +2559,35 @@ body.chat-media-viewer-open { overflow: hidden; }
                     <p class="chat-status">{{ __('chats.saved_messages_description') }}</p>
                 </div>
             </div>
+
+        @elseif ($chat->type === 'channel')
+
+            <div class="chat-person-heading">
+                <img class="chat-header-avatar" id="channelHeaderPhoto"
+                     src="{{ $chat->photo_cid ? '/ipfs/' . $chat->photo_cid : '/img/main/default-avatar.png' }}"
+                     alt="">
+                <div class="chat-person-heading-info">
+                    <h2 class="chat-title">{{ $chat->name }}</h2>
+                    <p class="chat-status">{{ __('chats.online_participants', ['online' => $chat->onlineParticipantsCount(), 'total' => $chat->totalParticipantsCount()]) }}</p>
+                </div>
+            </div>
+            @if ($currentRole === 'owner' || ($currentRole === 'admin' && $chat->allow_admin_photo) || ($currentRole === 'moderator' && $chat->allow_moderator_photo))
+                <label class="chat-topic-create" for="channelPhotoInput">Изменить фотографию</label>
+                <input type="file" id="channelPhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+            @endif
+            @if ($currentRole === 'owner')
+                <details class="chat-channel-settings">
+                    <summary>Настройки канала и права</summary>
+                    <form id="channelSettingsForm" data-url="{{ route('chats.channel.settings', $chat->id) }}">
+                        <label><input type="checkbox" name="allow_admin_photo" value="1" @checked($chat->allow_admin_photo)> Администраторам разрешено менять фотографию</label>
+                        <label><input type="checkbox" name="allow_moderator_photo" value="1" @checked($chat->allow_moderator_photo)> Модераторам разрешено менять фотографию</label>
+                        <label><input type="checkbox" name="allow_admin_stories" value="1" @checked($chat->allow_admin_stories)> Администраторам разрешено публиковать сторис</label>
+                        <label><input type="checkbox" name="allow_moderator_stories" value="1" @checked($chat->allow_moderator_stories)> Модераторам разрешено публиковать сторис</label>
+                        <button type="submit">Сохранить права</button>
+                        <span id="channelSettingsStatus" aria-live="polite"></span>
+                    </form>
+                </details>
+            @endif
 
         @else
 
