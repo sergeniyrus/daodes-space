@@ -58,7 +58,9 @@ class MessengerCallsTest extends TestCase
         $iceServers = $response->json('ice_servers');
         $this->assertCount(2, $iceServers);
         $this->assertSame('turn:turn.example.test:3478?transport=udp', $iceServers[1]['urls'][0]);
-        $this->assertStringStartsWith((string) (now()->addMinutes(59)->timestamp), $iceServers[1]['username']);
+        $expiresAt = (int) explode(':', $iceServers[1]['username'], 2)[0];
+        $this->assertGreaterThanOrEqual(now()->addMinutes(59)->timestamp, $expiresAt);
+        $this->assertLessThanOrEqual(now()->addHour()->timestamp, $expiresAt);
         $this->assertNotSame('test-shared-secret', $iceServers[1]['credential']);
         $this->assertSame(
             base64_encode(hash_hmac('sha1', $iceServers[1]['username'], 'test-shared-secret', true)),
