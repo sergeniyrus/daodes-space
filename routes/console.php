@@ -2,6 +2,9 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schedule;
+use App\Services\IPFSService;
 
 // Команда, которая выводит вдохновляющую цитату
 Artisan::command('inspire', function () {
@@ -30,7 +33,7 @@ Schedule::call(function () {
         try {
             $ipfs->unpinFile($story->ipfs_cid);
             DB::table('chat_stories')->where('id', $story->id)->delete();
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             report($exception);
         }
     }
