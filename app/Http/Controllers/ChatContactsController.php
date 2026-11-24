@@ -133,6 +133,10 @@ class ChatContactsController extends Controller
             ->where('recipient_id', $userId)
             ->first();
 
+        if ($reverse && $reverse->status === 'accepted') {
+            return back()->with('status', 'Этот пользователь уже находится в контактах.');
+        }
+
         if ($reverse && $reverse->status === 'pending') {
             DB::table('chat_contact_requests')
                 ->where('id', $reverse->id)
