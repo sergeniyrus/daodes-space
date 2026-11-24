@@ -250,9 +250,9 @@
                         placeholder="{{ __('user_profile.status_emoji') }}"
                     >
                     <select class="input_dark" name="status_duration">
-                        <option value="24">{{ __('user_profile.status_24h') }}</option>
-                        <option value="168">{{ __('user_profile.status_7d') }}</option>
-                        <option value="0">{{ __('user_profile.status_forever') }}</option>
+                        <option value="24" @selected(!$profile->status_expires_at || ($profile->status_expires_at->isFuture() && $profile->status_expires_at->diffInHours(now()) <= 24))>{{ __('user_profile.status_24h') }}</option>
+                        <option value="168" @selected($profile->status_expires_at && $profile->status_expires_at->isFuture() && $profile->status_expires_at->diffInHours(now()) > 24)>{{ __('user_profile.status_7d') }}</option>
+                        <option value="0" @selected($profile->status_text && !$profile->status_expires_at)>{{ __('user_profile.status_forever') }}</option>
                     </select>
                 </div>
             </div>
