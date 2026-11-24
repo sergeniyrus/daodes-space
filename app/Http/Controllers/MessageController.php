@@ -694,7 +694,6 @@ class MessageController extends Controller
 
         DB::table('message_transcriptions')->insertOrIgnore([
             'message_id' => $message->id,
-            [
             'created_by' => Auth::id(),
             'encrypted_text' => $validated['nonce'] . '|' . $validated['ciphertext'],
             'created_at' => now(),
