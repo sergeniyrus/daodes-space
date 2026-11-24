@@ -667,6 +667,21 @@ Route::middleware('auth')->group(function () {
         [MessageController::class, 'pinnedMessages']
     )->middleware('throttle:60,1')->name('chats.pinnedMessages');
 
+    Route::get(
+        '/messages/{message}/poll-results',
+        [MessageController::class, 'pollResults']
+    )->middleware('throttle:60,1')->name('messages.pollResults');
+
+    Route::post(
+        '/messages/{message}/poll-votes',
+        [MessageController::class, 'votePoll']
+    )->middleware('throttle:30,1')->name('messages.pollVotes');
+
+    Route::post(
+        '/messages/{message}/poll-close',
+        [MessageController::class, 'closePoll']
+    )->middleware('throttle:30,1')->name('messages.pollClose');
+
     Route::patch(
         '/chats/{chat}/pinned-messages/order',
         [MessageController::class, 'reorderPinnedMessages']
