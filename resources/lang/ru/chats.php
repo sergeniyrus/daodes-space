@@ -124,4 +124,7 @@ return [
     'notifications_enabled' => 'Уведомления включены',
     'search_chats' => 'Поиск чатов…',
     'open_fullscreen' => 'Открыть на весь экран',
+    'search_messages' => 'Поиск сообщений',
+    'search_loaded_messages' => 'Поиск по загруженным сообщениям',
+    'clear_search' => 'Очистить поиск',
 ];
