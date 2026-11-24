@@ -2362,6 +2362,46 @@ body.chat-media-viewer-open { overflow: hidden; }
     .chat-peer-profile-card { padding: 18px; }
 }
 
+
+/* Настройки и медиа канала */
+.chat-channel-settings {
+    width: min(100%, 520px);
+    margin: 8px auto 0;
+    text-align: left;
+    color: #dbe4ef;
+}
+.chat-channel-settings > summary {
+    color: #00e5ff;
+    cursor: pointer;
+    font-size: .86rem;
+}
+.chat-channel-settings form {
+    display: grid;
+    gap: 9px;
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid rgba(0,229,255,.2);
+    border-radius: 10px;
+    background: rgba(5,12,24,.72);
+}
+.chat-channel-settings label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .82rem;
+}
+.chat-channel-settings button {
+    justify-self: start;
+    padding: 7px 12px;
+    border: 1px solid rgba(255,215,0,.4);
+    border-radius: 8px;
+    color: #ffd700;
+    background: rgba(255,215,0,.06);
+    cursor: pointer;
+}
+#channelSettingsStatus { color: #00e5ff; font-size: .8rem; }
+#channelHeaderPhoto { background: #10131d; }
+
 </style>
 
 
