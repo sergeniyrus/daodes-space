@@ -38,6 +38,7 @@ use App\Http\Controllers\{
     ChatCallController,
     ChatCallPushDeviceController,
     ChatMeetingController,
+    ChatGroupCallController,
     LanguageController,
     CaptchaController,
     NotificationController,
@@ -627,6 +628,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:30,1')->name('chats.meetings.response');
     Route::delete('/meetings/{meeting}', [ChatMeetingController::class, 'destroy'])
         ->middleware('throttle:30,1')->name('chats.meetings.destroy');
+
+    // Короткоживущий токен LiveKit только для принявших приглашение участников групповой встречи.
+    Route::post('/meetings/{meeting}/livekit-token', [ChatGroupCallController::class, 'token'])
+        ->middleware('throttle:10,1')->name('chats.meetings.livekit-token');
 
     Route::get(
         '/chat/link-preview',
