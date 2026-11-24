@@ -63,7 +63,7 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
 
             const name = document.createElement('span');
             name.className = 'chat-story-name';
-            name.textContent = story.is_own ? (labels.myStory || 'My story') : story.author_name;
+            name.textContent = story.is_channel ? story.author_name : (story.is_own ? (labels.myStory || 'My story') : story.author_name);
 
             button.append(avatar, name);
             button.addEventListener('click', () => openStory(story));
