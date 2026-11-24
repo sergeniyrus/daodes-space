@@ -122,6 +122,7 @@ export class MessageSender {
                 message_type: 'poll',
                 poll_is_anonymous: Boolean(isAnonymous),
                 poll_allows_multiple: Boolean(allowsMultiple),
+                poll_option_count: options.length,
             };
 
             if (this.config.topicId) body.topic_id = this.config.topicId;
