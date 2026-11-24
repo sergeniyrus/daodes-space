@@ -68,12 +68,12 @@
 
 </head>
 
-<body>
+<body class="@yield('body_class')">
     @unless (request()->routeIs('customer.*'))
         @include('menu')
     @endunless
     @yield('main')
-    @unless (request()->routeIs('customer.*'))
+    @unless (request()->routeIs('customer.*') || $__env->hasSection('hide_footer'))
         @include('footer')
     @endunless
     @include('components.cookie-consent')
