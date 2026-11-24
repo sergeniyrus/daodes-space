@@ -18,6 +18,7 @@ export class MessageSender {
 
         this.isSending = true;
         sendBtn.disabled = true;
+        sendBtn.classList.add('is-loading');
 
         const originalInputValue = input.value;
         input.value = '';
@@ -99,6 +100,7 @@ export class MessageSender {
             alert(this.config.translations.sendError);
         } finally {
             this.isSending = false;
+            sendBtn.classList.remove('is-loading');
             sendBtn.disabled = false;
         }
     }
