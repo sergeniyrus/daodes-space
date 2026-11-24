@@ -58,6 +58,14 @@ class ChatChannelStoriesController extends Controller
             ->where('stories.chat_id', $chat->id)
             ->where('story_keys.user_id', $userId)
             ->where('stories.expires_at', '>', now())
+            ->addSelect(DB::raw('(SELECT direct_chats.id
+                FROM chats AS direct_chats
+                INNER JOIN chat_user AS publisher_members ON publisher_members.chat_id = direct_chats.id
+                INNER JOIN chat_user AS viewer_members ON viewer_members.chat_id = direct_chats.id
+                WHERE direct_chats.type = "personal"
+                  AND publisher_members.user_id = stories.published_by
+                  AND viewer_members.user_id = ' . (int) $userId . '
+                LIMIT 1) AS direct_chat_id'))
             ->orderByDesc('stories.created_at')
             ->limit(100)
             ->get([
@@ -75,6 +83,7 @@ class ChatChannelStoriesController extends Controller
             ->map(fn ($story) => [
                 'id' => (int) $story->id,
                 'user_id' => (int) $story->published_by,
+                'direct_chat_id' => $story->direct_chat_id ? (int) $story->direct_chat_id : null,
                 'author_name' => $chat->name,
                 'publisher_name' => $story->publisher_name,
                 'avatar_url' => $chat->photo_cid ? '/ipfs/' . $chat->photo_cid : ($story->avatar_url ?: '/img/main/default-avatar.png'),
