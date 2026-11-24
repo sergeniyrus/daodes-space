@@ -937,3 +937,147 @@
         padding-inline: 5px;
     }
 }
+
+
+/* Final composer layout: all controls remain in one horizontal row. */
+.telegram-chat-layout .input-group,
+.input-group {
+    flex-direction: row !important;
+    align-items: flex-end !important;
+    gap: 7px;
+}
+.telegram-chat-layout .input-wrapper { flex: 1 1 auto; width: auto; }
+.telegram-chat-layout .composer-tools {
+    flex: 0 0 40px;
+    width: 40px;
+    align-self: flex-end;
+}
+.telegram-chat-layout .composer-tools-toggle,
+.telegram-chat-layout .send-btn {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: 50%;
+}
+.telegram-chat-layout .send-btn { flex: 0 0 40px; }
+.telegram-chat-layout #messageInput {
+    min-height: 46px;
+    max-height: 260px;
+    padding: 10px 50px 10px 14px;
+    overflow-y: hidden;
+}
+.telegram-chat-layout .chat-mute-controls {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    width: auto;
+    margin: 4px 0 0 auto;
+    padding: 3px 6px;
+    border: 1px solid rgba(0,229,255,.16);
+    border-radius: 12px;
+    background: rgba(0,229,255,.035);
+}
+.telegram-chat-layout .chat-mute-controls label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+}
+.telegram-chat-layout #chatMuteDuration {
+    width: 42px;
+    min-width: 42px;
+    height: 30px;
+    padding: 2px;
+    color: #00e5ff;
+    background: #111827;
+    border: 1px solid rgba(0,229,255,.3);
+    border-radius: 8px;
+    font-size: 0;
+}
+.telegram-chat-layout #chatMuteDuration option { font-size: 14px; }
+.telegram-chat-layout #saveChatMute {
+    width: 32px;
+    min-width: 32px;
+    height: 30px;
+    padding: 0;
+    overflow: hidden;
+    color: transparent;
+    font-size: 0;
+    background: rgba(255,215,0,.08);
+    border: 1px solid rgba(255,215,0,.3);
+    border-radius: 8px;
+}
+.telegram-chat-layout #saveChatMute::before {
+    content: "✓";
+    color: #ffd700;
+    font-size: 16px;
+}
+.telegram-chat-layout .chat-mute-status {
+    flex: 0 0 auto;
+    max-width: 30px;
+    overflow: hidden;
+    color: transparent;
+    font-size: 0;
+    white-space: nowrap;
+}
+.telegram-chat-layout .chat-mute-status::before {
+    content: "●";
+    color: #22c55e;
+    font-size: 13px;
+}
+.telegram-chat-layout .chat-mute-status:has(+ *)::before { color: #22c55e; }
+.telegram-chat-layout .chat-message-search {
+    display: inline-flex;
+    align-items: center;
+    margin: 4px 0 0 6px;
+}
+.telegram-chat-layout #toggleMessageSearch {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 30px;
+    padding: 0;
+    color: #00e5ff;
+    background: rgba(0,229,255,.06);
+    border: 1px solid rgba(0,229,255,.28);
+    border-radius: 9px;
+}
+.telegram-chat-layout #messageSearchPanel {
+    position: absolute;
+    z-index: 80;
+    top: calc(100% + 6px);
+    right: 0;
+    display: flex;
+    gap: 5px;
+    width: min(320px, calc(100vw - 30px));
+    padding: 7px;
+    background: #101827;
+    border: 1px solid rgba(0,229,255,.3);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.telegram-chat-layout #messageSearchPanel[hidden] { display: none !important; }
+.telegram-chat-layout .chat-message-search { position: relative; }
+@media (max-width: 720px) {
+    .telegram-chat-layout .input-group,
+    .input-group { flex-direction: row !important; align-items: flex-end !important; }
+    .telegram-chat-layout .composer-tools { flex-basis: 36px; width: 36px; }
+    .telegram-chat-layout .composer-tools-toggle,
+    .telegram-chat-layout .send-btn {
+        width: 36px; min-width: 36px; height: 36px; min-height: 36px;
+    }
+    .telegram-chat-layout .send-btn { flex-basis: 36px; }
+    .telegram-chat-layout #messageInput { min-height: 42px; padding: 9px 42px 9px 11px; }
+    .telegram-chat-layout .chat-mute-controls { gap: 4px; padding: 2px 4px; }
+    .telegram-chat-layout #chatMuteDuration { width: 36px; min-width: 36px; }
+}
