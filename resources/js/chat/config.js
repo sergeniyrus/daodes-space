@@ -43,7 +43,20 @@ export function loadChatConfig() {
             unpin: el.dataset.translateUnpin,
             pinnedMessages: el.dataset.translatePinnedMessages,
             mutedUntil: el.dataset.translateMutedUntil,
-            notificationsEnabled: el.dataset.translateNotificationsEnabled
+            notificationsEnabled: el.dataset.translateNotificationsEnabled,
+            pollCreate: el.dataset.translatePollCreate,
+            pollQuestion: el.dataset.translatePollQuestion,
+            pollOptions: el.dataset.translatePollOptions,
+            pollOptionsHint: el.dataset.translatePollOptionsHint,
+            pollAnonymous: el.dataset.translatePollAnonymous,
+            pollOpen: el.dataset.translatePollOpen,
+            pollClosed: el.dataset.translatePollClosed,
+            pollMultiple: el.dataset.translatePollMultiple,
+            pollVote: el.dataset.translatePollVote,
+            pollVoters: el.dataset.translatePollVoters,
+            pollClose: el.dataset.translatePollClose,
+            pollError: el.dataset.translatePollError,
+            pollValidation: el.dataset.translatePollValidation
         },
     };
 }
