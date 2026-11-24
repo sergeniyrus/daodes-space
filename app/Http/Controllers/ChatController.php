@@ -20,7 +20,7 @@ class ChatController extends Controller
             ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
             ->paginate(10);
 
-        $privateChats = Chat::where('type', 'personal')
+        $privateChats = Chat::whereIn('type', ['personal', 'saved'])
             ->whereHas('participants', fn($q) => $q->where('user_id', $user->id))
             ->paginate(10);
 
@@ -28,6 +28,69 @@ class ChatController extends Controller
 
         return view('chats.index', compact('groupChats', 'privateChats', 'uniqueChats'));
     }
+    /**
+     * Создаёт или открывает личное пространство «Избранное».
+     * Ключ чата шифруется браузером публичным ключом самого пользователя.
+     */
+    public function createSavedMessages(Request $request)
+    {
+        $validated = $request->validate([
+            'encrypted_key' => 'required|string|max:255',
+            'nonce' => 'required|string|max:255',
+        ]);
+
+        $user = Auth::user();
+        $publicKey = $user->profile?->public_key;
+
+        if (!$publicKey) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Public encryption key is not configured',
+            ], 422);
+        }
+
+        $chat = DB::transaction(function () use ($user, $publicKey, $validated) {
+            DB::table('users')
+                ->where('id', $user->id)
+                ->lockForUpdate()
+                ->first();
+
+            $existing = Chat::where('type', 'saved')
+                ->where('initiator_id', $user->id)
+                ->first();
+
+            if ($existing) {
+                return $existing;
+            }
+
+            $chat = Chat::create([
+                'name' => __('chats.saved_messages'),
+                'type' => 'saved',
+                'initiator_id' => $user->id,
+            ]);
+
+            $chat->users()->attach($user->id, [
+                'role' => 'owner',
+                'joined_at' => now(),
+            ]);
+
+            ChatMemberKey::create([
+                'chat_id' => $chat->id,
+                'user_id' => $user->id,
+                'encrypted_key' => $validated['encrypted_key'],
+                'nonce' => $validated['nonce'],
+                'sender_public_key' => $publicKey,
+            ]);
+
+            return $chat;
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'redirect_url' => route('chats.show', $chat->id),
+        ]);
+    }
+
 
     private function getUnreadMessagesCount($chats)
     {
@@ -277,7 +340,7 @@ class ChatController extends Controller
             abort(403);
         }
 
-        if ($chat->type === 'personal') {
+        if (in_array($chat->type, ['personal', 'saved'], true)) {
             return response()->json(['status' => 'error', 'message' => 'Personal chats cannot have extra participants'], 422);
         }
 
@@ -315,7 +378,7 @@ class ChatController extends Controller
      */
     public function removeParticipant(Chat $chat, User $user)
     {
-        if ($chat->type === 'personal') {
+        if (in_array($chat->type, ['personal', 'saved'], true)) {
             return response()->json(['status' => 'error', 'message' => 'Personal chat participants cannot be managed'], 422);
         }
 
@@ -357,7 +420,7 @@ class ChatController extends Controller
      */
     public function updateParticipantRole(Request $request, Chat $chat, User $user)
     {
-        if ($chat->type === 'personal') {
+        if (in_array($chat->type, ['personal', 'saved'], true)) {
             return response()->json(['status' => 'error', 'message' => 'Personal chat roles cannot be changed'], 422);
         }
 
