@@ -1923,6 +1923,42 @@ body.chat-media-viewer-open { overflow: hidden; }
     .chat-title { font-size: 1.35rem; }
 }
 
+
+/* Навигация и дерево тем в боковом меню мессенджера. */
+.telegram-sidebar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin: 10px 0 14px;
+}
+.telegram-sidebar-actions a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 9px 10px;
+    color: #00e5ff;
+    text-decoration: none;
+    font-size: .82rem;
+    border: 1px solid rgba(0,229,255,.22);
+    border-radius: 9px;
+    background: rgba(0,229,255,.035);
+}
+.telegram-sidebar-actions a:hover { color: #ffd700; border-color: rgba(255,215,0,.5); }
+.telegram-chat-topics { margin: 3px 8px 9px 58px; color: #aeb9ca; font-size: .78rem; }
+.telegram-chat-topics summary, .chat-topics-mobile summary { cursor: pointer; padding: 5px 2px; color: #00e5ff; }
+.telegram-chat-topic-links { display: grid; gap: 3px; padding: 4px 0 6px 10px; }
+.telegram-chat-topic-links a, .chat-topics-mobile a {
+    display: block; padding: 5px 8px; color: #c4cedd; text-decoration: none;
+    border-left: 1px solid rgba(0,229,255,.25); border-radius: 0 6px 6px 0;
+}
+.telegram-chat-topic-links a:hover, .chat-topics-mobile a:hover { color: #ffd700; background: rgba(255,215,0,.05); }
+.chat-topics-sidebar { display: flex; flex-direction: column; align-items: stretch; gap: 3px; margin: 4px 0 7px; padding: 4px 0; border: 0; background: transparent; }
+.chat-topics-sidebar .chat-topic-tab, .chat-topics-sidebar .chat-topic-create {
+    width: 100%; justify-content: flex-start; text-align: left; padding: 7px 9px;
+}
+.chat-topics-mobile { display: none; margin: 8px 0 12px; padding: 7px 10px; border: 1px solid rgba(0,229,255,.25); border-radius: 9px; }
+@media (max-width: 700px) { .chat-topics-mobile { display: block; } }
 </style>
 
 
@@ -1932,6 +1968,12 @@ body.chat-media-viewer-open { overflow: hidden; }
             <strong>DAODES <span>MESSENGER</span></strong>
             <a href="{{ route('chats.index') }}" aria-label="{{ __('chats.to_chats') }}">⌂</a>
         </div>
+        <nav class="telegram-sidebar-actions" aria-label="Навигация мессенджера">
+            <a href="{{ route('chats.index') }}"><i class="fa fa-comments" aria-hidden="true"></i><span>Чаты</span></a>
+            <a href="{{ route('contacts.index') }}"><i class="fa fa-address-book" aria-hidden="true"></i><span>Контакты</span></a>
+            <a href="{{ route('chats.create') }}"><i class="fa fa-plus" aria-hidden="true"></i><span>Новый чат</span></a>
+            <a href="{{ route('chats.notifications') }}"><i class="fa fa-bell" aria-hidden="true"></i><span>Уведомления</span></a>
+        </nav>
         <section class="telegram-sidebar-stories" id="chatStoriesBar"
                  data-user-id="{{ auth()->id() }}"
                  data-csrf="{{ csrf_token() }}"
@@ -1996,11 +2038,41 @@ body.chat-media-viewer-open { overflow: hidden; }
                         <span class="telegram-chat-unread">{{ $sidebarUnread[$sidebarChat->id] }}</span>
                     @endif
                 </a>
+                @if ($sidebarChat->id === $chat->id)
+                    <details class="telegram-chat-topics" open>
+                        <summary>Темы чата</summary>
+                        <div class="chat-topics-bar chat-topics-sidebar" id="chatTopicsBar">
+                            <button type="button" class="chat-topic-tab {{ $initialTopicId === null ? 'active' : '' }}" data-topic-id="">
+                                {{ __('chats.all_messages') }}
+                            </button>
+                            @foreach ($topics as $topic)
+                                <button
+                                    type="button"
+                                    class="chat-topic-tab {{ $initialTopicId === (int) $topic->id ? 'active' : '' }}"
+                                    data-topic-id="{{ $topic->id }}"
+                                    title="{{ $topic->description }}"
+                                >{{ $topic->name }}</button>
+                            @endforeach
+                            @if (in_array($currentRole, ['owner', 'admin', 'moderator'], true) && $chat->type !== 'personal')
+                                <button type="button" class="chat-topic-create" id="createChatTopic">
+                                    + {{ __('chats.new_topic') }}
+                                </button>
+                            @endif
+                        </div>
+                    </details>
+                @elseif ($sidebarChat->topics->isNotEmpty())
+                    <details class="telegram-chat-topics">
+                        <summary>Темы чата ({{ $sidebarChat->topics->count() }})</summary>
+                        <div class="telegram-chat-topic-links">
+                            <a href="{{ route('chats.show', $sidebarChat->id) }}">Все сообщения</a>
+                            @foreach ($sidebarChat->topics as $sidebarTopic)
+                                <a href="{{ route('chats.show', $sidebarChat->id) }}?topic_id={{ $sidebarTopic->id }}">{{ $sidebarTopic->name }}</a>
+                            @endforeach
+                        </div>
+                    </details>
+                @endif
             @endforeach
         </nav>
-        <a class="telegram-new-chat" href="{{ route('chats.create') }}">
-            <i class="fa fa-plus" aria-hidden="true"></i> {{ __('chats.create_chat') }}
-        </a>
     </aside>
     <main class="telegram-chat-main">
 <div class="chat-container">
@@ -2012,6 +2084,15 @@ body.chat-media-viewer-open { overflow: hidden; }
     <a class="telegram-mobile-back" href="{{ route('chats.index') }}">
         <i class="fa fa-arrow-left" aria-hidden="true"></i> {{ __('chats.to_chats') }}
     </a>
+    @if ($topics->isNotEmpty())
+        <details class="chat-topics-mobile">
+            <summary>Темы чата</summary>
+            <a href="{{ route('chats.show', $chat->id) }}">Все сообщения</a>
+            @foreach ($topics as $topic)
+                <a href="{{ route('chats.show', $chat->id) }}?topic_id={{ $topic->id }}">{{ $topic->name }}</a>
+            @endforeach
+        </details>
+    @endif
 
     <div class="chat-header">
 
@@ -2160,28 +2241,7 @@ body.chat-media-viewer-open { overflow: hidden; }
         @endif
     </div>
 
-    <div class="chat-topics-bar" id="chatTopicsBar">
-        <button type="button" class="chat-topic-tab active" data-topic-id="">
-            {{ __('chats.all_messages') }}
-        </button>
-
-        @foreach ($topics as $topic)
-            <button
-                type="button"
-                class="chat-topic-tab"
-                data-topic-id="{{ $topic->id }}"
-                title="{{ $topic->description }}"
-            >
-                {{ $topic->name }}
-            </button>
-        @endforeach
-
-        @if (in_array($currentRole, ['owner', 'admin', 'moderator'], true) && $chat->type !== 'personal')
-            <button type="button" class="chat-topic-create" id="createChatTopic">
-                + {{ __('chats.new_topic') }}
-            </button>
-        @endif
-    </div>
+    {{-- Темы чата перенесены во вложенное меню соответствующего чата в боковой панели. --}}
 
     <div id="chatPinnedMessages" class="chat-pinned-messages" hidden aria-live="polite"></div>
 
@@ -2444,37 +2504,7 @@ body.chat-media-viewer-open { overflow: hidden; }
     </form>
 
 
-    {{-- =====================================================
-         ДОПОЛНИТЕЛЬНЫЕ КНОПКИ
-         ===================================================== --}}
-
-    <div class="additional-buttons">
-
-        <a
-            href="{{ route('chats.index') }}"
-            class="chat-btn"
-        >
-            {{ __('chats.to_chats') }}
-        </a>
-
-
-        <a
-            href="{{ route('chats.create') }}"
-            class="chat-btn"
-        >
-            {{ __('chats.new_chat') }}
-        </a>
-
-
-        <a
-            href="/notifications"
-            class="chat-btn"
-        >
-            {{ __('chats.notifications') }}
-        </a>
-
-    </div>
-
+    {{-- Навигация вынесена в боковую панель мессенджера. --}}
 
     {{-- =====================================================
          ПЕРЕВОДЫ
@@ -2520,7 +2550,7 @@ body.chat-media-viewer-open { overflow: hidden; }
     id="chat-config"
     data-chat-id="{{ $chat->id }}"
     data-chat-type="{{ $chat->type }}"
-    data-topic-id=""
+    data-topic-id="{{ $initialTopicId ?? '' }}"
     data-current-role="{{ $currentRole }}"
     data-user-id="{{ auth()->id() }}"
     data-user-name="{{ auth()->user()->name }}"
