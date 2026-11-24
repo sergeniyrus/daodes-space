@@ -102,6 +102,27 @@ class MessengerStoriesTest extends TestCase
             $mock->shouldReceive('uploadFile')->once()->andReturn('bafy-encrypted-story-test');
         });
 
+        $this->actingAs($owner)->post('/stories', [
+            'file' => UploadedFile::fake()->create('unauthorized-story.enc', 20, 'application/octet-stream'),
+            'media_type' => 'image',
+            'mime_type' => 'image/jpeg',
+            'file_nonce' => base64_encode(str_repeat('n', 24)),
+            'encrypted' => '1',
+            'expires_hours' => 24,
+            'keys' => [
+                [
+                    'user_id' => $owner->id,
+                    'encrypted_key' => base64_encode(str_repeat('x', 48)),
+                    'nonce' => base64_encode(str_repeat('n', 24)),
+                ],
+                [
+                    'user_id' => $outsider->id,
+                    'encrypted_key' => base64_encode(str_repeat('z', 48)),
+                    'nonce' => base64_encode(str_repeat('m', 24)),
+                ],
+            ],
+        ])->assertUnprocessable();
+
         $response = $this->actingAs($owner)->post('/stories', [
             'file' => UploadedFile::fake()->create('story.enc', 20, 'application/octet-stream'),
             'media_type' => 'image',
