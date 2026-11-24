@@ -20,7 +20,7 @@ class ChatScheduledMessageController extends Controller
             ->whereIn('status', ['pending', 'failed'])
             ->orderBy('scheduled_for')
             ->get([
-                'id', 'topic_id', 'scheduled_for', 'status', 'last_error',
+                'id', 'encrypted_message', 'nonce', 'topic_id', 'scheduled_for', 'status', 'last_error',
             ]);
 
         return response()->json($messages);
