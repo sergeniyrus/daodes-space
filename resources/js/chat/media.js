@@ -1,7 +1,7 @@
 import nacl from 'tweetnacl';
 import { b64ToU8 } from './utils.js';
 
-export function renderEncryptedAttachment(container, encryptedPayload, messageId, attachmentId, config, crypto) {
+export function renderEncryptedAttachment(container, encryptedPayload, messageId, attachmentId, config, crypto, messageType = 'media') {
     let payload;
 
     try {
@@ -17,7 +17,7 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
     container.replaceChildren();
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'chat-media-message';
+    wrapper.className = messageType === 'video_note' ? 'chat-video-note' : 'chat-media-message';
 
     const button = document.createElement('button');
     button.type = 'button';
@@ -25,7 +25,7 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
     button.textContent = payload.media_type === 'image'
         ? 'Показать изображение'
         : payload.media_type === 'video'
-            ? 'Воспроизвести видео'
+            ? (messageType === 'video_note' ? 'Воспроизвести видеосообщение' : 'Воспроизвести видео')
             : 'Скачать файл';
 
     const details = document.createElement('small');
@@ -87,10 +87,11 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
                 button.remove();
             } else if (payload.media_type === 'video') {
                 const video = document.createElement('video');
-                video.className = 'chat-media-video';
+                video.className = messageType === 'video_note' ? 'chat-video-note-player' : 'chat-media-video';
                 video.src = objectUrl;
                 video.controls = true;
                 video.preload = 'metadata';
+                video.playsInline = true;
                 video.addEventListener('dblclick', () => {
                     if (video.requestFullscreen) video.requestFullscreen().catch(() => {});
                 });
