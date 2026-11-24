@@ -667,6 +667,11 @@ Route::middleware('auth')->group(function () {
         [MessageController::class, 'reorderPinnedMessages']
     )->middleware('throttle:30,1')->name('chats.pinnedMessages.reorder');
 
+    Route::patch(
+        '/chats/{chat}/pinned-messages/order',
+        [MessageController::class, 'reorderPinnedMessages']
+    )->middleware('throttle:30,1')->name('chats.pinnedMessages.reorder');
+
     Route::get(
         '/messages/{message}/reply-info',
         [MessageController::class, 'getReplyInfo']
