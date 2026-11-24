@@ -30,6 +30,7 @@ use App\Http\Controllers\{
     UploadController,
     ChatController,
     ChatLinkPreviewController,
+    ChatStoriesController,
     LanguageController,
     CaptchaController,
     NotificationController,
@@ -597,6 +598,18 @@ Route::middleware('auth')->group(function () {
         '/chats/saved',
         [ChatController::class, 'createSavedMessages']
     )->middleware('throttle:10,1')->name('chats.saved');
+
+    /*
+     * Зашифрованные истории пользователей.
+     */
+    Route::get('/stories', [ChatStoriesController::class, 'index'])->middleware('throttle:60,1')->name('stories.index');
+    Route::get('/stories/contacts', [ChatStoriesController::class, 'contacts'])->middleware('throttle:30,1')->name('stories.contacts');
+    Route::post('/stories', [ChatStoriesController::class, 'store'])->middleware('throttle:10,1')->name('stories.store');
+    Route::get('/stories/{story}/key', [ChatStoriesController::class, 'key'])->middleware('throttle:60,1')->name('stories.key');
+    Route::get('/stories/{story}/media', [ChatStoriesController::class, 'media'])->middleware('throttle:30,1')->name('stories.media');
+    Route::post('/stories/{story}/view', [ChatStoriesController::class, 'view'])->middleware('throttle:60,1')->name('stories.view');
+    Route::get('/stories/{story}/views', [ChatStoriesController::class, 'views'])->middleware('throttle:30,1')->name('stories.views');
+    Route::delete('/stories/{story}', [ChatStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('stories.destroy');
 
 
     // Просмотр чата
