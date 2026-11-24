@@ -18,9 +18,9 @@ class MessengerGroupCallsTest extends TestCase
         parent::setUp();
 
         config([
-            'services.livekit.url' => 'wss://rtc.example.test',
-            'services.livekit.api_key' => 'DAODES_TEST_KEY',
-            'services.livekit.api_secret' => 'daodes-test-secret-that-is-not-production',
+            'livekit.url' => 'wss://rtc.example.test',
+            'livekit.api_key' => 'DAODES_TEST_KEY',
+            'livekit.api_secret' => 'daodes-test-secret-that-is-not-production',
         ]);
     }
 
@@ -86,9 +86,9 @@ class MessengerGroupCallsTest extends TestCase
     public function test_group_call_token_is_unavailable_when_livekit_is_not_configured(): void
     {
         config([
-            'services.livekit.url' => '',
-            'services.livekit.api_key' => '',
-            'services.livekit.api_secret' => '',
+            'livekit.url' => '',
+            'livekit.api_key' => '',
+            'livekit.api_secret' => '',
         ]);
 
         $user = $this->createUser();
