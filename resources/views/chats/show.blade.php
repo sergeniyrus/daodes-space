@@ -2605,7 +2605,7 @@ body.chat-page .telegram-chat-layout .chat-container {
 .chat-media-audio { display:block; width:min(320px,100%); max-width:100%; }
 .chat-media-video { display:block; width:min(320px,100%); max-height:220px; border-radius:10px; }
 .card-text, #messageInput {
-    font-family: inherit, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    font-family: inherit;
     font-variant-emoji: emoji;
     line-height: 1.65;
 }
