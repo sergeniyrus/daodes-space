@@ -228,6 +228,35 @@
                 </div>
             </div>
 
+            <!-- Messenger status -->
+            <div class="form-group">
+                <label for="status_text">{{ __('user_profile.status_text') }}</label>
+                <div class="telegram-column">
+                    <input
+                        type="text"
+                        class="input_dark"
+                        id="status_text"
+                        name="status_text"
+                        maxlength="140"
+                        value="{{ old('status_text', $profile->status_text) }}"
+                        placeholder="{{ __('user_profile.status_placeholder') }}"
+                    >
+                    <input
+                        type="text"
+                        class="input_dark"
+                        name="status_emoji"
+                        maxlength="16"
+                        value="{{ old('status_emoji', $profile->status_emoji) }}"
+                        placeholder="{{ __('user_profile.status_emoji') }}"
+                    >
+                    <select class="input_dark" name="status_duration">
+                        <option value="24">{{ __('user_profile.status_24h') }}</option>
+                        <option value="168">{{ __('user_profile.status_7d') }}</option>
+                        <option value="0">{{ __('user_profile.status_forever') }}</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- Role -->
             <div class="form-group">
                 <label>{{ __('user_profile.role') }}</label>
