@@ -4,9 +4,9 @@
 
 @section('main')
 
-{{-- @push('styles')
+@push('styles')
     @vite('resources/css/chat_index.css')
-@endpush --}}
+@endpush
 
 
 <style>
