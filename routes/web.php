@@ -36,6 +36,7 @@ use App\Http\Controllers\{
     ChatContactsController,
     ChatScheduledMessageController,
     ChatCallController,
+    ChatCallPushDeviceController,
     ChatMeetingController,
     LanguageController,
     CaptchaController,
@@ -594,6 +595,14 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:30,1')->name('chats.scheduledMessages.update');
     Route::delete('/chats/{chat}/scheduled-messages/{scheduledMessage}', [ChatScheduledMessageController::class, 'destroy'])
         ->middleware('throttle:30,1')->name('chats.scheduledMessages.destroy');
+
+    // Подписка пользователя на push-уведомления о входящих личных звонках.
+    Route::post('/chat-call-push/devices/status', [ChatCallPushDeviceController::class, 'status'])
+        ->middleware('throttle:30,1')->name('chat.callPush.devices.status');
+    Route::post('/chat-call-push/devices', [ChatCallPushDeviceController::class, 'store'])
+        ->middleware('throttle:10,1')->name('chat.callPush.devices.store');
+    Route::delete('/chat-call-push/devices', [ChatCallPushDeviceController::class, 'destroy'])
+        ->middleware('throttle:20,1')->name('chat.callPush.devices.destroy');
 
     // Временные TURN credentials выдаются только участникам личного чата.
     Route::get('/chats/{chat}/calls/ice-servers', [ChatCallController::class, 'iceServers'])

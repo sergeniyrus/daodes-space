@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendChatCallPushNotification;
 use App\Models\Chat;
+use App\Models\UserPushDevice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Services\FirebaseMessagingService;
 
 class ChatCallController extends Controller
 {
@@ -173,6 +176,17 @@ class ChatCallController extends Controller
 
         if (!$callId) {
             return response()->json(['status' => 'error', 'message' => 'В этом чате уже есть активный звонок.'], 409);
+        }
+
+        // Push не блокирует создание звонка: отправка выполняется через очередь.
+        if (app(FirebaseMessagingService::class)->isConfigured()) {
+            UserPushDevice::query()
+                ->where('user_id', $calleeId)
+                ->where('is_active', true)
+                ->pluck('id')
+                ->each(function ($deviceId) use ($callId) {
+                    SendChatCallPushNotification::dispatch((int) $deviceId, (int) $callId);
+                });
         }
 
         return response()->json([
