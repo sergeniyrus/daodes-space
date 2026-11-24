@@ -50,10 +50,21 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
             return;
         }
 
+        // One circle per publisher; their active stories are played sequentially.
+        const groups = new Map();
         stories.forEach(story => {
+            const key = story.is_channel ? 'channel:' + (story.chat_id || chatId || story.author_name) : 'user:' + story.user_id;
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(story);
+        });
+
+        [...groups.values()].forEach(group => {
+            group.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            const story = group[group.length - 1];
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-story-card ' + (story.viewed ? 'viewed' : 'unviewed');
+            button.className = 'chat-story-card ' + (group.every(item => item.viewed) ? 'viewed' : 'unviewed');
+            button.setAttribute('aria-label', (story.author_name || '') + ', историй: ' + group.length);
 
             const avatar = document.createElement('img');
             avatar.className = 'chat-story-avatar';
@@ -63,10 +74,9 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
 
             const name = document.createElement('span');
             name.className = 'chat-story-name';
-            name.textContent = story.is_channel ? story.author_name : (story.is_own ? (labels.myStory || 'My story') : story.author_name);
-
+            name.textContent = story.is_channel ? story.author_name : (story.is_own ? (labels.myStory || 'Моя история') : story.author_name);
             button.append(avatar, name);
-            button.addEventListener('click', () => openStory(story));
+            button.addEventListener('click', () => openStory(group[0], group, 0));
             list.appendChild(button);
         });
     }
@@ -146,7 +156,7 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
         await loadStories();
     }
 
-    async function openStory(story) {
+    async function openStory(story, sequence = [story], sequenceIndex = 0) {
         if (!privateKey || privateKey.length !== nacl.box.secretKeyLength) {
             showError(new Error('Не найден приватный ключ устройства'));
             return;
@@ -178,6 +188,42 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
         viewer.addEventListener('keydown', event => {
             if (event.key === 'Escape') closeViewer();
         });
+
+
+        const progress = document.createElement('div');
+        progress.className = 'chat-story-progress';
+        sequence.forEach((item, index) => {
+            const track = document.createElement('span');
+            track.className = 'chat-story-progress-track';
+            const fill = document.createElement('i');
+            fill.style.width = index < sequenceIndex ? '100%' : '0%';
+            track.appendChild(fill);
+            progress.appendChild(track);
+        });
+        viewer.appendChild(progress);
+
+        const navigation = document.createElement('div');
+        navigation.className = 'chat-story-navigation';
+        const previous = document.createElement('button');
+        previous.type = 'button';
+        previous.textContent = '‹';
+        previous.setAttribute('aria-label', 'Предыдущая история');
+        const next = document.createElement('button');
+        next.type = 'button';
+        next.textContent = '›';
+        next.setAttribute('aria-label', 'Следующая история');
+        previous.disabled = sequenceIndex === 0;
+        previous.addEventListener('click', () => {
+            closeViewer();
+            if (sequenceIndex > 0) openStory(sequence[sequenceIndex - 1], sequence, sequenceIndex - 1);
+        });
+        next.addEventListener('click', () => {
+            closeViewer();
+            if (sequenceIndex < sequence.length - 1) openStory(sequence[sequenceIndex + 1], sequence, sequenceIndex + 1);
+            else closeViewer();
+        });
+        navigation.append(previous, next);
+        viewer.append(navigation);
 
         viewer.append(info, close);
         document.body.appendChild(viewer);
@@ -224,6 +270,28 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
                 media.alt = story.author_name;
             }
             viewer.appendChild(media);
+
+            const activeTrack = progress.children[sequenceIndex]?.querySelector('i');
+            let progressTimer = null;
+            if (envelope.media_type === 'video') {
+                media.addEventListener('ended', () => next.click(), { once: true });
+            } else {
+                const startedAt = Date.now();
+                progressTimer = window.setInterval(() => {
+                    const percent = Math.min(100, ((Date.now() - startedAt) / 5000) * 100);
+                    if (activeTrack) activeTrack.style.width = percent + '%';
+                    if (percent >= 100) {
+                        window.clearInterval(progressTimer);
+                        next.click();
+                    }
+                }, 50);
+            }
+            const originalClose = closeViewer;
+            const closeViewerWithTimer = () => {
+                if (progressTimer) window.clearInterval(progressTimer);
+                originalClose();
+            };
+            close.addEventListener('click', closeViewerWithTimer, { once: true });
 
             if (!story.is_own) {
                 await fetch(`${endpoint}/${story.id}/view`, {
