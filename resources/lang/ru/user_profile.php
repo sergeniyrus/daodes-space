@@ -3,6 +3,12 @@
 return [
     'title_page' => 'Профиль пользователя',
     'edit_profile' => 'Редактировать профиль',
+    'status_text' => 'Статус',
+    'status_placeholder' => 'Чем Вы сейчас заняты?',
+    'status_emoji' => 'Эмодзи статуса (необязательно)',
+    'status_24h' => 'На 24 часа',
+    'status_7d' => 'На 7 дней',
+    'status_forever' => 'Без срока',
     'user_profile' => 'Профиль пользователя',
     'basic_information' => 'Основная информация',
     'education_and_skills' => 'Образование и навыки',
