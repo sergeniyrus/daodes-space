@@ -2150,6 +2150,218 @@ body.chat-media-viewer-open { overflow: hidden; }
     border:1px solid rgba(0,229,255,.35); border-radius:8px; cursor:pointer;
 }
 
+
+/* =========================================================
+   КОМПАКТНАЯ ОБЛАСТЬ ЧАТА: ВЫСОТА ОКНА, БЕЗ ВНЕШНЕЙ ПРОКРУТКИ
+   ========================================================= */
+.telegram-chat-layout {
+    height: calc(100dvh - 88px);
+    min-height: 360px;
+    margin: 8px auto;
+    align-items: stretch;
+    overflow: hidden;
+}
+.telegram-chat-sidebar {
+    position: relative;
+    top: auto;
+    height: 100%;
+    max-height: none;
+}
+.telegram-chat-main {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+.telegram-chat-layout .chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    padding: 12px 14px;
+    overflow: hidden;
+}
+.chat-header {
+    flex: 0 0 auto;
+    margin-bottom: 7px;
+    padding-bottom: 7px;
+    text-align: left;
+}
+.chat-title { font-size: 1.35rem; }
+.chat-status { margin-top: 2px; font-size: .82rem; }
+.chat-call-toolbar { justify-content: flex-start; gap: 6px; margin: 6px 0; }
+.chat-call-toolbar button { min-height: 32px; padding: 5px 9px; font-size: .82rem; }
+.chat-mute-controls { justify-content: flex-start; gap: 6px; margin-top: 6px; }
+.chat-mute-controls select, .chat-mute-controls button { min-height: 32px; padding: 5px 8px; font-size: .8rem; }
+.chat-mute-status { flex-basis: auto; font-size: .74rem; }
+.chat-message-search { margin-top: 6px; }
+.chat-members-panel { flex: 0 0 auto; margin: 0 0 6px; }
+.chat-messages {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    padding: 12px;
+}
+#messageForm { flex: 0 0 auto; margin-top: 7px; }
+#messageInput { min-height: 46px; max-height: 120px; padding-right: 52px; }
+.chat-person-heading { min-width: 0; }
+.chat-profile-trigger {
+    width: fit-content;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+.chat-profile-trigger:hover .chat-title { color: #fff; }
+.chat-profile-hint { display: block; margin-top: 1px; color: #00e5ff; font-size: .68rem; opacity: .8; }
+.chat-peer-profile-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 140000;
+    display: grid;
+    place-items: center;
+    padding: 14px;
+    background: rgba(0,0,0,.78);
+}
+.chat-peer-profile-modal[hidden] { display: none; }
+.chat-peer-profile-card {
+    position: relative;
+    width: min(100%, 460px);
+    max-height: min(86dvh, 680px);
+    overflow-y: auto;
+    padding: 22px;
+    color: #e8edf5;
+    background: linear-gradient(145deg,#0b0c18,#151a29);
+    border: 1px solid rgba(0,229,255,.45);
+    border-radius: 16px;
+    box-shadow: 0 18px 60px rgba(0,0,0,.65);
+}
+.chat-peer-profile-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    color: #ffd700;
+    background: rgba(255,215,0,.07);
+    border: 1px solid rgba(255,215,0,.35);
+    border-radius: 50%;
+    font-size: 22px;
+    cursor: pointer;
+}
+.chat-peer-profile-heading { display: flex; align-items: center; gap: 14px; padding-right: 28px; }
+.chat-peer-profile-heading img { width: 66px; height: 66px; flex: 0 0 66px; object-fit: cover; border: 2px solid #00e5ff; border-radius: 50%; }
+.chat-peer-profile-heading h3 { margin: 0; color: #ffd700; text-align: left; font-size: 1.2rem; }
+.chat-peer-profile-heading p { margin: 4px 0 0; color: #00e5ff; text-align: left; }
+.chat-peer-profile-details { display: grid; gap: 11px; margin-top: 18px; }
+.chat-peer-profile-details p { display: flex; gap: 10px; margin: 0; color: #dbe4f0; text-align: left; overflow-wrap: anywhere; }
+.chat-peer-profile-details p i { width: 18px; flex: 0 0 18px; color: #00e5ff; text-align: center; }
+.chat-peer-profile-details a { color: #00e5ff; overflow-wrap: anywhere; }
+.chat-peer-profile-details .chat-peer-profile-about { display: block; padding: 12px; white-space: pre-wrap; background: rgba(0,229,255,.05); border-left: 2px solid #00e5ff; border-radius: 8px; }
+.chat-peer-profile-empty { color: #94a3b8 !important; }
+.chat-peer-profile-link { display: inline-flex; margin-top: 18px; padding: 8px 12px; color: #ffd700; text-decoration: none; border: 1px solid rgba(255,215,0,.4); border-radius: 9px; }
+.input-wrapper { position: relative; }
+.chat-emoji-toggle {
+    position: absolute;
+    z-index: 3;
+    top: 7px;
+    right: 9px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    color: #ffd700;
+    background: rgba(0,229,255,.07);
+    border: 1px solid rgba(0,229,255,.28);
+    border-radius: 50%;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+.chat-emoji-toggle:hover, .chat-emoji-toggle[aria-expanded="true"] { color: #0b0c18; background: #00e5ff; }
+.chat-emoji-panel {
+    position: absolute;
+    z-index: 160000;
+    right: 0;
+    bottom: calc(100% + 8px);
+    width: min(360px, calc(100vw - 24px));
+    height: 380px;
+    overflow: hidden;
+    border: 1px solid rgba(0,229,255,.5);
+    border-radius: 13px;
+    background: #111827;
+    box-shadow: 0 16px 42px rgba(0,0,0,.65);
+}
+.chat-emoji-panel[hidden] { display: none; }
+.chat-emoji-panel emoji-picker {
+    width: 100%;
+    height: 100%;
+    --background: #111827;
+    --border-color: rgba(0,229,255,.25);
+    --border-radius: 12px;
+    --input-border-color: rgba(0,229,255,.3);
+    --input-font-color: #f8fafc;
+    --input-placeholder-color: #94a3b8;
+    --outline-color: #00e5ff;
+    --category-emoji-padding: 7px;
+    --indicator-color: #ffd700;
+    --button-active-background: rgba(0,229,255,.14);
+}
+@media (max-height: 760px) and (min-width: 721px) {
+    .chat-title { font-size: 1.18rem; }
+    .chat-header { margin-bottom: 5px; padding-bottom: 5px; }
+    .chat-header-avatar { width: 42px; height: 42px; flex-basis: 42px; }
+    .chat-call-toolbar { margin: 4px 0; }
+    .chat-mute-controls { margin-top: 4px; }
+    .chat-members-panel { margin-bottom: 4px; }
+    .chat-messages { padding: 9px; }
+}
+@media (max-width: 720px) {
+    .telegram-chat-layout {
+        height: calc(100dvh - 54px);
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+    .telegram-chat-main { height: 100%; }
+    .telegram-chat-layout .chat-container {
+        height: 100%;
+        min-height: 0;
+        padding: 7px 8px 8px;
+        border-radius: 0;
+        overflow: hidden;
+    }
+    .telegram-mobile-back { margin: 0 0 5px; }
+    .chat-header { margin-bottom: 5px; padding-bottom: 5px; }
+    .chat-title { font-size: 1.05rem; }
+    .chat-status { font-size: .72rem; }
+    .chat-header-avatar { width: 38px; height: 38px; flex-basis: 38px; }
+    .chat-person-heading { gap: 8px; }
+    .chat-profile-hint { font-size: .62rem; }
+    .chat-call-toolbar { gap: 5px; margin: 4px 0; }
+    .chat-call-toolbar button { min-height: 29px; padding: 4px 7px; font-size: .72rem; }
+    .chat-mute-controls { gap: 4px; margin-top: 4px; }
+    .chat-mute-controls label { font-size: .72rem; }
+    .chat-mute-controls select, .chat-mute-controls button { min-height: 29px; padding: 4px 6px; font-size: .72rem; }
+    .chat-mute-status { flex-basis: 100%; }
+    .chat-message-search { margin-top: 4px; }
+    .chat-members-panel { margin-bottom: 4px; }
+    .chat-messages { padding: 8px; }
+    #messageForm { margin-top: 5px; }
+    #messageInput { min-height: 42px; max-height: 90px; padding: 10px 46px 10px 13px; font-size: .9rem; }
+    .chat-emoji-toggle { top: 5px; right: 6px; width: 30px; height: 30px; font-size: 18px; }
+    .chat-emoji-panel { height: min(360px, 48dvh); }
+}
+@media (max-width: 420px) {
+    .chat-mute-controls label { display: none; }
+    .chat-call-toolbar button { font-size: .68rem; }
+    .chat-peer-profile-card { padding: 18px; }
+}
+
 </style>
 
 
@@ -2290,39 +2502,36 @@ body.chat-media-viewer-open { overflow: hidden; }
 
         @if ($chat->type === 'personal' && $otherUser)
 
-            <div class="chat-person-heading">
+            <button
+                type="button"
+                class="chat-person-heading chat-profile-trigger"
+                id="openChatPeerProfile"
+                aria-haspopup="dialog"
+                aria-controls="chatPeerProfileModal"
+                title="Открыть визитку пользователя"
+            >
                 <img
                     class="chat-header-avatar"
                     src="{{ $otherUser->profile?->avatar_url ?: '/img/main/default-avatar.png' }}"
                     alt=""
                 >
-                <div class="chat-person-heading-info">
-                    <h2 class="chat-title">{{ $otherUser->name }}</h2>
-
-                    <p class="chat-status">
-
-                @if ($otherUser->isOnline())
-
-                    <span class="status-indicator online"></span>
-
-                    {{ __('chats.online') }}
-
-                @else
-
-                    <span class="status-indicator offline"></span>
-
-                    {{ $otherUser->lastSeenHuman() }}
-
-                @endif
-
-                    </p>
+                <span class="chat-person-heading-info">
+                    <span class="chat-title">{{ $otherUser->name }}</span>
+                    <span class="chat-status">
+                        @if ($otherUser->isOnline())
+                            <span class="status-indicator online"></span>{{ __('chats.online') }}
+                        @else
+                            <span class="status-indicator offline"></span>{{ $otherUser->lastSeenHuman() }}
+                        @endif
+                    </span>
                     @if ($otherUser->profile?->status_text && (!$otherUser->profile->status_expires_at || $otherUser->profile->status_expires_at->isFuture()))
-                        <p class="chat-custom-status">
+                        <span class="chat-custom-status">
                             {{ $otherUser->profile->status_emoji }} {{ $otherUser->profile->status_text }}
-                        </p>
+                        </span>
                     @endif
-                </div>
-            </div>
+                    <span class="chat-profile-hint"><i class="fa fa-address-card-o" aria-hidden="true"></i> Визитка</span>
+                </span>
+            </button>
 
         @elseif ($chat->type === 'saved')
 
@@ -2402,6 +2611,48 @@ body.chat-media-viewer-open { overflow: hidden; }
 
     </div>
 
+
+    @if ($chat->type === 'personal' && $otherUser)
+        <div class="chat-peer-profile-modal" id="chatPeerProfileModal" hidden>
+            <section class="chat-peer-profile-card" role="dialog" aria-modal="true" aria-labelledby="chatPeerProfileTitle">
+                <button type="button" class="chat-peer-profile-close" id="closeChatPeerProfile" aria-label="Закрыть">×</button>
+                <div class="chat-peer-profile-heading">
+                    <img src="{{ $otherUser->profile?->avatar_url ?: '/img/main/default-avatar.png' }}" alt="">
+                    <div>
+                        <h3 id="chatPeerProfileTitle">{{ $otherUser->name }}</h3>
+                        @if ($otherUser->profile?->card_position)
+                            <p>{{ $otherUser->profile->card_position }}</p>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="chat-peer-profile-details">
+                    @if ($otherUser->profile?->card_company)
+                        <p><i class="fa fa-briefcase" aria-hidden="true"></i><span>{{ $otherUser->profile->card_company }}</span></p>
+                    @endif
+                    @if ($otherUser->profile?->card_location)
+                        <p><i class="fa fa-map-marker" aria-hidden="true"></i><span>{{ $otherUser->profile->card_location }}</span></p>
+                    @endif
+                    @if ($otherUser->profile?->card_about)
+                        <p class="chat-peer-profile-about">{{ $otherUser->profile->card_about }}</p>
+                    @endif
+                    @if ($otherUser->profile?->card_website)
+                        <p><i class="fa fa-globe" aria-hidden="true"></i><a href="{{ $otherUser->profile->card_website }}" target="_blank" rel="noopener noreferrer">{{ $otherUser->profile->card_website }}</a></p>
+                    @endif
+                    @if ($otherUser->profile?->nickname)
+                        <p><i class="fa fa-telegram" aria-hidden="true"></i><a href="https://t.me/{{ $otherUser->profile->nickname }}" target="_blank" rel="noopener noreferrer">@{{ $otherUser->profile->nickname }}</a></p>
+                    @endif
+                    @if (!$otherUser->profile || (!$otherUser->profile->card_position && !$otherUser->profile->card_company && !$otherUser->profile->card_location && !$otherUser->profile->card_about && !$otherUser->profile->card_website && !$otherUser->profile->nickname))
+                        <p class="chat-peer-profile-empty">Пользователь пока не заполнил визитку.</p>
+                    @endif
+                </div>
+
+                @if ($otherUser->profile)
+                    <a class="chat-peer-profile-link" href="{{ route('user_profile.show', $otherUser->id) }}">Открыть полный профиль</a>
+                @endif
+            </section>
+        </div>
+    @endif
 
     <div class="chat-members-panel">
         <details>
@@ -2712,6 +2963,23 @@ body.chat-media-viewer-open { overflow: hidden; }
                     @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
                 ></textarea>
 
+                <button
+                    type="button"
+                    class="chat-emoji-toggle"
+                    id="chatEmojiToggle"
+                    aria-label="Открыть эмодзи"
+                    title="Эмодзи"
+                    aria-expanded="false"
+                    aria-controls="chatEmojiPanel"
+                    @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                >🙂</button>
+                <div class="chat-emoji-panel" id="chatEmojiPanel" hidden>
+                    <emoji-picker
+                        id="chatEmojiPicker"
+                        locale="ru"
+                        data-source="https://cdn.jsdelivr.net/npm/emoji-picker-element-data@^1/ru/emojibase/data.json"
+                    ></emoji-picker>
+                </div>
                 <div class="chat-mention-suggestions" id="chatMentionSuggestions" hidden></div>
 
             </div>
@@ -2933,6 +3201,7 @@ body.chat-media-viewer-open { overflow: hidden; }
 
 @push('scripts')
 
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
     @vite('resources/js/chat/index.js')
 
 @endpush
