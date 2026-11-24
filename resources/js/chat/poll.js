@@ -53,6 +53,7 @@ export function renderPollMessage(container, encryptedPayload, messageId, config
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'chat-poll-option' + (selected.has(option.id) ? ' selected' : '');
+            button.dataset.optionId = String(option.id);
             button.disabled = Boolean(results.closed_at) || busy;
 
             const label = document.createElement('span');
@@ -198,12 +199,6 @@ export function renderPollMessage(container, encryptedPayload, messageId, config
             render();
         }
     };
-
-    options.forEach(option => {
-        // Сохраняем ID варианта на кнопке для доступного выбора нескольких ответов.
-        const marker = document.createElement('span');
-        marker.dataset.optionId = String(option.id);
-    });
 
     container.appendChild(root);
     loadResults().catch(error => {
