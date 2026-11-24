@@ -31,6 +31,7 @@ use App\Http\Controllers\{
     ChatController,
     ChatLinkPreviewController,
     ChatStoriesController,
+    ChatContactsController,
     LanguageController,
     CaptchaController,
     NotificationController,
@@ -569,6 +570,15 @@ Route::get(
 */
 
 Route::middleware('auth')->group(function () {
+
+    // Контакты DAODES: заявки, подтверждение, блокировки.
+    Route::get('/contacts', [ChatContactsController::class, 'index'])->name('contacts.index');
+    Route::post('/contacts/{user}/requests', [ChatContactsController::class, 'sendRequest'])->name('contacts.requests.store');
+    Route::post('/contacts/requests/{contactRequest}/accept', [ChatContactsController::class, 'acceptRequest'])->name('contacts.requests.accept');
+    Route::post('/contacts/requests/{contactRequest}/decline', [ChatContactsController::class, 'declineRequest'])->name('contacts.requests.decline');
+    Route::delete('/contacts/{user}', [ChatContactsController::class, 'destroy'])->name('contacts.destroy');
+    Route::post('/contacts/{user}/block', [ChatContactsController::class, 'block'])->name('contacts.block');
+    Route::delete('/contacts/{user}/block', [ChatContactsController::class, 'unblock'])->name('contacts.unblock');
 
     Route::get(
         '/chat/link-preview',
