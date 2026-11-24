@@ -19,6 +19,11 @@ class UserProfile extends Model
         'status_text',
         'status_emoji',
         'status_expires_at',
+        'card_position',
+        'card_company',
+        'card_location',
+        'card_about',
+        'card_website',
     ];
 
     protected $casts = [
