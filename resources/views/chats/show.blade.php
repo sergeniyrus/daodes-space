@@ -2575,6 +2575,48 @@ body.chat-page .telegram-chat-layout .chat-container {
 .chat-format-toolbar button[data-format="strike"] { text-decoration:line-through; }
 .chat-format-toolbar button[data-format="code"] { font-family:monospace; }
 
+
+.chat-inline-quote {
+    margin: 5px 0;
+    padding: 7px 11px;
+    color: #c9d8e6;
+    background: rgba(0,229,255,.055);
+    border-left: 3px solid #00e5ff;
+    border-radius: 0 7px 7px 0;
+}
+.chat-inline-code {
+    padding: 2px 5px;
+    color: #ffd98a;
+    background: rgba(0,0,0,.35);
+    border: 1px solid rgba(255,215,0,.15);
+    border-radius: 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .9em;
+}
+.chat-media-image {
+    display: block;
+    width: auto;
+    max-width: min(260px, 100%);
+    max-height: 190px;
+    object-fit: cover;
+    border: 1px solid rgba(0,229,255,.2);
+    border-radius: 10px;
+}
+.chat-media-audio { display:block; width:min(320px,100%); max-width:100%; }
+.chat-media-video { display:block; width:min(320px,100%); max-height:220px; border-radius:10px; }
+.card-text, #messageInput {
+    font-family: inherit, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    font-variant-emoji: emoji;
+    line-height: 1.65;
+}
+.card-text > * { vertical-align: baseline; }
+@media (max-width: 720px) {
+    .card-text { line-height: 1.7; }
+    .chat-media-image { max-width: min(220px,100%); max-height: 160px; }
+    .chat-format-toolbar { gap: 4px; }
+    .chat-format-toolbar button { min-width: 31px; min-height: 29px; padding: 3px 6px; }
+}
+
 </style>
 
 
