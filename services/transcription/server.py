@@ -118,6 +118,10 @@ async def transcribe(
         raise
     except Exception:
         # Do not log audio, transcript, or user content.
+        import logging
+        logging.getLogger("uvicorn.error").exception(
+            "DAODES voice transcription failed"
+        )
         raise HTTPException(status_code=502, detail="Audio transcription failed")
     finally:
         if temp_path:
