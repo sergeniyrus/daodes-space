@@ -311,6 +311,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 formData.get('is_anonymous') === 'on',
                 formData.get('allows_multiple') === 'on'
             );
+            await poller.load();
             pollForm.reset();
             pollModal.hidden = true;
         } catch (error) {
