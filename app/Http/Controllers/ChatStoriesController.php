@@ -142,6 +142,8 @@ class ChatStoriesController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Stories can only be shared with personal chat contacts'], 422);
         }
 
+        $cid = null;
+
         try {
             $file = $request->file('file');
             $cid = $ipfs->uploadFile($file);
@@ -178,6 +180,14 @@ class ChatStoriesController extends Controller
                 'story_id' => $story->id,
             ], 201);
         } catch (\Throwable $exception) {
+            if ($cid) {
+                try {
+                    $ipfs->unpinFile($cid);
+                } catch (\Throwable $cleanupException) {
+                    report($cleanupException);
+                }
+            }
+
             report($exception);
             return response()->json(['status' => 'error', 'message' => 'Story upload failed'], 503);
         }
