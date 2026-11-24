@@ -147,14 +147,16 @@ class UserProfileController extends Controller
         $profile = $user->profile ?? new UserProfile(['user_id' => $user->id]);
         $profile->fill($validated);
 
-        $statusText = trim((string) ($validated['status_text'] ?? ''));
-        $profile->status_text = $statusText !== '' ? $statusText : null;
-        $profile->status_emoji = $statusText !== '' ? ($validated['status_emoji'] ?? null) : null;
+        if (array_key_exists('status_text', $validated)) {
+            $statusText = trim((string) ($validated['status_text'] ?? ''));
+            $profile->status_text = $statusText !== '' ? $statusText : null;
+            $profile->status_emoji = $statusText !== '' ? ($validated['status_emoji'] ?? null) : null;
 
-        $statusDuration = (string) ($validated['status_duration'] ?? '24');
-        $profile->status_expires_at = $statusText !== '' && $statusDuration !== '0'
-            ? now()->addHours((int) $statusDuration)
-            : null;
+            $statusDuration = (string) ($validated['status_duration'] ?? '24');
+            $profile->status_expires_at = $statusText !== '' && $statusDuration !== '0'
+                ? now()->addHours((int) $statusDuration)
+                : null;
+        }
 
         if ($request->hasFile('filename')) {
             try {
