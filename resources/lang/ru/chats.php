@@ -1,6 +1,7 @@
 <?php
 return [
     'your_chats' => 'Ваши чаты',
+    'saved_messages' => 'Избранное',
     'group_chats' => 'Групповые чаты',
     'private_messages' => 'Личные сообщения',
     'chat_name' => 'Название чата',
