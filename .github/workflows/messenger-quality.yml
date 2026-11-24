@@ -1,0 +1,48 @@
+name: Messenger quality checks
+
+on:
+  push:
+    branches:
+      - feature/messenger-ux-refresh
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  messenger-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: PHP syntax checks
+        run: |
+          php -l app/Http/Controllers/ChatStoriesController.php
+          php -l app/Http/Controllers/ChatChannelStoriesController.php
+          php -l database/migrations/2026_11_25_000001_create_story_reactions_tables.php
+          php -l routes/web.php
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: JavaScript syntax checks
+        run: |
+          node --check resources/js/chat/index.js
+          node --check resources/js/chat/stories.js
+          node --check resources/js/chat/ui.js
+
+      - name: Build frontend
+        run: npm run build
