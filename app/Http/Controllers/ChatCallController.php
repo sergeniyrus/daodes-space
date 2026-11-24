@@ -234,6 +234,31 @@ class ChatCallController extends Controller
             403
         );
 
+        abort_unless(
+            DB::table('chat_user')
+                ->where('chat_id', $call->chat_id)
+                ->where('user_id', Auth::id())
+                ->exists(),
+            403
+        );
+
+        if (Schema::hasTable('chat_contact_blocks')) {
+            $otherUserId = (int) $call->caller_id === (int) Auth::id()
+                ? (int) $call->callee_id
+                : (int) $call->caller_id;
+
+            $blocked = DB::table('chat_contact_blocks')
+                ->where(function ($query) use ($otherUserId) {
+                    $query->where('user_id', Auth::id())->where('blocked_user_id', $otherUserId);
+                })
+                ->orWhere(function ($query) use ($otherUserId) {
+                    $query->where('user_id', $otherUserId)->where('blocked_user_id', Auth::id());
+                })
+                ->exists();
+
+            abort_if($blocked, 403);
+        }
+
         return $call;
     }
 }
