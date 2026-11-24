@@ -190,3 +190,54 @@ Schedule::call(function () {
     }
 })->name('deliver-scheduled-chat-messages')->everyMinute()->withoutOverlapping(5);
 
+// Завершаем зависшие звонки, очищаем старые сигналы и закрываем завершённые встречи.
+Schedule::call(function () {
+    if (Schema::hasTable('chat_calls')) {
+        DB::table('chat_calls')
+            ->where('status', 'ringing')
+            ->where('created_at', '<=', now()->subSeconds(60))
+            ->update([
+                'status' => 'missed',
+                'ended_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        DB::table('chat_calls')
+            ->where('status', 'accepted')
+            ->where('last_activity_at', '<=', now()->subSeconds(30))
+            ->update([
+                'status' => 'ended',
+                'ended_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        DB::table('chat_calls')
+            ->whereIn('status', ['ended', 'rejected', 'missed'])
+            ->where('ended_at', '<=', now()->subDays(30))
+            ->delete();
+    }
+
+    if (Schema::hasTable('chat_meetings')) {
+        $meetings = DB::table('chat_meetings')
+            ->where('status', 'scheduled')
+            ->where('starts_at', '<=', now())
+            ->get(['id', 'starts_at', 'duration_minutes']);
+
+        foreach ($meetings as $meeting) {
+            $endsAt = \Illuminate\Support\Carbon::parse($meeting->starts_at)
+                ->addMinutes((int) $meeting->duration_minutes);
+
+            if ($endsAt->lte(now())) {
+                DB::table('chat_meetings')
+                    ->where('id', $meeting->id)
+                    ->where('status', 'scheduled')
+                    ->update([
+                        'status' => 'completed',
+                        'updated_at' => now(),
+                    ]);
+            }
+        }
+    }
+})->name('maintain-chat-calls-and-meetings')->everyMinute()->withoutOverlapping(5);
+
+
