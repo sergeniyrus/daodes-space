@@ -26,6 +26,7 @@
         "highlight.js": "^11.11.1",
         "js-beautify": "^1.15.4",
         "lodash": "^4.17.21",
-        "tweetnacl": "^1.0.3"
+        "tweetnacl": "^1.0.3",
+        "livekit-client": "2.25.0"
     }
 }
