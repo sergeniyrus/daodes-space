@@ -142,6 +142,11 @@ class UserProfileController extends Controller
             'status_text' => 'nullable|string|max:140',
             'status_emoji' => 'nullable|string|max:16',
             'status_duration' => 'nullable|in:24,168,0',
+            'card_position' => 'nullable|string|max:120',
+            'card_company' => 'nullable|string|max:120',
+            'card_location' => 'nullable|string|max:120',
+            'card_about' => 'nullable|string|max:1200',
+            'card_website' => 'nullable|url|max:255',
         ]);
 
         $profile = $user->profile ?? new UserProfile(['user_id' => $user->id]);
