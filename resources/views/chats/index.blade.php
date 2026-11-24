@@ -990,6 +990,11 @@
 
         <div class="text-center chat-create-wrapper">
 
+            <a href="{{ route('contacts.index') }}" class="des-btn">
+                <i class="fa fa-address-book" aria-hidden="true"></i>
+                Контакты и друзья
+            </a>
+
             <button
                 type="button"
                 id="openSavedMessages"
