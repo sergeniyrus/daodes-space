@@ -58,6 +58,7 @@ export function loadChatConfig() {
             pollError: el.dataset.translatePollError,
             pollValidation: el.dataset.translatePollValidation,
             openFullscreen: el.dataset.translateOpenFullscreen,
+            searchMessages: el.dataset.translateSearchMessages,
             videoNoteRecord: el.dataset.translateVideoNoteRecord,
             videoNoteStop: el.dataset.translateVideoNoteStop,
             videoNoteError: el.dataset.translateVideoNoteError
