@@ -34,6 +34,7 @@ use App\Http\Controllers\{
     ChatContactsController,
     ChatScheduledMessageController,
     ChatCallController,
+    ChatMeetingController,
     LanguageController,
     CaptchaController,
     NotificationController,
@@ -599,6 +600,16 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:120,1')->name('chats.calls.signals');
     Route::post('/calls/{call}/signals', [ChatCallController::class, 'signal'])
         ->middleware('throttle:120,1')->name('chats.calls.signal');
+
+    // Зашифрованные приглашения на встречи и созвоны по расписанию.
+    Route::get('/chats/{chat}/meetings', [ChatMeetingController::class, 'index'])
+        ->middleware('throttle:60,1')->name('chats.meetings.index');
+    Route::post('/chats/{chat}/meetings', [ChatMeetingController::class, 'store'])
+        ->middleware('throttle:20,1')->name('chats.meetings.store');
+    Route::post('/meetings/{meeting}/response', [ChatMeetingController::class, 'respond'])
+        ->middleware('throttle:30,1')->name('chats.meetings.response');
+    Route::delete('/meetings/{meeting}', [ChatMeetingController::class, 'destroy'])
+        ->middleware('throttle:30,1')->name('chats.meetings.destroy');
 
     Route::get(
         '/chat/link-preview',
