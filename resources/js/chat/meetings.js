@@ -51,8 +51,13 @@ export function initChatMeetings(config, crypto) {
             time.textContent = new Date(meeting.starts_at).toLocaleString() + ' · ' + meeting.duration_minutes + ' мин.';
             const responseLabel = document.createElement('small');
             responseLabel.textContent = meeting.response === 'accepted' ? 'Вы участвуете' : meeting.response === 'declined' ? 'Вы отказались' : 'Ожидает ответа';
-
             card.append(heading, time, responseLabel);
+
+            if (meeting.encrypted_description && meeting.description_nonce) {
+                const description = document.createElement('small');
+                description.textContent = decrypt(meeting.encrypted_description, meeting.description_nonce);
+                card.appendChild(description);
+            }
 
             if (Number(meeting.organizer_id) !== config.userId && meeting.response === 'pending') {
                 const actions = document.createElement('div');
@@ -105,7 +110,7 @@ export function initChatMeetings(config, crypto) {
             }
 
             const startsAt = new Date(meeting.starts_at);
-            if (meeting.response === 'accepted' && startsAt <= new Date() && startsAt.getTime() + meeting.duration_minutes * 60000 > Date.now()) {
+            if (config.chatType === 'personal' && meeting.response === 'accepted' && startsAt <= new Date() && startsAt.getTime() + meeting.duration_minutes * 60000 > Date.now()) {
                 const join = document.createElement('button');
                 join.type = 'button';
                 join.textContent = 'Начать аудиозвонок';
@@ -119,6 +124,12 @@ export function initChatMeetings(config, crypto) {
 
     openButton.addEventListener('click', async () => {
         modal.hidden = false;
+        const dateInput = form.elements.starts_at;
+        if (dateInput && !dateInput.value) {
+            const date = new Date(Date.now() + 30 * 60 * 1000);
+            date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+            dateInput.value = date.toISOString().slice(0, 16);
+        }
         try { await load(); } catch (error) { window.alert(error.message); }
     });
     closeButton?.addEventListener('click', () => { modal.hidden = true; });
