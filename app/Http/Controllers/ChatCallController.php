@@ -32,6 +32,17 @@ class ChatCallController extends Controller
                 'updated_at' => now(),
             ]);
             $call = null;
+        } elseif (
+            $call
+            && $call->status === 'accepted'
+            && (!$call->last_activity_at || \Illuminate\Support\Carbon::parse($call->last_activity_at)->lt(now()->subSeconds(25)))
+        ) {
+            DB::table('chat_calls')->where('id', $call->id)->update([
+                'status' => 'ended',
+                'ended_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $call = null;
         }
 
         return response()->json([
