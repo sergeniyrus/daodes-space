@@ -10,6 +10,7 @@ import { MessagePoller } from './polling.js';
 import { u8ToB64 } from './utils.js';
 import { connectChatRealtime } from './realtime.js';
 import { initScheduledMessages } from './scheduled.js';
+import { initChatCalls } from './calls.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const config = loadChatConfig();
@@ -387,6 +388,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         initScheduledMessages(config, crypto);
+        initChatCalls(config, crypto);
 
         try {
             const mentionResponse = await fetch(`/chats/${config.chatId}/mention-users`, {
