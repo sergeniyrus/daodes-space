@@ -135,34 +135,45 @@ class ChatCallController extends Controller
             }
         }
 
-        $existing = DB::table('chat_calls')
-            ->where('chat_id', $chat->id)
-            ->whereIn('status', ['ringing', 'accepted'])
-            ->where('created_at', '>', now()->subHours(2))
-            ->exists();
+        $callId = DB::transaction(function () use ($chat, $calleeId, $validated) {
+            // Serialize concurrent start requests by locking the shared chat row.
+            DB::table('chats')->where('id', $chat->id)->lockForUpdate()->first();
 
-        if ($existing) {
+            $existing = DB::table('chat_calls')
+                ->where('chat_id', $chat->id)
+                ->whereIn('status', ['ringing', 'accepted'])
+                ->where('created_at', '>', now()->subHours(2))
+                ->exists();
+
+            if ($existing) {
+                return null;
+            }
+
+            $callId = DB::table('chat_calls')->insertGetId([
+                'chat_id' => $chat->id,
+                'caller_id' => Auth::id(),
+                'callee_id' => $calleeId,
+                'call_type' => $validated['call_type'],
+                'status' => 'ringing',
+                'last_activity_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::table('chat_call_signals')->insert([
+                'call_id' => $callId,
+                'sender_id' => Auth::id(),
+                'signal_type' => 'offer',
+                'encrypted_payload' => $validated['encrypted_offer'],
+                'created_at' => now(),
+            ]);
+
+            return $callId;
+        });
+
+        if (!$callId) {
             return response()->json(['status' => 'error', 'message' => 'В этом чате уже есть активный звонок.'], 409);
         }
-
-        $callId = DB::table('chat_calls')->insertGetId([
-            'chat_id' => $chat->id,
-            'caller_id' => Auth::id(),
-            'callee_id' => $calleeId,
-            'call_type' => $validated['call_type'],
-            'status' => 'ringing',
-            'last_activity_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        DB::table('chat_call_signals')->insert([
-            'call_id' => $callId,
-            'sender_id' => Auth::id(),
-            'signal_type' => 'offer',
-            'encrypted_payload' => $validated['encrypted_offer'],
-            'created_at' => now(),
-        ]);
 
         return response()->json([
             'status' => 'success',
