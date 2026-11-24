@@ -1371,6 +1371,11 @@
     border-radius: 10px;
     box-shadow: 0 0 35px rgba(0, 229, 255, .12);
 }
+.chat-media-viewer-content:where(iframe) {
+    width: min(96vw, 1600px);
+    height: calc(100vh - 90px);
+    background: #fff;
+}
 .chat-media-viewer-close {
     position: absolute;
     top: 14px;
@@ -2487,6 +2492,7 @@ body.chat-media-viewer-open { overflow: hidden; }
     data-translate-media-loading="{{ __('chats.media_loading') }}"
     data-translate-media-error="{{ __('chats.media_error') }}"
     data-translate-media-download="{{ __('chats.media_download') }}"
+    data-translate-open-fullscreen="{{ __('chats.open_fullscreen') }}"
     data-translate-role-member="{{ __('chats.role_member') }}"
     data-translate-role-moderator="{{ __('chats.role_moderator') }}"
     data-translate-role-admin="{{ __('chats.role_admin') }}"
