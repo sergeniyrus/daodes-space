@@ -52,6 +52,16 @@ Schedule::call(function () {
         return;
     }
 
+    // Возвращаем в очередь задачи, зависшие при аварийном завершении worker-процесса.
+    DB::table('chat_scheduled_messages')
+        ->where('status', 'processing')
+        ->where('updated_at', '<', now()->subMinutes(10))
+        ->update([
+            'status' => 'pending',
+            'scheduled_for' => now(),
+            'updated_at' => now(),
+        ]);
+
     $ids = DB::table('chat_scheduled_messages')
         ->where('status', 'pending')
         ->where('scheduled_for', '<=', now())
@@ -66,7 +76,7 @@ Schedule::call(function () {
                 ->lockForUpdate()
                 ->first();
 
-            if (!$row || $row->status !== 'pending' || $row->scheduled_for > now()) {
+            if (!$row || $row->status !== 'pending' || \Illuminate\Support\Carbon::parse($row->scheduled_for)->isFuture()) {
                 return null;
             }
 
@@ -109,7 +119,24 @@ Schedule::call(function () {
 
                 return $message;
             });
+        } catch (\Throwable $exception) {
+            $attempts = (int) $scheduled->attempts + 1;
+            DB::table('chat_scheduled_messages')
+                ->where('id', $id)
+                ->where('status', 'processing')
+                ->update([
+                    'status' => $attempts >= 5 ? 'failed' : 'pending',
+                    'scheduled_for' => $attempts >= 5 ? $scheduled->scheduled_for : now()->addMinutes(2),
+                    'last_error' => mb_substr($exception->getMessage(), 0, 2000),
+                    'updated_at' => now(),
+                ]);
 
+            report($exception);
+            continue;
+        }
+
+        // Внешние уведомления не должны переводить уже доставленное сообщение обратно в очередь.
+        try {
             $recipientIds = DB::table('chat_user')
                 ->where('chat_id', $scheduled->chat_id)
                 ->where('user_id', '!=', $scheduled->sender_id)
@@ -131,31 +158,20 @@ Schedule::call(function () {
                     ])->all()
                 );
             }
+        } catch (\Throwable $notificationException) {
+            report($notificationException);
+        }
 
-            try {
-                broadcast(new ChatMessageCreated(
-                    chatId: (int) $message->chat_id,
-                    messageId: (int) $message->id,
-                    senderId: (int) $message->sender_id,
-                    topicId: $message->topic_id ? (int) $message->topic_id : null,
-                    createdAt: $message->created_at->toIso8601String(),
-                ));
-            } catch (\Throwable $broadcastException) {
-                report($broadcastException);
-            }
-        } catch (\Throwable $exception) {
-            $attempts = (int) $scheduled->attempts + 1;
-            DB::table('chat_scheduled_messages')
-                ->where('id', $id)
-                ->where('status', 'processing')
-                ->update([
-                    'status' => $attempts >= 5 ? 'failed' : 'pending',
-                    'scheduled_for' => $attempts >= 5 ? $scheduled->scheduled_for : now()->addMinutes(2),
-                    'last_error' => mb_substr($exception->getMessage(), 0, 2000),
-                    'updated_at' => now(),
-                ]);
-
-            report($exception);
+        try {
+            broadcast(new ChatMessageCreated(
+                chatId: (int) $message->chat_id,
+                messageId: (int) $message->id,
+                senderId: (int) $message->sender_id,
+                topicId: $message->topic_id ? (int) $message->topic_id : null,
+                createdAt: $message->created_at->toIso8601String(),
+            ));
+        } catch (\Throwable $broadcastException) {
+            report($broadcastException);
         }
     }
 })->name('deliver-scheduled-chat-messages')->everyMinute()->withoutOverlapping();
