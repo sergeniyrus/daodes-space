@@ -1,4 +1,5 @@
 import { renderEncryptedAttachment } from './media.js';
+import { renderPollMessage } from './poll.js';
 import { renderVoiceMessage } from './voice.js';
 import { hydrateLinkPreview } from './link-preview.js';
 import { renderMessageText } from './render.js';
@@ -79,8 +80,10 @@ export class MessagePoller {
                     this.config,
                     this.crypto
                 );
+            const isPoll = messageType === 'poll'
+                && renderPollMessage(el, txt, Number(messageEl.dataset.id), this.config, messageEl);
 
-            if (!isVoice && !isAttachment) {
+            if (!isVoice && !isAttachment && !isPoll) {
                 renderMessageText(el, txt);
                 hydrateLinkPreview(el, this.config.csrfToken);
             }
@@ -94,6 +97,12 @@ export class MessagePoller {
                     replyText = '📎 ' + (attachmentPayload.file_name || 'Вложение');
                 } catch {
                     replyText = '📎 Вложение';
+                }
+            } else if (isPoll) {
+                try {
+                    replyText = '📊 ' + (JSON.parse(txt).question || 'Опрос');
+                } catch {
+                    replyText = '📊 Опрос';
                 }
             }
 
