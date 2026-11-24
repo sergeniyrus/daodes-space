@@ -825,6 +825,16 @@
 
         <div class="text-center chat-create-wrapper">
 
+            <button
+                type="button"
+                id="openSavedMessages"
+                class="des-btn"
+                data-user-id="{{ auth()->id() }}"
+            >
+                <i class="fa fa-bookmark" aria-hidden="true"></i>
+                {{ __('chats.saved_messages') }}
+            </button>
+
             <a
                 href="{{ route('chats.create') }}"
                 class="des-btn"
