@@ -123,4 +123,5 @@ return [
     'mute_30_days' => 'For 30 days',
     'muted_until' => 'Muted until :date',
     'notifications_enabled' => 'Notifications enabled',
+    'search_chats' => 'Search chats…',
 ];
