@@ -1236,6 +1236,24 @@
     background: #000;
 }
 
+.chat-video-note { display: flex; justify-content: flex-start; }
+.chat-video-note-player {
+    display: block;
+    width: 220px;
+    height: 220px;
+    max-width: min(64vw, 220px);
+    max-height: min(64vw, 220px);
+    aspect-ratio: 1;
+    object-fit: cover;
+    border: 2px solid rgba(0, 229, 255, .55);
+    border-radius: 50%;
+    background: #000;
+    box-shadow: 0 0 18px rgba(0, 229, 255, .12);
+}
+@media (max-width: 600px) {
+    .chat-video-note-player { width: 190px; height: 190px; }
+}
+
 .chat-poll-message {
     min-width: min(280px, 100%);
     display: flex;
@@ -1989,6 +2007,17 @@ body.chat-media-viewer-open { overflow: hidden; }
                 accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip"
                 hidden
             >
+
+            <button
+                type="button"
+                id="recordVideoNoteBtn"
+                class="voice-record-btn"
+                aria-label="{{ __('chats.video_note_record') }}"
+                title="{{ __('chats.video_note_record') }}"
+                @disabled($chat->type === 'channel' && !in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+            >
+                <i class="fa fa-video-camera" aria-hidden="true"></i>
+            </button>
 
             <button
                 type="button"
