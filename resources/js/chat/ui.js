@@ -186,11 +186,15 @@ export class ChatUI {
             heading.textContent = this.config.translations.pinnedMessages || 'Закреплённые сообщения';
             container.appendChild(heading);
 
-            items.forEach(item => {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'pinned-message-item';
-                button.dataset.messageId = String(item.message_id);
+            items.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'pinned-message-item';
+                row.dataset.messageId = String(item.message_id);
+                row.draggable = this.config.canManagePins === true;
+
+                const jumpButton = document.createElement('button');
+                jumpButton.type = 'button';
+                jumpButton.className = 'pinned-message-jump';
 
                 const icon = document.createElement('span');
                 icon.textContent = '📌';
@@ -198,8 +202,8 @@ export class ChatUI {
                 label.textContent = item.sender_name || (this.config.translations.message || 'Сообщение');
                 const time = document.createElement('small');
                 time.textContent = item.pinned_at ? new Date(item.pinned_at).toLocaleString() : '';
-                button.append(icon, label, time);
-                button.addEventListener('click', async () => {
+                jumpButton.append(icon, label, time);
+                jumpButton.addEventListener('click', async () => {
                     const topicTab = document.querySelector(
                         `.chat-topic-tab[data-topic-id="${item.topic_id || ''}"]`
                     );
@@ -229,10 +233,107 @@ export class ChatUI {
                         window.setTimeout(() => target.classList.remove('message-highlight'), 1800);
                     }
                 });
-                container.appendChild(button);
+
+                const actions = document.createElement('div');
+                actions.className = 'pinned-message-actions';
+
+                if (item.can_unpin) {
+                    const unpinButton = document.createElement('button');
+                    unpinButton.type = 'button';
+                    unpinButton.className = 'pinned-message-unpin';
+                    unpinButton.textContent = this.config.translations.unpin || 'Открепить';
+                    unpinButton.addEventListener('click', async () => {
+                        unpinButton.disabled = true;
+                        await this.togglePin(item.message_id, null);
+                    });
+                    actions.appendChild(unpinButton);
+                }
+
+                if (this.config.canManagePins === true) {
+                    const upButton = document.createElement('button');
+                    upButton.type = 'button';
+                    upButton.className = 'pinned-message-order';
+                    upButton.textContent = '↑';
+                    upButton.title = this.config.translations.movePinUp || 'Переместить выше';
+                    upButton.disabled = index === 0;
+                    upButton.addEventListener('click', () => this.movePinnedItem(row, -1));
+
+                    const downButton = document.createElement('button');
+                    downButton.type = 'button';
+                    downButton.className = 'pinned-message-order';
+                    downButton.textContent = '↓';
+                    downButton.title = this.config.translations.movePinDown || 'Переместить ниже';
+                    downButton.disabled = index === items.length - 1;
+                    downButton.addEventListener('click', () => this.movePinnedItem(row, 1));
+                    actions.append(upButton, downButton);
+                }
+
+                row.append(jumpButton, actions);
+                container.appendChild(row);
             });
+
+            if (this.config.canManagePins === true) {
+                container.querySelectorAll('.pinned-message-item').forEach(row => {
+                    row.addEventListener('dragstart', event => {
+                        event.dataTransfer.setData('text/plain', row.dataset.messageId);
+                        event.dataTransfer.effectAllowed = 'move';
+                        row.classList.add('is-dragging');
+                    });
+                    row.addEventListener('dragend', () => row.classList.remove('is-dragging'));
+                    row.addEventListener('dragover', event => {
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = 'move';
+                    });
+                    row.addEventListener('drop', async event => {
+                        event.preventDefault();
+                        const draggedId = event.dataTransfer.getData('text/plain');
+                        const dragged = container.querySelector(`.pinned-message-item[data-message-id="${draggedId}"]`);
+                        if (!dragged || dragged === row) return;
+                        const rect = row.getBoundingClientRect();
+                        container.insertBefore(dragged, event.clientY < rect.top + rect.height / 2 ? row : row.nextSibling);
+                        await this.savePinnedOrder(container);
+                    });
+                });
+            }
         } catch (error) {
             console.error('[ChatUI] Failed to load pinned messages:', error);
+        }
+    }
+
+    async movePinnedItem(row, offset) {
+        const rows = [...document.querySelectorAll('#chatPinnedMessages .pinned-message-item')];
+        const index = rows.indexOf(row);
+        const target = rows[index + offset];
+        if (!target) return;
+        if (offset < 0) row.parentNode.insertBefore(row, target);
+        else row.parentNode.insertBefore(target, row);
+        await this.savePinnedOrder(row.parentNode);
+    }
+
+    async savePinnedOrder(container) {
+        const messageIds = [...container.querySelectorAll('.pinned-message-item')]
+            .map(row => Number(row.dataset.messageId));
+
+        try {
+            const response = await fetch(`/chats/${this.config.chatId}/pinned-messages/order`, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': this.config.csrfToken,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ message_ids: messageIds }),
+            });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                throw new Error(data.message || 'Could not save pinned message order');
+            }
+            await this.loadPinnedMessages(container);
+        } catch (error) {
+            console.error('[ChatUI] Pinned message order update failed:', error);
+            await this.loadPinnedMessages(container);
         }
     }
 
