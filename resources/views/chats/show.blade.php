@@ -6,6 +6,10 @@
 @section('body_class', 'chat-page')
 @section('hide_footer', true)
 
+@push('styles')
+    @vite('resources/css/chat_show.css')
+@endpush
+
 <style>
 
 /* =========================================================
