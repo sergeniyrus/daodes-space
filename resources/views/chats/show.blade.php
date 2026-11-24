@@ -1682,6 +1682,19 @@ body.chat-media-viewer-open { overflow: hidden; }
 }
 .telegram-sidebar-heading span { color: #00e5ff; font-size: .72rem; letter-spacing: .14em; }
 .telegram-sidebar-heading a { color: #00e5ff; text-decoration: none; font-size: 1.25rem; }
+.telegram-sidebar-stories {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 10px 4px;
+    border-bottom: 1px solid rgba(255,215,0,.15);
+}
+.telegram-sidebar-stories .chat-story-add,
+.telegram-sidebar-stories .chat-story-card { flex-basis: 58px; font-size: .62rem; }
+.telegram-sidebar-stories .chat-story-add-avatar,
+.telegram-sidebar-stories .chat-story-avatar { width: 42px; height: 42px; font-size: 1.1rem; }
+.telegram-sidebar-stories .chat-story-name { max-width: 58px; }
 .telegram-chat-search {
     margin: 12px;
     padding: 10px 12px;
@@ -1796,6 +1809,21 @@ body.chat-media-viewer-open { overflow: hidden; }
             <strong>DAODES <span>MESSENGER</span></strong>
             <a href="{{ route('chats.index') }}" aria-label="{{ __('chats.to_chats') }}">⌂</a>
         </div>
+        <section class="telegram-sidebar-stories" id="chatStoriesBar"
+                 data-user-id="{{ auth()->id() }}"
+                 data-csrf="{{ csrf_token() }}"
+                 data-label-my-story="{{ __('chats.my_story') }}"
+                 data-label-story-views="{{ __('chats.story_views') }}"
+                 data-label-story-delete="{{ __('chats.story_delete') }}"
+                 data-label-stories-empty="{{ __('chats.stories_empty') }}"
+                 data-label-story-upload-error="{{ __('chats.story_upload_error') }}">
+            <button type="button" class="chat-story-add" id="addChatStoryBtn">
+                <span class="chat-story-add-avatar">＋</span>
+                <span>{{ __('chats.add_story') }}</span>
+            </button>
+            <div class="chat-stories-list" id="chatStoriesList"></div>
+            <input type="file" id="chatStoryFileInput" accept="image/*,video/*" hidden>
+        </section>
         <input
             type="search"
             id="telegramChatSearch"
