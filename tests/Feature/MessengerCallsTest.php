@@ -35,6 +35,51 @@ class MessengerCallsTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_personal_chat_members_receive_short_lived_turn_credentials(): void
+    {
+        config([
+            'chat_calls.stun_urls' => 'stun:stun.example.test:3478',
+            'chat_calls.turn_urls' => 'turn:turn.example.test:3478?transport=udp',
+            'chat_calls.turn_secret' => 'test-shared-secret',
+            'chat_calls.turn_ttl' => 3600,
+        ]);
+
+        $caller = $this->createUser();
+        $callee = $this->createUser();
+        $chat = Chat::create(['name' => 'TURN credentials', 'type' => 'personal']);
+        $chat->users()->attach($caller->id, ['role' => 'member']);
+        $chat->users()->attach($callee->id, ['role' => 'member']);
+
+        $response = $this->actingAs($caller)
+            ->getJson("/chats/{$chat->id}/calls/ice-servers")
+            ->assertOk()
+            ->assertJsonPath('turn_enabled', true);
+
+        $iceServers = $response->json('ice_servers');
+        $this->assertCount(2, $iceServers);
+        $this->assertSame('turn:turn.example.test:3478?transport=udp', $iceServers[1]['urls'][0]);
+        $this->assertStringStartsWith((string) (now()->addMinutes(59)->timestamp), $iceServers[1]['username']);
+        $this->assertNotSame('test-shared-secret', $iceServers[1]['credential']);
+        $this->assertSame(
+            base64_encode(hash_hmac('sha1', $iceServers[1]['username'], 'test-shared-secret', true)),
+            $iceServers[1]['credential']
+        );
+    }
+
+    public function test_non_members_cannot_fetch_turn_credentials(): void
+    {
+        $caller = $this->createUser();
+        $callee = $this->createUser();
+        $outsider = $this->createUser();
+        $chat = Chat::create(['name' => 'Private TURN', 'type' => 'personal']);
+        $chat->users()->attach($caller->id, ['role' => 'member']);
+        $chat->users()->attach($callee->id, ['role' => 'member']);
+
+        $this->actingAs($outsider)
+            ->getJson("/chats/{$chat->id}/calls/ice-servers")
+            ->assertForbidden();
+    }
+
     public function test_group_chats_cannot_start_calls(): void
     {
         $user = $this->createUser();
