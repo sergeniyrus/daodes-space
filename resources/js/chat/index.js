@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         input.addEventListener('input', resizeComposer);
         const storyReplyParams = new URLSearchParams(window.location.search);
         const storyReplyId = storyReplyParams.get('story_reply');
-        if (storyReplyId && /^\\d+$/.test(storyReplyId)) {
+        if (storyReplyId && /^\d+$/.test(storyReplyId)) {
             const storyAuthor = (storyReplyParams.get('story_author') || 'пользователь').slice(0, 80);
             input.value = `↪️ Ответ на историю #${storyReplyId} от ${storyAuthor}\n`;
             input.setSelectionRange(input.value.length, input.value.length);
@@ -815,6 +815,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const muteDuration = document.getElementById('chatMuteDuration');
         const saveMuteButton = document.getElementById('saveChatMute');
         const muteStatus = document.getElementById('chatMuteStatus');
+        muteStatus?.classList.toggle('is-muted', Boolean(config.mutedUntil && new Date(config.mutedUntil).getTime() > Date.now()));
 
         if (muteDuration && config.mutedUntil) {
             const remaining = new Date(config.mutedUntil).getTime() - Date.now();
@@ -846,6 +847,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 config.mutedUntil = data.muted_until;
+                muteStatus?.classList.toggle('is-muted', Boolean(data.muted_until));
                 document.getElementById('chat-config').dataset.mutedUntil = data.muted_until || '';
                 if (data.muted_until) {
                     muteStatus.textContent = (config.translations.mutedUntil || 'Muted until :date')
