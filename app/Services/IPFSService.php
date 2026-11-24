@@ -770,4 +770,47 @@ class IPFSService
 
         return $content;
     }
+
+    /**
+     * Снимает pin с временного зашифрованного файла истории.
+     */
+    public function unpinFile(string $cid): bool
+    {
+        if (trim($cid) === '') {
+            throw new RuntimeException('IPFS CID не указан.');
+        }
+
+        $host = env('IPFS_HOST', 'localhost');
+        $port = env('IPFS_PORT', 5001);
+        $url = 'http://' . $host . ':' . $port
+            . '/api/v0/pin/rm?arg=' . rawurlencode($cid) . '&recursive=true';
+
+        $ch = curl_init($url);
+        if ($ch === false) {
+            throw new RuntimeException('Не удалось инициализировать CURL для IPFS unpin.');
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => [],
+            CURLOPT_CONNECTTIMEOUT => 20,
+            CURLOPT_TIMEOUT => 60,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false) {
+            throw new RuntimeException('Ошибка снятия pin в IPFS: ' . $curlError);
+        }
+
+        if ($httpCode < 200 || $httpCode >= 300) {
+            throw new RuntimeException('IPFS unpin вернул HTTP ' . $httpCode . ': ' . $response);
+        }
+
+        return true;
+    }
 }
