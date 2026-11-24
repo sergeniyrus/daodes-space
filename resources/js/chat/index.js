@@ -107,6 +107,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const form = document.getElementById('messageForm');
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
+    const composerStatus = document.getElementById('chatComposerStatus');
+    const setComposerStatus = (message, visible = true) => {
+        if (!composerStatus) return;
+        composerStatus.textContent = message;
+        composerStatus.hidden = !visible || !message;
+    };
+    const scrollToBottomButton = document.getElementById('chatScrollToBottom');
+    const scrollChatToBottom = () => {
+        if (!chatMessages) return;
+        chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+    };
+    scrollToBottomButton?.addEventListener('click', scrollChatToBottom);
     let composerBusyCount = 0;
     const beginComposerLoading = () => {
         composerBusyCount++;
@@ -139,10 +151,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         toolsToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
     });
     toolsMenu?.addEventListener('click', event => {
-        if (event.target.closest('button')) closeComposerTools();
+        if (event.target.closest('button') && !event.target.closest('#recordVoiceBtn')) closeComposerTools();
     });
     document.addEventListener('click', event => {
-        if (!event.target.closest('.composer-tools')) closeComposerTools();
+        if (!event.target.closest('.composer-tools') && !toolsMenu?.classList.contains('is-recording')) closeComposerTools();
     });
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
@@ -465,10 +477,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     chatMessages.addEventListener('scroll', () => {
         poller.autoScrollEnabled = poller.isAtBottom();
-        if (chatMessages.scrollTop <= 24) {
-            poller.loadOlderMessages();
-        }
+        if (scrollToBottomButton) scrollToBottomButton.hidden = poller.isAtBottom();
+        if (chatMessages.scrollTop <= 24) poller.loadOlderMessages();
     });
+    window.setTimeout(() => {
+        if (scrollToBottomButton) scrollToBottomButton.hidden = poller.isAtBottom();
+    }, 0);
 
     input.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
@@ -874,8 +888,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             recordVoiceButton?.classList.remove('recording');
             if (recordVoiceButton) {
                 recordVoiceButton.disabled = false;
-                recordVoiceButton.innerHTML = '<i class="fa fa-microphone" aria-hidden="true"></i>';
+                recordVoiceButton.innerHTML = '<i class="fa fa-microphone" aria-hidden="true"></i><span>' + (config.translations.voiceRecord || 'Записать аудио') + '</span>';
                 recordVoiceButton.title = config.translations.voiceRecord || 'Record voice message';
+                recordVoiceButton.setAttribute('aria-label', config.translations.voiceRecord || 'Записать аудио');
+                toolsMenu?.classList.remove('is-recording');
+                if (toolsToggle) toolsToggle.disabled = false;
+                closeComposerTools();
             }
         };
 
@@ -917,7 +935,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     voiceStream?.getTracks().forEach(track => track.stop());
                     voiceStream = null;
                     recordVoiceButton.disabled = true;
-                    recordVoiceButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>';
+                    recordVoiceButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i><span>Отправляю…</span>';
+                    recordVoiceButton.setAttribute('aria-label', 'Отправляю голосовое сообщение');
+                    setComposerStatus('Шифрую аудио и готовлю отправку…');
                     const finishComposerLoading = beginComposerLoading();
 
                     try {
@@ -925,6 +945,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         const audioBytes = new Uint8Array(await audioBlob.arrayBuffer());
                         const audioNonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+                        setComposerStatus('Запечатываю аудио шифрованием…');
                         const encryptedAudio = nacl.secretbox(audioBytes, audioNonce, crypto.chatKey);
                         const encryptedFile = new File(
                             [encryptedAudio],
@@ -938,6 +959,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         uploadForm.append('original_file_name', recordingFileName(audioBlob.type || mimeType || 'audio/webm', 'voice'));
                         uploadForm.append('encrypted', '1');
 
+                        setComposerStatus('Загружаю зашифрованное аудио в IPFS…');
                         const uploadResponse = await fetch(`/chats/${config.chatId}/attachments`, {
                             method: 'POST',
                             headers: {
@@ -978,6 +1000,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             body.reply_to_message_id = Number(ui.replyingToMessageId);
                         }
 
+                        setComposerStatus('Отправляю сообщение в чат…');
                         const sendResponse = await fetch(config.sendUrl, {
                             method: 'POST',
                             headers: {
@@ -994,6 +1017,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
 
                         ui.cancelReply();
+                        setComposerStatus('Голосовое сообщение отправлено');
+                        window.setTimeout(() => setComposerStatus('', false), 3000);
                         await poller.load();
                     } catch (error) {
                         console.error('Voice message send failed:', error);
@@ -1007,7 +1032,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 voiceRecorder.start();
                 recordVoiceButton.classList.add('recording');
                 recordVoiceButton.title = config.translations.voiceStop || 'Stop recording';
-                recordVoiceButton.innerHTML = '<i class="fa fa-stop" aria-hidden="true"></i>';
+                recordVoiceButton.setAttribute('aria-label', 'Стоп — завершить запись');
+                recordVoiceButton.innerHTML = '<i class="fa fa-stop" aria-hidden="true"></i><span>Стоп</span>';
+                toolsMenu.hidden = false;
+                toolsMenu.classList.add('is-recording');
+                toolsToggle?.setAttribute('aria-expanded', 'true');
+                if (toolsToggle) toolsToggle.disabled = true;
+                setComposerStatus('Идёт запись… нажмите «Стоп» для отправки');
             } catch (error) {
                 voiceStream?.getTracks().forEach(track => track.stop());
                 voiceStream = null;
