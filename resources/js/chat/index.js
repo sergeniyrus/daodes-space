@@ -36,6 +36,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const chatMessages = document.getElementById('chat-messages');
+    const toggleMessageSearch = document.getElementById('toggleMessageSearch');
+    const messageSearchPanel = document.getElementById('messageSearchPanel');
+    const messageSearchInput = document.getElementById('chatMessageSearchInput');
+    const messageSearchCount = document.getElementById('chatMessageSearchCount');
+    const clearMessageSearch = document.getElementById('clearMessageSearch');
+
+    const applyMessageSearch = () => {
+        const term = (messageSearchInput?.value || '').trim().toLocaleLowerCase();
+        let matches = 0;
+        chatMessages?.querySelectorAll('.message').forEach(message => {
+            const matched = !term || (message.dataset.searchText || '').includes(term);
+            message.hidden = !matched;
+            if (matched && term) matches++;
+        });
+        if (messageSearchCount) messageSearchCount.textContent = term ? String(matches) : '';
+    };
+
+    toggleMessageSearch?.addEventListener('click', () => {
+        messageSearchPanel.hidden = !messageSearchPanel.hidden;
+        if (!messageSearchPanel.hidden) messageSearchInput?.focus();
+        else {
+            if (messageSearchInput) messageSearchInput.value = '';
+            applyMessageSearch();
+        }
+    });
+
+    messageSearchInput?.addEventListener('input', applyMessageSearch);
+    clearMessageSearch?.addEventListener('click', () => {
+        if (messageSearchInput) messageSearchInput.value = '';
+        applyMessageSearch();
+        messageSearchInput?.focus();
+    });
+    document.addEventListener('chat:message-decrypted', applyMessageSearch);
+
     const pinnedMessages = document.getElementById('chatPinnedMessages');
     ui.loadPinnedMessages(pinnedMessages);
     const mentionSuggestions = document.getElementById('chatMentionSuggestions');
