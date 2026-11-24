@@ -776,3 +776,54 @@
         max-width: 160px;
     }
 }
+
+/* =========================================================
+   VOICE TRANSCRIPTION
+   ========================================================= */
+
+.chat-voice-message {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.chat-voice-load,
+.chat-voice-transcribe {
+    border: 1px solid rgba(0, 210, 190, 0.65);
+    border-radius: 14px;
+    background: rgba(0, 210, 190, 0.08);
+    color: #72e6d8;
+    padding: 6px 11px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.88rem;
+}
+
+.chat-voice-load:hover,
+.chat-voice-transcribe:hover {
+    background: rgba(0, 210, 190, 0.18);
+}
+
+.chat-voice-load:disabled,
+.chat-voice-transcribe:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+.chat-voice-transcript {
+    flex-basis: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(0, 210, 190, 0.3);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    color: #e8eeee;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    text-align: left;
+    line-height: 1.5;
+}
+
+.chat-voice-transcript[hidden] {
+    display: none;
+}
