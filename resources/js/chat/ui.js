@@ -6,6 +6,8 @@ export class ChatUI {
         this.editingNonceB64 = null;
         this.replyingToMessageId = null;
         this.pinnedMessageIds = new Set();
+        this.canManagePins = config.chatType === 'personal'
+            || ['owner', 'admin', 'moderator'].includes(config.currentRole);
     }
 
     attachEditButton(messageEl, plaintext, nonceB64) {
@@ -190,7 +192,7 @@ export class ChatUI {
                 const row = document.createElement('div');
                 row.className = 'pinned-message-item';
                 row.dataset.messageId = String(item.message_id);
-                row.draggable = this.config.canManagePins === true;
+                row.draggable = this.canManagePins;
 
                 const jumpButton = document.createElement('button');
                 jumpButton.type = 'button';
@@ -249,7 +251,7 @@ export class ChatUI {
                     actions.appendChild(unpinButton);
                 }
 
-                if (this.config.canManagePins === true) {
+                if (this.canManagePins) {
                     const upButton = document.createElement('button');
                     upButton.type = 'button';
                     upButton.className = 'pinned-message-order';
@@ -272,7 +274,7 @@ export class ChatUI {
                 container.appendChild(row);
             });
 
-            if (this.config.canManagePins === true) {
+            if (this.canManagePins) {
                 container.querySelectorAll('.pinned-message-item').forEach(row => {
                     row.addEventListener('dragstart', event => {
                         event.dataTransfer.setData('text/plain', row.dataset.messageId);
