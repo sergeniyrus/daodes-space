@@ -312,6 +312,21 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
             });
             viewer.appendChild(reactionBar);
 
+            if (!story.is_own && !story.is_channel && story.direct_chat_id) {
+                const replyButton = document.createElement('button');
+                replyButton.type = 'button';
+                replyButton.className = 'chat-story-private-reply';
+                replyButton.textContent = 'Ответить в личный чат';
+                replyButton.addEventListener('click', () => {
+                    const query = new URLSearchParams({
+                        story_reply: String(story.id),
+                        story_author: story.author_name || 'пользователь',
+                    });
+                    window.location.assign(`/chats/${story.direct_chat_id}?${query.toString()}`);
+                });
+                viewer.appendChild(replyButton);
+            }
+
             const activeTrack = progress.children[sequenceIndex]?.querySelector('i');
             if (envelope.media_type === 'video') {
                 media.addEventListener('ended', () => next.click(), { once: true });
