@@ -9,6 +9,7 @@ import { MessageSender } from './sender.js';
 import { MessagePoller } from './polling.js';
 import { u8ToB64 } from './utils.js';
 import { connectChatRealtime } from './realtime.js';
+import { initScheduledMessages } from './scheduled.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const config = loadChatConfig();
@@ -384,6 +385,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.error('Ключ чата не получен');
             return;
         }
+
+        initScheduledMessages(config, crypto);
 
         try {
             const mentionResponse = await fetch(`/chats/${config.chatId}/mention-users`, {
