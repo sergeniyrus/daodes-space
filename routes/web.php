@@ -657,6 +657,23 @@ Route::middleware('auth')->group(function () {
     Route::delete('/stories/{story}', [ChatStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('stories.destroy');
 
 
+    // Настройки и фото канала: права редактирует только владелец.
+    Route::put('/chats/{chat}/channel-settings', [ChatChannelSettingsController::class, 'update'])
+        ->middleware('throttle:20,1')->name('chats.channel.settings');
+    Route::post('/chats/{chat}/channel-photo', [ChatChannelSettingsController::class, 'photo'])
+        ->middleware('throttle:10,1')->name('chats.channel.photo');
+
+    // Истории, публикуемые от имени канала (шифрование сохраняется).
+    Route::get('/chats/{chat}/stories', [ChatChannelStoriesController::class, 'index'])->middleware('throttle:60,1')->name('chats.channel.stories.index');
+    Route::get('/chats/{chat}/stories/contacts', [ChatChannelStoriesController::class, 'contacts'])->middleware('throttle:30,1')->name('chats.channel.stories.contacts');
+    Route::post('/chats/{chat}/stories', [ChatChannelStoriesController::class, 'store'])->middleware('throttle:10,1')->name('chats.channel.stories.store');
+    Route::get('/chats/{chat}/stories/{story}/key', [ChatChannelStoriesController::class, 'key'])->middleware('throttle:60,1')->name('chats.channel.stories.key');
+    Route::get('/chats/{chat}/stories/{story}/media', [ChatChannelStoriesController::class, 'media'])->middleware('throttle:30,1')->name('chats.channel.stories.media');
+    Route::post('/chats/{chat}/stories/{story}/view', [ChatChannelStoriesController::class, 'view'])->middleware('throttle:60,1')->name('chats.channel.stories.view');
+    Route::get('/chats/{chat}/stories/{story}/views', [ChatChannelStoriesController::class, 'views'])->middleware('throttle:30,1')->name('chats.channel.stories.views');
+    Route::delete('/chats/{chat}/stories/{story}', [ChatChannelStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('chats.channel.stories.destroy');
+
+
     // Просмотр чата
     Route::get(
         '/chats/{chat}',
