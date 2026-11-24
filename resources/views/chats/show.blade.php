@@ -3,6 +3,8 @@
 @section('title_page', __('chats.chat'))
 
 @section('main')
+@section('body_class', 'chat-page')
+@section('hide_footer', true)
 
 <style>
 
@@ -2442,6 +2444,101 @@ body.chat-media-viewer-open { overflow: hidden; }
 #channelSettingsStatus { color: #00e5ff; font-size: .8rem; }
 #channelHeaderPhoto { background: #10131d; }
 
+
+
+/* =========================================================
+   UX REFRESH: ПОЛНОЭКРАННЫЙ ЧАТ И КОМПАКТНАЯ ПАНЕЛЬ
+   ========================================================= */
+body.chat-page {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
+body.chat-page .mobile-hamburger-header {
+    position: relative;
+    top: auto;
+    flex: 0 0 auto;
+}
+body.chat-page .telegram-chat-layout {
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+}
+body.chat-page .telegram-chat-sidebar,
+body.chat-page .telegram-chat-main,
+body.chat-page .telegram-chat-layout .chat-container {
+    min-height: 0;
+}
+body.chat-page .telegram-chat-main { height: 100%; overflow: hidden; }
+body.chat-page .telegram-chat-layout .chat-container {
+    height: 100%;
+    overflow: hidden;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+.chat-container { position: relative; }
+.chat-scroll-bottom {
+    position: absolute;
+    z-index: 25;
+    right: 24px;
+    bottom: 104px;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    color: #071018;
+    background: linear-gradient(135deg, #00e5ff, #00bcd4);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 50%;
+    box-shadow: 0 5px 18px rgba(0,0,0,.4);
+    cursor: pointer;
+}
+.chat-scroll-bottom[hidden] { display: none; }
+.chat-scroll-bottom:hover { background: #ffd700; }
+.chat-composer-status {
+    min-height: 18px;
+    padding: 4px 12px 0;
+    color: #00e5ff;
+    font-size: .76rem;
+}
+.chat-composer-status[hidden] { display: none; }
+.composer-tools-menu .chat-call-push-settings {
+    display: grid;
+    gap: 4px;
+    padding: 5px 8px;
+    border-top: 1px solid rgba(0,229,255,.16);
+}
+.composer-tools-menu #chat-call-push-toggle {
+    padding: 7px 9px;
+    color: #a9eaf2;
+    text-align: left;
+    background: rgba(0,229,255,.05);
+    border: 1px solid rgba(0,229,255,.2);
+    border-radius: 8px;
+    cursor: pointer;
+}
+.composer-tools-menu #chat-call-push-status { color: #9aa8bc; font-size: .72rem; }
+.chat-emoji-panel,
+.chat-emoji-panel emoji-picker { max-width: 100%; min-width: 0; }
+.chat-emoji-panel emoji-picker { line-height: normal; font-size: 16px; }
+.card-text, #messageInput { font-variant-emoji: emoji; }
+.card-text { line-height: 1.55; overflow: visible; }
+@media (max-width: 720px) {
+    body.chat-page .telegram-chat-layout { height: auto; }
+    body.chat-page .telegram-chat-sidebar { display: none; }
+    body.chat-page .telegram-chat-main { height: 100%; }
+    body.chat-page .telegram-chat-layout .chat-container { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+    .chat-scroll-bottom { right: 14px; bottom: 94px; width: 38px; height: 38px; }
+    .chat-emoji-panel { right: -4px; width: min(340px, calc(100vw - 16px)); height: min(350px, 48dvh); }
+    .chat-emoji-panel emoji-picker { width: 100%; height: 100%; --emoji-size: 1.35rem; }
+    .card-text { line-height: 1.6; }
+}
+
 </style>
 
 
@@ -2688,20 +2785,6 @@ body.chat-media-viewer-open { overflow: hidden; }
 
         @endif
 
-        @if ($chat->type === 'personal' && $otherUser)
-            <div class="chat-call-toolbar">
-                <button type="button" id="startAudioCall"><i class="fa fa-phone" aria-hidden="true"></i> Аудиозвонок</button>
-                <button type="button" id="startVideoCall"><i class="fa fa-video-camera" aria-hidden="true"></i> Видеозвонок</button>
-            </div>
-            @include('components.chat-call-push-subscription')
-        @endif
-
-        @if ($chat->type !== 'saved')
-            <div class="chat-call-toolbar">
-                <button type="button" id="openChatMeetings"><i class="fa fa-calendar" aria-hidden="true"></i> Запланировать созвон</button>
-            </div>
-        @endif
-
         <div class="chat-mute-controls">
             <label for="chatMuteDuration">{{ __('chats.mute_notifications') }}</label>
             <select id="chatMuteDuration">
@@ -2932,6 +3015,9 @@ body.chat-media-viewer-open { overflow: hidden; }
         @endforeach
 
     </div>
+    <button type="button" id="chatScrollToBottom" class="chat-scroll-bottom" aria-label="Прокрутить вниз" title="К последним сообщениям" hidden>
+        <i class="fa fa-arrow-down" aria-hidden="true"></i>
+    </button>
 
 
     {{-- =====================================================
@@ -3158,6 +3244,22 @@ body.chat-media-viewer-open { overflow: hidden; }
                         <span>Отложенные сообщения</span>
                     </button>
 
+                    @if ($chat->type === 'personal' && $otherUser)
+                        <button type="button" id="startAudioCall" class="composer-tool-btn">
+                            <i class="fa fa-phone" aria-hidden="true"></i><span>Аудиозвонок</span>
+                        </button>
+                        <button type="button" id="startVideoCall" class="composer-tool-btn">
+                            <i class="fa fa-video-camera" aria-hidden="true"></i><span>Видеозвонок</span>
+                        </button>
+                        @include('components.chat-call-push-subscription')
+                    @endif
+
+                    @if ($chat->type !== 'saved')
+                        <button type="button" id="openChatMeetings" class="composer-tool-btn">
+                            <i class="fa fa-calendar" aria-hidden="true"></i><span>Запланировать созвон</span>
+                        </button>
+                    @endif
+
                     <button
                         type="button"
                         id="createPollBtn"
@@ -3231,6 +3333,7 @@ body.chat-media-viewer-open { overflow: hidden; }
             </button>
 
         </div>
+        <div id="chatComposerStatus" class="chat-composer-status" role="status" aria-live="polite" hidden></div>
 
     </form>
 
