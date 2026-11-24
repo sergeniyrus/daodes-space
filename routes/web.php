@@ -672,6 +672,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/stories/{story}/media', [ChatStoriesController::class, 'media'])->middleware('throttle:30,1')->name('stories.media');
     Route::post('/stories/{story}/view', [ChatStoriesController::class, 'view'])->middleware('throttle:60,1')->name('stories.view');
     Route::get('/stories/{story}/views', [ChatStoriesController::class, 'views'])->middleware('throttle:30,1')->name('stories.views');
+    Route::post('/stories/{story}/reactions', [ChatStoriesController::class, 'toggleReaction'])->middleware('throttle:30,1')->name('stories.reactions.toggle');
     Route::delete('/stories/{story}', [ChatStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('stories.destroy');
 
 
@@ -689,6 +690,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/chats/{chat}/stories/{story}/media', [ChatChannelStoriesController::class, 'media'])->middleware('throttle:30,1')->name('chats.channel.stories.media');
     Route::post('/chats/{chat}/stories/{story}/view', [ChatChannelStoriesController::class, 'view'])->middleware('throttle:60,1')->name('chats.channel.stories.view');
     Route::get('/chats/{chat}/stories/{story}/views', [ChatChannelStoriesController::class, 'views'])->middleware('throttle:30,1')->name('chats.channel.stories.views');
+    Route::post('/chats/{chat}/stories/{story}/reactions', [ChatChannelStoriesController::class, 'toggleReaction'])->middleware('throttle:30,1')->name('chats.channel.stories.reactions.toggle');
     Route::delete('/chats/{chat}/stories/{story}', [ChatChannelStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('chats.channel.stories.destroy');
 
 
