@@ -35,7 +35,7 @@ class ChatContactsController extends Controller
             ->get(['sender_id', 'recipient_id']);
 
         $contactIds = $acceptedRows
-            ->map(fn ($row) => (int) ($row->sender_id === $userId ? $row->recipient_id : $row->sender_id))
+            ->map(fn ($row) => (int) ((int) $row->sender_id === $userId ? $row->recipient_id : $row->sender_id))
             ->diff($blockedIds)
             ->unique()
             ->values();
