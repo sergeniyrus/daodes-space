@@ -165,7 +165,7 @@ class MessageController extends Controller
             'nonce'   => 'required|string',
             'reply_to_message_id' => 'nullable|integer|exists:messages,id',
             'topic_id' => 'nullable|integer|exists:chat_topics,id',
-            'message_type' => 'nullable|string|in:text,voice,media,file,poll',
+            'message_type' => 'nullable|string|in:text,voice,media,file,poll,video_note',
             'poll_is_anonymous' => 'required_if:message_type,poll|boolean',
             'poll_allows_multiple' => 'required_if:message_type,poll|boolean',
             'attachment_upload_ids' => 'nullable|array|max:10',
@@ -219,7 +219,7 @@ class MessageController extends Controller
 
             $messageType = $validated['message_type'] ?? 'text';
 
-            if ($uploads->isNotEmpty() && !in_array($messageType, ['voice', 'media', 'file'], true)) {
+            if ($uploads->isNotEmpty() && !in_array($messageType, ['voice', 'media', 'file', 'video_note'], true)) {
                 return response()->json(['status' => 'error', 'message' => 'Attachment message type is required'], 422);
             }
 
@@ -240,6 +240,13 @@ class MessageController extends Controller
 
             if (in_array($messageType, ['media', 'file'], true) && $uploads->isEmpty()) {
                 return response()->json(['status' => 'error', 'message' => 'Attachment is required'], 422);
+            }
+
+            if ($messageType === 'video_note' && (
+                $uploads->count() !== 1
+                || $uploads->first()->media_type !== 'video'
+            )) {
+                return response()->json(['status' => 'error', 'message' => 'Video notes require one video attachment'], 422);
             }
 
             $fullPayload = $request->nonce . '|' . $request->message;
