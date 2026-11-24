@@ -145,6 +145,13 @@
     gap: 13px;
     min-width: 0;
 }
+.chat-header-saved-avatar {
+    display: grid;
+    place-items: center;
+    color: #ffd700;
+    background: rgba(255,215,0,.08);
+    font-size: 1.25rem;
+}
 .chat-header-avatar {
     width: 54px;
     height: 54px;
@@ -2041,6 +2048,16 @@ body.chat-media-viewer-open { overflow: hidden; }
                             {{ $otherUser->profile->status_emoji }} {{ $otherUser->profile->status_text }}
                         </p>
                     @endif
+                </div>
+            </div>
+
+        @elseif ($chat->type === 'saved')
+
+            <div class="chat-person-heading">
+                <span class="chat-header-avatar chat-header-saved-avatar"><i class="fa fa-bookmark"></i></span>
+                <div class="chat-person-heading-info">
+                    <h2 class="chat-title">{{ $chat->name }}</h2>
+                    <p class="chat-status">{{ __('chats.saved_messages_description') }}</p>
                 </div>
             </div>
 
