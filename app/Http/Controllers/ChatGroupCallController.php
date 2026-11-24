@@ -52,7 +52,7 @@ class ChatGroupCallController extends Controller
 
         $now = now()->timestamp;
         $expiresAt = min($endsAt->timestamp + 900, $now + 86400);
-        $expiresAt = max($expiresAt, $now + 600);
+        abort_if($expiresAt <= $now, 409, 'Время встречи истекло.');
 
         $room = 'daodes-meeting-' . (int) $record->id;
         $identity = 'user-' . (int) auth()->id();
