@@ -54,6 +54,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
     };
+    // Общий счётчик используется также классом MessageSender.
+    window.beginChatComposerLoading = beginComposerLoading;
 
     const toolsToggle = document.getElementById('toggleComposerTools');
     const toolsMenu = document.getElementById('composerToolsMenu');
