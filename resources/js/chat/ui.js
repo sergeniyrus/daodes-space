@@ -390,7 +390,9 @@ export class ChatUI {
         this.editingMessageId = null;
         this.editingBackupText = null;
         this.editingNonceB64 = null;
-        document.getElementById('messageInput').value = '';
+        const messageInput = document.getElementById('messageInput');
+        messageInput.value = '';
+        messageInput.dispatchEvent(new Event('input', { bubbles: true }));
         // Кнопка "Отправить" — только иконка самолётика
         const sendBtn = document.getElementById('sendBtn');
         sendBtn.innerHTML = '<i class="fa fa-paper-plane" aria-hidden="true"></i>';
