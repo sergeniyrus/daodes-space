@@ -1081,3 +1081,21 @@
     .telegram-chat-layout .chat-mute-controls { gap: 4px; padding: 2px 4px; }
     .telegram-chat-layout #chatMuteDuration { width: 36px; min-width: 36px; }
 }
+
+
+/* Eight-line cap is controlled by the composer resize handler on every viewport. */
+#messageForm #messageInput {
+    max-height: 260px !important;
+}
+.telegram-chat-layout .chat-mute-controls::before {
+    content: "🔔";
+    flex: 0 0 auto;
+    color: #00e5ff;
+    font-size: 14px;
+}
+.telegram-chat-layout .chat-mute-status.is-muted::before {
+    color: #f59e0b;
+}
+.telegram-chat-layout .chat-mute-status:not(.is-muted)::before {
+    color: #22c55e;
+}
