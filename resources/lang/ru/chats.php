@@ -128,4 +128,13 @@ return [
     'search_loaded_messages' => 'Поиск по загруженным сообщениям',
     'clear_search' => 'Очистить поиск',
     'saved_messages_description' => 'Ваше личное пространство для заметок и файлов',
+    'channel_stories' => 'Истории канала',
+    'channel_photo_change' => 'Изменить фотографию',
+    'channel_settings_permissions' => 'Настройки канала и права',
+    'channel_admin_photo_permission' => 'Администраторам разрешено менять фотографию',
+    'channel_moderator_photo_permission' => 'Модераторам разрешено менять фотографию',
+    'channel_admin_stories_permission' => 'Администраторам разрешено публиковать сторис',
+    'channel_moderator_stories_permission' => 'Модераторам разрешено публиковать сторис',
+    'channel_permissions_saved' => 'Права сохранены',
+    'channel_permissions_save_error' => 'Не удалось сохранить права',
 ];
