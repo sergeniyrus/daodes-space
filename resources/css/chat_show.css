@@ -1520,6 +1520,10 @@
     cursor: pointer;
     transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease;
 }
+.telegram-chat-layout .chat-header-tools .chat-mute-controls > button.chat-call-header-toggle::before {
+    content: none !important;
+    display: none !important;
+}
 .telegram-chat-layout .chat-header-tools .chat-mute-controls > button.chat-call-header-toggle:hover {
     color: #b8fbff;
     background: rgba(0,229,255,.14);
