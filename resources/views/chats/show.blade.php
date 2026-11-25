@@ -3280,6 +3280,17 @@ body.chat-page .telegram-chat-layout .chat-container {
                 >
                     <i class="fa {{ $mutedUntil && \Illuminate\Support\Carbon::parse($mutedUntil)->isFuture() ? 'fa-bell-slash' : 'fa-bell' }}" aria-hidden="true"></i>
                 </button>
+                @if (in_array($chat->type, ['personal', 'group'], true) && ($chat->type !== 'personal' || $otherUser))
+                    <button
+                        type="button"
+                        id="startChatCall"
+                        class="chat-call-header-toggle"
+                        aria-label="Позвонить"
+                        title="Позвонить"
+                    >
+                        <i class="fa fa-phone" aria-hidden="true"></i>
+                    </button>
+                @endif
                 <div class="chat-mute-menu" id="chatMuteMenu" hidden>
                     <button type="button" data-mute-duration="60">{{ __('chats.mute_1_hour') }}</button>
                     <button type="button" data-mute-duration="480">{{ __('chats.mute_8_hours') }}</button>
