@@ -262,12 +262,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const notificationMessageId = Number(scrollToBottomButton.dataset.notificationMessageId || 0);
 
         if (notificationMessageId) {
-            const targetMessage = document.querySelector(`.message[data-id="${notificationMessageId}"]`);
-            if (targetMessage) {
-                targetMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                poller.clearActivityNotification();
-                return;
-            }
+            scrollChatToBottom();
+            poller.clearActivityNotification();
+            return;
         }
 
         scrollChatToBottom();
