@@ -1241,3 +1241,175 @@
     .telegram-chat-layout .chat-header:has(.chat-person-heading) { gap: 4px 6px; }
     .telegram-chat-layout .chat-header-tools { gap: 4px; }
 }
+
+
+/* Header notification bell and message search controls. */
+.telegram-chat-layout .chat-mute-controls {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+.telegram-chat-layout .chat-mute-toggle,
+.telegram-chat-layout #toggleMessageSearch {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 36px;
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    color: #ffd700;
+    background: rgba(255,215,0,.055);
+    border: 1px solid rgba(255,215,0,.35);
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease;
+}
+.telegram-chat-layout .chat-mute-toggle:hover,
+.telegram-chat-layout #toggleMessageSearch:hover {
+    color: #fff1a8;
+    background: rgba(255,215,0,.13);
+    border-color: rgba(255,215,0,.75);
+}
+.telegram-chat-layout .chat-mute-toggle.is-muted {
+    color: #9aa4b2;
+    border-color: rgba(148,163,184,.35);
+    background: rgba(148,163,184,.07);
+}
+.telegram-chat-layout .chat-mute-menu {
+    position: absolute;
+    z-index: 120;
+    top: calc(100% + 8px);
+    right: 0;
+    display: grid;
+    gap: 3px;
+    width: max-content;
+    min-width: 168px;
+    padding: 6px;
+    background: #101827;
+    border: 1px solid rgba(255,215,0,.3);
+    border-radius: 11px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.48);
+}
+.telegram-chat-layout .chat-mute-menu[hidden] { display: none !important; }
+.telegram-chat-layout .chat-mute-menu button {
+    min-height: 34px;
+    padding: 7px 10px;
+    color: #e5e7eb;
+    text-align: left;
+    white-space: nowrap;
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+    font: inherit;
+    font-size: .84rem;
+}
+.telegram-chat-layout .chat-mute-menu button:hover:not(:disabled) {
+    color: #ffd700;
+    background: rgba(255,215,0,.09);
+}
+.telegram-chat-layout .chat-mute-menu button:last-child {
+    margin-top: 3px;
+    border-top: 1px solid rgba(255,255,255,.09);
+    border-radius: 0 0 7px 7px;
+}
+.telegram-chat-layout .chat-mute-menu button:disabled { opacity: .55; cursor: wait; }
+.telegram-chat-layout .chat-mute-status { display: none !important; }
+
+.telegram-chat-layout .chat-message-search { position: relative; }
+.telegram-chat-layout #messageSearchPanel {
+    align-items: center;
+    gap: 5px;
+    width: min(340px, calc(100vw - 24px));
+    padding: 6px;
+}
+.telegram-chat-layout #chatMessageSearchInput {
+    flex: 1 1 auto;
+    width: 0;
+    min-width: 50px;
+    height: 32px;
+    padding: 5px 8px;
+    box-sizing: border-box;
+    font-size: .84rem;
+}
+.telegram-chat-layout #chatMessageSearchCount {
+    flex: 0 0 auto;
+    min-width: 32px;
+    color: #ffd700;
+    text-align: center;
+    font-size: .76rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.telegram-chat-layout #messageSearchPanel > button {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 30px;
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    min-height: 30px;
+    padding: 0;
+    box-sizing: border-box;
+    color: #00e5ff;
+    background: rgba(0,229,255,.06);
+    border: 1px solid rgba(0,229,255,.25);
+    border-radius: 8px;
+    line-height: 1;
+    font-size: 12px;
+    cursor: pointer;
+}
+.telegram-chat-layout #messageSearchPanel > #clearMessageSearch {
+    color: #ffd700;
+    border-color: rgba(255,215,0,.32);
+    background: rgba(255,215,0,.06);
+}
+.telegram-chat-layout #messageSearchPanel > button:hover {
+    background: rgba(0,229,255,.16);
+}
+.telegram-chat-layout #messageSearchPanel > #clearMessageSearch:hover {
+    background: rgba(255,215,0,.15);
+}
+.telegram-chat-layout .message.search-match .card-body,
+.telegram-chat-layout .message.search-match .my-card-body {
+    outline: 2px solid rgba(255,215,0,.48);
+    outline-offset: 2px;
+}
+.telegram-chat-layout .message.search-match-active .card-body,
+.telegram-chat-layout .message.search-match-active .my-card-body {
+    outline: 2px solid #ffd700;
+    box-shadow: 0 0 0 4px rgba(255,215,0,.12), 0 0 20px rgba(255,215,0,.2);
+}
+@media (max-width: 720px) {
+    .telegram-chat-layout .chat-mute-toggle,
+    .telegram-chat-layout #toggleMessageSearch {
+        flex-basis: 32px;
+        width: 32px;
+        min-width: 32px;
+        height: 32px;
+        min-height: 32px;
+        border-radius: 9px;
+    }
+    .telegram-chat-layout #messageSearchPanel {
+        right: 0;
+        width: min(320px, calc(100vw - 18px));
+    }
+    .telegram-chat-layout #messageSearchPanel > button {
+        flex-basis: 28px;
+        width: 28px;
+        min-width: 28px;
+        height: 28px;
+        min-height: 28px;
+    }
+}
