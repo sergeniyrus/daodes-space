@@ -2,6 +2,14 @@ import { initChatStories } from './chat/stories.js';
 
 import nacl from 'tweetnacl';
 
+const onMessengerPageMounted = callback => {
+    if (document.readyState === 'loading' || document.readyState === 'interactive') {
+        document.addEventListener('DOMContentLoaded', callback, { once: true });
+    } else {
+        document.addEventListener('messenger:page-mounted', callback);
+    }
+};
+
 (function () {
     // === Base64 ⇄ Uint8Array ===
     function b64ToU8(b64) {
@@ -89,7 +97,7 @@ import nacl from 'tweetnacl';
 
 
 // Создание «Избранного»: ключ чата генерируется и шифруется только в браузере.
-document.addEventListener('DOMContentLoaded', () => {
+onMessengerPageMounted(() => {
     const button = document.getElementById('openSavedMessages');
     if (!button) return;
 
@@ -165,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-document.addEventListener('DOMContentLoaded', () => {
+onMessengerPageMounted(() => {
     const storiesBar = document.getElementById('chatStoriesBar');
     if (!storiesBar) return;
 
@@ -179,42 +187,5 @@ document.addEventListener('DOMContentLoaded', () => {
             empty: storiesBar.dataset.labelStoriesEmpty,
             uploadError: storiesBar.dataset.labelStoryUploadError,
         },
-    });
-});
-
-
-/* Hamburger navigation for the messenger index. */
-document.addEventListener('DOMContentLoaded', () => {
-    const toggle = document.getElementById('messengerMenuToggle');
-    const menu = document.getElementById('messengerMenu');
-    if (!toggle || !menu) return;
-
-    const closeMenu = () => {
-        menu.hidden = true;
-        toggle.setAttribute('aria-expanded', 'false');
-    };
-
-    toggle.addEventListener('click', event => {
-        event.stopPropagation();
-        const willOpen = menu.hidden;
-        menu.hidden = !willOpen;
-        toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-    });
-
-    menu.addEventListener('click', event => {
-        if (event.target.closest('a')) closeMenu();
-    });
-
-    document.addEventListener('click', event => {
-        if (!menu.hidden && !menu.contains(event.target) && !toggle.contains(event.target)) {
-            closeMenu();
-        }
-    });
-
-    document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && !menu.hidden) {
-            closeMenu();
-            toggle.focus();
-        }
     });
 });
