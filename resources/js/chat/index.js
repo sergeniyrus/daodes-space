@@ -1058,7 +1058,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ui.forwardMessage = async (messageText) => {
             const availableChats = [...document.querySelectorAll('#telegramChatList a.telegram-chat-row')]
                 .map(link => {
-                    const match = link.getAttribute('href')?.match(/\\/chats\\/(\\d+)/);
+                    const match = link.getAttribute('href')?.match(/\/chats\/(\d+)/);
                     return match ? { id: Number(match[1]), name: link.querySelector('strong')?.textContent?.trim() || 'Чат' } : null;
                 })
                 .filter(chat => chat && chat.id !== config.chatId);
@@ -1068,8 +1068,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            const choices = availableChats.map((chat, index) => (index + 1) + '. ' + chat.name).join('\\n');
-            const selected = window.prompt('Куда переслать сообщение? Введите номер чата:\\n' + choices, '1');
+            const choices = availableChats.map((chat, index) => (index + 1) + '. ' + chat.name).join('\n');
+            const selected = window.prompt('Куда переслать сообщение? Введите номер чата:\n' + choices, '1');
             if (selected === null) return;
             const target = availableChats[Number(selected) - 1];
             if (!target) {
