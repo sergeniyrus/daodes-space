@@ -24,6 +24,7 @@ const onMessengerPageMounted = callback => {
 
 const initializeChatPage = async () => {
     window.__daodesChatPageCleanup?.();
+    const pageAbortController = new AbortController();
     const config = loadChatConfig();
 
     const storiesBar = document.getElementById('chatStoriesBar');
@@ -310,6 +311,7 @@ const initializeChatPage = async () => {
     const sender = new MessageSender(config, ui, crypto);
     const poller = new MessagePoller(config, crypto, ui);
     window.__daodesChatPageCleanup = () => {
+        pageAbortController.abort();
         poller.stopPolling();
         window.__daodesChatRealtimeCleanup?.();
         document.dispatchEvent(new Event('messenger:chat-cleanup'));
@@ -747,7 +749,7 @@ const initializeChatPage = async () => {
         applyMessageSearch();
         messageSearchInput?.focus();
     });
-    document.addEventListener('chat:message-decrypted', () => applyMessageSearch(false, false));
+    document.addEventListener('chat:message-decrypted', () => applyMessageSearch(false, false), { signal: pageAbortController.signal });
 
     const pinnedMessages = document.getElementById('chatPinnedMessages');
     ui.loadPinnedMessages(pinnedMessages);
@@ -1902,7 +1904,7 @@ const initializeChatPage = async () => {
         }
     };
     ['click', 'keydown', 'touchstart'].forEach(evt =>
-        document.addEventListener(evt, unlockAudio, { once: true, passive: true })
+        document.addEventListener(evt, unlockAudio, { once: true, passive: true, signal: pageAbortController.signal })
     );
 
     window.addEventListener('beforeunload', () => {
