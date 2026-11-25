@@ -75,6 +75,176 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+
+    const moderationSettingsForm = document.getElementById('moderationSettingsForm');
+    moderationSettingsForm?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const formData = new FormData(moderationSettingsForm);
+        const status = document.getElementById('moderationSettingsStatus');
+        try {
+            const response = await fetch(moderationSettingsForm.dataset.url, {
+                method: 'PUT',
+                headers: {
+                    'X-CSRF-TOKEN': config.csrfToken,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    allow_copy_messages: formData.has('allow_copy_messages'),
+                    allow_forward_messages: formData.has('allow_forward_messages'),
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                throw new Error(data.message || 'Не удалось сохранить разрешения');
+            }
+            config.allowCopyMessages = formData.has('allow_copy_messages');
+            config.allowForwardMessages = formData.has('allow_forward_messages');
+            if (status) status.textContent = 'Разрешения сохранены';
+        } catch (error) {
+            if (status) status.textContent = error.message || 'Ошибка сохранения';
+        }
+    });
+
+    const moderationPanel = document.getElementById('chatSettingsModeration');
+    const moderationReports = document.getElementById('chatModerationReports');
+    const refreshReportsButton = document.getElementById('refreshChatReports');
+    const settingsGeneral = document.getElementById('chatSettingsGeneral');
+    const settingsTabs = document.querySelectorAll('[data-settings-tab]');
+
+    const updateReportStatus = async (reportId, status) => {
+        const response = await fetch(moderationPanel.dataset.updateUrl + '/' + reportId, {
+            method: 'PATCH',
+            headers: {
+                'X-CSRF-TOKEN': config.csrfToken,
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ status }),
+        });
+        const data = await response.json();
+        if (!response.ok || data.status !== 'success') {
+            throw new Error(data.message || 'Не удалось обновить жалобу');
+        }
+    };
+
+    const loadChatReports = async () => {
+        if (!moderationPanel || !moderationReports) return;
+        moderationReports.textContent = 'Загрузка жалоб...';
+        try {
+            const response = await fetch(moderationPanel.dataset.url, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                throw new Error(data.message || 'Не удалось загрузить жалобы');
+            }
+            moderationReports.replaceChildren();
+            if (!data.reports.length) {
+                moderationReports.textContent = 'Жалоб пока нет';
+                return;
+            }
+
+            const reasonLabels = {
+                spam: 'Спам', abuse: 'Оскорбления', harassment: 'Травля',
+                scam: 'Мошенничество', inappropriate: 'Недопустимый контент', other: 'Другое',
+            };
+            const statusLabels = {
+                new: 'Новая', reviewing: 'Рассматривается',
+                resolved: 'Решена', rejected: 'Отклонена',
+            };
+
+            data.reports.forEach(report => {
+                const card = document.createElement('article');
+                card.className = 'chat-report-item';
+
+                const heading = document.createElement('strong');
+                heading.textContent = report.message_author_name || 'Автор сообщения';
+                const meta = document.createElement('div');
+                meta.className = 'chat-report-meta';
+                meta.textContent = 'Жалоба от: ' + (report.reporter_name || 'Пользователь')
+                    + ' · Причина: ' + (reasonLabels[report.reason] || report.reason)
+                    + ' · Статус: ' + (statusLabels[report.status] || report.status);
+                const message = document.createElement('p');
+                message.textContent = report.message_text || '[Текст сообщения недоступен]';
+                card.append(heading, meta, message);
+
+                if (report.handler_name) {
+                    const handled = document.createElement('div');
+                    handled.className = 'chat-report-meta';
+                    handled.textContent = 'Обработал: ' + report.handler_name;
+                    card.appendChild(handled);
+                }
+
+                const actions = document.createElement('div');
+                actions.className = 'chat-report-actions';
+                [
+                    ['reviewing', 'В работу'],
+                    ['resolved', 'Решена'],
+                    ['rejected', 'Отклонить'],
+                ].forEach(([nextStatus, label]) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.dataset.status = nextStatus;
+                    button.textContent = label;
+                    button.addEventListener('click', async () => {
+                        try {
+                            await updateReportStatus(report.id, nextStatus);
+                            await loadChatReports();
+                        } catch (error) {
+                            window.alert(error.message || 'Не удалось обновить жалобу');
+                        }
+                    });
+                    actions.appendChild(button);
+                });
+
+                if (report.message_id) {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.type = 'button';
+                    deleteButton.textContent = 'Удалить сообщение';
+                    deleteButton.addEventListener('click', async () => {
+                        if (!window.confirm('Удалить это сообщение из чата?')) return;
+                        try {
+                            const response = await fetch('/messages/' + report.message_id, {
+                                method: 'DELETE',
+                                headers: { 'X-CSRF-TOKEN': config.csrfToken, Accept: 'application/json' },
+                                credentials: 'same-origin',
+                            });
+                            const result = await response.json();
+                            if (!response.ok || result.status !== 'success') {
+                                throw new Error(result.message || 'Не удалось удалить сообщение');
+                            }
+                            await updateReportStatus(report.id, 'resolved');
+                            await loadChatReports();
+                        } catch (error) {
+                            window.alert(error.message || 'Не удалось удалить сообщение');
+                        }
+                    });
+                    actions.appendChild(deleteButton);
+                }
+
+                card.appendChild(actions);
+                moderationReports.appendChild(card);
+            });
+        } catch (error) {
+            moderationReports.textContent = error.message || 'Ошибка загрузки жалоб';
+        }
+    };
+
+    settingsTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const moderationActive = tab.dataset.settingsTab === 'moderation';
+            settingsTabs.forEach(item => item.classList.toggle('active', item === tab));
+            if (settingsGeneral) settingsGeneral.hidden = moderationActive;
+            if (moderationPanel) moderationPanel.hidden = !moderationActive;
+            if (moderationActive) loadChatReports();
+        });
+    });
+    refreshReportsButton?.addEventListener('click', loadChatReports);
+
     const channelHeaderPhoto = document.getElementById('channelHeaderPhoto');
     const openChannelPhoto = () => {
         if (!channelHeaderPhoto?.src) return;
