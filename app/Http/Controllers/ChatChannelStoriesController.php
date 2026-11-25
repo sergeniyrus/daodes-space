@@ -283,6 +283,13 @@ class ChatChannelStoriesController extends Controller
 
     public function toggleReaction(Request $request, Chat $chat, int $story)
     {
+        if (!Schema::hasTable('chat_channel_story_reactions')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Для реакций на истории канала требуется применить миграцию DAODES.',
+            ], 503);
+        }
+
         $record = $this->accessibleStory($chat, $story);
         $validated = $request->validate([
             'reaction' => 'required|string|in:❤️,🔥,😂,😮,👏,😢',
