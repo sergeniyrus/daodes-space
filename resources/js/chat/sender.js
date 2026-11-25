@@ -1,5 +1,6 @@
 import { hydrateLinkPreview } from './link-preview.js';
 import { renderMessageText } from './render.js';
+import { renderEncryptedAttachment } from './media.js';
 import { u8ToB64 } from './utils.js';
 
 export class MessageSender {
@@ -33,8 +34,16 @@ export class MessageSender {
         // СРАЗУ скрываем превью ответа
         this.ui.cancelReply();
 
+        // Для вложения редактируем только имя файла, сохраняя весь зашифрованный payload и связь с IPFS.
+        const editingAttachmentPayload = this.ui.editingAttachmentPayload
+            ? { ...this.ui.editingAttachmentPayload, file_name: text }
+            : null;
+        const messageContent = editingAttachmentPayload
+            ? JSON.stringify(editingAttachmentPayload)
+            : text;
+
         // Шифруем
-        const bytes = new TextEncoder().encode(text);
+        const bytes = new TextEncoder().encode(messageContent);
         const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
         const nonceB64 = u8ToB64(nonce);
         const encrypted = nacl.secretbox(bytes, nonce, this.crypto.chatKey);
@@ -51,7 +60,7 @@ export class MessageSender {
             const body = {
                 message: u8ToB64(encrypted),
                 nonce: nonceB64,
-                message_type: 'text',
+                message_type: isEditing ? (this.ui.editingMessageType || 'text') : 'text',
             };
 
             if (this.config.topicId && !isEditing) {
@@ -92,7 +101,7 @@ export class MessageSender {
             if (data.status !== 'success') throw new Error('Server error');
 
             if (isEditing) {
-                this.commitEdit(data, nonceB64, encrypted, text);
+                this.commitEdit(data, nonceB64, encrypted, text, editingAttachmentPayload, this.ui.editingMessageType || 'text');
             }
             // Для новых сообщений ничего не делаем — poller подхватит через 3 секунды
 
@@ -160,8 +169,9 @@ export class MessageSender {
         }
     }
 
-    commitEdit(data, nonceB64, encrypted, text) {
-        const msgEl = document.querySelector(`.message[data-id="${this.ui.editingMessageId}"]`);
+    commitEdit(data, nonceB64, encrypted, text, attachmentPayload = null, messageType = 'text') {
+        const messageId = this.ui.editingMessageId;
+        const msgEl = document.querySelector(`.message[data-id="${messageId}"]`);
         if (!msgEl) return;
 
         msgEl.classList.remove('editing');
@@ -172,10 +182,27 @@ export class MessageSender {
         const cardText = msgEl.querySelector('.card-text');
         if (cardText) {
             cardText.setAttribute('data-encrypted', newCid);
-            cardText.setAttribute('data-plaintext', text);
             cardText.dataset.decrypted = '1';
-            renderMessageText(cardText, text);
-            hydrateLinkPreview(cardText, this.config.csrfToken);
+
+            if (attachmentPayload) {
+                const payloadText = JSON.stringify(attachmentPayload);
+                cardText.dataset.rawPlaintext = payloadText;
+                cardText.dataset.plaintext = '📎 ' + (attachmentPayload.file_name || 'Вложение');
+                renderEncryptedAttachment(
+                    cardText,
+                    payloadText,
+                    Number(messageId),
+                    Number(msgEl.dataset.attachmentId || 0),
+                    this.config,
+                    this.crypto,
+                    messageType
+                );
+            } else {
+                cardText.setAttribute('data-plaintext', text);
+                delete cardText.dataset.rawPlaintext;
+                renderMessageText(cardText, text);
+                hydrateLinkPreview(cardText, this.config.csrfToken);
+            }
         }
 
         msgEl.setAttribute('data-is-edited', 'true');
