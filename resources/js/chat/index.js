@@ -1062,7 +1062,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const chatIndex = segments.indexOf('chats');
                     const chatId = chatIndex >= 0 ? Number(segments[chatIndex + 1]) : 0;
                     return chatId > 0 ? { id: chatId, name: link.querySelector('strong')?.textContent?.trim() || 'Чат' } : null;
-                    return match ? { id: Number(match[1]), name: link.querySelector('strong')?.textContent?.trim() || 'Чат' } : null;
                 })
                 .filter(chat => chat && chat.id !== config.chatId);
 
