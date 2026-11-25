@@ -590,7 +590,7 @@ class MessageController extends Controller
         $mediaExtensions = [
             'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'tif', 'tiff', 'heic', 'heif', 'ico'],
             'video' => ['mp4', 'm4v', 'mov', 'mkv', 'webm', 'avi', 'mpeg', 'mpg', '3gp', '3g2', 'mts', 'm2ts'],
-            'audio' => ['mp3', 'wav', 'ogg', 'oga', 'opus', 'm4a', 'aac', 'flac', 'aiff', 'aif'],
+            'audio' => ['mp3', 'wav', 'ogg', 'oga', 'opus', 'webm', 'm4a', 'aac', 'flac', 'aiff', 'aif'],
         ];
 
         if (
