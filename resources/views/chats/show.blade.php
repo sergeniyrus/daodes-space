@@ -1173,6 +1173,14 @@
 }
 .chat-header > .chat-person-heading,
 .chat-header > .chat-profile-trigger { justify-self: start; text-align: left; }
+.chat-header:not(:has(.chat-profile-trigger)) {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.chat-header:not(:has(.chat-profile-trigger)) > .chat-person-heading {
+    grid-column: 2; grid-row: 1; justify-self: center; text-align: center;
+}
+.chat-header:not(:has(.chat-profile-trigger)) > .chat-header-tools { grid-column: 3; grid-row: 1; }
+.chat-group-heading { justify-content: center; }
 .chat-header-tools {
     grid-column: 2;
     grid-row: 1;
@@ -3144,27 +3152,26 @@ body.chat-page .telegram-chat-layout .chat-container {
                 <button type="button" class="chat-channel-info-trigger" id="openChatChannelInfo" aria-label="Информация о канале" title="Информация о канале">
                     <i class="fa fa-info-circle" aria-hidden="true"></i>
                 </button>
+                @if ($currentRole === 'owner' || ($currentRole === 'admin' && $chat->allow_admin_photo) || ($currentRole === 'moderator' && $chat->allow_moderator_photo))
+                    <label class="chat-topic-create" for="channelPhotoInput">{{ __('chats.channel_photo_change') }}</label>
+                    <input type="file" id="channelPhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+                @endif
             </div>
-            @if ($currentRole === 'owner' || ($currentRole === 'admin' && $chat->allow_admin_photo) || ($currentRole === 'moderator' && $chat->allow_moderator_photo))
-                <label class="chat-topic-create" for="channelPhotoInput">{{ __('chats.channel_photo_change') }}</label>
-                <input type="file" id="channelPhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-            @endif
 
 
         @else
 
-            <h2 class="chat-title">
-                {{ $chat->name }}
-            </h2>
-
-            <p class="chat-status">
-
-                {{ __('chats.online_participants', [
-                    'online' => $chat->onlineParticipantsCount(),
-                    'total' => $chat->totalParticipantsCount(),
-                ]) }}
-
-            </p>
+            <div class="chat-person-heading chat-group-heading">
+                <div class="chat-person-heading-info">
+                    <h2 class="chat-title">{{ $chat->name }}</h2>
+                    <p class="chat-status">
+                        {{ __('chats.online_participants', [
+                            'online' => $chat->onlineParticipantsCount(),
+                            'total' => $chat->totalParticipantsCount(),
+                        ]) }}
+                    </p>
+                </div>
+            </div>
 
         @endif
 
