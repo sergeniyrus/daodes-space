@@ -15,7 +15,16 @@ import { initChatCalls } from './calls.js';
 import { initChatMeetings } from './meetings.js';
 import { initGroupCalls } from './group-calls.js';
 
-document.addEventListener('DOMContentLoaded', async () => {
+const onMessengerPageMounted = callback => {
+    if (document.readyState === 'loading' || document.readyState === 'interactive') {
+        document.addEventListener('DOMContentLoaded', callback, { once: true });
+    } else {
+        document.addEventListener('messenger:page-mounted', callback);
+    }
+};
+
+const initializeChatPage = async () => {
+    window.__daodesChatPageCleanup?.();
     const config = loadChatConfig();
 
     const storiesBar = document.getElementById('chatStoriesBar');
@@ -301,6 +310,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ui = new ChatUI(config);
     const sender = new MessageSender(config, ui, crypto);
     const poller = new MessagePoller(config, crypto, ui);
+    window.__daodesChatPageCleanup = () => {
+        poller.stopPolling();
+        window.__daodesChatRealtimeCleanup?.();
+        document.dispatchEvent(new Event('messenger:chat-cleanup'));
+    };
 
     const form = document.getElementById('messageForm');
     const input = document.getElementById('messageInput');
@@ -1895,40 +1909,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('beforeunload', () => {
         poller.stopPolling();
     });
-});
+};
 
-/* Messenger navigation menu on chat pages. */
-document.addEventListener('DOMContentLoaded', () => {
-    const toggle = document.getElementById('messengerMenuToggle');
-    const menu = document.getElementById('messengerMenu');
-    if (!toggle || !menu) return;
-
-    const closeMenu = () => {
-        menu.hidden = true;
-        toggle.setAttribute('aria-expanded', 'false');
-    };
-
-    toggle.addEventListener('click', event => {
-        event.stopPropagation();
-        const willOpen = menu.hidden;
-        menu.hidden = !willOpen;
-        toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-    });
-
-    menu.addEventListener('click', event => {
-        if (event.target.closest('a')) closeMenu();
-    });
-
-    document.addEventListener('click', event => {
-        if (!menu.hidden && !menu.contains(event.target) && !toggle.contains(event.target)) {
-            closeMenu();
-        }
-    });
-
-    document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && !menu.hidden) {
-            closeMenu();
-            toggle.focus();
-        }
-    });
-});
+onMessengerPageMounted(initializeChatPage);
