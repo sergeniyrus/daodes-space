@@ -25,6 +25,7 @@ jobs:
       - name: PHP syntax checks
         run: |
           php -l app/Http/Controllers/ChatStoriesController.php
+          php -l app/Http/Controllers/MessageController.php
           php -l app/Http/Controllers/ChatChannelStoriesController.php
           php -l app/Http/Controllers/ChatModerationController.php
           php -l app/Http/Controllers/ChatChannelSettingsController.php
@@ -44,6 +45,8 @@ jobs:
       - name: JavaScript syntax checks
         run: |
           node --check resources/js/chat/index.js
+          node --check resources/js/chat/file-validation.js
+          node --check resources/js/chat/voice.js
           node --check resources/js/chat/config.js
           node --check resources/js/chat/stories.js
           node --check resources/js/chat/ui.js
