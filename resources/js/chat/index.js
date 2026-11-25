@@ -1058,7 +1058,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         ui.forwardMessage = async (messageText) => {
             const availableChats = [...document.querySelectorAll('#telegramChatList a.telegram-chat-row')]
                 .map(link => {
-                    const match = link.getAttribute('href')?.match(/\/chats\/(\d+)/);
+                    const segments = (link.getAttribute('href') || '').split('/').filter(Boolean);
+                    const chatIndex = segments.indexOf('chats');
+                    const chatId = chatIndex >= 0 ? Number(segments[chatIndex + 1]) : 0;
+                    return chatId > 0 ? { id: chatId, name: link.querySelector('strong')?.textContent?.trim() || 'Чат' } : null;
                     return match ? { id: Number(match[1]), name: link.querySelector('strong')?.textContent?.trim() || 'Чат' } : null;
                 })
                 .filter(chat => chat && chat.id !== config.chatId);
