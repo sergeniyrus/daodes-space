@@ -1021,6 +1021,100 @@
 }
 .chat-story-private-reply:hover { filter: brightness(1.08); }
 
+
+/* DAODES MESSENGER heading and compact navigation */
+.chats-page-heading {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 54px;
+    margin: 0 0 22px;
+}
+.chats-page-heading .chats-page-title {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: clamp(1.15rem, 3vw, 2rem);
+    white-space: nowrap;
+}
+.messenger-menu {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    z-index: 1000;
+    transform: translateY(-50%);
+}
+.messenger-menu-toggle {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    color: #00e5ff;
+    background: transparent;
+    border: 1px solid rgba(0,229,255,.42);
+    border-radius: 11px;
+    font-size: 1.25rem;
+    cursor: pointer;
+}
+.messenger-menu-toggle:hover,
+.messenger-menu-toggle[aria-expanded="true"] {
+    color: #071018;
+    background: #00e5ff;
+}
+.messenger-menu-panel {
+    position: absolute;
+    top: calc(100% + 9px);
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: min(260px, calc(100vw - 48px));
+    padding: 8px;
+    background: #111827;
+    border: 1px solid rgba(0,229,255,.35);
+    border-radius: 13px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.5);
+}
+.messenger-menu-panel[hidden] { display: none !important; }
+.messenger-menu-panel a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 42px;
+    padding: 8px 11px;
+    color: #e5edf7;
+    text-decoration: none;
+    border-radius: 8px;
+}
+.messenger-menu-panel a i {
+    width: 20px;
+    color: #00e5ff;
+    text-align: center;
+}
+.messenger-menu-panel a:hover {
+    color: #ffd700;
+    background: rgba(0,229,255,.08);
+}
+.chat-stories-bar {
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+.chat-stories-list {
+    flex-flow: row nowrap;
+    align-items: flex-start;
+    white-space: nowrap;
+}
+.chat-story-card {
+    flex: 0 0 76px;
+}
+@media (max-width: 600px) {
+    .chats-page-heading { min-height: 46px; padding-right: 46px; }
+    .chats-page-heading .chats-page-title { font-size: clamp(.95rem, 4.2vw, 1.35rem); }
+    .messenger-menu-toggle { width: 38px; height: 38px; }
+}
+
 </style>
 
 
@@ -1030,9 +1124,43 @@
              ЗАГОЛОВОК
              ===================================================== --}}
 
-        <h1 class="big text-center chats-page-title">
-            DESChat
-        </h1>
+        <div class="chats-page-heading">
+            <h1 class="big text-center chats-page-title">
+                DAODES MESSENGER
+            </h1>
+
+            <div class="messenger-menu">
+                <button
+                    type="button"
+                    class="messenger-menu-toggle"
+                    id="messengerMenuToggle"
+                    aria-label="Открыть меню мессенджера"
+                    aria-expanded="false"
+                    aria-controls="messengerMenu"
+                >
+                    <i class="fa fa-bars" aria-hidden="true"></i>
+                </button>
+
+                <nav class="messenger-menu-panel" id="messengerMenu" aria-label="Меню мессенджера" hidden>
+                    <a href="{{ route('contacts.index') }}">
+                        <i class="fa fa-address-book" aria-hidden="true"></i>
+                        <span>Контакты</span>
+                    </a>
+                    <a href="{{ route('chats.notifications') }}">
+                        <i class="fa fa-bell" aria-hidden="true"></i>
+                        <span>Уведомления</span>
+                    </a>
+                    <a href="{{ route('chats.index') }}">
+                        <i class="fa fa-comments" aria-hidden="true"></i>
+                        <span>Чаты</span>
+                    </a>
+                    <a href="{{ route('chats.create') }}">
+                        <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                        <span>Создать чат / канал</span>
+                    </a>
+                </nav>
+            </div>
+        </div>
 
         <section class="chat-stories-bar" id="chatStoriesBar"
                  data-user-id="{{ auth()->id() }}"
@@ -1311,12 +1439,6 @@
              ===================================================== --}}
 
         <div class="text-center chat-create-wrapper">
-
-            <a href="{{ route('contacts.index') }}" class="des-btn">
-                <i class="fa fa-address-book" aria-hidden="true"></i>
-                Контакты и друзья
-            </a>
-
             <button
                 type="button"
                 id="openSavedMessages"
@@ -1326,14 +1448,6 @@
                 <i class="fa fa-bookmark" aria-hidden="true"></i>
                 {{ __('chats.saved_messages') }}
             </button>
-
-            <a
-                href="{{ route('chats.create') }}"
-                class="des-btn"
-            >
-                {{ __('chats.create_chat') }}
-            </a>
-
         </div>
 
     </div>
