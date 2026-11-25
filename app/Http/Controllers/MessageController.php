@@ -146,17 +146,32 @@ class MessageController extends Controller
                     ->values();
             }
 
-            $recentlyEdited = $beforeId > 0
-                ? collect()
-                : $chat->messages()
-                    ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
-                    ->where('edited_at', 1)
-                    ->where('updated_at', '>', now()->subMinutes(5))
-                    ->with('sender:id,name')
-                    ->get();
-
-            return $newMessages->merge($recentlyEdited)->unique('id')->sortBy('id')->values();
+            return $newMessages;
         });
+
+        // Изменённые сообщения запрашиваем отдельно по курсору клиента.
+        // Это не позволяет повторно отдавать одни и те же правки из кэша
+        // при каждом цикле polling и повторно обращаться к IPFS.
+        $editedSince = request('edited_since');
+        if ($beforeId === 0 && $editedSince && strtotime($editedSince) !== false) {
+            $editedMessages = $chat->messages()
+                ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
+                ->where('edited_at', 1)
+                ->where('updated_at', '>', \Illuminate\Support\Carbon::parse($editedSince))
+                ->with([
+                    'sender:id,name',
+                    'attachments:id,message_id,ipfs_cid,media_type,byte_size,position',
+                    'reactions:id,message_id,user_id,reaction,created_at',
+                    'mentions:id,message_id,user_id',
+                ])
+                ->get();
+
+            $messagesMeta = $messagesMeta->keyBy('id')
+                ->merge($editedMessages->keyBy('id'))
+                ->values()
+                ->sortBy('id')
+                ->values();
+        }
 
         // Дополнительно проверяем новые реакции на собственные сообщения.
         // Этот запрос не использует кэш, чтобы реакция отображалась в текущем polling.
