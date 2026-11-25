@@ -127,12 +127,7 @@ export class MessagePoller {
             el.dataset.plaintext = replyText;
             el.dataset.decrypted = '1';
 
-            if (messageEl.classList.contains('sent') && messageType === 'text') {
-                const nonceB64 = encrypted.split('|')[0];
-                this.ui.attachEditButton(messageEl, txt, nonceB64);
-            } else if (!messageEl.classList.contains('sent')) {
-                this.ui.attachMessageMenu(messageEl);
-            }
+            this.ui.attachMessageMenu(messageEl);
         });
 
         this.loadReplyPreviews();
