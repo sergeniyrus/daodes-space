@@ -7,6 +7,7 @@ use App\Services\IPFSService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ChatStoriesController extends Controller
 {
@@ -18,6 +19,8 @@ class ChatStoriesController extends Controller
     {
         $userId = Auth::id();
 
+        $hasReactionsTable = Schema::hasTable('chat_story_reactions');
+
         $stories = DB::table('chat_stories as stories')
             ->join('chat_story_keys as story_keys', 'story_keys.story_id', '=', 'stories.id')
             ->join('users as authors', 'authors.id', '=', 'stories.user_id')
@@ -27,9 +30,11 @@ class ChatStoriesController extends Controller
                     ->where('views.user_id', '=', $userId);
             })
             ->where('story_keys.user_id', $userId)
-            ->leftJoin('chat_story_reactions as reactions', function ($join) use ($userId) {
-                $join->on('reactions.story_id', '=', 'stories.id')
-                    ->where('reactions.user_id', '=', $userId);
+            ->when($hasReactionsTable, function ($query) use ($userId) {
+                $query->leftJoin('chat_story_reactions as reactions', function ($join) use ($userId) {
+                    $join->on('reactions.story_id', '=', 'stories.id')
+                        ->where('reactions.user_id', '=', $userId);
+                });
             })
             ->where('stories.expires_at', '>', now())
             ->whereNotExists(function ($query) use ($userId) {
@@ -65,7 +70,7 @@ class ChatStoriesController extends Controller
                 'stories.created_at',
                 'stories.expires_at',
                 'views.id as viewed_id',
-                'reactions.reaction as my_reaction',
+                ...($hasReactionsTable ? ['reactions.reaction as my_reaction'] : []),
             ])
             ->map(fn($story) => [
                 'id' => (int) $story->id,
