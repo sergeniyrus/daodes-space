@@ -18,14 +18,14 @@ export class ChatUI {
         if (!body) return;
         const actions = document.createElement('div');
         actions.className = 'edit-actions';
-        actions.innerHTML = '<span class="dots">⋮</span>';
+        actions.innerHTML = '<button type="button" class="dots" aria-label="Действия с сообщением" title="Действия">⋮</button>';
         body.appendChild(actions);
         actions.querySelector('.dots').onclick = e => {
             e.stopPropagation();
             this.createContextMenu(messageEl.dataset.id, messageEl, plaintext, nonceB64);
         };
-        body.onmouseenter = () => actions.style.opacity = '1';
-        body.onmouseleave = () => actions.style.opacity = '0';
+        actions.style.opacity = '1';
+        actions.style.visibility = 'visible';
     }
 
     // Меню с тремя точками для чужих сообщений (Ответить + Копировать)
@@ -49,8 +49,8 @@ export class ChatUI {
             this.createReceivedContextMenu(messageEl.dataset.id, messageEl, text, nonceB64);
         });
 
-        body.addEventListener('mouseenter', () => { actions.style.opacity = '1'; });
-        body.addEventListener('mouseleave', () => { actions.style.opacity = '0'; });
+        actions.style.opacity = '1';
+        actions.style.visibility = 'visible';
     }
 
     createReceivedContextMenu(messageId, messageEl, text, nonceB64 = null) {
