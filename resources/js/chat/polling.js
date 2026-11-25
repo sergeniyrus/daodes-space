@@ -22,6 +22,7 @@ export class MessagePoller {
         this.pendingReadThroughId = 0;
         this.pendingReadTopicId = this.config.topicId || null;
         this.activitySince = new Date().toISOString();
+        this.editedSince = this.activitySince;
         this.latestActivityTimestamp = 0;
         this.activityNotification = null;
         this.seenActivityKeys = new Set();
@@ -38,6 +39,8 @@ export class MessagePoller {
                 this.highestKnownMessageId = Math.max(this.highestKnownMessageId, id);
             }
         });
+        // Blade уже отрисовал последние сообщения. Не запрашиваем их повторно из IPFS.
+        this.initialLoadDone = this.allMessageIds.size > 0;
         console.log('[Poller] Init, highest ID:', this.highestKnownMessageId);
     }
 
@@ -214,9 +217,11 @@ export class MessagePoller {
 
         try {
             const lastId = this.initialLoadDone ? this.highestKnownMessageId : 0;
+            const requestStartedAt = new Date().toISOString();
             const params = new URLSearchParams({
                 last_id: String(lastId),
                 activity_since: this.activitySince,
+                edited_since: this.editedSince,
             });
             if (this.config.topicId) {
                 params.set('topic_id', String(this.config.topicId));
@@ -245,6 +250,7 @@ export class MessagePoller {
 
             const msgs = await res.json();
             if (requestedTopicId !== this.config.topicId) return;
+            this.editedSince = requestStartedAt;
             if (!Array.isArray(msgs)) return;
 
             const wasAtBottom = this.isAtBottom();
