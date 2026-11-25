@@ -23,6 +23,8 @@ export function initChatCalls(config, crypto) {
     let localStream = null;
     let lastSignalId = 0;
     let polling = false;
+    let pollingStopped = false;
+    let pollTimer = null;
     let pendingCandidates = [];
     let pendingRemoteCandidates = [];
     let answering = false;
@@ -221,7 +223,7 @@ export function initChatCalls(config, crypto) {
     };
 
     const poll = async () => {
-        if (polling) return;
+        if (polling || pollingStopped) return;
         polling = true;
         try {
             const response = await fetch('/chats/' + config.chatId + '/calls/active', {
@@ -256,7 +258,7 @@ export function initChatCalls(config, crypto) {
             console.error('[ChatCall] Poll failed:', error);
         } finally {
             polling = false;
-            window.setTimeout(poll, 1200);
+            if (!pollingStopped) pollTimer = window.setTimeout(poll, 1200);
         }
     };
 
@@ -379,7 +381,19 @@ export function initChatCalls(config, crypto) {
     rejectButton?.addEventListener('click', () => end(true));
     endButton?.addEventListener('click', () => end(false));
 
+    document.addEventListener('messenger:chat-cleanup', () => {
+        pollingStopped = true;
+        if (pollTimer) window.clearTimeout(pollTimer);
+        if (call) end(true).catch(error => console.error('[ChatCall] Cleanup failed:', error));
+        else {
+            closeMedia();
+            modal.hidden = true;
+        }
+    });
+
     window.addEventListener('beforeunload', () => {
+        pollingStopped = true;
+        if (pollTimer) window.clearTimeout(pollTimer);
         if (localStream) localStream.getTracks().forEach(track => track.stop());
         if (pc) pc.close();
     });
