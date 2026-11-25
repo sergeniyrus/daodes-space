@@ -313,6 +313,7 @@ export class MessagePoller {
                                 </div>
                             </div>
                         </div>
+                        </div>
                     `;
                     chatMessages.insertAdjacentHTML('beforeend', html);
 
@@ -436,6 +437,7 @@ export class MessagePoller {
                                 <button type="button" class="reaction-choice" data-reaction="🎉">🎉</button>
                             </div>
                         </div>
+                    </div>
                     </div>
                 `;
 
