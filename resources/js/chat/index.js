@@ -496,34 +496,67 @@ document.addEventListener('DOMContentLoaded', async () => {
     const messageSearchInput = document.getElementById('chatMessageSearchInput');
     const messageSearchCount = document.getElementById('chatMessageSearchCount');
     const clearMessageSearch = document.getElementById('clearMessageSearch');
+    const previousMessageSearch = document.getElementById('previousMessageSearch');
+    const nextMessageSearch = document.getElementById('nextMessageSearch');
+    let messageSearchMatches = [];
+    let activeMessageSearchIndex = -1;
 
-    const applyMessageSearch = () => {
-        const term = (messageSearchInput?.value || '').trim().toLocaleLowerCase();
-        let matches = 0;
-        chatMessages?.querySelectorAll('.message').forEach(message => {
-            const matched = !term || (message.dataset.searchText || '').includes(term);
-            message.hidden = !matched;
-            if (matched && term) matches++;
+    const focusMessageSearchMatch = index => {
+        if (!messageSearchMatches.length || !chatMessages) return;
+        activeMessageSearchIndex = (index + messageSearchMatches.length) % messageSearchMatches.length;
+        messageSearchMatches.forEach((message, matchIndex) => {
+            message.classList.toggle('search-match-active', matchIndex === activeMessageSearchIndex);
         });
-        if (messageSearchCount) messageSearchCount.textContent = term ? String(matches) : '';
+        const target = messageSearchMatches[activeMessageSearchIndex];
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (messageSearchCount) {
+            messageSearchCount.textContent = `${activeMessageSearchIndex + 1}/${messageSearchMatches.length}`;
+        }
+    };
+
+    const applyMessageSearch = (resetIndex = true) => {
+        const term = (messageSearchInput?.value || '').trim().toLocaleLowerCase();
+        messageSearchMatches = [];
+        chatMessages?.querySelectorAll('.message').forEach(message => {
+            message.hidden = false;
+            const matched = Boolean(term) && (message.dataset.searchText || '').includes(term);
+            message.classList.toggle('search-match', matched);
+            message.classList.remove('search-match-active');
+            if (matched) messageSearchMatches.push(message);
+        });
+
+        if (resetIndex) activeMessageSearchIndex = -1;
+        if (!term) {
+            if (messageSearchCount) messageSearchCount.textContent = '';
+            return;
+        }
+        if (!messageSearchMatches.length) {
+            if (messageSearchCount) messageSearchCount.textContent = '0/0';
+            return;
+        }
+        focusMessageSearchMatch(activeMessageSearchIndex < 0 ? 0 : activeMessageSearchIndex);
     };
 
     toggleMessageSearch?.addEventListener('click', () => {
         messageSearchPanel.hidden = !messageSearchPanel.hidden;
-        if (!messageSearchPanel.hidden) messageSearchInput?.focus();
-        else {
+        if (!messageSearchPanel.hidden) {
+            messageSearchInput?.focus();
+        } else {
             if (messageSearchInput) messageSearchInput.value = '';
             applyMessageSearch();
         }
     });
 
-    messageSearchInput?.addEventListener('input', applyMessageSearch);
+    messageSearchInput?.addEventListener('input', () => applyMessageSearch());
+    previousMessageSearch?.addEventListener('click', () => focusMessageSearchMatch(activeMessageSearchIndex - 1));
+    nextMessageSearch?.addEventListener('click', () => focusMessageSearchMatch(activeMessageSearchIndex + 1));
+
     clearMessageSearch?.addEventListener('click', () => {
         if (messageSearchInput) messageSearchInput.value = '';
         applyMessageSearch();
         messageSearchInput?.focus();
     });
-    document.addEventListener('chat:message-decrypted', applyMessageSearch);
+    document.addEventListener('chat:message-decrypted', () => applyMessageSearch(false));
 
     const pinnedMessages = document.getElementById('chatPinnedMessages');
     ui.loadPinnedMessages(pinnedMessages);
@@ -867,55 +900,82 @@ document.addEventListener('DOMContentLoaded', async () => {
         poller.startPolling(3000);
         connectChatRealtime(config, poller);
 
-        const muteDuration = document.getElementById('chatMuteDuration');
-        const saveMuteButton = document.getElementById('saveChatMute');
+        const muteToggle = document.getElementById('toggleChatMute');
+        const muteMenu = document.getElementById('chatMuteMenu');
         const muteStatus = document.getElementById('chatMuteStatus');
-        muteStatus?.classList.toggle('is-muted', Boolean(config.mutedUntil && new Date(config.mutedUntil).getTime() > Date.now()));
+        const muteIcon = muteToggle?.querySelector('i');
 
-        if (muteDuration && config.mutedUntil) {
-            const remaining = new Date(config.mutedUntil).getTime() - Date.now();
-            const presets = [60, 480, 1440, 10080, 43200];
-            const matchingPreset = presets.find(minutes =>
-                minutes * 60 * 1000 >= remaining
-            );
-            muteDuration.value = matchingPreset ? String(matchingPreset) : '';
-        }
+        const isChatMuted = () => Boolean(
+            config.mutedUntil && new Date(config.mutedUntil).getTime() > Date.now()
+        );
 
-        saveMuteButton?.addEventListener('click', async () => {
-            saveMuteButton.disabled = true;
-            try {
-                const response = await fetch(`/chats/${config.chatId}/mute`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': config.csrfToken,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({
-                        duration: muteDuration.value ? Number(muteDuration.value) : null,
-                    }),
-                });
-                const data = await response.json();
-                if (!response.ok || data.status !== 'success') {
-                    throw new Error(data.message || 'Не удалось изменить уведомления');
+        const renderMuteState = () => {
+            const muted = isChatMuted();
+            muteToggle?.classList.toggle('is-muted', muted);
+            muteToggle?.setAttribute('aria-pressed', muted ? 'true' : 'false');
+            if (muteIcon) {
+                muteIcon.classList.toggle('fa-bell', !muted);
+                muteIcon.classList.toggle('fa-bell-slash', muted);
+            }
+            muteStatus?.classList.toggle('is-muted', muted);
+        };
+
+        renderMuteState();
+
+        muteToggle?.addEventListener('click', () => {
+            const isOpen = !muteMenu.hidden;
+            muteMenu.hidden = isOpen;
+            muteToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        });
+
+        muteMenu?.querySelectorAll('[data-mute-duration]').forEach(option => {
+            option.addEventListener('click', async () => {
+                const durationValue = option.dataset.muteDuration;
+                option.disabled = true;
+                try {
+                    const response = await fetch(`/chats/${config.chatId}/mute`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': config.csrfToken,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            duration: durationValue === '' ? null : Number(durationValue),
+                        }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok || data.status !== 'success') {
+                        throw new Error(data.message || 'Не удалось изменить уведомления');
+                    }
+
+                    config.mutedUntil = data.muted_until;
+                    document.getElementById('chat-config').dataset.mutedUntil = data.muted_until || '';
+                    renderMuteState();
+
+                    if (data.muted_until) {
+                        muteStatus.textContent = (config.translations.mutedUntil || 'Muted until :date')
+                            .replace(':date', new Date(data.muted_until).toLocaleString());
+                    } else {
+                        muteStatus.textContent = config.translations.notificationsEnabled || 'Notifications enabled';
+                    }
+
+                    muteMenu.hidden = true;
+                    muteToggle?.setAttribute('aria-expanded', 'false');
+                } catch (error) {
+                    console.error('Chat mute update failed:', error);
+                    window.alert(error.message || 'Не удалось изменить уведомления');
+                } finally {
+                    option.disabled = false;
                 }
+            });
+        });
 
-                config.mutedUntil = data.muted_until;
-                muteStatus?.classList.toggle('is-muted', Boolean(data.muted_until));
-                document.getElementById('chat-config').dataset.mutedUntil = data.muted_until || '';
-                if (data.muted_until) {
-                    muteStatus.textContent = (config.translations.mutedUntil || 'Muted until :date')
-                        .replace(':date', new Date(data.muted_until).toLocaleString());
-                } else {
-                    muteStatus.textContent = config.translations.notificationsEnabled || 'Notifications enabled';
-                    muteDuration.value = '';
-                }
-            } catch (error) {
-                console.error('Chat mute update failed:', error);
-                window.alert(error.message || 'Не удалось изменить уведомления');
-            } finally {
-                saveMuteButton.disabled = false;
+        document.addEventListener('click', event => {
+            if (!event.target.closest('.chat-mute-controls')) {
+                if (muteMenu) muteMenu.hidden = true;
+                muteToggle?.setAttribute('aria-expanded', 'false');
             }
         });
 
