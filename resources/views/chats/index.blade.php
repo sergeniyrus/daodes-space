@@ -7,6 +7,7 @@
 @endpush
 
 @section('main')
+<div id="messengerAppRoot" data-messenger-root>
 
 
 <style>
@@ -1467,9 +1468,11 @@
         @push('scripts')
 
             @vite('resources/js/chat_index.js')
+            @vite('resources/js/messenger-router.js')
 
         @endpush
 
     @endif
 
+</div>
 @endsection
