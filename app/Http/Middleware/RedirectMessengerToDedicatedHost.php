@@ -33,7 +33,7 @@ class RedirectMessengerToDedicatedHost
             return $next($request);
         }
 
-        $host = strtolower((string) config('messenger.host', 'webdeschat.daodes.space'));
+        $host = strtolower((string) config('messenger.host', 'deschat.daodes.space'));
         $currentHost = strtolower($request->getHost());
 
         if ($host === '' || $currentHost === $host) {
