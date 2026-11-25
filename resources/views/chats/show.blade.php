@@ -1153,10 +1153,82 @@
 .message-reactions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     flex-wrap: wrap;
     gap: 5px;
     position: relative;
-    margin-top: 5px;
+    margin: 6px 8px 2px auto;
+    width: fit-content;
+    max-width: calc(100% - 16px);
+}
+.message-reactions .add-reaction {
+    order: 99;
+}
+.chat-media-image-download { align-self: flex-end; font-size: .86rem; padding: 6px 11px; }
+.chat-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 14px;
+}
+.chat-header > .chat-person-heading,
+.chat-header > .chat-profile-trigger { justify-self: start; text-align: left; }
+.chat-header-tools {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+}
+.chat-header-tools .chat-mute-controls,
+.chat-header-tools .chat-message-search {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin: 0;
+}
+.chat-header-tools .chat-mute-controls label,
+.chat-header-tools .chat-mute-status { display: none; }
+.chat-header-tools .chat-mute-controls select { max-width: 42px; font-size: 0; }
+.chat-header-tools .chat-mute-controls select option { font-size: 14px; }
+.chat-header-tools .chat-mute-controls button { font-size: 0; min-width: 36px; padding: 6px; }
+.chat-header-tools .chat-mute-controls button::before { content: "🔔"; font-size: 16px; }
+.chat-header-tools .chat-message-search { margin: 0; }
+.chat-header:has(#channelHeaderPhoto) {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.chat-header:has(#channelHeaderPhoto) > .chat-person-heading {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    text-align: center;
+}
+.chat-header:has(#channelHeaderPhoto) > .chat-header-tools {
+    grid-column: 3;
+    grid-row: 1;
+}
+#channelHeaderPhoto { cursor: zoom-in; }
+.chat-channel-photo-viewer {
+    position: fixed; inset: 0; z-index: 100001; display: flex;
+    align-items: center; justify-content: center; padding: 24px;
+    background: rgba(0,0,0,.94); cursor: zoom-out;
+}
+.chat-channel-photo-viewer img {
+    max-width: min(92vw, 900px); max-height: 90vh;
+    object-fit: contain; border-radius: 12px;
+}
+@media (max-width: 700px) {
+    .chat-header { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+    .chat-header-tools { gap: 4px; }
+    .chat-header-tools .chat-mute-controls select { max-width: 36px; }
+    .chat-header:has(#channelHeaderPhoto) { grid-template-columns: minmax(0, 1fr) auto; }
+    .chat-header:has(#channelHeaderPhoto) > .chat-person-heading {
+        grid-column: 1; justify-self: center; grid-row: 1;
+    }
+    .chat-header:has(#channelHeaderPhoto) > .chat-header-tools { grid-column: 2; }
 }
 
 .chat-pinned-messages {
@@ -3063,7 +3135,8 @@ body.chat-page .telegram-chat-layout .chat-container {
             <div class="chat-person-heading">
                 <img class="chat-header-avatar" id="channelHeaderPhoto"
                      src="{{ $chat->photo_cid ? '/ipfs/' . $chat->photo_cid : '/img/main/default-avatar.png' }}"
-                     alt="">
+                     alt="{{ $chat->name }}" role="button" tabindex="0"
+                     aria-label="Просмотреть логотип канала" title="Просмотреть логотип">
                 <div class="chat-person-heading-info">
                     <h2 class="chat-title">{{ $chat->name }}</h2>
                     <p class="chat-status">{{ __('chats.online_participants', ['online' => $chat->onlineParticipantsCount(), 'total' => $chat->totalParticipantsCount()]) }}</p>
@@ -3095,6 +3168,7 @@ body.chat-page .telegram-chat-layout .chat-container {
 
         @endif
 
+        <div class="chat-header-tools">
         <div class="chat-mute-controls">
             <label for="chatMuteDuration">{{ __('chats.mute_notifications') }}</label>
             <select id="chatMuteDuration">
@@ -3129,6 +3203,7 @@ body.chat-page .telegram-chat-layout .chat-container {
                 <span id="chatMessageSearchCount" aria-live="polite"></span>
                 <button type="button" id="clearMessageSearch" aria-label="{{ __('chats.clear_search') }}">×</button>
             </div>
+        </div>
         </div>
 
     </div>
