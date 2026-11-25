@@ -42,7 +42,7 @@ LIVEKIT_URL=wss://rtc.daodes.space
 LIVEKIT_API_KEY=PASTE_FIRST_GENERATED_VALUE
 LIVEKIT_API_SECRET=PASTE_SECOND_GENERATED_VALUE
 SESSION_DOMAIN=.daodes.space
-MESSENGER_HOST=webdeschat.daodes.space
+MESSENGER_HOST=deschat.daodes.space
 MESSENGER_SCHEME=https
 ```
 
@@ -69,7 +69,7 @@ certificate is available, and the Nginx reverse proxy is configured.
 
 ## Nginx requirements
 
-- `webdeschat.daodes.space`: same Laravel public root and PHP-FPM socket as
+- `deschat.daodes.space`: same Laravel public root and PHP-FPM socket as
   `daodes.space`; proxy `/app/` and `/apps/` to Reverb at `127.0.0.1:8090`.
 - `rtc.daodes.space`: proxy all HTTPS paths to `http://127.0.0.1:7880` using
   HTTP/1.1 WebSocket upgrade headers.
