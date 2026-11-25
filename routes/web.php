@@ -33,6 +33,7 @@ use App\Http\Controllers\{
     ChatStoriesController,
     ChatChannelStoriesController,
     ChatChannelSettingsController,
+    ChatModerationController,
     ChatContactsController,
     ChatScheduledMessageController,
     ChatCallController,
