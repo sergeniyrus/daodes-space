@@ -133,7 +133,7 @@ export class ChatUI {
         if (!isOwn && this.config.reportUrl) {
             addAction('fa-flag', 'Пожаловаться', async () => {
                 const choice = window.prompt(
-                    'Причина жалобы:\\n1 — Спам\\n2 — Оскорбления\\n3 — Травля\\n4 — Мошенничество\\n5 — Недопустимый контент\\n6 — Другое',
+                    ['Причина жалобы:', '1 — Спам', '2 — Оскорбления', '3 — Травля', '4 — Мошенничество', '5 — Недопустимый контент', '6 — Другое'].join(String.fromCharCode(10)),
                     '1'
                 );
                 if (choice === null) return;
