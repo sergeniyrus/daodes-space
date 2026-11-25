@@ -2939,6 +2939,24 @@ body.chat-page .telegram-chat-layout .chat-container {
     }
 }
 
+
+/* Настройки и модерация чатов */
+.chat-settings-tabs{display:flex;gap:8px;margin:14px 0;border-bottom:1px solid rgba(0,229,255,.18)}
+.chat-settings-tabs button{padding:9px 12px;color:#aeb7c5;background:transparent;border:0;border-bottom:2px solid transparent;cursor:pointer}
+.chat-settings-tabs button.active{color:#ffd700;border-bottom-color:#ffd700}
+.chat-moderation-settings-form{display:grid;gap:9px;margin:14px auto;max-width:520px;text-align:left;color:#dbe4ef}
+.chat-moderation-settings-form label{display:flex;align-items:center;gap:8px;font-size:.84rem}
+.chat-moderation-settings-form button,.chat-moderation-panel-heading button,.chat-report-actions button{justify-self:start;padding:7px 11px;color:#ffd700;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.35);border-radius:8px;cursor:pointer}
+#moderationSettingsStatus{color:#00e5ff;font-size:.8rem}
+.chat-moderation-panel{margin:12px auto;max-width:680px;text-align:left}
+.chat-moderation-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.chat-moderation-panel-heading h4{margin:0;color:#ffd700}
+.chat-report-item{margin:10px 0;padding:12px;border:1px solid rgba(0,229,255,.2);border-radius:10px;background:rgba(5,12,24,.45)}
+.chat-report-item p{margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-report-meta{color:#9aa8bc;font-size:.78rem}
+.chat-report-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.chat-report-actions button[data-status="rejected"]{color:#ff9292;border-color:rgba(255,100,100,.35)}
+
 </style>
 
 
@@ -3172,6 +3190,7 @@ body.chat-page .telegram-chat-layout .chat-container {
                         ]) }}
                     </p>
                 </div>
+                <button type="button" class="chat-channel-info-trigger" id="openChatChannelInfo" aria-label="Настройки чата" title="Настройки чата"><i class="fa fa-cog" aria-hidden="true"></i></button>
             </div>
 
         @endif
@@ -3228,14 +3247,21 @@ body.chat-page .telegram-chat-layout .chat-container {
     </div>
 
 
-    @if ($chat->type === 'channel')
+    @if (in_array($chat->type, ['group', 'channel'], true))
         <div class="chat-channel-info-modal" id="chatChannelInfoModal" hidden>
             <section class="chat-channel-info-card" role="dialog" aria-modal="true" aria-labelledby="chatChannelInfoTitle">
                 <button type="button" class="chat-peer-profile-close" id="closeChatChannelInfo" aria-label="Закрыть">×</button>
                 <div class="chat-channel-info-heading">
                     <img src="{{ $chat->photo_cid ? '/ipfs/' . $chat->photo_cid : '/img/main/default-avatar.png' }}" alt="">
-                    <div><h3 id="chatChannelInfoTitle">{{ $chat->name }}</h3><p>{{ __('chats.channel') }}</p></div>
+                    <div><h3 id="chatChannelInfoTitle">{{ $chat->name }}</h3><p>{{ $chat->type === 'channel' ? __('chats.channel') : __('chats.group_chat') }}</p></div>
                 </div>
+                <nav class="chat-settings-tabs" aria-label="Настройки чата">
+                    <button type="button" class="active" data-settings-tab="general">Участники и настройки</button>
+                    @if (in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                        <button type="button" data-settings-tab="moderation">Модерация</button>
+                    @endif
+                </nav>
+                <div id="chatSettingsGeneral">
                 <div class="chat-channel-info-stats">
                     <span><strong>{{ $chat->totalParticipantsCount() }}</strong> участников</span>
                     <span><strong>{{ $chat->onlineParticipantsCount() }}</strong> в сети</span>
@@ -3247,7 +3273,7 @@ body.chat-page .telegram-chat-layout .chat-container {
                         <div><span>{{ $channelMember->name }}</span><small>{{ __('chats.role_' . ($channelMember->pivot->role ?? 'member')) }}</small></div>
                     @endforeach
                 </div>
-                @if ($currentRole === 'owner')
+                @if ($currentRole === 'owner' && $chat->type === 'channel')
                     <details class="chat-channel-settings" open>
                         <summary>{{ __('chats.channel_settings_permissions') }}</summary>
                         <form id="channelSettingsForm" data-url="{{ route('chats.channel.settings', $chat->id) }}" data-label-saved="{{ __('chats.channel_permissions_saved') }}" data-label-save-error="{{ __('chats.channel_permissions_save_error') }}">
@@ -3259,6 +3285,22 @@ body.chat-page .telegram-chat-layout .chat-container {
                             <span id="channelSettingsStatus" aria-live="polite"></span>
                         </form>
                     </details>
+                @endif
+                @if ($currentRole === 'owner')
+                    <form id="moderationSettingsForm" class="chat-moderation-settings-form" data-url="{{ route('chats.moderation.settings', $chat->id) }}">
+                        <strong>Разрешения участников</strong>
+                        <label><input type="checkbox" name="allow_copy_messages" @checked($chat->allow_copy_messages ?? true)> Разрешить копирование сообщений</label>
+                        <label><input type="checkbox" name="allow_forward_messages" @checked($chat->allow_forward_messages ?? true)> Разрешить пересылку сообщений</label>
+                        <button type="submit">Сохранить разрешения</button>
+                        <span id="moderationSettingsStatus" aria-live="polite"></span>
+                    </form>
+                @endif
+                </div>
+                @if (in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                    <section id="chatSettingsModeration" class="chat-moderation-panel" hidden data-url="{{ route('chats.moderation.index', $chat->id) }}" data-update-url="{{ url('/chats/' . $chat->id . '/moderation/reports') }}">
+                        <div class="chat-moderation-panel-heading"><h4>Жалобы на сообщения</h4><button type="button" id="refreshChatReports">Обновить</button></div>
+                        <div id="chatModerationReports" aria-live="polite"><p>Загрузка жалоб...</p></div>
+                    </section>
                 @endif
             </section>
         </div>
