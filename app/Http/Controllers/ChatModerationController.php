@@ -64,7 +64,7 @@ class ChatModerationController extends Controller
     public function store(Request $request, Chat $chat, Message $message)
     {
         $membership = $this->membership($chat);
-        abort_unless($message->chat_id === $chat->id, 404);
+        abort_unless((int) $message->chat_id === (int) $chat->id, 404);
         abort_unless((int) $message->sender_id !== (int) Auth::id(), 422, 'Нельзя пожаловаться на собственное сообщение.');
 
         $validated = $request->validate([
@@ -72,19 +72,7 @@ class ChatModerationController extends Controller
             'reason' => 'required|string|in:spam,abuse,harassment,scam,inappropriate,other',
         ]);
 
-        $exists = DB::table('chat_message_reports')
-            ->where('message_id', $message->id)
-            ->where('reporter_id', Auth::id())
-            ->exists();
-
-        if ($exists) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Вы уже отправили жалобу на это сообщение.',
-            ], 409);
-        }
-
-        DB::table('chat_message_reports')->insert([
+        $inserted = DB::table('chat_message_reports')->insertOrIgnore([
             'chat_id' => $chat->id,
             'message_id' => $message->id,
             'reporter_id' => Auth::id(),
@@ -96,6 +84,13 @@ class ChatModerationController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if (!$inserted) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Вы уже отправили жалобу на это сообщение.',
+            ], 409);
+        }
 
         return response()->json(['status' => 'success']);
     }
