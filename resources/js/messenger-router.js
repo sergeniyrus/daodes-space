@@ -30,7 +30,7 @@ async function initializeMessengerPage() {
 
 async function navigateTo(url, addHistory = true) {
     const target = new URL(url, window.location.href);
-    if (!isMessengerUrl(target) || navigating) return false;
+    if (!isMessengerUrl(target)) return false;
     if (target.href === window.location.href) return true;
 
     navigationController?.abort();
