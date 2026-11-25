@@ -322,6 +322,10 @@ export function initGroupCalls(config, crypto) {
         }
     });
 
+    document.addEventListener('messenger:chat-cleanup', () => {
+        cleanup().catch(error => console.error('[GroupCall] Navigation cleanup:', error));
+    });
+
     window.addEventListener('beforeunload', () => {
         if (room) room.disconnect();
         if (e2eeWorker) e2eeWorker.terminate();
