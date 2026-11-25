@@ -1201,26 +1201,43 @@
 }
 
 
-/* Header: title first, compact search and notification icons on the same line. */
+/* Header: personal chats keep the peer on the left and tools on the right;
+   channels and saved chats keep the heading centered with tools on the right. */
 .telegram-chat-layout .chat-header:has(.chat-person-heading) {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     gap: 5px 8px;
 }
 .telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-person-heading {
-    flex: 1 1 100%;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    min-width: 0;
+    text-align: center;
+}
+.telegram-chat-layout .chat-header:has(.chat-profile-trigger) > .chat-person-heading {
+    grid-column: 1;
+    justify-self: start;
+    text-align: left;
+}
+.telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-header-tools {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     min-width: 0;
 }
-.telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-mute-controls,
-.telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-message-search {
-    flex: 0 0 auto;
+.telegram-chat-layout .chat-header-tools .chat-mute-controls,
+.telegram-chat-layout .chat-header-tools .chat-message-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     margin: 0;
-}
-.telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-mute-controls {
-    margin-left: auto;
 }
 @media (max-width: 720px) {
     .telegram-chat-layout .chat-header:has(.chat-person-heading) { gap: 4px 6px; }
-    .telegram-chat-layout .chat-header:has(.chat-person-heading) > .chat-mute-controls { margin-left: auto; }
+    .telegram-chat-layout .chat-header-tools { gap: 4px; }
 }
