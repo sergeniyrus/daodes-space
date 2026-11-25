@@ -181,3 +181,40 @@ document.addEventListener('DOMContentLoaded', () => {
         },
     });
 });
+
+
+/* Hamburger navigation for the messenger index. */
+document.addEventListener('DOMContentLoaded', () => {
+    const toggle = document.getElementById('messengerMenuToggle');
+    const menu = document.getElementById('messengerMenu');
+    if (!toggle || !menu) return;
+
+    const closeMenu = () => {
+        menu.hidden = true;
+        toggle.setAttribute('aria-expanded', 'false');
+    };
+
+    toggle.addEventListener('click', event => {
+        event.stopPropagation();
+        const willOpen = menu.hidden;
+        menu.hidden = !willOpen;
+        toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+
+    menu.addEventListener('click', event => {
+        if (event.target.closest('a')) closeMenu();
+    });
+
+    document.addEventListener('click', event => {
+        if (!menu.hidden && !menu.contains(event.target) && !toggle.contains(event.target)) {
+            closeMenu();
+        }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !menu.hidden) {
+            closeMenu();
+            toggle.focus();
+        }
+    });
+});
