@@ -34,7 +34,7 @@ return [
             'hostname' => env('REVERB_HOST'),
 
             'cors' => [
-    'allowed_origins' => ['https://daodes.space', 'https://webdeschat.daodes.space', 'http://localhost'], // Разрешенные источники
+    'allowed_origins' => ['https://daodes.space', 'https://deschat.daodes.space', 'http://localhost'], // Разрешенные источники
     'allowed_methods' => ['GET', 'POST'], // Разрешенные HTTP-методы
     'allowed_headers' => ['*'], // Разрешенные заголовки
     // 'allowed_headers' => ['Content-Type', 'X-Requested-With'], // Альтернативно: явное указание заголовков
