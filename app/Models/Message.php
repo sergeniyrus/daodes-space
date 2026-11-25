@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use GuzzleHttp\Client;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class Message extends Model
 {
