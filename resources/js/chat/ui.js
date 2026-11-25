@@ -125,6 +125,11 @@ export class ChatUI {
             });
         }
 
+        if (this.config.allowForwardMessages && messageType === 'text' && typeof this.forwardMessage === 'function') {
+            addAction('fa-share', 'Переслать', () => this.forwardMessage(text, messageEl));
+        }
+
+
         if (!isOwn && this.config.reportUrl) {
             addAction('fa-flag', 'Пожаловаться', async () => {
                 const choice = window.prompt(
@@ -245,6 +250,15 @@ export class ChatUI {
                 catch (error) { console.error('Failed to copy:', error); }
             };
             menu.appendChild(copyBtn);
+        }
+        if (this.config.allowForwardMessages && (messageEl.dataset.messageType || 'text') === 'text' && typeof this.forwardMessage === 'function') {
+            const forwardBtn = document.createElement('div');
+            forwardBtn.innerHTML = '<i class="fa fa-share" aria-hidden="true"></i> Переслать';
+            forwardBtn.onclick = () => {
+                menu.remove();
+                this.forwardMessage(text, messageEl);
+            };
+            menu.appendChild(forwardBtn);
         }
         menu.appendChild(delBtn);
         if (this.config.chatType === 'personal' || ['owner', 'admin', 'moderator'].includes(this.config.currentRole)) {
