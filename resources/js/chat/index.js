@@ -1055,6 +1055,71 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        ui.forwardMessage = async (messageText) => {
+            const availableChats = [...document.querySelectorAll('#telegramChatList a.telegram-chat-row')]
+                .map(link => {
+                    const match = link.getAttribute('href')?.match(/\\/chats\\/(\\d+)/);
+                    return match ? { id: Number(match[1]), name: link.querySelector('strong')?.textContent?.trim() || 'Чат' } : null;
+                })
+                .filter(chat => chat && chat.id !== config.chatId);
+
+            if (!availableChats.length) {
+                window.alert('Нет других чатов, доступных для пересылки.');
+                return;
+            }
+
+            const choices = availableChats.map((chat, index) => (index + 1) + '. ' + chat.name).join('\\n');
+            const selected = window.prompt('Куда переслать сообщение? Введите номер чата:\\n' + choices, '1');
+            if (selected === null) return;
+            const target = availableChats[Number(selected) - 1];
+            if (!target) {
+                window.alert('Выберите номер из списка.');
+                return;
+            }
+
+            try {
+                const keyResponse = await fetch('/chats/' + target.id + '/my-key', {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                const keyData = await keyResponse.json();
+                if (!keyResponse.ok) throw new Error(keyData.error || 'Не удалось получить ключ целевого чата');
+
+                const decode = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
+                const targetChatKey = nacl.box.open(
+                    decode(keyData.encrypted_key),
+                    decode(keyData.nonce),
+                    decode(keyData.initiator_public_key),
+                    decode(privKeyB64)
+                );
+                if (!targetChatKey) throw new Error('Не удалось расшифровать ключ целевого чата');
+
+                const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+                const encrypted = nacl.secretbox(new TextEncoder().encode(messageText), nonce, targetChatKey);
+                const sendResponse = await fetch('/chats/' + target.id + '/messages', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': config.csrfToken,
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        message: u8ToB64(encrypted),
+                        nonce: u8ToB64(nonce),
+                        message_type: 'text',
+                    }),
+                });
+                const sendData = await sendResponse.json();
+                if (!sendResponse.ok || sendData.status !== 'success') {
+                    throw new Error(sendData.message || 'Не удалось переслать сообщение');
+                }
+                window.alert('Сообщение переслано в чат «' + target.name + '».');
+            } catch (error) {
+                window.alert(error.message || 'Ошибка пересылки сообщения');
+            }
+        };
+
         initScheduledMessages(config, crypto);
         initChatCalls(config, crypto);
         initChatMeetings(config, crypto);
