@@ -3436,6 +3436,8 @@ body.chat-page .telegram-chat-layout .chat-container {
                         @endforeach
                     </div>
 
+                    </div>
+
                 </div>
 
             </div>
