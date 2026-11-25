@@ -3427,15 +3427,14 @@ body.chat-page .telegram-chat-layout .chat-container {
 
                     </p>
 
-                </div>
-
-                <div class="message-reactions" data-message-id="{{ $message->id }}">
+                    <div class="message-reactions" data-message-id="{{ $message->id }}">
                     <button type="button" class="add-reaction" aria-label="Add reaction">＋</button>
                     <div class="reaction-picker" hidden>
                         @foreach (['👍', '❤️', '😂', '🔥', '👏', '😮', '😢', '🎉'] as $reaction)
                             <button type="button" class="reaction-choice" data-reaction="{{ $reaction }}">{{ $reaction }}</button>
                         @endforeach
                     </div>
+
                 </div>
 
             </div>
