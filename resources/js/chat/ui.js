@@ -28,79 +28,96 @@ export class ChatUI {
 
     // Меню с тремя точками для чужих сообщений (Ответить + Копировать)
     attachMessageMenu(messageEl) {
-        if (messageEl.classList.contains('sent')) return; // только для чужих
-        if (messageEl.querySelector('.edit-actions')) return; // уже есть
+        if (messageEl.querySelector('.edit-actions')) return;
 
-        const body = messageEl.querySelector('.card-body');
+        const body = messageEl.querySelector('.my-card-body, .card-body');
         if (!body) return;
 
         const actions = document.createElement('div');
         actions.className = 'edit-actions';
-        actions.innerHTML = '<span class="dots">⋮</span>';
+        actions.innerHTML = '<button type="button" class="dots" aria-label="Действия с сообщением" title="Действия">⋮</button>';
         body.appendChild(actions);
 
-        actions.querySelector('.dots').onclick = e => {
-            e.stopPropagation();
-            const msgId = messageEl.dataset.id;
-            const text = messageEl.querySelector('.card-text')?.dataset.plaintext || '';
-            this.createReceivedContextMenu(msgId, messageEl, text);
-        };
+        actions.querySelector('.dots').addEventListener('click', event => {
+            event.stopPropagation();
+            const cardText = messageEl.querySelector('.card-text');
+            const encrypted = cardText?.dataset.encrypted || '';
+            const nonceB64 = encrypted.includes('|') ? encrypted.split('|')[0] : null;
+            const text = cardText?.dataset.plaintext || '';
+            this.createReceivedContextMenu(messageEl.dataset.id, messageEl, text, nonceB64);
+        });
 
-        body.onmouseenter = () => actions.style.opacity = '1';
-        body.onmouseleave = () => actions.style.opacity = '0';
+        body.addEventListener('mouseenter', () => { actions.style.opacity = '1'; });
+        body.addEventListener('mouseleave', () => { actions.style.opacity = '0'; });
     }
 
-    createReceivedContextMenu(messageId, messageEl, text) {
-        document.querySelectorAll('.context-menu').forEach(e => e.remove());
+    createReceivedContextMenu(messageId, messageEl, text, nonceB64 = null) {
+        document.querySelectorAll('.context-menu').forEach(element => element.remove());
         const menu = document.createElement('div');
         menu.className = 'context-menu';
+        const isOwn = messageEl.classList.contains('sent');
+        const messageType = messageEl.dataset.messageType || 'text';
 
-        // Кнопка Ответить — с переводом и иконкой
-        const replyBtn = document.createElement('div');
-        replyBtn.innerHTML = '<i class="fa fa-reply" aria-hidden="true"></i> ' + (this.config.translations.reply || 'Ответить');
-        replyBtn.onclick = () => {
-            menu.remove();
+        const addAction = (icon, label, callback, className = '') => {
+            const item = document.createElement('div');
+            item.className = className;
+            item.innerHTML = '<i class="fa ' + icon + '" aria-hidden="true"></i> ' + label;
+            item.addEventListener('click', () => {
+                menu.remove();
+                callback();
+            });
+            menu.appendChild(item);
+        };
+
+        addAction('fa-reply', this.config.translations.reply || 'Ответить', () => {
             const titleEl = messageEl.querySelector('.card-title');
-            const senderName = titleEl
-                ? titleEl.childNodes[0]?.textContent.trim() || ''
-                : '';
-            this.startReply(messageId, senderName, text, messageEl);
-        };
+            const senderName = titleEl?.childNodes[0]?.textContent.trim() || '';
+            const currentText = messageEl.querySelector('.card-text')?.dataset.plaintext || text;
+            this.startReply(messageId, senderName, currentText, messageEl);
+        });
 
-        // Кнопка Копировать — с переводом и иконкой
-        const copyBtn = document.createElement('div');
-        copyBtn.innerHTML = '<i class="fa fa-copy" aria-hidden="true"></i> ' + (this.config.translations.copy || 'Копировать');
-        copyBtn.onclick = async () => {
-            try {
-                await navigator.clipboard.writeText(text);
-            } catch (err) {
-                console.error('Failed to copy:', err);
-            }
-            menu.remove();
-        };
-
-        const pinBtn = document.createElement('div');
-        pinBtn.innerHTML = '<i class="fa fa-thumb-tack" aria-hidden="true"></i> ' + (this.pinnedMessageIds.has(Number(messageId)) ? (this.config.translations.unpin || 'Открепить') : (this.config.translations.pin || 'Закрепить'));
-        pinBtn.onclick = async () => {
-            menu.remove();
-            await this.togglePin(messageId, messageEl);
-        };
-
-        menu.append(replyBtn, copyBtn);
-        if (this.config.chatType === 'personal' || ['owner', 'admin', 'moderator'].includes(this.config.currentRole)) {
-            menu.appendChild(pinBtn);
+        if (isOwn && messageType === 'text' && nonceB64) {
+            addAction('fa-pencil', this.config.translations.edit || 'Редактировать', () => {
+                const currentText = messageEl.querySelector('.card-text')?.dataset.plaintext || text;
+                this.startEditing(messageId, messageEl, currentText, nonceB64);
+            });
         }
+
+        if (isOwn) {
+            addAction('fa-trash', this.config.translations.delete || 'Удалить', () => {
+                this.confirmDelete(messageId, messageEl);
+            }, 'context-menu-danger');
+        } else {
+            addAction('fa-copy', this.config.translations.copy || 'Копировать', async () => {
+                try {
+                    await navigator.clipboard.writeText(text);
+                } catch (error) {
+                    console.error('Failed to copy:', error);
+                }
+            });
+        }
+
+        if (this.config.chatType === 'personal' || ['owner', 'admin', 'moderator'].includes(this.config.currentRole)) {
+            addAction('fa-thumb-tack', this.pinnedMessageIds.has(Number(messageId))
+                ? (this.config.translations.unpin || 'Открепить')
+                : (this.config.translations.pin || 'Закрепить'), async () => {
+                await this.togglePin(messageId, messageEl);
+            });
+        }
+
         document.body.appendChild(menu);
+        const rect = messageEl.getBoundingClientRect();
+        menu.style.top = Math.max(8, rect.top + window.scrollY + 10) + 'px';
+        menu.style.left = Math.max(8, Math.min(window.innerWidth - menu.offsetWidth - 8,
+            rect.right + window.scrollX - menu.offsetWidth)) + 'px';
 
-        const r = messageEl.getBoundingClientRect();
-        menu.style.top = (r.top + window.scrollY + 10) + 'px';
-        menu.style.left = (r.right + window.scrollX - 120) + 'px';
-
-        setTimeout(() => {
-            document.addEventListener('click', e => {
-                if (!menu.contains(e.target)) menu.remove();
-            }, { once: true });
-        }, 0);
+        const closeMenu = event => {
+            if (!menu.contains(event.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeMenu), 0);
     }
 
     createContextMenu(messageId, messageEl, text, nonceB64) {
