@@ -514,7 +514,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    const applyMessageSearch = (resetIndex = true) => {
+    const applyMessageSearch = (resetIndex = true, navigateToMatch = true) => {
         const term = (messageSearchInput?.value || '').trim().toLocaleLowerCase();
         messageSearchMatches = [];
         chatMessages?.querySelectorAll('.message').forEach(message => {
@@ -534,7 +534,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (messageSearchCount) messageSearchCount.textContent = '0/0';
             return;
         }
-        focusMessageSearchMatch(activeMessageSearchIndex < 0 ? 0 : activeMessageSearchIndex);
+        if (navigateToMatch) {
+            focusMessageSearchMatch(activeMessageSearchIndex < 0 ? 0 : activeMessageSearchIndex);
+        } else {
+            activeMessageSearchIndex = Math.min(Math.max(activeMessageSearchIndex, 0), messageSearchMatches.length - 1);
+            messageSearchMatches.forEach((message, matchIndex) => {
+                message.classList.toggle('search-match-active', matchIndex === activeMessageSearchIndex);
+            });
+            if (messageSearchCount) messageSearchCount.textContent = `${activeMessageSearchIndex + 1}/${messageSearchMatches.length}`;
+        }
     };
 
     toggleMessageSearch?.addEventListener('click', () => {
@@ -556,7 +564,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyMessageSearch();
         messageSearchInput?.focus();
     });
-    document.addEventListener('chat:message-decrypted', () => applyMessageSearch(false));
+    document.addEventListener('chat:message-decrypted', () => applyMessageSearch(false, false));
 
     const pinnedMessages = document.getElementById('chatPinnedMessages');
     ui.loadPinnedMessages(pinnedMessages);
