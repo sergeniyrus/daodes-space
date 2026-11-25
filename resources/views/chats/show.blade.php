@@ -3187,7 +3187,7 @@ body.chat-page .telegram-chat-layout .chat-container {
                     aria-controls="chatMuteMenu"
                     title="{{ __('chats.mute_notifications') }}"
                 >
-                    <i class="fa {{ $mutedUntil && \Illuminate\\Support\\Carbon::parse($mutedUntil)->isFuture() ? 'fa-bell-slash' : 'fa-bell' }}" aria-hidden="true"></i>
+                    <i class="fa {{ $mutedUntil && \Illuminate\Support\Carbon::parse($mutedUntil)->isFuture() ? 'fa-bell-slash' : 'fa-bell' }}" aria-hidden="true"></i>
                 </button>
                 <div class="chat-mute-menu" id="chatMuteMenu" hidden>
                     <button type="button" data-mute-duration="60">{{ __('chats.mute_1_hour') }}</button>
@@ -3198,8 +3198,8 @@ body.chat-page .telegram-chat-layout .chat-container {
                     <button type="button" data-mute-duration="">{{ __('chats.mute_off') }}</button>
                 </div>
                 <span class="chat-mute-status" id="chatMuteStatus" aria-live="polite">
-                    @if ($mutedUntil && \Illuminate\\Support\\Carbon::parse($mutedUntil)->isFuture())
-                        {{ __('chats.muted_until', ['date' => \Illuminate\\Support\\Carbon::parse($mutedUntil)->format('d.m.Y H:i')]) }}
+                    @if ($mutedUntil && \Illuminate\Support\Carbon::parse($mutedUntil)->isFuture())
+                        {{ __('chats.muted_until', ['date' => \Illuminate\Support\Carbon::parse($mutedUntil)->format('d.m.Y H:i')]) }}
                     @else
                         {{ __('chats.notifications_enabled') }}
                     @endif
