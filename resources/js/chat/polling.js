@@ -256,7 +256,16 @@ export class MessagePoller {
 
             msgs.forEach(msg => {
                 const existing = document.querySelector(`.message[data-id="${msg.id}"]`);
-                const isOwn = msg.sender.id === this.config.userId;
+
+                if (msg.activity_only) {
+                    if (existing) {
+                        this.renderReactionSummary(existing, msg.reactions || []);
+                    }
+                    this.detectMessageActivity(msg);
+                    return;
+                }
+
+                const isOwn = Number(msg.sender.id) === Number(this.config.userId);
                 const isEdited = msg.is_edited === true;
 
                 if (existing) {
