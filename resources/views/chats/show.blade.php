@@ -1157,7 +1157,8 @@
     flex-wrap: wrap;
     gap: 5px;
     position: relative;
-    margin: 6px 8px 2px auto;
+    align-self: flex-end;
+    margin: 8px 0 0 auto;
     width: fit-content;
     max-width: calc(100% - 16px);
 }
