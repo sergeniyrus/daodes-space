@@ -86,6 +86,14 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
                     }
                 });
                 wrapper.appendChild(image);
+
+                const downloadLink = document.createElement('a');
+                downloadLink.className = 'chat-media-download chat-media-image-download';
+                downloadLink.href = objectUrl;
+                downloadLink.download = payload.file_name || 'daodes-image';
+                downloadLink.textContent = '↓ ' + (config.translations.mediaDownload || 'Скачать изображение');
+                wrapper.appendChild(downloadLink);
+
                 button.remove();
             } else if (payload.media_type === 'video') {
                 const video = document.createElement('video');
