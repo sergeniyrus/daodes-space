@@ -75,6 +75,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    const channelHeaderPhoto = document.getElementById('channelHeaderPhoto');
+    const openChannelPhoto = () => {
+        if (!channelHeaderPhoto?.src) return;
+        const viewer = document.createElement('div');
+        viewer.className = 'chat-channel-photo-viewer';
+        viewer.setAttribute('role', 'dialog');
+        viewer.setAttribute('aria-modal', 'true');
+        const image = document.createElement('img');
+        image.src = channelHeaderPhoto.src;
+        image.alt = channelHeaderPhoto.alt || 'Логотип канала';
+        viewer.appendChild(image);
+        viewer.addEventListener('click', () => viewer.remove());
+        document.addEventListener('keydown', function closeOnEscape(event) {
+            if (event.key === 'Escape') {
+                viewer.remove();
+                document.removeEventListener('keydown', closeOnEscape);
+            }
+        }, { once: true });
+        document.body.appendChild(viewer);
+    };
+    channelHeaderPhoto?.addEventListener('click', openChannelPhoto);
+    channelHeaderPhoto?.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openChannelPhoto();
+        }
+    });
+
     const channelPhotoInput = document.getElementById('channelPhotoInput');
     channelPhotoInput?.addEventListener('change', async () => {
         const file = channelPhotoInput.files?.[0];
