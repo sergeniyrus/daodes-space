@@ -1500,3 +1500,76 @@
     box-shadow: none !important;
     outline: none !important;
 }
+
+/* Header call action and message-card action placement. */
+.telegram-chat-layout .chat-header-tools .chat-mute-controls > button.chat-call-header-toggle {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 36px;
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    color: #00e5ff;
+    background: rgba(0,229,255,.055);
+    border: 1px solid rgba(0,229,255,.35);
+    border-radius: 10px;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color .18s ease, background .18s ease, border-color .18s ease, transform .18s ease;
+}
+.telegram-chat-layout .chat-header-tools .chat-mute-controls > button.chat-call-header-toggle:hover {
+    color: #b8fbff;
+    background: rgba(0,229,255,.14);
+    border-color: rgba(0,229,255,.75);
+}
+.telegram-chat-layout .chat-header-tools .chat-mute-controls > button.chat-call-header-toggle:disabled {
+    opacity: .55;
+    cursor: wait;
+}
+.telegram-chat-layout .edit-actions {
+    position: absolute !important;
+    top: 4px !important;
+    right: 7px !important;
+    z-index: 8 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+.telegram-chat-layout .edit-actions .dots {
+    display: inline-block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    color: #ffd700 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-size: 22px !important;
+    line-height: 1 !important;
+    cursor: pointer;
+}
+.telegram-chat-layout .edit-actions .dots:hover,
+.telegram-chat-layout .edit-actions .dots:focus-visible {
+    color: #fff1a8 !important;
+    background: transparent !important;
+    outline: none !important;
+}
+@media (max-width: 720px) {
+    .telegram-chat-layout .chat-header-tools .chat-mute-controls > button.chat-call-header-toggle {
+        flex-basis: 32px;
+        width: 32px;
+        min-width: 32px;
+        height: 32px;
+        min-height: 32px;
+        border-radius: 9px;
+    }
+}
