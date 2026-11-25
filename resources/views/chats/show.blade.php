@@ -3177,41 +3177,52 @@ body.chat-page .telegram-chat-layout .chat-container {
         @endif
 
         <div class="chat-header-tools">
-        <div class="chat-mute-controls">
-            <label for="chatMuteDuration">{{ __('chats.mute_notifications') }}</label>
-            <select id="chatMuteDuration">
-                <option value="">{{ __('chats.mute_off') }}</option>
-                <option value="60">{{ __('chats.mute_1_hour') }}</option>
-                <option value="480">{{ __('chats.mute_8_hours') }}</option>
-                <option value="1440">{{ __('chats.mute_1_day') }}</option>
-                <option value="10080">{{ __('chats.mute_7_days') }}</option>
-                <option value="43200">{{ __('chats.mute_30_days') }}</option>
-            </select>
-            <button type="button" id="saveChatMute" aria-label="{{ __('chats.save') }}" title="{{ __('chats.save') }}">{{ __('chats.save') }}</button>
-            <span class="chat-mute-status" id="chatMuteStatus" aria-live="polite">
-                @if ($mutedUntil && \Illuminate\Support\Carbon::parse($mutedUntil)->isFuture())
-                    {{ __('chats.muted_until', ['date' => \Illuminate\Support\Carbon::parse($mutedUntil)->format('d.m.Y H:i')]) }}
-                @else
-                    {{ __('chats.notifications_enabled') }}
-                @endif
-            </span>
-        </div>
-
-        <div class="chat-message-search">
-            <button type="button" id="toggleMessageSearch" title="{{ __('chats.search_messages') }}">
-                <i class="fa fa-search" aria-hidden="true"></i>
-            </button>
-            <div id="messageSearchPanel" hidden>
-                <input
-                    type="search"
-                    id="chatMessageSearchInput"
-                    placeholder="{{ __('chats.search_loaded_messages') }}"
-                    autocomplete="off"
+            <div class="chat-mute-controls">
+                <button
+                    type="button"
+                    id="toggleChatMute"
+                    class="chat-mute-toggle"
+                    aria-label="{{ __('chats.mute_notifications') }}"
+                    aria-expanded="false"
+                    aria-controls="chatMuteMenu"
+                    title="{{ __('chats.mute_notifications') }}"
                 >
-                <span id="chatMessageSearchCount" aria-live="polite"></span>
-                <button type="button" id="clearMessageSearch" aria-label="{{ __('chats.clear_search') }}">×</button>
+                    <i class="fa {{ $mutedUntil && \\Illuminate\\Support\\Carbon::parse($mutedUntil)->isFuture() ? 'fa-bell-slash' : 'fa-bell' }}" aria-hidden="true"></i>
+                </button>
+                <div class="chat-mute-menu" id="chatMuteMenu" hidden>
+                    <button type="button" data-mute-duration="60">{{ __('chats.mute_1_hour') }}</button>
+                    <button type="button" data-mute-duration="480">{{ __('chats.mute_8_hours') }}</button>
+                    <button type="button" data-mute-duration="1440">{{ __('chats.mute_1_day') }}</button>
+                    <button type="button" data-mute-duration="10080">{{ __('chats.mute_7_days') }}</button>
+                    <button type="button" data-mute-duration="43200">{{ __('chats.mute_30_days') }}</button>
+                    <button type="button" data-mute-duration="">{{ __('chats.mute_off') }}</button>
+                </div>
+                <span class="chat-mute-status" id="chatMuteStatus" aria-live="polite">
+                    @if ($mutedUntil && \\Illuminate\\Support\\Carbon::parse($mutedUntil)->isFuture())
+                        {{ __('chats.muted_until', ['date' => \\Illuminate\\Support\\Carbon::parse($mutedUntil)->format('d.m.Y H:i')]) }}
+                    @else
+                        {{ __('chats.notifications_enabled') }}
+                    @endif
+                </span>
             </div>
-        </div>
+
+            <div class="chat-message-search">
+                <button type="button" id="toggleMessageSearch" title="{{ __('chats.search_messages') }}" aria-label="{{ __('chats.search_messages') }}">
+                    <i class="fa fa-search" aria-hidden="true"></i>
+                </button>
+                <div id="messageSearchPanel" hidden>
+                    <input
+                        type="search"
+                        id="chatMessageSearchInput"
+                        placeholder="{{ __('chats.search_loaded_messages') }}"
+                        autocomplete="off"
+                    >
+                    <span id="chatMessageSearchCount" aria-live="polite"></span>
+                    <button type="button" id="previousMessageSearch" aria-label="Предыдущее совпадение" title="Предыдущее совпадение"><i class="fa fa-chevron-up" aria-hidden="true"></i></button>
+                    <button type="button" id="nextMessageSearch" aria-label="Следующее совпадение" title="Следующее совпадение"><i class="fa fa-chevron-down" aria-hidden="true"></i></button>
+                    <button type="button" id="clearMessageSearch" aria-label="{{ __('chats.clear_search') }}" title="{{ __('chats.clear_search') }}"><i class="fa fa-times" aria-hidden="true"></i></button>
+                </div>
+            </div>
         </div>
 
     </div>
