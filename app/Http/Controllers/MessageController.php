@@ -117,7 +117,7 @@ class MessageController extends Controller
                 ->with([
                     'sender:id,name',
                     'attachments:id,message_id,ipfs_cid,media_type,byte_size,position',
-                    'reactions:id,message_id,user_id,reaction',
+                    'reactions:id,message_id,user_id,reaction,created_at',
                     'mentions:id,message_id,user_id',
                 ]);
 
@@ -158,6 +158,33 @@ class MessageController extends Controller
             return $newMessages->merge($recentlyEdited)->unique('id')->sortBy('id')->values();
         });
 
+        // Дополнительно проверяем новые реакции на собственные сообщения.
+        // Этот запрос не использует кэш, чтобы реакция отображалась в текущем polling.
+        $activitySince = request('activity_since');
+        if ($activitySince && strtotime($activitySince) !== false) {
+            $activitySince = \\Illuminate\\Support\\Carbon::parse($activitySince);
+
+            $reactionActivity = $chat->messages()
+                ->where('sender_id', auth()->id())
+                ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
+                ->whereHas('reactions', function ($query) use ($activitySince) {
+                    $query->where('created_at', '>=', $activitySince)
+                        ->where('user_id', '!=', auth()->id());
+                })
+                ->with([
+                    'sender:id,name',
+                    'attachments:id,message_id,ipfs_cid,media_type,byte_size,position',
+                    'reactions:id,message_id,user_id,reaction,created_at',
+                    'mentions:id,message_id,user_id',
+                ])
+                ->get();
+
+            $messagesMeta = $messagesMeta->merge($reactionActivity)
+                ->unique('id')
+                ->sortBy('id')
+                ->values();
+        }
+
         // Контент тянем из IPFS (не кэшируем в Redis — он уже в IPFS!)
         $messages = $messagesMeta->map(function ($msg) {
             try {
@@ -187,6 +214,7 @@ class MessageController extends Controller
                 'reactions' => $msg->reactions->map(fn($reaction) => [
                     'user_id' => $reaction->user_id,
                     'reaction' => $reaction->reaction,
+                    'created_at' => $reaction->created_at?->toIso8601String(),
                 ])->values(),
                 'mentions' => $msg->mentions->pluck('user_id')->values(),
                 'created_at' => $msg->created_at->toIso8601String(),
