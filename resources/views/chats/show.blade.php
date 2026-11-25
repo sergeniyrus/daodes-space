@@ -3883,7 +3883,7 @@ body.chat-page .telegram-chat-layout .chat-container {
     data-current-role="{{ $currentRole }}"
     data-allow-copy-messages="{{ (int) ($chat->allow_copy_messages ?? true) }}"
     data-allow-forward-messages="{{ (int) ($chat->allow_forward_messages ?? true) }}"
-    data-report-url="{{ route('chats.moderation.reports.store', ['chat' => $chat->id, 'message' => '__MESSAGE__']) }}"
+    data-report-url="{{ in_array($chat->type, ['group', 'channel'], true) ? route('chats.moderation.reports.store', ['chat' => $chat->id, 'message' => '__MESSAGE__']) : '' }}"
     data-user-id="{{ auth()->id() }}"
     data-user-name="{{ auth()->user()->name }}"
     data-first-unread="{{ $firstUnreadMessageId ?? '' }}"
