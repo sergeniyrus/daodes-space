@@ -249,8 +249,8 @@ export class MessagePoller {
 
             const msgs = await res.json();
             if (requestedTopicId !== this.config.topicId) return;
-            this.editedSince = requestStartedAt;
             if (!Array.isArray(msgs)) return;
+            this.editedSince = requestStartedAt;
 
             const wasAtBottom = this.isAtBottom();
             let hasIncoming = false;
