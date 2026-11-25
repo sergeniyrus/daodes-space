@@ -1921,15 +1921,65 @@ body.chat-media-viewer-open { overflow: hidden; }
     box-shadow: 0 12px 35px rgba(0,0,0,.4);
 }
 .telegram-sidebar-heading {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     padding: 18px 16px 12px;
     color: #ffd700;
     border-bottom: 1px solid rgba(255,215,0,.18);
 }
 .telegram-sidebar-heading span { color: #00e5ff; font-size: .72rem; letter-spacing: .14em; }
-.telegram-sidebar-heading a { color: #00e5ff; text-decoration: none; font-size: 1.25rem; }
+.telegram-sidebar-heading .messenger-menu-toggle {
+    display: grid;
+    place-items: center;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    color: #00e5ff;
+    background: transparent;
+    border: 1px solid rgba(0,229,255,.42);
+    border-radius: 10px;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+.telegram-sidebar-heading .messenger-menu-toggle:hover,
+.telegram-sidebar-heading .messenger-menu-toggle[aria-expanded="true"] {
+    color: #071018;
+    background: #00e5ff;
+}
+.telegram-sidebar-heading .messenger-menu-panel {
+    position: absolute;
+    z-index: 2000000;
+    top: calc(100% + 8px);
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: min(250px, calc(100vw - 48px));
+    padding: 8px;
+    background: #111827;
+    border: 1px solid rgba(0,229,255,.35);
+    border-radius: 13px;
+    box-shadow: 0 14px 36px rgba(0,0,0,.48);
+}
+.telegram-sidebar-heading .messenger-menu-panel[hidden] { display: none; }
+.telegram-sidebar-heading .messenger-menu-panel a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 11px;
+    color: #dbeafe;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: .86rem;
+}
+.telegram-sidebar-heading .messenger-menu-panel a:hover {
+    color: #ffd700;
+    background: rgba(0,229,255,.08);
+}
 .telegram-sidebar-stories .chat-story-add,
 .telegram-sidebar-stories .chat-story-card {
     display: flex;
@@ -2964,14 +3014,35 @@ body.chat-page .telegram-chat-layout .chat-container {
     <aside class="telegram-chat-sidebar">
         <div class="telegram-sidebar-heading">
             <strong>DAODES <span>MESSENGER</span></strong>
-            <a href="{{ route('chats.index') }}" aria-label="{{ __('chats.to_chats') }}">⌂</a>
+            <button
+                type="button"
+                class="messenger-menu-toggle"
+                id="messengerMenuToggle"
+                aria-label="Открыть меню мессенджера"
+                aria-expanded="false"
+                aria-controls="messengerMenu"
+            >
+                <i class="fa fa-bars" aria-hidden="true"></i>
+            </button>
+            <nav class="messenger-menu-panel" id="messengerMenu" aria-label="Меню мессенджера" hidden>
+                <a href="{{ route('contacts.index') }}">
+                    <i class="fa fa-address-book" aria-hidden="true"></i>
+                    <span>Контакты</span>
+                </a>
+                <a href="{{ route('chats.notifications') }}">
+                    <i class="fa fa-bell" aria-hidden="true"></i>
+                    <span>Уведомления</span>
+                </a>
+                <a href="{{ route('chats.index') }}">
+                    <i class="fa fa-comments" aria-hidden="true"></i>
+                    <span>Чаты</span>
+                </a>
+                <a href="{{ route('chats.create') }}">
+                    <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                    <span>Создать чат / канал</span>
+                </a>
+            </nav>
         </div>
-        <nav class="telegram-sidebar-actions" aria-label="Навигация мессенджера">
-            <a href="{{ route('chats.index') }}"><i class="fa fa-comments" aria-hidden="true"></i><span>Чаты</span></a>
-            <a href="{{ route('contacts.index') }}"><i class="fa fa-address-book" aria-hidden="true"></i><span>Контакты</span></a>
-            <a href="{{ route('chats.create') }}"><i class="fa fa-plus" aria-hidden="true"></i><span>Новый чат</span></a>
-            <a href="{{ route('chats.notifications') }}"><i class="fa fa-bell" aria-hidden="true"></i><span>Уведомления</span></a>
-        </nav>
         <section class="telegram-sidebar-stories" id="chatStoriesBar"
                  data-user-id="{{ auth()->id() }}"
     data-peer-user-id="{{ $otherUser?->id ?? '' }}"
