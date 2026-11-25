@@ -205,14 +205,64 @@ class MessageController extends Controller
                 ->values();
         }
 
-        // Контент тянем из IPFS (не кэшируем в Redis — он уже в IPFS!)
-        $messages = $messagesMeta->map(function ($msg) {
+        // Получаем отсутствующие IPFS payload параллельно, ограничивая нагрузку
+        // на gateway десятью одновременными запросами.
+        $ipfsPayloads = [];
+        $pendingMessages = $messagesMeta->filter(function ($message) {
+            return !(bool) ($message->activity_only ?? false)
+                && $message->ipfs_cid
+                && !Cache::has("ipfs:message:{$message->ipfs_cid}");
+        });
+
+        if ($pendingMessages->isNotEmpty()) {
+            $ipfsClient = new \GuzzleHttp\Client([
+                'base_uri' => rtrim(config('services.ipfs.gateway', 'https://daodes.space'), '/'),
+                'connect_timeout' => 3.0,
+                'timeout' => 10.0,
+            ]);
+
+            $requests = function () use ($pendingMessages, $ipfsClient) {
+                foreach ($pendingMessages as $message) {
+                    yield $message->id => function () use ($ipfsClient, $message) {
+                        return $ipfsClient->getAsync("/ipfs/{$message->ipfs_cid}");
+                    };
+                }
+            };
+
+            $pool = new \GuzzleHttp\Pool($ipfsClient, $requests(), [
+                'concurrency' => 10,
+                'fulfilled' => function ($response, $messageId) use (&$ipfsPayloads, $pendingMessages) {
+                    $payload = $response->getBody()->getContents();
+                    $message = $pendingMessages->firstWhere('id', $messageId);
+
+                    if ($message) {
+                        Cache::put("ipfs:message:{$message->ipfs_cid}", $payload, now()->addDays(7));
+                    }
+
+                    $ipfsPayloads[$messageId] = $payload;
+                },
+                'rejected' => function ($reason, $messageId) use (&$ipfsPayloads, $pendingMessages) {
+                    $message = $pendingMessages->firstWhere('id', $messageId);
+                    Log::error('IPFS fetch error', [
+                        'message_id' => $messageId,
+                        'cid' => $message?->ipfs_cid,
+                        'error' => (string) $reason,
+                    ]);
+                    $ipfsPayloads[$messageId] = '[Ошибка загрузки]';
+                },
+            ]);
+
+            $pool->promise()->wait();
+        }
+
+        // Кэшированные payload читаются из Cache; новые уже загружены параллельно.
+        $messages = $messagesMeta->map(function ($msg) use ($ipfsPayloads) {
             $activityOnly = (bool) ($msg->activity_only ?? false);
             $payload = null;
 
             if (!$activityOnly) {
                 try {
-                    $payload = $msg->getMessageFromIPFS($msg->ipfs_cid);
+                    $payload = $ipfsPayloads[$msg->id] ?? $msg->getMessageFromIPFS($msg->ipfs_cid);
                 } catch (\Exception $e) {
                     Log::error("Failed to load message {$msg->id} from IPFS: " . $e->getMessage());
                     $payload = $msg->ipfs_cid; // fallback — возвращаем сам CID
