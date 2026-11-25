@@ -1470,3 +1470,33 @@
     color: #fff1a8 !important;
     background: rgba(255,215,0,.14) !important;
 }
+
+
+/* Message card actions: show only the three dots, without a button frame. */
+.telegram-chat-layout .edit-actions .dots {
+    display: inline-block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    color: #ffd700 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    font-size: 22px !important;
+    line-height: 1 !important;
+}
+
+.telegram-chat-layout .edit-actions .dots:hover,
+.telegram-chat-layout .edit-actions .dots:focus,
+.telegram-chat-layout .edit-actions .dots:focus-visible,
+.telegram-chat-layout .edit-actions .dots:active {
+    color: #fff1a8 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
