@@ -8,6 +8,7 @@ use App\Services\IPFSService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ChatChannelStoriesController extends Controller
 {
@@ -47,6 +48,8 @@ class ChatChannelStoriesController extends Controller
         $membership = $this->membership($chat);
         $userId = (int) Auth::id();
 
+        $hasReactionsTable = Schema::hasTable('chat_channel_story_reactions');
+
         $stories = DB::table('chat_channel_stories as stories')
             ->join('chat_channel_story_keys as story_keys', 'story_keys.story_id', '=', 'stories.id')
             ->join('users as publishers', 'publishers.id', '=', 'stories.published_by')
@@ -57,9 +60,11 @@ class ChatChannelStoriesController extends Controller
             })
             ->where('stories.chat_id', $chat->id)
             ->where('story_keys.user_id', $userId)
-            ->leftJoin('chat_channel_story_reactions as reactions', function ($join) use ($userId) {
-                $join->on('reactions.story_id', '=', 'stories.id')
-                    ->where('reactions.user_id', '=', $userId);
+            ->when($hasReactionsTable, function ($query) use ($userId) {
+                $query->leftJoin('chat_channel_story_reactions as reactions', function ($join) use ($userId) {
+                    $join->on('reactions.story_id', '=', 'stories.id')
+                        ->where('reactions.user_id', '=', $userId);
+                });
             })
             ->where('stories.expires_at', '>', now())
             ->addSelect(DB::raw('(SELECT direct_chats.id
@@ -83,7 +88,7 @@ class ChatChannelStoriesController extends Controller
                 'stories.created_at',
                 'stories.expires_at',
                 'views.id as viewed_id',
-                'reactions.reaction as my_reaction',
+                ...($hasReactionsTable ? ['reactions.reaction as my_reaction'] : []),
             ])
             ->map(fn ($story) => [
                 'id' => (int) $story->id,
