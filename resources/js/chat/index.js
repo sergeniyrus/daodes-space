@@ -258,7 +258,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!chatMessages) return;
         chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
     };
-    scrollToBottomButton?.addEventListener('click', scrollChatToBottom);
+    scrollToBottomButton?.addEventListener('click', () => {
+        const notificationMessageId = Number(scrollToBottomButton.dataset.notificationMessageId || 0);
+
+        if (notificationMessageId) {
+            const targetMessage = document.querySelector(`.message[data-id="${notificationMessageId}"]`);
+            if (targetMessage) {
+                targetMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                poller.clearActivityNotification();
+                return;
+            }
+        }
+
+        scrollChatToBottom();
+    });
     let composerBusyCount = 0;
     const beginComposerLoading = () => {
         composerBusyCount++;
@@ -473,6 +486,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const chatMessages = document.getElementById('chat-messages');
+    const updateScrollButtonVisibility = () => {
+        if (!scrollToBottomButton || !chatMessages) return;
+        const hasNotification = Boolean(scrollToBottomButton.dataset.notificationMessageId);
+        const isAwayFromBottom = chatMessages.scrollHeight - chatMessages.scrollTop > chatMessages.clientHeight + 100;
+        scrollToBottomButton.hidden = !hasNotification && !isAwayFromBottom;
+    };
+    chatMessages?.addEventListener('scroll', updateScrollButtonVisibility, { passive: true });
+    updateScrollButtonVisibility();
     const toggleMessageSearch = document.getElementById('toggleMessageSearch');
     const messageSearchPanel = document.getElementById('messageSearchPanel');
     const messageSearchInput = document.getElementById('chatMessageSearchInput');
