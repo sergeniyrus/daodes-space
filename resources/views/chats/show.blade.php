@@ -9,6 +9,7 @@
 @endpush
 
 @section('main')
+<div id="messengerAppRoot" data-messenger-root>
 
 <style>
 
@@ -4025,7 +4026,9 @@ body.chat-page .telegram-chat-layout .chat-container {
 
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
     @vite('resources/js/chat/index.js')
+    @vite('resources/js/messenger-router.js')
 
 @endpush
 
+</div>
 @endsection
