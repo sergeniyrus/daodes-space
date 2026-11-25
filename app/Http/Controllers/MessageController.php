@@ -162,7 +162,7 @@ class MessageController extends Controller
         // Этот запрос не использует кэш, чтобы реакция отображалась в текущем polling.
         $activitySince = request('activity_since');
         if ($activitySince && strtotime($activitySince) !== false) {
-            $activitySince = \\Illuminate\\Support\\Carbon::parse($activitySince);
+            $activitySince = \Illuminate\Support\Carbon::parse($activitySince);
 
             $reactionActivity = $chat->messages()
                 ->where('sender_id', auth()->id())
@@ -179,7 +179,7 @@ class MessageController extends Controller
                 ])
                 ->get();
 
-            $messagesMeta = $messagesMeta->merge($reactionActivity)
+            $messagesMeta = $reactionActivity->merge($messagesMeta)
                 ->unique('id')
                 ->sortBy('id')
                 ->values();
