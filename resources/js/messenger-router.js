@@ -7,6 +7,7 @@ const CHAT_ROUTE = /^\/chats\/?(?:\d+)?$/;
 
 let navigationController = null;
 let navigating = false;
+let displayedUrl = window.location.href;
 
 const isMessengerUrl = url =>
     url.origin === window.location.origin && CHAT_ROUTE.test(url.pathname);
@@ -31,7 +32,7 @@ async function initializeMessengerPage() {
 async function navigateTo(url, addHistory = true) {
     const target = new URL(url, window.location.href);
     if (!isMessengerUrl(target)) return false;
-    if (target.href === window.location.href) return true;
+    if (target.href === displayedUrl) return true;
 
     navigationController?.abort();
     navigationController = new AbortController();
@@ -77,9 +78,11 @@ async function navigateTo(url, addHistory = true) {
         currentRoot.replaceWith(nextRoot);
         document.title = parsed.title || document.title;
 
+        const committedUrl = response.url || target.href;
         if (addHistory) {
-            window.history.pushState({ messenger: true }, '', response.url || target.href);
+            window.history.pushState({ messenger: true }, '', committedUrl);
         }
+        displayedUrl = committedUrl;
 
         await initializeMessengerPage();
 
