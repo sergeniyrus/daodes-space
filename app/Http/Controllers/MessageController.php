@@ -164,7 +164,10 @@ class MessageController extends Controller
         if ($activitySince && strtotime($activitySince) !== false) {
             $activitySince = \Illuminate\Support\Carbon::parse($activitySince);
 
+            $existingMessageIds = $messagesMeta->pluck('id')->all();
+
             $reactionActivity = $chat->messages()
+                ->whereNotIn('id', $existingMessageIds)
                 ->where('sender_id', auth()->id())
                 ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
                 ->whereHas('reactions', function ($query) use ($activitySince) {
@@ -179,7 +182,9 @@ class MessageController extends Controller
                 ])
                 ->get();
 
-            $messagesMeta = $reactionActivity->merge($messagesMeta)
+            $reactionActivity->each(fn($message) => $message->setAttribute('activity_only', true));
+
+            $messagesMeta = $messagesMeta->merge($reactionActivity)
                 ->unique('id')
                 ->sortBy('id')
                 ->values();
@@ -187,15 +192,21 @@ class MessageController extends Controller
 
         // Контент тянем из IPFS (не кэшируем в Redis — он уже в IPFS!)
         $messages = $messagesMeta->map(function ($msg) {
-            try {
-                $payload = $msg->getMessageFromIPFS($msg->ipfs_cid);
-            } catch (\Exception $e) {
-                Log::error("Failed to load message {$msg->id} from IPFS: " . $e->getMessage());
-                $payload = $msg->ipfs_cid; // fallback — возвращаем сам CID
+            $activityOnly = (bool) ($msg->activity_only ?? false);
+            $payload = null;
+
+            if (!$activityOnly) {
+                try {
+                    $payload = $msg->getMessageFromIPFS($msg->ipfs_cid);
+                } catch (\Exception $e) {
+                    Log::error("Failed to load message {$msg->id} from IPFS: " . $e->getMessage());
+                    $payload = $msg->ipfs_cid; // fallback — возвращаем сам CID
+                }
             }
 
             return [
                 'id' => $msg->id,
+                'activity_only' => $activityOnly,
                 'sender' => [
                     'id' => $msg->sender->id,
                     'name' => $msg->sender->name,
