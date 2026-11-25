@@ -4,6 +4,7 @@ export function initChatCalls(config, crypto) {
     const peerId = Number(document.getElementById('chat-config')?.dataset.peerUserId || 0);
     const audioButton = document.getElementById('startAudioCall');
     const videoButton = document.getElementById('startVideoCall');
+    const headerCallButton = document.getElementById('startChatCall');
     const modal = document.getElementById('chatCallModal');
     const title = document.getElementById('chatCallTitle');
     const status = document.getElementById('chatCallStatus');
@@ -17,6 +18,8 @@ export function initChatCalls(config, crypto) {
     const rejectButton = document.getElementById('rejectChatCall');
     const endButton = document.getElementById('endChatCall');
     if (!peerId || !audioButton || !videoButton || !modal) return;
+
+    headerCallButton?.addEventListener('click', () => audioButton.click());
 
     let call = null;
     let pc = null;
