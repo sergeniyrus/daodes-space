@@ -12,7 +12,7 @@ export function connectChatRealtime(config, poller) {
     const key = import.meta.env.VITE_REVERB_APP_KEY;
     // Messenger has its own hostname and therefore its own public Reverb
     // WebSocket endpoint. Other DAODES pages keep the configured main host.
-    const host = window.location.hostname === 'webdeschat.daodes.space'
+    const host = window.location.hostname === 'deschat.daodes.space'
         ? window.location.hostname
         : import.meta.env.VITE_REVERB_HOST;
     const scheme = import.meta.env.VITE_REVERB_SCHEME || 'https';
