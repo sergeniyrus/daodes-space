@@ -1,0 +1,21 @@
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.11
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        log_level: info
+        rtc:
+          tcp_port: 7881
+          port_range_start: 50000
+          port_range_end: 60000
+          use_external_ip: true
+        keys:
+          ${LIVEKIT_API_KEY}: "${LIVEKIT_API_SECRET}"
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
