@@ -16,10 +16,9 @@ import { initChatMeetings } from './meetings.js';
 import { initGroupCalls } from './group-calls.js';
 
 const onMessengerPageMounted = callback => {
-    if (document.readyState === 'loading' || document.readyState === 'interactive') {
+    document.addEventListener('messenger:page-mounted', callback);
+    if (document.readyState !== 'complete') {
         document.addEventListener('DOMContentLoaded', callback, { once: true });
-    } else {
-        document.addEventListener('messenger:page-mounted', callback);
     }
 };
 
