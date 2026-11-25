@@ -104,6 +104,7 @@ export class MessagePoller {
                 hydrateLinkPreview(el, this.config.csrfToken);
             }
 
+            el.dataset.rawPlaintext = txt;
             let replyText = txt;
             if (isVoice) {
                 replyText = '🎤 Голосовое сообщение';
