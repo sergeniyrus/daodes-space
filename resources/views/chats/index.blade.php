@@ -1024,6 +1024,8 @@
 
 /* DAODES MESSENGER heading and compact navigation */
 .chats-page-heading {
+    display: flex !important;
+    visibility: visible !important;
     position: relative;
     display: flex;
     align-items: center;
@@ -1039,14 +1041,17 @@
     white-space: nowrap;
 }
 .messenger-menu {
+    display: block !important;
+    visibility: visible !important;
     position: absolute;
     right: 0;
     top: 50%;
-    z-index: 1000;
+    z-index: 2000000;
     transform: translateY(-50%);
 }
 .messenger-menu-toggle {
-    display: grid;
+    display: grid !important;
+    visibility: visible !important;
     place-items: center;
     width: 42px;
     height: 42px;
