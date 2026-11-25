@@ -27,6 +27,7 @@ jobs:
           php -l app/Http/Controllers/ChatStoriesController.php
           php -l app/Http/Controllers/ChatChannelStoriesController.php
           php -l app/Http/Controllers/ChatModerationController.php
+          php -l app/Http/Controllers/ChatChannelSettingsController.php
           php -l database/migrations/2026_11_25_000002_create_chat_message_reports_table.php
           php -l database/migrations/2026_11_25_000001_create_story_reactions_tables.php
           php -l routes/web.php
