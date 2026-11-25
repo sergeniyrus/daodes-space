@@ -49,14 +49,6 @@ class ChatStoriesController extends Controller
                             ->whereColumn('blocks.blocked_user_id', 'stories.user_id');
                     });
             })
-            ->addSelect(DB::raw('(SELECT direct_chats.id
-                FROM chats AS direct_chats
-                INNER JOIN chat_user AS author_members ON author_members.chat_id = direct_chats.id
-                INNER JOIN chat_user AS viewer_members ON viewer_members.chat_id = direct_chats.id
-                WHERE direct_chats.type = "personal"
-                  AND author_members.user_id = stories.user_id
-                  AND viewer_members.user_id = ' . (int) $userId . '
-                LIMIT 1) AS direct_chat_id'))
             ->orderByDesc('stories.created_at')
             ->limit(100)
             ->get([
@@ -70,7 +62,15 @@ class ChatStoriesController extends Controller
                 'stories.created_at',
                 'stories.expires_at',
                 'views.id as viewed_id',
-                ...($hasReactionsTable ? ['reactions.reaction as my_reaction'] : []),
+                DB::raw('(SELECT direct_chats.id
+                FROM chats AS direct_chats
+                INNER JOIN chat_user AS author_members ON author_members.chat_id = direct_chats.id
+                INNER JOIN chat_user AS viewer_members ON viewer_members.chat_id = direct_chats.id
+                WHERE direct_chats.type = "personal"
+                  AND author_members.user_id = stories.user_id
+                  AND viewer_members.user_id = ' . (int) $userId . '
+                LIMIT 1) AS direct_chat_id'),
+                $hasReactionsTable ? 'reactions.reaction as my_reaction' : DB::raw('NULL as my_reaction'),
             ])
             ->map(fn($story) => [
                 'id' => (int) $story->id,
