@@ -299,8 +299,7 @@ export class MessagePoller {
                                     <small>${new Date(msg.created_at).toLocaleTimeString()}</small>
                                 </p>
                                 <p class="card-text">${downloadText} ${downloadIcon}</p>
-                            </div>
-                            <div class="message-reactions" data-message-id="${msg.id}">
+                                <div class="message-reactions" data-message-id="${msg.id}">
                                 <button type="button" class="add-reaction" aria-label="Add reaction">＋</button>
                                 <div class="reaction-picker" hidden>
                                     <button type="button" class="reaction-choice" data-reaction="👍">👍</button>
