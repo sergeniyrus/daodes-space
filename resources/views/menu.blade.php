@@ -198,11 +198,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 @endif
             @endauth
         ],
-        "/chats": [
-            { href: "/chats", text: "{{ __('chats.your_chats') }}" },
-            { href: "/chats/create", text: "{{ __('chats.create_chat') }}" },
-            { href: "/notifications", text: "{{ __('chats.notifications') }}" },
-        ],
     };
 
     const noSubmenuPaths = ["/home", "/white_paper", "/team"];
