@@ -678,6 +678,15 @@ Route::middleware('auth')->group(function () {
 
 
     // Настройки и фото канала: права редактирует только владелец.
+    Route::put('/chats/{chat}/moderation-settings', [ChatChannelSettingsController::class, 'updateModeration'])
+        ->middleware('throttle:20,1')->name('chats.moderation.settings');
+    Route::get('/chats/{chat}/moderation', [ChatModerationController::class, 'index'])
+        ->middleware('throttle:60,1')->name('chats.moderation.index');
+    Route::post('/chats/{chat}/messages/{message}/reports', [ChatModerationController::class, 'store'])
+        ->middleware('throttle:10,1')->name('chats.moderation.reports.store');
+    Route::patch('/chats/{chat}/moderation/reports/{report}', [ChatModerationController::class, 'update'])
+        ->middleware('throttle:30,1')->name('chats.moderation.reports.update');
+
     Route::put('/chats/{chat}/channel-settings', [ChatChannelSettingsController::class, 'update'])
         ->middleware('throttle:20,1')->name('chats.channel.settings');
     Route::post('/chats/{chat}/channel-photo', [ChatChannelSettingsController::class, 'photo'])
