@@ -71,9 +71,9 @@ export function connectChatRealtime(config, poller) {
             const updatePollingFallback = state => {
                 if (cleanedUp) return;
 
-                // Poll less often while the socket is healthy, but never remove
-                // polling: it remains the fallback for missed/disconnected events.
-                poller.setPollingInterval(state === 'connected' ? 15000 : 3000);
+                // WebSocket delivers new messages immediately. Keep HTTP polling
+                // as a low-frequency fallback instead of reloading chat data every 15s.
+                poller.setPollingInterval(state === 'connected' ? 60000 : 5000);
             };
 
             connection.bind('state_change', states => {
