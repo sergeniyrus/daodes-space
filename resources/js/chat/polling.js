@@ -39,8 +39,7 @@ export class MessagePoller {
                 this.highestKnownMessageId = Math.max(this.highestKnownMessageId, id);
             }
         });
-        // Blade уже отрисовал последние сообщения. Не запрашиваем их повторно из IPFS.
-        this.initialLoadDone = this.allMessageIds.size > 0;
+        // Blade выводит заглушки; первый запрос должен получить их содержимое из IPFS.
         console.log('[Poller] Init, highest ID:', this.highestKnownMessageId);
     }
 
