@@ -17,8 +17,46 @@ export function initGroupCalls(config, crypto) {
     const screenButton = document.getElementById('groupCallScreen');
     const leaveButton = document.getElementById('groupCallLeave');
     const closeButton = document.getElementById('groupCallClose');
+    const headerCallButton = document.getElementById('startChatCall');
 
     if (!modal || !participants || !micButton || !cameraButton || !screenButton || !leaveButton) return;
+
+    headerCallButton?.addEventListener('click', async () => {
+        if (headerCallButton.disabled) return;
+        headerCallButton.disabled = true;
+
+        try {
+            const response = await fetch('/chats/' + config.chatId + '/meetings', {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+            if (!response.ok) throw new Error('Не удалось проверить запланированные встречи');
+
+            const meetings = await response.json();
+            const now = Date.now();
+            const activeMeeting = meetings.find(meeting => {
+                const startsAt = new Date(meeting.starts_at).getTime();
+                const endsAt = startsAt + Number(meeting.duration_minutes) * 60000;
+
+                return meeting.response === 'accepted'
+                    && meeting.status === 'scheduled'
+                    && startsAt <= now + 10 * 60000
+                    && endsAt > now;
+            });
+
+            if (activeMeeting) {
+                document.dispatchEvent(new CustomEvent('chat:join-group-call', {
+                    detail: { meetingId: Number(activeMeeting.id) },
+                }));
+            } else {
+                document.getElementById('openChatMeetings')?.click();
+            }
+        } catch (error) {
+            window.alert(error.message || 'Не удалось проверить активные встречи');
+        } finally {
+            headerCallButton.disabled = false;
+        }
+    });
 
     let room = null;
     let connecting = false;
