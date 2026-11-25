@@ -115,11 +115,7 @@ export class ChatUI {
         const canDelete = isOwn
             || ['owner', 'admin', 'moderator'].includes(this.config.currentRole);
 
-        if (canDelete) {
-            addAction('fa-trash', this.config.translations.delete || 'Удалить', () => {
-                this.confirmDelete(messageId, messageEl);
-            }, 'context-menu-danger');
-        } else {
+        if (this.config.allowCopyMessages) {
             addAction('fa-copy', this.config.translations.copy || 'Копировать', async () => {
                 try {
                     await navigator.clipboard.writeText(text);
@@ -127,6 +123,50 @@ export class ChatUI {
                     console.error('Failed to copy:', error);
                 }
             });
+        }
+
+        if (!isOwn && this.config.reportUrl) {
+            addAction('fa-flag', 'Пожаловаться', async () => {
+                const choice = window.prompt(
+                    'Причина жалобы:\\n1 — Спам\\n2 — Оскорбления\\n3 — Травля\\n4 — Мошенничество\\n5 — Недопустимый контент\\n6 — Другое',
+                    '1'
+                );
+                if (choice === null) return;
+                const reasons = {
+                    '1': 'spam', '2': 'abuse', '3': 'harassment',
+                    '4': 'scam', '5': 'inappropriate', '6': 'other',
+                };
+                const reason = reasons[String(choice).trim()];
+                if (!reason) {
+                    window.alert('Выберите причину от 1 до 6.');
+                    return;
+                }
+                try {
+                    const response = await fetch(this.config.reportUrl.replace('__MESSAGE__', messageId), {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': this.config.csrfToken,
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json',
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ message_text: text || '[Сообщение без текста]', reason }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok || data.status !== 'success') {
+                        throw new Error(data.message || 'Не удалось отправить жалобу');
+                    }
+                    window.alert('Жалоба отправлена модераторам чата.');
+                } catch (error) {
+                    window.alert(error.message || 'Не удалось отправить жалобу');
+                }
+            });
+        }
+
+        if (canDelete) {
+            addAction('fa-trash', this.config.translations.delete || 'Удалить', () => {
+                this.confirmDelete(messageId, messageEl);
+            }, 'context-menu-danger');
         }
 
         if (this.config.chatType === 'personal' || ['owner', 'admin', 'moderator'].includes(this.config.currentRole)) {
@@ -195,7 +235,18 @@ export class ChatUI {
             await this.togglePin(messageId, messageEl);
         };
 
-        menu.append(replyBtn, editBtn, delBtn);
+        menu.append(replyBtn, editBtn);
+        if (this.config.allowCopyMessages) {
+            const copyBtn = document.createElement('div');
+            copyBtn.innerHTML = '<i class="fa fa-copy" aria-hidden="true"></i> ' + (this.config.translations.copy || 'Копировать');
+            copyBtn.onclick = async () => {
+                menu.remove();
+                try { await navigator.clipboard.writeText(text); }
+                catch (error) { console.error('Failed to copy:', error); }
+            };
+            menu.appendChild(copyBtn);
+        }
+        menu.appendChild(delBtn);
         if (this.config.chatType === 'personal' || ['owner', 'admin', 'moderator'].includes(this.config.currentRole)) {
             menu.appendChild(pinBtn);
         }
