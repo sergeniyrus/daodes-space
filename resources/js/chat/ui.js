@@ -4,6 +4,8 @@ export class ChatUI {
         this.editingMessageId = null;
         this.editingBackupText = null;
         this.editingNonceB64 = null;
+        this.editingAttachmentPayload = null;
+        this.editingMessageType = null;
         this.replyingToMessageId = null;
         this.pinnedMessageIds = new Set();
         this.canManagePins = config.chatType === 'personal'
@@ -76,14 +78,44 @@ export class ChatUI {
             this.startReply(messageId, senderName, currentText, messageEl);
         });
 
-        if (isOwn && messageType === 'text' && nonceB64) {
-            addAction('fa-pencil', this.config.translations.edit || 'Редактировать', () => {
-                const currentText = messageEl.querySelector('.card-text')?.dataset.plaintext || text;
-                this.startEditing(messageId, messageEl, currentText, nonceB64);
-            });
+        if (isOwn && nonceB64) {
+            const cardText = messageEl.querySelector('.card-text');
+            const rawText = cardText?.dataset.rawPlaintext || cardText?.dataset.plaintext || text;
+            let attachmentPayload = null;
+
+            if (['media', 'file', 'video_note'].includes(messageType)) {
+                try {
+                    const parsed = JSON.parse(rawText);
+                    if (parsed?.type === 'attachment' && parsed.file_nonce) {
+                        attachmentPayload = parsed;
+                    }
+                } catch {
+                    // Не открываем редактирование, если payload вложения не удалось разобрать.
+                }
+            }
+
+            if (attachmentPayload) {
+                addAction('fa-pencil', this.config.translations.edit || 'Редактировать имя файла', () => {
+                    this.startEditing(
+                        messageId,
+                        messageEl,
+                        attachmentPayload.file_name || '',
+                        nonceB64,
+                        attachmentPayload,
+                        messageType
+                    );
+                });
+            } else if (messageType === 'text') {
+                addAction('fa-pencil', this.config.translations.edit || 'Редактировать', () => {
+                    this.startEditing(messageId, messageEl, rawText, nonceB64);
+                });
+            }
         }
 
-        if (isOwn) {
+        const canDelete = isOwn
+            || ['owner', 'admin', 'moderator'].includes(this.config.currentRole);
+
+        if (canDelete) {
             addAction('fa-trash', this.config.translations.delete || 'Удалить', () => {
                 this.confirmDelete(messageId, messageEl);
             }, 'context-menu-danger');
@@ -386,12 +418,14 @@ export class ChatUI {
         }
     }
 
-    startEditing(messageId, messageEl, text, nonceB64) {
+    startEditing(messageId, messageEl, text, nonceB64, attachmentPayload = null, messageType = 'text') {
         this.cancelEditing();
         this.cancelReply();
         this.editingMessageId = messageId;
         this.editingBackupText = text;
         this.editingNonceB64 = nonceB64;
+        this.editingAttachmentPayload = attachmentPayload ? { ...attachmentPayload } : null;
+        this.editingMessageType = messageType;
         messageEl.classList.add('editing');
         const input = document.getElementById('messageInput');
         input.value = text;
@@ -407,6 +441,8 @@ export class ChatUI {
         this.editingMessageId = null;
         this.editingBackupText = null;
         this.editingNonceB64 = null;
+        this.editingAttachmentPayload = null;
+        this.editingMessageType = null;
         const messageInput = document.getElementById('messageInput');
         messageInput.value = '';
         messageInput.dispatchEvent(new Event('input', { bubbles: true }));
