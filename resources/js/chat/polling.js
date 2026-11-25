@@ -21,6 +21,11 @@ export class MessagePoller {
         this.hasOlderMessages = true;
         this.pendingReadThroughId = 0;
         this.pendingReadTopicId = this.config.topicId || null;
+        this.activitySince = new Date().toISOString();
+        this.latestActivityTimestamp = 0;
+        this.activityNotification = null;
+        this.seenActivityKeys = new Set();
+        this.scrollButton = document.getElementById('chatScrollToBottom');
 
         window.__chatPoller = this;
     }
@@ -209,7 +214,10 @@ export class MessagePoller {
 
         try {
             const lastId = this.initialLoadDone ? this.highestKnownMessageId : 0;
-            const params = new URLSearchParams({ last_id: String(lastId) });
+            const params = new URLSearchParams({
+                last_id: String(lastId),
+                activity_since: this.activitySince,
+            });
             if (this.config.topicId) {
                 params.set('topic_id', String(this.config.topicId));
             }
@@ -328,6 +336,7 @@ export class MessagePoller {
                 if (renderedMessage) {
                     this.renderReactionSummary(renderedMessage, msg.reactions || []);
                 }
+                this.detectMessageActivity(msg);
             });
 
             this.initialLoadDone = true;
@@ -536,6 +545,81 @@ export class MessagePoller {
             });
         } catch (error) {
             console.error('[Poller] Failed to refresh read receipts:', error);
+        }
+    }
+
+    detectMessageActivity(message) {
+        const userId = Number(this.config.userId);
+        const senderId = Number(message.sender?.id);
+        const messageTime = new Date(message.created_at || 0).getTime();
+
+        if (
+            senderId !== userId
+            && messageTime >= new Date(this.activitySince).getTime()
+            && Array.isArray(message.mentions)
+            && message.mentions.some(id => Number(id) === userId)
+        ) {
+            this.setActivityNotification('mention', message.id, messageTime, `mention:${message.id}`);
+        }
+
+        if (senderId === userId && Array.isArray(message.reactions)) {
+            message.reactions.forEach(reaction => {
+                const reactionUserId = Number(reaction.user_id);
+                const reactionTime = new Date(reaction.created_at || 0).getTime();
+
+                if (
+                    reactionUserId !== userId
+                    && reactionTime >= new Date(this.activitySince).getTime()
+                ) {
+                    this.setActivityNotification(
+                        'reaction',
+                        message.id,
+                        reactionTime,
+                        `reaction:${message.id}:${reactionUserId}:${reaction.created_at}`
+                    );
+                }
+            });
+        }
+    }
+
+    setActivityNotification(type, messageId, timestamp, key) {
+        if (!timestamp || this.seenActivityKeys.has(key) || timestamp <= this.latestActivityTimestamp) return;
+
+        this.latestActivityTimestamp = timestamp;
+        this.activityNotification = { type, messageId: Number(messageId), timestamp, key };
+
+        const button = this.scrollButton;
+        if (!button) return;
+
+        const isMention = type === 'mention';
+        button.hidden = false;
+        button.dataset.notificationType = type;
+        button.dataset.notificationMessageId = String(messageId);
+        button.innerHTML = isMention
+            ? '<i class="fa fa-at" aria-hidden="true"></i>'
+            : '<i class="fa fa-heart" aria-hidden="true"></i>';
+        button.title = isMention ? 'Вас упомянули' : 'Реакция на ваше сообщение';
+        button.setAttribute('aria-label', button.title);
+    }
+
+    clearActivityNotification() {
+        if (this.activityNotification?.key) {
+            this.seenActivityKeys.add(this.activityNotification.key);
+        }
+
+        this.activityNotification = null;
+        const button = this.scrollButton;
+        if (!button) return;
+
+        delete button.dataset.notificationType;
+        delete button.dataset.notificationMessageId;
+        button.innerHTML = '<i class="fa fa-arrow-down" aria-hidden="true"></i>';
+        button.title = 'К последним сообщениям';
+        button.setAttribute('aria-label', button.title);
+
+        const container = document.getElementById('chat-messages');
+        if (container) {
+            button.hidden = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
         }
     }
 
