@@ -15,6 +15,8 @@ import { initChatCalls } from './calls.js';
 import { initChatMeetings } from './meetings.js';
 import { initGroupCalls } from './group-calls.js';
 
+const initializedMessengerRoots = new WeakSet();
+
 const onMessengerPageMounted = callback => {
     document.addEventListener('messenger:page-mounted', callback);
     if (document.readyState !== 'complete') {
@@ -23,6 +25,12 @@ const onMessengerPageMounted = callback => {
 };
 
 const initializeChatPage = async () => {
+    // Initial DOMContentLoaded and messenger:page-mounted may both fire for the same root.
+    // Initialize each mounted DOM root only once to avoid duplicate listeners and API calls.
+    const messengerRoot = document.querySelector('[data-messenger-root]') || document.getElementById('chat-config')?.closest('main') || document.body;
+    if (initializedMessengerRoots.has(messengerRoot)) return;
+    initializedMessengerRoots.add(messengerRoot);
+
     window.__daodesChatPageCleanup?.();
     const pageAbortController = new AbortController();
     const config = loadChatConfig();
