@@ -261,7 +261,7 @@ export function initChatCalls(config, crypto) {
             console.error('[ChatCall] Poll failed:', error);
         } finally {
             polling = false;
-            if (!pollingStopped) pollTimer = window.setTimeout(poll, 1200);
+            if (!pollingStopped) pollTimer = window.setTimeout(poll, 2500);
         }
     };
 
