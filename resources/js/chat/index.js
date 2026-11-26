@@ -25,6 +25,10 @@ const onMessengerPageMounted = callback => {
 };
 
 const initializeChatPage = async () => {
+    // The chat module remains loaded during soft navigation to the chats index.
+    // Do not initialize chat-only services when the current page has no chat config.
+    if (!document.getElementById('chat-config')) return;
+
     // Initial DOMContentLoaded and messenger:page-mounted may both fire for the same root.
     // Initialize each mounted DOM root only once to avoid duplicate listeners and API calls.
     const messengerRoot = document.querySelector('[data-messenger-root]') || document.getElementById('chat-config')?.closest('main') || document.body;
