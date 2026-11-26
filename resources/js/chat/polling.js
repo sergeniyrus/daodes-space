@@ -45,13 +45,14 @@ export class MessagePoller {
 
     isAtBottom() {
         const el = document.getElementById('chat-messages');
+        if (!el) return true;
         return el.scrollHeight - el.scrollTop <= el.clientHeight + 10;
     }
 
     scrollToBottom() {
         if (this.autoScrollEnabled) {
             const el = document.getElementById('chat-messages');
-            el.scrollTop = el.scrollHeight;
+            if (el) el.scrollTop = el.scrollHeight;
         }
     }
 
