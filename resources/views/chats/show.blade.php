@@ -2593,6 +2593,17 @@ body.chat-page {
     min-height: 0;
     overflow: hidden;
 }
+/* The page root must participate in the body's full-height flex layout.
+   Without this, the inner chat grid grows with message history and pushes
+   the composer thousands of pixels below the viewport. */
+body.chat-page #messengerAppRoot {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
 body.chat-page .mobile-hamburger-header {
     position: relative;
     top: auto;
