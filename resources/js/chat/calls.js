@@ -22,6 +22,7 @@ export function initChatCalls(config, crypto) {
     headerCallButton?.addEventListener('click', () => audioButton.click());
 
     let call = null;
+    let startingCall = false;
     let pc = null;
     let localStream = null;
     let lastSignalId = 0;
@@ -109,6 +110,7 @@ export function initChatCalls(config, crypto) {
         if (message) status.textContent = message;
         audioButton.disabled = false;
         videoButton.disabled = false;
+        if (headerCallButton) headerCallButton.disabled = false;
     };
 
     const createPeer = async video => {
@@ -266,9 +268,14 @@ export function initChatCalls(config, crypto) {
     };
 
     const start = async type => {
-        if (!crypto.chatKey || call) return;
+        if (!crypto.chatKey || call || startingCall) return;
+
+        // Блокируем все точки запуска до завершения запроса создания звонка.
+        startingCall = true;
         audioButton.disabled = true;
         videoButton.disabled = true;
+        if (headerCallButton) headerCallButton.disabled = true;
+
         try {
             await createPeer(type === 'video');
             const offer = await pc.createOffer();
@@ -299,6 +306,13 @@ export function initChatCalls(config, crypto) {
         } catch (error) {
             finish(error.message || 'Не удалось начать звонок');
             window.alert(error.message || 'Проверьте разрешение на камеру и микрофон.');
+        } finally {
+            startingCall = false;
+            if (!call) {
+                audioButton.disabled = false;
+                videoButton.disabled = false;
+            }
+            if (headerCallButton) headerCallButton.disabled = false;
         }
     };
 
