@@ -3968,6 +3968,7 @@ body.chat-page .telegram-chat-layout .chat-container {
     data-allow-forward-messages="{{ (int) ($chat->allow_forward_messages ?? true) }}"
     data-report-url="{{ in_array($chat->type, ['group', 'channel'], true) ? route('chats.moderation.reports.store', ['chat' => $chat->id, 'message' => '__MESSAGE__']) : '' }}"
     data-user-id="{{ auth()->id() }}"
+    data-peer-user-id="{{ $otherUser?->id ?? '' }}"
     data-user-name="{{ auth()->user()->name }}"
     data-first-unread="{{ $firstUnreadMessageId ?? '' }}"
     data-muted-until="{{ $mutedUntil ?? '' }}"
