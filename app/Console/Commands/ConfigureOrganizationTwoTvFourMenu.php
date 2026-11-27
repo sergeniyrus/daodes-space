@@ -64,7 +64,7 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
             return self::SUCCESS;
         }
 
-        $result = DB::transaction(function () use ($organization, $menu): array {
+        $result = DB::transaction(function () use ($menu): array {
             $lockedOrganization = Organization::query()
                 ->whereKey(self::ORGANIZATION_ID)
                 ->lockForUpdate()
@@ -94,6 +94,7 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
             $createdSections = 0;
             $createdItems = 0;
             $existingItems = 0;
+            $updatedItems = 0;
 
             foreach ($menu as $sectionName => $items) {
                 $section = MenuSection::query()
@@ -116,6 +117,13 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
                     ]);
 
                     $createdSections++;
+                } else {
+                    $section->update([
+                        'is_active' => true,
+                        'delivery_enabled' => true,
+                        'pickup_enabled' => true,
+                        'dine_in_enabled' => true,
+                    ]);
                 }
 
                 foreach ($items as $itemData) {
@@ -125,7 +133,19 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
                         ->first();
 
                     if ($existingItem) {
+                        $existingItem->update([
+                            'weight' => $itemData['weight'],
+                            'unit' => 'г',
+                            'price' => $itemData['price'],
+                            'description' => $itemData['description'],
+                            'is_active' => true,
+                            'delivery_enabled' => true,
+                            'pickup_enabled' => true,
+                            'dine_in_enabled' => true,
+                        ]);
+
                         $existingItems++;
+                        $updatedItems++;
 
                         continue;
                     }
@@ -156,6 +176,7 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
                 'created_sections' => $createdSections,
                 'created_items' => $createdItems,
                 'existing_items' => $existingItems,
+                'updated_items' => $updatedItems,
             ];
         });
 
@@ -164,7 +185,7 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
         $this->line('Количество TV-экранов: ' . $result['screen_count']);
         $this->line('Создано разделов: ' . $result['created_sections']);
         $this->line('Создано блюд: ' . $result['created_items']);
-        $this->line('Уже существовало и пропущено: ' . $result['existing_items']);
+        $this->line('Ранее существовало и обновлено: ' . $result['updated_items']);
         $this->newLine();
         $this->line('Адрес экрана: /organization/2/tv?screen=4');
 
