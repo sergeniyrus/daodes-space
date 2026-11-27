@@ -170,6 +170,8 @@ class ConfigureOrganizationTwoTopTvScreens extends Command
         }
 
         $inactiveTargets = [];
+        $duplicateTargets = [];
+        $conflictingTargets = [];
 
         foreach (self::SCREENS as $screen => $screenData) {
             foreach ($screenData['sections'] as $sectionName => $names) {
@@ -191,18 +193,56 @@ class ConfigureOrganizationTwoTopTvScreens extends Command
                 $targetItems = $targetSection->items()->get();
 
                 foreach ($names as $name) {
-                    $existing = $targetItems->first(
+                    $existingItems = $targetItems->filter(
                         fn (MenuItem $item) => $this->normalizeName($item->name) === $this->normalizeName($name)
                     );
 
-                    if ($existing && !$existing->is_active) {
+                    if ($existingItems->isEmpty()) {
+                        continue;
+                    }
+
+                    if ($existingItems->contains(fn (MenuItem $item) => !$item->is_active)) {
                         $inactiveTargets[] = 'блюдо TV' . $screen . ': ' . $name;
+                    }
+
+                    if ($existingItems->count() > 1) {
+                        $duplicateTargets[] = 'TV' . $screen . ': ' . $name . ' (' . $existingItems->count() . ' записей)';
+                    }
+
+                    $sourceEntry = collect($matched[$screen][$sectionName] ?? [])
+                        ->first(fn (array $entry) => $this->normalizeName($entry['name']) === $this->normalizeName($name));
+
+                    if (!$sourceEntry) {
+                        continue;
+                    }
+
+                    $source = $sourceItems->firstWhere('id', $sourceEntry['source_id']);
+
+                    if (!$source) {
+                        continue;
+                    }
+
+                    foreach ($existingItems as $existing) {
+                        $sameData = (string) $existing->price === (string) $source->price
+                            && (string) $existing->weight === (string) $source->weight
+                            && (string) $existing->unit === (string) $source->unit
+                            && (string) $existing->description === (string) $source->description
+                            && (string) $existing->image_path === (string) $source->image_path
+                            && (string) $existing->image_cid === (string) $source->image_cid
+                            && (bool) $existing->delivery_enabled === (bool) $source->delivery_enabled
+                            && (bool) $existing->pickup_enabled === (bool) $source->pickup_enabled
+                            && (bool) $existing->dine_in_enabled === (bool) $source->dine_in_enabled;
+
+                        if (!$sameData) {
+                            $conflictingTargets[] = 'TV' . $screen . ': ' . $name . ' (данные отличаются от исходного блюда ID ' . $source->id . ')';
+                            break;
+                        }
                     }
                 }
             }
         }
 
-        if ($missing !== [] || $ambiguous !== [] || $inactiveTargets !== []) {
+        if ($missing !== [] || $ambiguous !== [] || $inactiveTargets !== [] || $duplicateTargets !== [] || $conflictingTargets !== []) {
             $this->newLine();
             $this->error('Нельзя применить настройку: предварительная проверка обнаружила проблемы.');
 
@@ -216,6 +256,14 @@ class ConfigureOrganizationTwoTopTvScreens extends Command
 
             if ($inactiveTargets !== []) {
                 $this->line('Уже существующие неактивные целевые записи (не будут автоматически активированы): ' . implode('; ', $inactiveTargets));
+            }
+
+            if ($duplicateTargets !== []) {
+                $this->line('Дубликаты на целевых экранах: ' . implode('; ', $duplicateTargets));
+            }
+
+            if ($conflictingTargets !== []) {
+                $this->line('Целевые блюда отличаются от исходных: ' . implode('; ', $conflictingTargets));
             }
 
             $this->line('Исправьте данные меню организации №2 и повторите dry-run. База данных не изменена.');
