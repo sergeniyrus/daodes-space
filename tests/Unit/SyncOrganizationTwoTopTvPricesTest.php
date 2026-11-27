@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Console\\Commands\\SyncOrganizationTwoTopTvPrices;
-use App\\Models\\MenuItem;
-use PHPUnit\\Framework\\Attributes\\CoversClass;
+use App\Console\Commands\SyncOrganizationTwoTopTvPrices;
+use App\Models\MenuItem;
+use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionClass;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 #[CoversClass(SyncOrganizationTwoTopTvPrices::class)]
 class SyncOrganizationTwoTopTvPricesTest extends TestCase
