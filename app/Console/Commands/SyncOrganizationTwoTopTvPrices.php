@@ -1,14 +1,13 @@
 <?php
 
-namespace App\\Console\\Commands;
+namespace App\Console\Commands;
 
-use App\\Models\\MenuItem;
-use App\\Models\\MenuSection;
-use App\\Models\\Organization;
-use Illuminate\\Console\\Command;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Facades\\Schema;
-use Illuminate\\Support\\Str;
+use App\Models\MenuItem;
+use App\Models\Organization;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class SyncOrganizationTwoTopTvPrices extends Command
 {
@@ -45,7 +44,17 @@ class SyncOrganizationTwoTopTvPrices extends Command
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                return $this->buildPlan(true);
+                $plan = $this->buildPlan(true);
+
+                if ($plan['errors'] === []) {
+                    foreach ($plan['updates'] as $update) {
+                        MenuItem::query()
+                            ->whereKey($update['target_id'])
+                            ->update(['price' => $update['new_price']]);
+                    }
+                }
+
+                return $plan;
             })
             : $this->buildPlan(false);
 
@@ -69,7 +78,7 @@ class SyncOrganizationTwoTopTvPrices extends Command
         }
 
         $this->newLine();
-        $this->info('Проверка цен TV5 и TV6:');
+        $this->info($apply ? 'Синхронизированные цены TV5 и TV6:' : 'План изменения цен TV5 и TV6:');
 
         foreach ($plan['updates'] as $update) {
             $this->line(sprintf(
@@ -89,12 +98,6 @@ class SyncOrganizationTwoTopTvPrices extends Command
             return self::SUCCESS;
         }
 
-        foreach ($plan['updates'] as $update) {
-            MenuItem::query()
-                ->whereKey($update['target_id'])
-                ->update(['price' => $update['new_price']]);
-        }
-
         $this->newLine();
         $this->info('Цены TV5 и TV6 синхронизированы.');
         $this->line('Обновлено позиций: ' . count($plan['updates']));
@@ -105,7 +108,7 @@ class SyncOrganizationTwoTopTvPrices extends Command
 
     /**
      * Собирает план без записи. При --apply вызывается внутри транзакции
-     * после блокировки организации, поэтому проверка и запись идут одним этапом.
+     * после блокировки организации; проверка и запись идут одним этапом.
      */
     private function buildPlan(bool $forUpdate): array
     {
@@ -216,7 +219,7 @@ class SyncOrganizationTwoTopTvPrices extends Command
 
     private function normalizeName(string $name): string
     {
-        return preg_replace('/\\s+/u', ' ', trim(Str::lower($name)));
+        return preg_replace('/\s+/u', ' ', trim(Str::lower($name)));
     }
 
     private function normalizePrice(mixed $price): string
