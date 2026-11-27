@@ -204,8 +204,8 @@ class ConfigureOrganizationTwoTopTvScreens extends Command
                     foreach ($matched[$screen][$sectionName] as $entry) {
                         $source = MenuItem::query()->findOrFail($entry['source_id']);
                         $alreadyThere = $section->items()
-                            ->whereRaw('LOWER(name) = ?', [Str::lower($entry['name'])])
-                            ->first();
+                            ->get()
+                            ->first(fn (MenuItem $item) => $this->normalizeName($item->name) === $this->normalizeName($entry['name']));
 
                         if ($alreadyThere) {
                             $existingItems++;
