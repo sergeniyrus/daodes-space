@@ -2132,6 +2132,8 @@ class CustomerCheckoutFlowTest extends TestCase
                 $table->integer('sort_order')->default(0);
                 $table->unsignedTinyInteger('tv_screen')->default(1);
                 $table->boolean('is_active')->default(true);
+                $table->boolean('is_available')->default(true);
+                $table->string('unavailable_reason', 255)->nullable();
                 $table->boolean('delivery_enabled')->default(true);
                 $table->boolean('pickup_enabled')->default(true);
                 $table->boolean('dine_in_enabled')->default(true);
