@@ -23,7 +23,7 @@ class ConfigureOrganizationTwoTvFourMenuTest extends TestCase
         $this->assertCount(4, $menu['Лапша WOK']);
         $this->assertCount(2, $menu['Паста']);
 
-        $items = collect($menu)->flatten(1)->keyBy('name');
+        $items = collect($menu)->collapse()->keyBy('name');
 
         $this->assertSame(350, $items['Манго чили']['price']);
         $this->assertSame(300, $items['Манго чили']['weight']);
