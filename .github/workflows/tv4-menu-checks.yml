@@ -6,7 +6,12 @@ on:
       - main
     paths:
       - 'app/Console/Commands/ConfigureOrganizationTwoTvFourMenu.php'
+      - 'app/Console/Commands/ConfigureOrganizationTwoTopTvScreens.php'
+      - 'app/Http/Controllers/OrganizationTVController.php'
+      - 'resources/views/tv/organization-print.blade.php'
+      - 'routes/web.php'
       - 'tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php'
+      - 'tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php'
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/tv4-menu-checks.yml'
@@ -40,7 +45,13 @@ jobs:
       - name: PHP syntax
         run: |
           php -l app/Console/Commands/ConfigureOrganizationTwoTvFourMenu.php
+          php -l app/Console/Commands/ConfigureOrganizationTwoTopTvScreens.php
+          php -l app/Http/Controllers/OrganizationTVController.php
+          php -l routes/web.php
           php -l tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php
+          php -l tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php
 
-      - name: Run TV4 menu unit test
-        run: vendor/bin/phpunit tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php
+      - name: Run menu unit tests
+        run: |
+          vendor/bin/phpunit tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php
+          vendor/bin/phpunit tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php
