@@ -1,0 +1,53 @@
+# HTTP: ACME challenge and HTTPS redirect
+server {
+    listen 80;
+    server_name deschat.daodes.space;
+    root /home/sergeniyrus/www/daodes/public;
+
+    location ^~ /.well-known/acme-challenge/ { try_files $uri =404; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+# Dedicated messenger host — same Laravel application and PHP-FPM pool.
+server {
+    listen 443 ssl;
+    server_name deschat.daodes.space;
+    root /home/sergeniyrus/www/daodes/public;
+    index index.php index.html;
+
+    ssl_certificate     /etc/letsencrypt/live/daodes-subdomains/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/daodes-subdomains/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    access_log /home/sergeniyrus/www/log/nginx/deschat_access.log;
+    error_log  /home/sergeniyrus/www/log/nginx/deschat_error.log;
+
+    location /app/ {
+        proxy_pass http://127.0.0.1:8090;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_read_timeout 3600s;
+        proxy_buffering off;
+    }
+
+    location /apps/ {
+        proxy_pass http://127.0.0.1:8090;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_read_timeout 3600s;
+        proxy_buffering off;
+    }
+
+    location / { try_files $uri $uri/ /index.php?$query_string; }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+    }
+
+    location ~ /\. { deny all; }
+}

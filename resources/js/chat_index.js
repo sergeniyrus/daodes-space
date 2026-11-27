@@ -2,6 +2,13 @@ import { initChatStories } from './chat/stories.js';
 
 import nacl from 'tweetnacl';
 
+const onMessengerPageMounted = callback => {
+    document.addEventListener('messenger:page-mounted', callback);
+    if (document.readyState !== 'complete') {
+        document.addEventListener('DOMContentLoaded', callback, { once: true });
+    }
+};
+
 (function () {
     // === Base64 ⇄ Uint8Array ===
     function b64ToU8(b64) {
@@ -89,7 +96,7 @@ import nacl from 'tweetnacl';
 
 
 // Создание «Избранного»: ключ чата генерируется и шифруется только в браузере.
-document.addEventListener('DOMContentLoaded', () => {
+onMessengerPageMounted(() => {
     const button = document.getElementById('openSavedMessages');
     if (!button) return;
 
@@ -165,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-document.addEventListener('DOMContentLoaded', () => {
+onMessengerPageMounted(() => {
     const storiesBar = document.getElementById('chatStoriesBar');
     if (!storiesBar) return;
 

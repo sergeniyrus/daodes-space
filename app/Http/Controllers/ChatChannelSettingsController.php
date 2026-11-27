@@ -60,6 +60,31 @@ class ChatChannelSettingsController extends Controller
         return response()->json(['status' => 'success']);
     }
 
+    public function updateModeration(Request $request, Chat $chat)
+    {
+        abort_unless(in_array($chat->type, ['group', 'channel'], true), 404);
+
+        $membership = DB::table('chat_user')
+            ->where('chat_id', $chat->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        abort_unless($membership && ($membership->role ?? 'member') === 'owner', 403);
+
+        $validated = $request->validate([
+            'allow_copy_messages' => 'required|boolean',
+            'allow_forward_messages' => 'required|boolean',
+        ]);
+
+        DB::table('chats')->where('id', $chat->id)->update([
+            'allow_copy_messages' => (bool) $validated['allow_copy_messages'],
+            'allow_forward_messages' => (bool) $validated['allow_forward_messages'],
+            'updated_at' => now(),
+        ]);
+
+        return response()->json(['status' => 'success']);
+    }
+
     public function photo(Request $request, Chat $chat, IPFSService $ipfs)
     {
         abort_unless($chat->type === 'channel', 404);

@@ -26,7 +26,9 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
         ? 'Показать изображение'
         : payload.media_type === 'video'
             ? (messageType === 'video_note' ? 'Воспроизвести видеосообщение' : 'Воспроизвести видео')
-            : 'Скачать файл';
+            : payload.media_type === 'audio'
+                ? 'Прослушать аудио'
+                : 'Открыть вложение';
 
     const details = document.createElement('small');
     details.textContent = payload.file_name || 'Зашифрованное вложение';
@@ -84,6 +86,14 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
                     }
                 });
                 wrapper.appendChild(image);
+
+                const downloadLink = document.createElement('a');
+                downloadLink.className = 'chat-media-download chat-media-image-download';
+                downloadLink.href = objectUrl;
+                downloadLink.download = payload.file_name || 'daodes-image';
+                downloadLink.textContent = '↓ ' + (config.translations.mediaDownload || 'Скачать изображение');
+                wrapper.appendChild(downloadLink);
+
                 button.remove();
             } else if (payload.media_type === 'video') {
                 const video = document.createElement('video');
@@ -97,6 +107,15 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
                 });
                 wrapper.appendChild(video);
                 button.remove();
+            } else if (payload.media_type === 'audio') {
+                const audio = document.createElement('audio');
+                audio.className = 'chat-media-audio';
+                audio.src = objectUrl;
+                audio.controls = true;
+                audio.preload = 'metadata';
+                audio.setAttribute('aria-label', payload.file_name || 'Аудиофайл');
+                wrapper.appendChild(audio);
+                button.remove();
             } else {
                 const link = document.createElement('a');
                 link.className = 'chat-media-download';
@@ -106,19 +125,30 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
                 wrapper.appendChild(link);
 
                 const mimeType = String(payload.mime_type || '').toLowerCase();
-                const previewableMimeTypes = new Set([
-                    'application/pdf',
-                    'text/plain',
-                    'text/csv',
-                    'text/markdown',
-                ]);
-                if (previewableMimeTypes.has(mimeType)) {
+                const fileName = String(payload.file_name || '').toLowerCase();
+                const isPdf = mimeType === 'application/pdf' || fileName.endsWith('.pdf');
+                const isTextDocument = ['text/plain', 'text/csv', 'text/markdown'].includes(mimeType);
+                const isOfficeDocument = /\.(docx?|xlsx?|pptx|odt|ods|odp)$/i.test(fileName)
+                    || mimeType.includes('officedocument')
+                    || mimeType.includes('msword')
+                    || mimeType.includes('ms-excel')
+                    || mimeType.includes('ms-powerpoint');
+
+                if (isPdf || isTextDocument) {
                     const openButton = document.createElement('button');
                     openButton.type = 'button';
                     openButton.className = 'chat-media-load';
-                    openButton.textContent = config.translations.openFullscreen || 'Открыть на весь экран';
+                    openButton.textContent = 'Открыть документ';
                     openButton.addEventListener('click', () => openMediaViewer(objectUrl, 'document', payload.file_name || 'Документ'));
                     wrapper.appendChild(openButton);
+                } else if (isOfficeDocument) {
+                    const openLink = document.createElement('a');
+                    openLink.className = 'chat-media-download';
+                    openLink.href = objectUrl;
+                    openLink.target = '_blank';
+                    openLink.rel = 'noopener noreferrer';
+                    openLink.textContent = 'Открыть во вкладке / приложении';
+                    wrapper.appendChild(openLink);
                 }
                 button.remove();
             }
@@ -132,6 +162,19 @@ export function renderEncryptedAttachment(container, encryptedPayload, messageId
             loading = false;
         }
     });
+
+    if (payload.media_type === 'image' && 'IntersectionObserver' in window) {
+        const previewObserver = new IntersectionObserver(entries => {
+            if (entries.some(entry => entry.isIntersecting)) {
+                previewObserver.disconnect();
+                button.click();
+            }
+        }, {
+            root: document.getElementById('chat-messages') || null,
+            rootMargin: '120px',
+        });
+        previewObserver.observe(wrapper);
+    }
 
     window.addEventListener('pagehide', () => {
         if (objectUrl) URL.revokeObjectURL(objectUrl);

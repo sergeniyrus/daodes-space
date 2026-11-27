@@ -7,7 +7,7 @@ const SAFE_EXTENSIONS = new Set([
     'zip', '7z', 'rar', 'tar', 'gz', 'bz2', 'xz', 'zst', 'lz4',
     'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'tif', 'tiff',
     'heic', 'heif', 'ico',
-    'mp3', 'wav', 'ogg', 'oga', 'opus', 'm4a', 'aac', 'flac', 'aiff', 'aif',
+    'mp3', 'wav', 'ogg', 'oga', 'opus', 'webm', 'm4a', 'aac', 'flac', 'aiff', 'aif',
     'mp4', 'm4v', 'mov', 'mkv', 'webm', 'avi', 'mpeg', 'mpg', '3gp', '3g2',
     'mts', 'm2ts',
     'woff', 'woff2', 'ttf', 'otf', 'eot',
@@ -82,12 +82,30 @@ export function validateChatAttachment(file) {
 
 export function recordingFileName(mimeType, baseName) {
     const mime = String(mimeType || '').toLowerCase().split(';')[0].trim();
-    const extension = mime.startsWith('video/')
-        ? (mime.includes('mp4') ? 'mp4' : 'webm')
-        : mime.includes('mp4')
-            ? 'm4a'
-            : mime.includes('ogg')
-                ? 'ogg'
-                : 'webm';
+
+    const extensionsByMime = {
+        'audio/webm': 'webm',
+        'video/webm': 'webm',
+        'audio/ogg': 'ogg',
+        'application/ogg': 'ogg',
+        'audio/wav': 'wav',
+        'audio/x-wav': 'wav',
+        'audio/wave': 'wav',
+        'audio/mpeg': 'mp3',
+        'audio/mp3': 'mp3',
+        'audio/mp4': 'm4a',
+        'audio/x-m4a': 'm4a',
+        'audio/aac': 'aac',
+        'audio/flac': 'flac',
+        'audio/x-flac': 'flac',
+        'audio/aiff': 'aiff',
+        'audio/x-aiff': 'aiff',
+        'video/mp4': 'mp4',
+        'video/quicktime': 'mov',
+    };
+
+    const extension = extensionsByMime[mime]
+        || (mime.startsWith('video/') ? 'webm' : 'webm');
+
     return `${baseName}.${extension}`;
 }

@@ -117,7 +117,7 @@ class MessageController extends Controller
                 ->with([
                     'sender:id,name',
                     'attachments:id,message_id,ipfs_cid,media_type,byte_size,position',
-                    'reactions:id,message_id,user_id,reaction',
+                    'reactions:id,message_id,user_id,reaction,created_at',
                     'mentions:id,message_id,user_id',
                 ]);
 
@@ -146,29 +146,132 @@ class MessageController extends Controller
                     ->values();
             }
 
-            $recentlyEdited = $beforeId > 0
-                ? collect()
-                : $chat->messages()
-                    ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
-                    ->where('edited_at', 1)
-                    ->where('updated_at', '>', now()->subMinutes(5))
-                    ->with('sender:id,name')
-                    ->get();
-
-            return $newMessages->merge($recentlyEdited)->unique('id')->sortBy('id')->values();
+            return $newMessages;
         });
 
-        // Контент тянем из IPFS (не кэшируем в Redis — он уже в IPFS!)
-        $messages = $messagesMeta->map(function ($msg) {
-            try {
-                $payload = $msg->getMessageFromIPFS($msg->ipfs_cid);
-            } catch (\Exception $e) {
-                Log::error("Failed to load message {$msg->id} from IPFS: " . $e->getMessage());
-                $payload = $msg->ipfs_cid; // fallback — возвращаем сам CID
+        // Изменённые сообщения запрашиваем отдельно по курсору клиента.
+        // Это не позволяет повторно отдавать одни и те же правки из кэша
+        // при каждом цикле polling и повторно обращаться к IPFS.
+        $editedSince = request('edited_since');
+        if ($beforeId === 0 && $editedSince && strtotime($editedSince) !== false) {
+            $editedMessages = $chat->messages()
+                ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
+                ->where('edited_at', 1)
+                ->where('updated_at', '>', \Illuminate\Support\Carbon::parse($editedSince))
+                ->with([
+                    'sender:id,name',
+                    'attachments:id,message_id,ipfs_cid,media_type,byte_size,position',
+                    'reactions:id,message_id,user_id,reaction,created_at',
+                    'mentions:id,message_id,user_id',
+                ])
+                ->get();
+
+            $messagesMeta = $messagesMeta->keyBy('id')
+                ->merge($editedMessages->keyBy('id'))
+                ->values()
+                ->sortBy('id')
+                ->values();
+        }
+
+        // Дополнительно проверяем новые реакции на собственные сообщения.
+        // Этот запрос не использует кэш, чтобы реакция отображалась в текущем polling.
+        $activitySince = request('activity_since');
+        if ($activitySince && strtotime($activitySince) !== false) {
+            $activitySince = \Illuminate\Support\Carbon::parse($activitySince);
+
+            $existingMessageIds = $messagesMeta->pluck('id')->all();
+
+            $reactionActivity = $chat->messages()
+                ->whereNotIn('id', $existingMessageIds)
+                ->where('sender_id', auth()->id())
+                ->when($topicId > 0, fn($query) => $query->where('topic_id', $topicId))
+                ->whereHas('reactions', function ($query) use ($activitySince) {
+                    $query->where('created_at', '>=', $activitySince)
+                        ->where('user_id', '!=', auth()->id());
+                })
+                ->with([
+                    'sender:id,name',
+                    'attachments:id,message_id,ipfs_cid,media_type,byte_size,position',
+                    'reactions:id,message_id,user_id,reaction,created_at',
+                    'mentions:id,message_id,user_id',
+                ])
+                ->get();
+
+            $reactionActivity->each(fn($message) => $message->setAttribute('activity_only', true));
+
+            $messagesMeta = $messagesMeta->merge($reactionActivity)
+                ->unique('id')
+                ->sortBy('id')
+                ->values();
+        }
+
+        // Получаем отсутствующие IPFS payload параллельно, ограничивая нагрузку
+        // на gateway десятью одновременными запросами.
+        $ipfsPayloads = [];
+        $pendingMessages = $messagesMeta->filter(function ($message) {
+            return !(bool) ($message->activity_only ?? false)
+                && $message->ipfs_cid
+                && !Cache::has("ipfs:message:{$message->ipfs_cid}");
+        });
+
+        if ($pendingMessages->isNotEmpty()) {
+            $ipfsClient = new \GuzzleHttp\Client([
+                'base_uri' => rtrim(config('services.ipfs.gateway', 'https://daodes.space'), '/'),
+                'connect_timeout' => 3.0,
+                'timeout' => 10.0,
+            ]);
+
+            $requests = function () use ($pendingMessages, $ipfsClient) {
+                foreach ($pendingMessages as $message) {
+                    yield $message->id => function () use ($ipfsClient, $message) {
+                        return $ipfsClient->getAsync("/ipfs/{$message->ipfs_cid}");
+                    };
+                }
+            };
+
+            $pool = new \GuzzleHttp\Pool($ipfsClient, $requests(), [
+                'concurrency' => 10,
+                'fulfilled' => function ($response, $messageId) use (&$ipfsPayloads, $pendingMessages) {
+                    $payload = $response->getBody()->getContents();
+                    $message = $pendingMessages->firstWhere('id', $messageId);
+
+                    if ($message) {
+                        Cache::put("ipfs:message:{$message->ipfs_cid}", $payload, now()->addDays(7));
+                    }
+
+                    $ipfsPayloads[$messageId] = $payload;
+                },
+                'rejected' => function ($reason, $messageId) use (&$ipfsPayloads, $pendingMessages) {
+                    $message = $pendingMessages->firstWhere('id', $messageId);
+                    Log::error('IPFS fetch error', [
+                        'message_id' => $messageId,
+                        'cid' => $message?->ipfs_cid,
+                        'error' => (string) $reason,
+                    ]);
+                    $ipfsPayloads[$messageId] = '[Ошибка загрузки]';
+                },
+            ]);
+
+            $pool->promise()->wait();
+        }
+
+        // Кэшированные payload читаются из Cache; новые уже загружены параллельно.
+        $messages = $messagesMeta->map(function ($msg) use ($ipfsPayloads) {
+            $activityOnly = (bool) ($msg->activity_only ?? false);
+            $payload = null;
+
+            if (!$activityOnly) {
+                try {
+                    $payload = $ipfsPayloads[$msg->id] ?? $msg->getMessageFromIPFS($msg->ipfs_cid);
+                } catch (\Exception $e) {
+                    Log::error("Failed to load message {$msg->id} from IPFS: " . $e->getMessage());
+                    $payload = $msg->ipfs_cid; // fallback — возвращаем сам CID
+                }
             }
 
             return [
                 'id' => $msg->id,
+                'activity_only' => $activityOnly,
                 'sender' => [
                     'id' => $msg->sender->id,
                     'name' => $msg->sender->name,
@@ -187,6 +290,7 @@ class MessageController extends Controller
                 'reactions' => $msg->reactions->map(fn($reaction) => [
                     'user_id' => $reaction->user_id,
                     'reaction' => $reaction->reaction,
+                    'created_at' => $reaction->created_at?->toIso8601String(),
                 ])->values(),
                 'mentions' => $msg->mentions->pluck('user_id')->values(),
                 'created_at' => $msg->created_at->toIso8601String(),
@@ -486,7 +590,7 @@ class MessageController extends Controller
         $mediaExtensions = [
             'image' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'tif', 'tiff', 'heic', 'heif', 'ico'],
             'video' => ['mp4', 'm4v', 'mov', 'mkv', 'webm', 'avi', 'mpeg', 'mpg', '3gp', '3g2', 'mts', 'm2ts'],
-            'audio' => ['mp3', 'wav', 'ogg', 'oga', 'opus', 'm4a', 'aac', 'flac', 'aiff', 'aif'],
+            'audio' => ['mp3', 'wav', 'ogg', 'oga', 'opus', 'webm', 'm4a', 'aac', 'flac', 'aiff', 'aif'],
         ];
 
         if (

@@ -10,7 +10,11 @@ window.Pusher = Pusher;
  */
 export function connectChatRealtime(config, poller) {
     const key = import.meta.env.VITE_REVERB_APP_KEY;
-    const host = import.meta.env.VITE_REVERB_HOST;
+    // Messenger has its own hostname and therefore its own public Reverb
+    // WebSocket endpoint. Other DAODES pages keep the configured main host.
+    const host = window.location.hostname === 'deschat.daodes.space'
+        ? window.location.hostname
+        : import.meta.env.VITE_REVERB_HOST;
     const scheme = import.meta.env.VITE_REVERB_SCHEME || 'https';
     const configuredPort = Number(import.meta.env.VITE_REVERB_PORT);
     const port = configuredPort || (scheme === 'https' ? 443 : 80);
@@ -71,9 +75,9 @@ export function connectChatRealtime(config, poller) {
             const updatePollingFallback = state => {
                 if (cleanedUp) return;
 
-                // Poll less often while the socket is healthy, but never remove
-                // polling: it remains the fallback for missed/disconnected events.
-                poller.setPollingInterval(state === 'connected' ? 15000 : 3000);
+                // WebSocket delivers new messages immediately. Keep HTTP polling
+                // as a low-frequency fallback instead of reloading chat data every 15s.
+                poller.setPollingInterval(state === 'connected' ? 60000 : 5000);
             };
 
             connection.bind('state_change', states => {

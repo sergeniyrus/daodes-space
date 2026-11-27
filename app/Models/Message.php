@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use GuzzleHttp\Client;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class Message extends Model
 {
@@ -75,13 +76,27 @@ class Message extends Model
             return '';
         }
 
+        $cacheKey = "ipfs:message:{$cid}";
+
+        if (Cache::has($cacheKey)) {
+            return (string) Cache::get($cacheKey);
+        }
+
         try {
             $client = new Client([
                 'base_uri' => rtrim(config('services.ipfs.gateway', 'https://daodes.space'), '/'),
+                'connect_timeout' => 3.0,
+                'timeout' => 10.0,
             ]);
 
             $response = $client->request('GET', "/ipfs/{$cid}");
-            return $response->getBody()->getContents();
+            $payload = $response->getBody()->getContents();
+
+            // CID неизменяемый: успешно полученный зашифрованный payload можно
+            // безопасно повторно использовать при следующих открытиях чата.
+            Cache::put($cacheKey, $payload, now()->addDays(7));
+
+            return $payload;
         } catch (Exception $e) {
             Log::error('IPFS fetch error', ['cid' => $cid, 'error' => $e->getMessage()]);
             return '[Ошибка загрузки]';

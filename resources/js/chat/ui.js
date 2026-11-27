@@ -4,6 +4,8 @@ export class ChatUI {
         this.editingMessageId = null;
         this.editingBackupText = null;
         this.editingNonceB64 = null;
+        this.editingAttachmentPayload = null;
+        this.editingMessageType = null;
         this.replyingToMessageId = null;
         this.pinnedMessageIds = new Set();
         this.canManagePins = config.chatType === 'personal'
@@ -16,91 +18,183 @@ export class ChatUI {
         if (!body) return;
         const actions = document.createElement('div');
         actions.className = 'edit-actions';
-        actions.innerHTML = '<span class="dots">⋮</span>';
+        actions.innerHTML = '<button type="button" class="dots" aria-label="Действия с сообщением" title="Действия">⋮</button>';
         body.appendChild(actions);
         actions.querySelector('.dots').onclick = e => {
             e.stopPropagation();
             this.createContextMenu(messageEl.dataset.id, messageEl, plaintext, nonceB64);
         };
-        body.onmouseenter = () => actions.style.opacity = '1';
-        body.onmouseleave = () => actions.style.opacity = '0';
+        actions.style.opacity = '1';
+        actions.style.visibility = 'visible';
     }
 
     // Меню с тремя точками для чужих сообщений (Ответить + Копировать)
     attachMessageMenu(messageEl) {
-        if (messageEl.classList.contains('sent')) return; // только для чужих
-        if (messageEl.querySelector('.edit-actions')) return; // уже есть
+        if (messageEl.querySelector('.edit-actions')) return;
 
-        const body = messageEl.querySelector('.card-body');
+        const body = messageEl.querySelector('.my-card-body, .card-body');
         if (!body) return;
 
         const actions = document.createElement('div');
         actions.className = 'edit-actions';
-        actions.innerHTML = '<span class="dots">⋮</span>';
+        actions.innerHTML = '<button type="button" class="dots" aria-label="Действия с сообщением" title="Действия">⋮</button>';
         body.appendChild(actions);
 
-        actions.querySelector('.dots').onclick = e => {
-            e.stopPropagation();
-            const msgId = messageEl.dataset.id;
-            const text = messageEl.querySelector('.card-text')?.dataset.plaintext || '';
-            this.createReceivedContextMenu(msgId, messageEl, text);
-        };
+        actions.querySelector('.dots').addEventListener('click', event => {
+            event.stopPropagation();
+            const cardText = messageEl.querySelector('.card-text');
+            const encrypted = cardText?.dataset.encrypted || '';
+            const nonceB64 = encrypted.includes('|') ? encrypted.split('|')[0] : null;
+            const text = cardText?.dataset.plaintext || '';
+            this.createReceivedContextMenu(messageEl.dataset.id, messageEl, text, nonceB64);
+        });
 
-        body.onmouseenter = () => actions.style.opacity = '1';
-        body.onmouseleave = () => actions.style.opacity = '0';
+        actions.style.opacity = '1';
+        actions.style.visibility = 'visible';
     }
 
-    createReceivedContextMenu(messageId, messageEl, text) {
-        document.querySelectorAll('.context-menu').forEach(e => e.remove());
+    createReceivedContextMenu(messageId, messageEl, text, nonceB64 = null) {
+        document.querySelectorAll('.context-menu').forEach(element => element.remove());
         const menu = document.createElement('div');
         menu.className = 'context-menu';
+        const isOwn = messageEl.classList.contains('sent');
+        const messageType = messageEl.dataset.messageType || 'text';
 
-        // Кнопка Ответить — с переводом и иконкой
-        const replyBtn = document.createElement('div');
-        replyBtn.innerHTML = '<i class="fa fa-reply" aria-hidden="true"></i> ' + (this.config.translations.reply || 'Ответить');
-        replyBtn.onclick = () => {
-            menu.remove();
+        const addAction = (icon, label, callback, className = '') => {
+            const item = document.createElement('div');
+            item.className = className;
+            item.innerHTML = '<i class="fa ' + icon + '" aria-hidden="true"></i> ' + label;
+            item.addEventListener('click', () => {
+                menu.remove();
+                callback();
+            });
+            menu.appendChild(item);
+        };
+
+        addAction('fa-reply', this.config.translations.reply || 'Ответить', () => {
             const titleEl = messageEl.querySelector('.card-title');
-            const senderName = titleEl
-                ? titleEl.childNodes[0]?.textContent.trim() || ''
-                : '';
-            this.startReply(messageId, senderName, text);
-        };
+            const senderName = titleEl?.childNodes[0]?.textContent.trim() || '';
+            const currentText = messageEl.querySelector('.card-text')?.dataset.plaintext || text;
+            this.startReply(messageId, senderName, currentText, messageEl);
+        });
 
-        // Кнопка Копировать — с переводом и иконкой
-        const copyBtn = document.createElement('div');
-        copyBtn.innerHTML = '<i class="fa fa-copy" aria-hidden="true"></i> ' + (this.config.translations.copy || 'Копировать');
-        copyBtn.onclick = async () => {
-            try {
-                await navigator.clipboard.writeText(text);
-            } catch (err) {
-                console.error('Failed to copy:', err);
+        if (isOwn && nonceB64) {
+            const cardText = messageEl.querySelector('.card-text');
+            const rawText = cardText?.dataset.rawPlaintext || cardText?.dataset.plaintext || text;
+            let attachmentPayload = null;
+
+            if (['media', 'file', 'video_note'].includes(messageType)) {
+                try {
+                    const parsed = JSON.parse(rawText);
+                    if (parsed?.type === 'attachment' && parsed.file_nonce) {
+                        attachmentPayload = parsed;
+                    }
+                } catch {
+                    // Не открываем редактирование, если payload вложения не удалось разобрать.
+                }
             }
-            menu.remove();
-        };
 
-        const pinBtn = document.createElement('div');
-        pinBtn.innerHTML = '<i class="fa fa-thumb-tack" aria-hidden="true"></i> ' + (this.pinnedMessageIds.has(Number(messageId)) ? (this.config.translations.unpin || 'Открепить') : (this.config.translations.pin || 'Закрепить'));
-        pinBtn.onclick = async () => {
-            menu.remove();
-            await this.togglePin(messageId, messageEl);
-        };
-
-        menu.append(replyBtn, copyBtn);
-        if (this.config.chatType === 'personal' || ['owner', 'admin', 'moderator'].includes(this.config.currentRole)) {
-            menu.appendChild(pinBtn);
+            if (attachmentPayload) {
+                addAction('fa-pencil', this.config.translations.edit || 'Редактировать имя файла', () => {
+                    this.startEditing(
+                        messageId,
+                        messageEl,
+                        attachmentPayload.file_name || '',
+                        nonceB64,
+                        attachmentPayload,
+                        messageType
+                    );
+                });
+            } else if (messageType === 'text') {
+                addAction('fa-pencil', this.config.translations.edit || 'Редактировать', () => {
+                    this.startEditing(messageId, messageEl, rawText, nonceB64);
+                });
+            }
         }
+
+        const canDelete = isOwn
+            || ['owner', 'admin', 'moderator'].includes(this.config.currentRole);
+
+        if (this.config.allowCopyMessages) {
+            addAction('fa-copy', this.config.translations.copy || 'Копировать', async () => {
+                try {
+                    await navigator.clipboard.writeText(text);
+                } catch (error) {
+                    console.error('Failed to copy:', error);
+                }
+            });
+        }
+
+        if (this.config.allowForwardMessages && messageType === 'text' && typeof this.forwardMessage === 'function') {
+            addAction('fa-share', 'Переслать', () => this.forwardMessage(text, messageEl));
+        }
+
+
+        if (!isOwn && this.config.reportUrl) {
+            addAction('fa-flag', 'Пожаловаться', async () => {
+                const choice = window.prompt(
+                    ['Причина жалобы:', '1 — Спам', '2 — Оскорбления', '3 — Травля', '4 — Мошенничество', '5 — Недопустимый контент', '6 — Другое'].join(String.fromCharCode(10)),
+                    '1'
+                );
+                if (choice === null) return;
+                const reasons = {
+                    '1': 'spam', '2': 'abuse', '3': 'harassment',
+                    '4': 'scam', '5': 'inappropriate', '6': 'other',
+                };
+                const reason = reasons[String(choice).trim()];
+                if (!reason) {
+                    window.alert('Выберите причину от 1 до 6.');
+                    return;
+                }
+                try {
+                    const response = await fetch(this.config.reportUrl.replace('__MESSAGE__', messageId), {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': this.config.csrfToken,
+                            'Content-Type': 'application/json',
+                            Accept: 'application/json',
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ message_text: text || '[Сообщение без текста]', reason }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok || data.status !== 'success') {
+                        throw new Error(data.message || 'Не удалось отправить жалобу');
+                    }
+                    window.alert('Жалоба отправлена модераторам чата.');
+                } catch (error) {
+                    window.alert(error.message || 'Не удалось отправить жалобу');
+                }
+            });
+        }
+
+        if (canDelete) {
+            addAction('fa-trash', this.config.translations.delete || 'Удалить', () => {
+                this.confirmDelete(messageId, messageEl);
+            }, 'context-menu-danger');
+        }
+
+        if (this.config.chatType === 'personal' || ['owner', 'admin', 'moderator'].includes(this.config.currentRole)) {
+            addAction('fa-thumb-tack', this.pinnedMessageIds.has(Number(messageId))
+                ? (this.config.translations.unpin || 'Открепить')
+                : (this.config.translations.pin || 'Закрепить'), async () => {
+                await this.togglePin(messageId, messageEl);
+            });
+        }
+
         document.body.appendChild(menu);
+        const rect = messageEl.getBoundingClientRect();
+        menu.style.top = Math.max(8, rect.top + window.scrollY + 10) + 'px';
+        menu.style.left = Math.max(8, Math.min(window.innerWidth - menu.offsetWidth - 8,
+            rect.right + window.scrollX - menu.offsetWidth)) + 'px';
 
-        const r = messageEl.getBoundingClientRect();
-        menu.style.top = (r.top + window.scrollY + 10) + 'px';
-        menu.style.left = (r.right + window.scrollX - 120) + 'px';
-
-        setTimeout(() => {
-            document.addEventListener('click', e => {
-                if (!menu.contains(e.target)) menu.remove();
-            }, { once: true });
-        }, 0);
+        const closeMenu = event => {
+            if (!menu.contains(event.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeMenu), 0);
     }
 
     createContextMenu(messageId, messageEl, text, nonceB64) {
@@ -118,7 +212,7 @@ export class ChatUI {
                 ? titleEl.childNodes[0]?.textContent.trim() || ''
                 : '';
             const currentText = messageEl.querySelector('.card-text')?.dataset.plaintext || text;
-            this.startReply(messageId, senderName, currentText);
+            this.startReply(messageId, senderName, currentText, messageEl);
         };
 
         // Кнопка Редактировать — с переводом и иконкой
@@ -146,7 +240,27 @@ export class ChatUI {
             await this.togglePin(messageId, messageEl);
         };
 
-        menu.append(replyBtn, editBtn, delBtn);
+        menu.append(replyBtn, editBtn);
+        if (this.config.allowCopyMessages) {
+            const copyBtn = document.createElement('div');
+            copyBtn.innerHTML = '<i class="fa fa-copy" aria-hidden="true"></i> ' + (this.config.translations.copy || 'Копировать');
+            copyBtn.onclick = async () => {
+                menu.remove();
+                try { await navigator.clipboard.writeText(text); }
+                catch (error) { console.error('Failed to copy:', error); }
+            };
+            menu.appendChild(copyBtn);
+        }
+        if (this.config.allowForwardMessages && (messageEl.dataset.messageType || 'text') === 'text' && typeof this.forwardMessage === 'function') {
+            const forwardBtn = document.createElement('div');
+            forwardBtn.innerHTML = '<i class="fa fa-share" aria-hidden="true"></i> Переслать';
+            forwardBtn.onclick = () => {
+                menu.remove();
+                this.forwardMessage(text, messageEl);
+            };
+            menu.appendChild(forwardBtn);
+        }
+        menu.appendChild(delBtn);
         if (this.config.chatType === 'personal' || ['owner', 'admin', 'moderator'].includes(this.config.currentRole)) {
             menu.appendChild(pinBtn);
         }
@@ -369,12 +483,14 @@ export class ChatUI {
         }
     }
 
-    startEditing(messageId, messageEl, text, nonceB64) {
+    startEditing(messageId, messageEl, text, nonceB64, attachmentPayload = null, messageType = 'text') {
         this.cancelEditing();
         this.cancelReply();
         this.editingMessageId = messageId;
         this.editingBackupText = text;
         this.editingNonceB64 = nonceB64;
+        this.editingAttachmentPayload = attachmentPayload ? { ...attachmentPayload } : null;
+        this.editingMessageType = messageType;
         messageEl.classList.add('editing');
         const input = document.getElementById('messageInput');
         input.value = text;
@@ -390,19 +506,48 @@ export class ChatUI {
         this.editingMessageId = null;
         this.editingBackupText = null;
         this.editingNonceB64 = null;
-        document.getElementById('messageInput').value = '';
+        this.editingAttachmentPayload = null;
+        this.editingMessageType = null;
+        const messageInput = document.getElementById('messageInput');
+        messageInput.value = '';
+        messageInput.dispatchEvent(new Event('input', { bubbles: true }));
         // Кнопка "Отправить" — только иконка самолётика
         const sendBtn = document.getElementById('sendBtn');
         sendBtn.innerHTML = '<i class="fa fa-paper-plane" aria-hidden="true"></i>';
     }
 
-    startReply(messageId, senderName, text) {
+    startReply(messageId, senderName, text, messageEl = null) {
         this.cancelEditing();
         this.replyingToMessageId = messageId;
         const preview = document.getElementById('replyPreview');
         if (!preview) return;
+
+        const attachment = messageEl?.querySelector('.chat-media-message, .chat-video-note, .chat-voice-message, .chat-file-message');
+        let previewText = String(text || '').trim();
+        let payload = null;
+        try { payload = JSON.parse(previewText); } catch { /* ordinary text message */ }
+
+        if (attachment || payload?.type === 'attachment' || payload?.type === 'voice') {
+            const fileName = attachment?.querySelector('small')?.textContent?.trim() || payload?.file_name;
+            const audio = attachment?.querySelector('audio');
+            const video = attachment?.querySelector('video');
+            const image = attachment?.querySelector('img');
+            const mediaType = payload?.media_type;
+            const label = audio || payload?.type === 'voice' || mediaType === 'audio' ? '🎵 Голосовое сообщение'
+                : video || mediaType === 'video' ? '🎬 Видео'
+                : image || mediaType === 'image' ? '🖼 Изображение'
+                : '📎 Файл';
+            previewText = fileName && !['Зашифрованное вложение', 'video-note'].includes(fileName)
+                ? label + ': ' + fileName
+                : label;
+        } else if (!previewText) {
+            previewText = 'Сообщение';
+        }
+
         preview.querySelector('.reply-to-name').textContent = senderName;
-        preview.querySelector('.reply-to-text').textContent = text.substring(0, 100);
+        preview.querySelector('.reply-to-text').textContent = previewText.substring(0, 100);
+        preview.dataset.replyText = String(text || '');
+        preview.dataset.replyType = attachment ? 'attachment' : 'text';
         preview.style.display = 'flex';
         preview.dataset.replyId = messageId;
         document.getElementById('messageInput').focus();
@@ -414,6 +559,8 @@ export class ChatUI {
         if (preview) {
             preview.style.display = 'none';
             delete preview.dataset.replyId;
+            delete preview.dataset.replyText;
+            delete preview.dataset.replyType;
         }
     }
 

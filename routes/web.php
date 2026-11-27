@@ -33,6 +33,7 @@ use App\Http\Controllers\{
     ChatStoriesController,
     ChatChannelStoriesController,
     ChatChannelSettingsController,
+    ChatModerationController,
     ChatContactsController,
     ChatScheduledMessageController,
     ChatCallController,
@@ -677,10 +678,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/stories/{story}/media', [ChatStoriesController::class, 'media'])->middleware('throttle:30,1')->name('stories.media');
     Route::post('/stories/{story}/view', [ChatStoriesController::class, 'view'])->middleware('throttle:60,1')->name('stories.view');
     Route::get('/stories/{story}/views', [ChatStoriesController::class, 'views'])->middleware('throttle:30,1')->name('stories.views');
+    Route::post('/stories/{story}/reactions', [ChatStoriesController::class, 'toggleReaction'])->middleware('throttle:30,1')->name('stories.reactions.toggle');
     Route::delete('/stories/{story}', [ChatStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('stories.destroy');
 
 
     // Настройки и фото канала: права редактирует только владелец.
+    Route::put('/chats/{chat}/moderation-settings', [ChatChannelSettingsController::class, 'updateModeration'])
+        ->middleware('throttle:20,1')->name('chats.moderation.settings');
+    Route::get('/chats/{chat}/moderation', [ChatModerationController::class, 'index'])
+        ->middleware('throttle:60,1')->name('chats.moderation.index');
+    Route::post('/chats/{chat}/messages/{message}/reports', [ChatModerationController::class, 'store'])
+        ->middleware('throttle:10,1')->name('chats.moderation.reports.store');
+    Route::patch('/chats/{chat}/moderation/reports/{report}', [ChatModerationController::class, 'update'])
+        ->middleware('throttle:30,1')->name('chats.moderation.reports.update');
+
     Route::put('/chats/{chat}/channel-settings', [ChatChannelSettingsController::class, 'update'])
         ->middleware('throttle:20,1')->name('chats.channel.settings');
     Route::post('/chats/{chat}/channel-photo', [ChatChannelSettingsController::class, 'photo'])
@@ -694,6 +705,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/chats/{chat}/stories/{story}/media', [ChatChannelStoriesController::class, 'media'])->middleware('throttle:30,1')->name('chats.channel.stories.media');
     Route::post('/chats/{chat}/stories/{story}/view', [ChatChannelStoriesController::class, 'view'])->middleware('throttle:60,1')->name('chats.channel.stories.view');
     Route::get('/chats/{chat}/stories/{story}/views', [ChatChannelStoriesController::class, 'views'])->middleware('throttle:30,1')->name('chats.channel.stories.views');
+    Route::post('/chats/{chat}/stories/{story}/reactions', [ChatChannelStoriesController::class, 'toggleReaction'])->middleware('throttle:30,1')->name('chats.channel.stories.reactions.toggle');
     Route::delete('/chats/{chat}/stories/{story}', [ChatChannelStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('chats.channel.stories.destroy');
 
 

@@ -8,6 +8,7 @@ use App\Services\IPFSService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ChatChannelStoriesController extends Controller
 {
@@ -47,6 +48,8 @@ class ChatChannelStoriesController extends Controller
         $membership = $this->membership($chat);
         $userId = (int) Auth::id();
 
+        $hasReactionsTable = Schema::hasTable('chat_channel_story_reactions');
+
         $stories = DB::table('chat_channel_stories as stories')
             ->join('chat_channel_story_keys as story_keys', 'story_keys.story_id', '=', 'stories.id')
             ->join('users as publishers', 'publishers.id', '=', 'stories.published_by')
@@ -57,6 +60,12 @@ class ChatChannelStoriesController extends Controller
             })
             ->where('stories.chat_id', $chat->id)
             ->where('story_keys.user_id', $userId)
+            ->when($hasReactionsTable, function ($query) use ($userId) {
+                $query->leftJoin('chat_channel_story_reactions as reactions', function ($join) use ($userId) {
+                    $join->on('reactions.story_id', '=', 'stories.id')
+                        ->where('reactions.user_id', '=', $userId);
+                });
+            })
             ->where('stories.expires_at', '>', now())
             ->orderByDesc('stories.created_at')
             ->limit(100)
@@ -71,10 +80,20 @@ class ChatChannelStoriesController extends Controller
                 'stories.created_at',
                 'stories.expires_at',
                 'views.id as viewed_id',
+                DB::raw('(SELECT direct_chats.id
+                FROM chats AS direct_chats
+                INNER JOIN chat_user AS publisher_members ON publisher_members.chat_id = direct_chats.id
+                INNER JOIN chat_user AS viewer_members ON viewer_members.chat_id = direct_chats.id
+                WHERE direct_chats.type = "personal"
+                  AND publisher_members.user_id = stories.published_by
+                  AND viewer_members.user_id = ' . (int) $userId . '
+                LIMIT 1) AS direct_chat_id'),
+                $hasReactionsTable ? 'reactions.reaction as my_reaction' : DB::raw('NULL as my_reaction'),
             ])
             ->map(fn ($story) => [
                 'id' => (int) $story->id,
                 'user_id' => (int) $story->published_by,
+                'direct_chat_id' => $story->direct_chat_id ? (int) $story->direct_chat_id : null,
                 'author_name' => $chat->name,
                 'publisher_name' => $story->publisher_name,
                 'avatar_url' => $chat->photo_cid ? '/ipfs/' . $chat->photo_cid : ($story->avatar_url ?: '/img/main/default-avatar.png'),
@@ -84,6 +103,7 @@ class ChatChannelStoriesController extends Controller
                 'created_at' => $story->created_at,
                 'expires_at' => $story->expires_at,
                 'viewed' => $story->viewed_id !== null,
+                'my_reaction' => $story->my_reaction,
                 'is_own' => (int) $story->published_by === $userId,
                 'is_channel' => true,
                 'can_manage' => ($membership->role ?? 'member') === 'owner'
@@ -259,6 +279,39 @@ class ChatChannelStoriesController extends Controller
             'updated_at' => now(),
         ]);
         return response()->json(['status' => 'success']);
+    }
+
+    public function toggleReaction(Request $request, Chat $chat, int $story)
+    {
+        if (!Schema::hasTable('chat_channel_story_reactions')) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Для реакций на истории канала требуется применить миграцию DAODES.',
+            ], 503);
+        }
+
+        $record = $this->accessibleStory($chat, $story);
+        $validated = $request->validate([
+            'reaction' => 'required|string|in:❤️,🔥,😂,😮,👏,😢',
+        ]);
+
+        $existing = DB::table('chat_channel_story_reactions')
+            ->where('story_id', $record->id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if ($existing && $existing->reaction === $validated['reaction']) {
+            DB::table('chat_channel_story_reactions')->where('id', $existing->id)->delete();
+            $active = false;
+        } else {
+            DB::table('chat_channel_story_reactions')->updateOrInsert(
+                ['story_id' => $record->id, 'user_id' => Auth::id()],
+                ['reaction' => $validated['reaction'], 'created_at' => now(), 'updated_at' => now()]
+            );
+            $active = true;
+        }
+
+        return response()->json(['status' => 'success', 'active' => $active, 'reaction' => $active ? $validated['reaction'] : null]);
     }
 
     public function views(Chat $chat, int $story)

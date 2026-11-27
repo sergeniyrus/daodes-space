@@ -50,10 +50,21 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
             return;
         }
 
+        // One circle per publisher; their active stories are played sequentially.
+        const groups = new Map();
         stories.forEach(story => {
+            const key = story.is_channel ? 'channel:' + (story.chat_id || chatId || story.author_name) : 'user:' + story.user_id;
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(story);
+        });
+
+        [...groups.values()].forEach(group => {
+            group.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            const story = group[group.length - 1];
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-story-card ' + (story.viewed ? 'viewed' : 'unviewed');
+            button.className = 'chat-story-card ' + (group.every(item => item.viewed) ? 'viewed' : 'unviewed');
+            button.setAttribute('aria-label', (story.author_name || '') + ', историй: ' + group.length);
 
             const avatar = document.createElement('img');
             avatar.className = 'chat-story-avatar';
@@ -63,10 +74,9 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
 
             const name = document.createElement('span');
             name.className = 'chat-story-name';
-            name.textContent = story.is_channel ? story.author_name : (story.is_own ? (labels.myStory || 'My story') : story.author_name);
-
+            name.textContent = story.is_channel ? story.author_name : (story.is_own ? (labels.myStory || 'Моя история') : story.author_name);
             button.append(avatar, name);
-            button.addEventListener('click', () => openStory(story));
+            button.addEventListener('click', () => openStory(group[0], group, 0));
             list.appendChild(button);
         });
     }
@@ -146,7 +156,7 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
         await loadStories();
     }
 
-    async function openStory(story) {
+    async function openStory(story, sequence = [story], sequenceIndex = 0) {
         if (!privateKey || privateKey.length !== nacl.box.secretKeyLength) {
             showError(new Error('Не найден приватный ключ устройства'));
             return;
@@ -167,7 +177,9 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
         info.className = 'chat-story-viewer-info';
         info.textContent = story.author_name;
 
+        let progressTimer = null;
         const closeViewer = () => {
+            if (progressTimer) window.clearInterval(progressTimer);
             viewer.remove();
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
@@ -175,9 +187,56 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
         viewer.addEventListener('click', event => {
             if (event.target === viewer) closeViewer();
         });
+        viewer.tabIndex = -1;
         viewer.addEventListener('keydown', event => {
-            if (event.key === 'Escape') closeViewer();
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeViewer();
+            } else if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                previous?.click();
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                next?.click();
+            }
         });
+
+
+        const progress = document.createElement('div');
+        progress.className = 'chat-story-progress';
+        sequence.forEach((item, index) => {
+            const track = document.createElement('span');
+            track.className = 'chat-story-progress-track';
+            const fill = document.createElement('i');
+            fill.style.width = index < sequenceIndex ? '100%' : '0%';
+            track.appendChild(fill);
+            progress.appendChild(track);
+        });
+        viewer.appendChild(progress);
+
+        const navigation = document.createElement('div');
+        navigation.className = 'chat-story-navigation';
+        const previous = document.createElement('button');
+        previous.type = 'button';
+        previous.textContent = '‹';
+        previous.setAttribute('aria-label', 'Предыдущая история');
+        const next = document.createElement('button');
+        next.type = 'button';
+        next.textContent = '›';
+        next.setAttribute('aria-label', 'Следующая история');
+        previous.disabled = sequenceIndex === 0;
+        previous.addEventListener('click', () => {
+            closeViewer();
+            if (sequenceIndex > 0) openStory(sequence[sequenceIndex - 1], sequence, sequenceIndex - 1);
+        });
+        next.addEventListener('click', () => {
+            closeViewer();
+            if (sequenceIndex < sequence.length - 1) openStory(sequence[sequenceIndex + 1], sequence, sequenceIndex + 1);
+            else closeViewer();
+        });
+        navigation.append(previous, next);
+        viewer.append(navigation);
+        viewer.focus({ preventScroll: true });
 
         viewer.append(info, close);
         document.body.appendChild(viewer);
@@ -225,6 +284,81 @@ export function initChatStories({ userId, csrfToken, labels = {}, chatId = null,
             }
             viewer.appendChild(media);
 
+            const reactionBar = document.createElement('div');
+            reactionBar.className = 'chat-story-reactions';
+            ['❤️', '🔥', '😂', '😮', '👏', '😢'].forEach(reaction => {
+                const reactionButton = document.createElement('button');
+                reactionButton.type = 'button';
+                reactionButton.textContent = reaction;
+                reactionButton.setAttribute('aria-label', 'Реакция ' + reaction);
+                const selectedReaction = story.my_reaction === reaction;
+                reactionButton.classList.toggle('active', selectedReaction);
+                reactionButton.setAttribute('aria-pressed', selectedReaction ? 'true' : 'false');
+                reactionButton.addEventListener('click', async () => {
+                    reactionButton.disabled = true;
+                    try {
+                        const reactionUrl = story.is_channel
+                            ? `${endpoint}/${story.id}/reactions`
+                            : `/stories/${story.id}/reactions`;
+                        const response = await fetch(reactionUrl, {
+                            method: 'POST',
+                            headers: { ...requestHeaders, 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ reaction }),
+                        });
+                        const data = await response.json();
+                        if (!response.ok || data.status !== 'success') {
+                            throw new Error(data.message || 'Не удалось отправить реакцию');
+                        }
+                        reactionBar.querySelectorAll('button').forEach(button => {
+                            const selected = data.active && button === reactionButton;
+                            button.classList.toggle('active', selected);
+                            button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+                        });
+                    } catch (error) {
+                        showError(error);
+                    } finally {
+                        reactionButton.disabled = false;
+                    }
+                });
+                reactionBar.appendChild(reactionButton);
+            });
+            viewer.appendChild(reactionBar);
+
+            if (!story.is_own && story.direct_chat_id) {
+                const replyButton = document.createElement('button');
+                replyButton.type = 'button';
+                replyButton.className = 'chat-story-private-reply';
+                replyButton.textContent = 'Ответить в личный чат';
+                replyButton.addEventListener('click', () => {
+                    const query = new URLSearchParams({
+                        story_reply: String(story.id),
+                        story_author: story.publisher_name || story.author_name || 'пользователь',
+                    });
+                    window.location.assign(`/chats/${story.direct_chat_id}?${query.toString()}`);
+                });
+                viewer.appendChild(replyButton);
+            }
+
+            const activeTrack = progress.children[sequenceIndex]?.querySelector('i');
+            if (envelope.media_type === 'video') {
+                media.addEventListener('timeupdate', () => {
+                    if (activeTrack && Number.isFinite(media.duration) && media.duration > 0) {
+                        activeTrack.style.width = Math.min(100, (media.currentTime / media.duration) * 100) + '%';
+                    }
+                });
+                media.addEventListener('ended', () => next.click(), { once: true });
+            } else {
+                const startedAt = Date.now();
+                progressTimer = window.setInterval(() => {
+                    const percent = Math.min(100, ((Date.now() - startedAt) / 5000) * 100);
+                    if (activeTrack) activeTrack.style.width = percent + '%';
+                    if (percent >= 100) {
+                        window.clearInterval(progressTimer);
+                        next.click();
+                    }
+                }, 50);
+            }
             if (!story.is_own) {
                 await fetch(`${endpoint}/${story.id}/view`, {
                     method: 'POST',

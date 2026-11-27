@@ -1,8 +1,15 @@
 @extends('template')
 
 @section('title_page', __('chats.chat'))
+@section('body_class', 'chat-page')
+@section('hide_footer', true)
+
+@push('styles')
+    @vite('resources/css/chat_show.css')
+@endpush
 
 @section('main')
+<div id="messengerAppRoot" data-messenger-root>
 
 <style>
 
@@ -1147,10 +1154,91 @@
 .message-reactions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     flex-wrap: wrap;
     gap: 5px;
     position: relative;
-    margin-top: 5px;
+    align-self: flex-end;
+    margin: 8px 0 0 auto;
+    width: fit-content;
+    max-width: calc(100% - 16px);
+}
+.message-reactions .add-reaction {
+    order: 99;
+}
+.chat-media-image-download { align-self: flex-end; font-size: .86rem; padding: 6px 11px; }
+.chat-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 14px;
+}
+.chat-header > .chat-person-heading,
+.chat-header > .chat-profile-trigger { justify-self: start; text-align: left; }
+.chat-header:not(:has(.chat-profile-trigger)) {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.chat-header:not(:has(.chat-profile-trigger)) > .chat-person-heading {
+    grid-column: 2; grid-row: 1; justify-self: center; text-align: center;
+}
+.chat-header:not(:has(.chat-profile-trigger)) > .chat-header-tools { grid-column: 3; grid-row: 1; }
+.chat-group-heading { justify-content: center; }
+.chat-header-tools {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+}
+.chat-header-tools .chat-mute-controls,
+.chat-header-tools .chat-message-search {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin: 0;
+}
+.chat-header-tools .chat-mute-controls label,
+.chat-header-tools .chat-mute-status { display: none; }
+.chat-header-tools .chat-mute-controls select { max-width: 42px; font-size: 0; }
+.chat-header-tools .chat-mute-controls select option { font-size: 14px; }
+.chat-header-tools .chat-mute-controls button { font-size: 0; min-width: 36px; padding: 6px; }
+.chat-header-tools .chat-mute-controls button::before { content: "🔔"; font-size: 16px; }
+.chat-header-tools .chat-message-search { margin: 0; }
+.chat-header:has(#channelHeaderPhoto) {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.chat-header:has(#channelHeaderPhoto) > .chat-person-heading {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    text-align: center;
+}
+.chat-header:has(#channelHeaderPhoto) > .chat-header-tools {
+    grid-column: 3;
+    grid-row: 1;
+}
+#channelHeaderPhoto { cursor: zoom-in; }
+.chat-channel-photo-viewer {
+    position: fixed; inset: 0; z-index: 100001; display: flex;
+    align-items: center; justify-content: center; padding: 24px;
+    background: rgba(0,0,0,.94); cursor: zoom-out;
+}
+.chat-channel-photo-viewer img {
+    max-width: min(92vw, 900px); max-height: 90vh;
+    object-fit: contain; border-radius: 12px;
+}
+@media (max-width: 700px) {
+    .chat-header { grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+    .chat-header-tools { gap: 4px; }
+    .chat-header-tools .chat-mute-controls select { max-width: 36px; }
+    .chat-header:has(#channelHeaderPhoto) { grid-template-columns: minmax(0, 1fr) auto; }
+    .chat-header:has(#channelHeaderPhoto) > .chat-person-heading {
+        grid-column: 1; justify-self: center; grid-row: 1;
+    }
+    .chat-header:has(#channelHeaderPhoto) > .chat-header-tools { grid-column: 2; }
 }
 
 .chat-pinned-messages {
@@ -1834,15 +1922,65 @@ body.chat-media-viewer-open { overflow: hidden; }
     box-shadow: 0 12px 35px rgba(0,0,0,.4);
 }
 .telegram-sidebar-heading {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     padding: 18px 16px 12px;
     color: #ffd700;
     border-bottom: 1px solid rgba(255,215,0,.18);
 }
 .telegram-sidebar-heading span { color: #00e5ff; font-size: .72rem; letter-spacing: .14em; }
-.telegram-sidebar-heading a { color: #00e5ff; text-decoration: none; font-size: 1.25rem; }
+.telegram-sidebar-heading .messenger-menu-toggle {
+    display: grid;
+    place-items: center;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    color: #00e5ff;
+    background: transparent;
+    border: 1px solid rgba(0,229,255,.42);
+    border-radius: 10px;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+.telegram-sidebar-heading .messenger-menu-toggle:hover,
+.telegram-sidebar-heading .messenger-menu-toggle[aria-expanded="true"] {
+    color: #071018;
+    background: #00e5ff;
+}
+.telegram-sidebar-heading .messenger-menu-panel {
+    position: absolute;
+    z-index: 2000000;
+    top: calc(100% + 8px);
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: min(250px, calc(100vw - 48px));
+    padding: 8px;
+    background: #111827;
+    border: 1px solid rgba(0,229,255,.35);
+    border-radius: 13px;
+    box-shadow: 0 14px 36px rgba(0,0,0,.48);
+}
+.telegram-sidebar-heading .messenger-menu-panel[hidden] { display: none; }
+.telegram-sidebar-heading .messenger-menu-panel a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 11px;
+    color: #dbeafe;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: .86rem;
+}
+.telegram-sidebar-heading .messenger-menu-panel a:hover {
+    color: #ffd700;
+    background: rgba(0,229,255,.08);
+}
 .telegram-sidebar-stories .chat-story-add,
 .telegram-sidebar-stories .chat-story-card {
     display: flex;
@@ -2442,6 +2580,445 @@ body.chat-media-viewer-open { overflow: hidden; }
 #channelSettingsStatus { color: #00e5ff; font-size: .8rem; }
 #channelHeaderPhoto { background: #10131d; }
 
+
+
+/* =========================================================
+   UX REFRESH: ПОЛНОЭКРАННЫЙ ЧАТ И КОМПАКТНАЯ ПАНЕЛЬ
+   ========================================================= */
+body.chat-page {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
+/* The page root must participate in the body's full-height flex layout.
+   Without this, the inner chat grid grows with message history and pushes
+   the composer thousands of pixels below the viewport. */
+body.chat-page #messengerAppRoot {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+body.chat-page .mobile-hamburger-header {
+    position: relative;
+    top: auto;
+    flex: 0 0 auto;
+}
+body.chat-page .telegram-chat-layout {
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+}
+body.chat-page .telegram-chat-sidebar,
+body.chat-page .telegram-chat-main,
+body.chat-page .telegram-chat-layout .chat-container {
+    min-height: 0;
+}
+body.chat-page .telegram-chat-main { height: 100%; overflow: hidden; }
+body.chat-page .telegram-chat-layout .chat-container {
+    height: 100%;
+    overflow: hidden;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+.chat-container { position: relative; }
+.chat-scroll-bottom {
+    position: absolute;
+    z-index: 25;
+    right: 24px;
+    bottom: 104px;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    color: #071018;
+    background: linear-gradient(135deg, #00e5ff, #00bcd4);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 50%;
+    box-shadow: 0 5px 18px rgba(0,0,0,.4);
+    cursor: pointer;
+}
+.chat-scroll-bottom[hidden] { display: none; }
+.chat-scroll-bottom:hover { background: #ffd700; }
+.chat-composer-status {
+    min-height: 18px;
+    padding: 4px 12px 0;
+    color: #00e5ff;
+    font-size: .76rem;
+}
+.chat-composer-status[hidden] { display: none; }
+.composer-tools-menu .chat-call-push-settings {
+    display: grid;
+    gap: 4px;
+    padding: 5px 8px;
+    border-top: 1px solid rgba(0,229,255,.16);
+}
+.composer-tools-menu #chat-call-push-toggle {
+    padding: 7px 9px;
+    color: #a9eaf2;
+    text-align: left;
+    background: rgba(0,229,255,.05);
+    border: 1px solid rgba(0,229,255,.2);
+    border-radius: 8px;
+    cursor: pointer;
+}
+.composer-tools-menu #chat-call-push-status { color: #9aa8bc; font-size: .72rem; }
+.chat-emoji-panel,
+.chat-emoji-panel emoji-picker { max-width: 100%; min-width: 0; }
+.chat-emoji-panel emoji-picker { line-height: normal; font-size: 16px; }
+.card-text, #messageInput { font-variant-emoji: emoji; }
+.card-text { line-height: 1.55; overflow: visible; }
+@media (max-width: 720px) {
+    body.chat-page .telegram-chat-layout { height: auto; }
+    body.chat-page .telegram-chat-sidebar { display: none; }
+    body.chat-page .telegram-chat-main { height: 100%; }
+    body.chat-page .telegram-chat-layout .chat-container { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+    .chat-scroll-bottom { right: 14px; bottom: 94px; width: 38px; height: 38px; }
+    .chat-emoji-panel { right: -4px; width: min(340px, calc(100vw - 16px)); height: min(350px, 48dvh); }
+    .chat-emoji-panel emoji-picker { width: 100%; height: 100%; --emoji-size: 1.35rem; }
+    .card-text { line-height: 1.6; }
+}
+
+
+.chat-channel-info-trigger {
+    display:grid; place-items:center; width:34px; height:34px; flex:0 0 34px;
+    color:#00e5ff; background:rgba(0,229,255,.07); border:1px solid rgba(0,229,255,.3);
+    border-radius:50%; cursor:pointer;
+}
+.chat-channel-info-trigger:hover { color:#0b0c18; background:#00e5ff; }
+.chat-channel-info-modal {
+    position:fixed; inset:0; z-index:140100; display:grid; place-items:center;
+    padding:14px; background:rgba(0,0,0,.8);
+}
+.chat-channel-info-modal[hidden] { display:none; }
+.chat-channel-info-card {
+    position:relative; width:min(100%,520px); max-height:88dvh; overflow-y:auto;
+    padding:22px; color:#e8edf5; background:linear-gradient(145deg,#0b0c18,#151a29);
+    border:1px solid rgba(0,229,255,.45); border-radius:16px; box-shadow:0 18px 60px rgba(0,0,0,.65);
+}
+.chat-channel-info-heading { display:flex; align-items:center; gap:14px; padding-right:30px; }
+.chat-channel-info-heading img { width:64px; height:64px; flex:0 0 64px; object-fit:cover; border:2px solid #00e5ff; border-radius:50%; }
+.chat-channel-info-heading h3 { margin:0; color:#ffd700; }
+.chat-channel-info-heading p { margin:4px 0 0; color:#00e5ff; }
+.chat-channel-info-stats { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; }
+.chat-channel-info-stats span { padding:8px 10px; color:#cbd5e1; background:rgba(0,229,255,.05); border:1px solid rgba(0,229,255,.16); border-radius:9px; font-size:.8rem; }
+.chat-channel-info-stats strong { color:#ffd700; }
+.chat-channel-info-subtitle { margin:14px 0 8px; color:#00e5ff; font-size:.9rem; }
+.chat-channel-info-members { display:grid; gap:5px; max-height:220px; overflow:auto; }
+.chat-channel-info-members > div { display:flex; justify-content:space-between; gap:10px; padding:7px 9px; background:rgba(255,255,255,.025); border-radius:7px; }
+.chat-channel-info-members small { color:#94a3b8; }
+.chat-format-toolbar { display:flex; flex-wrap:wrap; gap:5px; margin:0 0 7px; }
+.chat-format-toolbar button { min-width:34px; min-height:30px; padding:4px 8px; color:#c8d5e3; background:rgba(0,229,255,.05); border:1px solid rgba(0,229,255,.2); border-radius:7px; cursor:pointer; }
+.chat-format-toolbar button:hover { color:#ffd700; border-color:rgba(255,215,0,.45); }
+.chat-format-toolbar button[data-format="bold"] { font-weight:800; }
+.chat-format-toolbar button[data-format="italic"] { font-style:italic; }
+.chat-format-toolbar button[data-format="strike"] { text-decoration:line-through; }
+.chat-format-toolbar button[data-format="code"] { font-family:monospace; }
+
+
+.chat-inline-quote {
+    margin: 5px 0;
+    padding: 7px 11px;
+    color: #c9d8e6;
+    background: rgba(0,229,255,.055);
+    border-left: 3px solid #00e5ff;
+    border-radius: 0 7px 7px 0;
+}
+.chat-inline-code {
+    padding: 2px 5px;
+    color: #ffd98a;
+    background: rgba(0,0,0,.35);
+    border: 1px solid rgba(255,215,0,.15);
+    border-radius: 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .9em;
+}
+.chat-media-image {
+    display: block;
+    width: auto;
+    max-width: min(260px, 100%);
+    max-height: 190px;
+    object-fit: cover;
+    border: 1px solid rgba(0,229,255,.2);
+    border-radius: 10px;
+}
+.chat-media-audio { display:block; width:min(320px,100%); max-width:100%; }
+.chat-media-video { display:block; width:min(320px,100%); max-height:220px; border-radius:10px; }
+.card-text, #messageInput {
+    font-family: inherit;
+    font-variant-emoji: emoji;
+    line-height: 1.65;
+}
+.card-text > * { vertical-align: baseline; }
+@media (max-width: 720px) {
+    .card-text { line-height: 1.7; }
+    .chat-media-image { max-width: min(220px,100%); max-height: 160px; }
+    .chat-format-toolbar { gap: 4px; }
+    .chat-format-toolbar button { min-width: 31px; min-height: 29px; padding: 3px 6px; }
+}
+
+
+.edit-reply-quote {
+    flex:0 0 32px; width:32px; height:32px; color:#00e5ff;
+    background:rgba(0,229,255,.06); border:1px solid rgba(0,229,255,.28);
+    border-radius:50%; cursor:pointer;
+}
+.edit-reply-quote:hover { color:#0b0c18; background:#00e5ff; }
+
+
+/* Меню действий не вытягивается длинной колонкой: две компактные колонки */
+.composer-tools-menu {
+    width: min(420px, calc(100vw - 24px));
+    max-height: min(72dvh, 520px);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-y: auto;
+}
+.composer-tools-menu .composer-tool-btn {
+    min-width: 0;
+    min-height: 38px;
+    gap: 7px;
+    padding: 7px 8px;
+    font-size: .78rem;
+}
+.composer-tools-menu .composer-tool-btn > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.composer-tools-menu .composer-tool-btn.recording {
+    color: #fff;
+    background: rgba(198,40,40,.28);
+    border-color: rgba(255,82,82,.75);
+}
+.composer-tools-menu .composer-tool-btn.recording > i { color: #ff8a80; }
+.composer-tools-menu .chat-call-push-settings { grid-column: 1 / -1; }
+/* Мобильное меню действий: компактная панель над composer,
+   не выходит за границы экрана и учитывает нижнюю safe-area. */
+@media (max-width: 720px) {
+    .composer-tools-menu {
+        position: fixed;
+        z-index: 160000;
+        left: 12px;
+        right: 12px;
+        bottom: calc(68px + env(safe-area-inset-bottom));
+        width: auto;
+        max-width: 380px;
+        max-height: min(46dvh, 340px);
+        margin-left: auto;
+        box-sizing: border-box;
+        gap: 3px;
+        padding: 6px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border-radius: 12px;
+    }
+    .composer-tools-menu .composer-tool-btn {
+        min-height: 34px;
+        gap: 6px;
+        padding: 5px 6px;
+        font-size: .74rem;
+        line-height: 1.2;
+    }
+    .composer-tools-menu .composer-tool-btn > i {
+        width: 17px;
+        flex-basis: 17px;
+        font-size: .9rem;
+    }
+    .composer-tools-menu .chat-call-push-settings {
+        padding: 4px 6px;
+    }
+    .composer-tools-menu #chat-call-push-toggle {
+        min-width: 0;
+        font-size: .74rem;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+    .composer-tools-menu #chat-call-push-status {
+        font-size: .68rem;
+        overflow-wrap: anywhere;
+    }
+}
+@media (max-width: 420px) {
+    .composer-tools-menu {
+        left: 8px;
+        right: 8px;
+        bottom: calc(64px + env(safe-area-inset-bottom));
+        max-width: none;
+        max-height: min(44dvh, 310px);
+        gap: 2px;
+        padding: 5px;
+    }
+    .composer-tools-menu .composer-tool-btn {
+        min-height: 32px;
+        font-size: .7rem;
+        padding: 4px 5px;
+    }
+}
+
+
+
+/* =========================================================
+   COMPOSER ACTIONS — refined responsive panel
+   ========================================================= */
+.composer-tools-menu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 7px;
+    padding: 10px;
+    color: #e8eef7;
+    background: linear-gradient(145deg, rgba(13, 20, 34, .98), rgba(9, 15, 27, .98));
+    border: 1px solid rgba(0, 229, 255, .38);
+    border-radius: 16px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, .58), 0 0 22px rgba(0, 229, 255, .08);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+.composer-tools-menu[hidden] { display: none !important; }
+.composer-tools-menu .composer-tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 0;
+    min-height: 44px;
+    gap: 9px;
+    padding: 9px 10px;
+    color: #d5e0ed;
+    text-align: left;
+    line-height: 1.25;
+    background: rgba(255, 255, 255, .025);
+    border: 1px solid rgba(0, 229, 255, .13);
+    border-radius: 10px;
+    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease;
+}
+.composer-tools-menu .composer-tool-btn:hover,
+.composer-tools-menu .composer-tool-btn:focus-visible {
+    color: #fff;
+    background: rgba(0, 229, 255, .10);
+    border-color: rgba(0, 229, 255, .55);
+    outline: none;
+}
+.composer-tools-menu .composer-tool-btn:active { transform: scale(.985); }
+.composer-tools-menu .composer-tool-btn > i {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 20px;
+    width: 20px;
+    color: #00d9ef;
+    font-size: 1rem;
+}
+.composer-tools-menu .composer-tool-btn > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.composer-tools-menu .composer-tool-btn.recording {
+    color: #fff;
+    background: rgba(190, 35, 52, .20);
+    border-color: rgba(255, 90, 105, .72);
+}
+.composer-tools-menu .composer-tool-btn.recording > i { color: #ff7785; }
+.composer-tools-menu .chat-call-push-settings {
+    grid-column: 1 / -1;
+    gap: 7px;
+    padding: 9px 2px 2px;
+    border-top: 1px solid rgba(0, 229, 255, .16);
+}
+.composer-tools-menu #chat-call-push-toggle {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 11px;
+    color: #a9eaf2;
+    text-align: left;
+    background: rgba(0, 229, 255, .055);
+    border: 1px solid rgba(0, 229, 255, .24);
+    border-radius: 9px;
+    cursor: pointer;
+}
+.composer-tools-menu #chat-call-push-status {
+    color: #9aa8bc;
+    font-size: .72rem;
+    line-height: 1.35;
+}
+.composer-tools-toggle {
+    box-shadow: 0 4px 14px rgba(0, 229, 255, .12);
+}
+.composer-tools-toggle[aria-expanded="true"] {
+    color: #071018;
+    background: linear-gradient(135deg, #00e5ff, #00bcd4);
+    border-color: #00e5ff;
+}
+@media (max-width: 720px) {
+    .composer-tools-menu {
+        position: fixed;
+        z-index: 160000;
+        left: max(10px, env(safe-area-inset-left));
+        right: max(10px, env(safe-area-inset-right));
+        bottom: calc(72px + env(safe-area-inset-bottom));
+        width: auto;
+        max-width: 440px;
+        max-height: min(52dvh, 390px);
+        margin-inline: auto;
+        gap: 6px;
+        padding: 9px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        border-radius: 15px;
+    }
+    .composer-tools-menu .composer-tool-btn {
+        min-height: 42px;
+        padding: 8px 9px;
+        font-size: .78rem;
+    }
+}
+@media (max-width: 420px) {
+    .composer-tools-menu {
+        left: max(8px, env(safe-area-inset-left));
+        right: max(8px, env(safe-area-inset-right));
+        bottom: calc(68px + env(safe-area-inset-bottom));
+        max-width: none;
+        max-height: min(54dvh, 390px);
+        gap: 5px;
+        padding: 7px;
+    }
+    .composer-tools-menu .composer-tool-btn {
+        min-height: 40px;
+        gap: 7px;
+        padding: 7px;
+        font-size: .74rem;
+    }
+    .composer-tools-menu .composer-tool-btn > i {
+        flex-basis: 18px;
+        width: 18px;
+        font-size: .9rem;
+    }
+}
+
+
+/* Настройки и модерация чатов */
+.chat-settings-tabs{display:flex;gap:8px;margin:14px 0;border-bottom:1px solid rgba(0,229,255,.18)}
+.chat-settings-tabs button{padding:9px 12px;color:#aeb7c5;background:transparent;border:0;border-bottom:2px solid transparent;cursor:pointer}
+.chat-settings-tabs button.active{color:#ffd700;border-bottom-color:#ffd700}
+.chat-moderation-settings-form{display:grid;gap:9px;margin:14px auto;max-width:520px;text-align:left;color:#dbe4ef}
+.chat-moderation-settings-form label{display:flex;align-items:center;gap:8px;font-size:.84rem}
+.chat-moderation-settings-form button,.chat-moderation-panel-heading button,.chat-report-actions button{justify-self:start;padding:7px 11px;color:#ffd700;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.35);border-radius:8px;cursor:pointer}
+#moderationSettingsStatus{color:#00e5ff;font-size:.8rem}
+.chat-moderation-panel{margin:12px auto;max-width:680px;text-align:left}
+.chat-moderation-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.chat-moderation-panel-heading h4{margin:0;color:#ffd700}
+.chat-report-item{margin:10px 0;padding:12px;border:1px solid rgba(0,229,255,.2);border-radius:10px;background:rgba(5,12,24,.45)}
+.chat-report-item p{margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.chat-report-meta{color:#9aa8bc;font-size:.78rem}
+.chat-report-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.chat-report-actions button[data-status="rejected"]{color:#ff9292;border-color:rgba(255,100,100,.35)}
+
 </style>
 
 
@@ -2449,14 +3026,35 @@ body.chat-media-viewer-open { overflow: hidden; }
     <aside class="telegram-chat-sidebar">
         <div class="telegram-sidebar-heading">
             <strong>DAODES <span>MESSENGER</span></strong>
-            <a href="{{ route('chats.index') }}" aria-label="{{ __('chats.to_chats') }}">⌂</a>
+            <button
+                type="button"
+                class="messenger-menu-toggle"
+                id="messengerMenuToggle"
+                aria-label="Открыть меню мессенджера"
+                aria-expanded="false"
+                aria-controls="messengerMenu"
+            >
+                <i class="fa fa-bars" aria-hidden="true"></i>
+            </button>
+            <nav class="messenger-menu-panel" id="messengerMenu" aria-label="Меню мессенджера" hidden>
+                <a href="{{ route('contacts.index') }}">
+                    <i class="fa fa-address-book" aria-hidden="true"></i>
+                    <span>Контакты</span>
+                </a>
+                <a href="{{ route('chats.notifications') }}">
+                    <i class="fa fa-bell" aria-hidden="true"></i>
+                    <span>Уведомления</span>
+                </a>
+                <a href="{{ route('chats.index') }}">
+                    <i class="fa fa-comments" aria-hidden="true"></i>
+                    <span>Чаты</span>
+                </a>
+                <a href="{{ route('chats.create') }}">
+                    <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                    <span>Создать чат / канал</span>
+                </a>
+            </nav>
         </div>
-        <nav class="telegram-sidebar-actions" aria-label="Навигация мессенджера">
-            <a href="{{ route('chats.index') }}"><i class="fa fa-comments" aria-hidden="true"></i><span>Чаты</span></a>
-            <a href="{{ route('contacts.index') }}"><i class="fa fa-address-book" aria-hidden="true"></i><span>Контакты</span></a>
-            <a href="{{ route('chats.create') }}"><i class="fa fa-plus" aria-hidden="true"></i><span>Новый чат</span></a>
-            <a href="{{ route('chats.notifications') }}"><i class="fa fa-bell" aria-hidden="true"></i><span>Уведомления</span></a>
-        </nav>
         <section class="telegram-sidebar-stories" id="chatStoriesBar"
                  data-user-id="{{ auth()->id() }}"
     data-peer-user-id="{{ $otherUser?->id ?? '' }}"
@@ -2647,99 +3245,160 @@ body.chat-media-viewer-open { overflow: hidden; }
             <div class="chat-person-heading">
                 <img class="chat-header-avatar" id="channelHeaderPhoto"
                      src="{{ $chat->photo_cid ? '/ipfs/' . $chat->photo_cid : '/img/main/default-avatar.png' }}"
-                     alt="">
+                     alt="{{ $chat->name }}" role="button" tabindex="0"
+                     aria-label="Просмотреть логотип канала" title="Просмотреть логотип">
                 <div class="chat-person-heading-info">
                     <h2 class="chat-title">{{ $chat->name }}</h2>
                     <p class="chat-status">{{ __('chats.online_participants', ['online' => $chat->onlineParticipantsCount(), 'total' => $chat->totalParticipantsCount()]) }}</p>
                 </div>
+                <button type="button" class="chat-channel-info-trigger" id="openChatChannelInfo" aria-label="Информация о канале" title="Информация о канале">
+                    <i class="fa fa-info-circle" aria-hidden="true"></i>
+                </button>
+                @if ($currentRole === 'owner' || ($currentRole === 'admin' && $chat->allow_admin_photo) || ($currentRole === 'moderator' && $chat->allow_moderator_photo))
+                    <label class="chat-topic-create" for="channelPhotoInput">{{ __('chats.channel_photo_change') }}</label>
+                    <input type="file" id="channelPhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+                @endif
             </div>
-            @if ($currentRole === 'owner' || ($currentRole === 'admin' && $chat->allow_admin_photo) || ($currentRole === 'moderator' && $chat->allow_moderator_photo))
-                <label class="chat-topic-create" for="channelPhotoInput">{{ __('chats.channel_photo_change') }}</label>
-                <input type="file" id="channelPhotoInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-            @endif
-            @if ($currentRole === 'owner')
-                <details class="chat-channel-settings">
-                    <summary>{{ __('chats.channel_settings_permissions') }}</summary>
-                    <form id="channelSettingsForm" data-url="{{ route('chats.channel.settings', $chat->id) }}" data-label-saved="{{ __('chats.channel_permissions_saved') }}" data-label-save-error="{{ __('chats.channel_permissions_save_error') }}">
-                        <label><input type="checkbox" name="allow_admin_photo" value="1" @checked($chat->allow_admin_photo)> {{ __('chats.channel_admin_photo_permission') }}</label>
-                        <label><input type="checkbox" name="allow_moderator_photo" value="1" @checked($chat->allow_moderator_photo)> {{ __('chats.channel_moderator_photo_permission') }}</label>
-                        <label><input type="checkbox" name="allow_admin_stories" value="1" @checked($chat->allow_admin_stories)> {{ __('chats.channel_admin_stories_permission') }}</label>
-                        <label><input type="checkbox" name="allow_moderator_stories" value="1" @checked($chat->allow_moderator_stories)> {{ __('chats.channel_moderator_stories_permission') }}</label>
-                        <button type="submit">Сохранить права</button>
-                        <span id="channelSettingsStatus" aria-live="polite"></span>
-                    </form>
-                </details>
-            @endif
+
 
         @else
 
-            <h2 class="chat-title">
-                {{ $chat->name }}
-            </h2>
-
-            <p class="chat-status">
-
-                {{ __('chats.online_participants', [
-                    'online' => $chat->onlineParticipantsCount(),
-                    'total' => $chat->totalParticipantsCount(),
-                ]) }}
-
-            </p>
-
-        @endif
-
-        @if ($chat->type === 'personal' && $otherUser)
-            <div class="chat-call-toolbar">
-                <button type="button" id="startAudioCall"><i class="fa fa-phone" aria-hidden="true"></i> Аудиозвонок</button>
-                <button type="button" id="startVideoCall"><i class="fa fa-video-camera" aria-hidden="true"></i> Видеозвонок</button>
+            <div class="chat-person-heading chat-group-heading">
+                <div class="chat-person-heading-info">
+                    <h2 class="chat-title">{{ $chat->name }}</h2>
+                    <p class="chat-status">
+                        {{ __('chats.online_participants', [
+                            'online' => $chat->onlineParticipantsCount(),
+                            'total' => $chat->totalParticipantsCount(),
+                        ]) }}
+                    </p>
+                </div>
+                <button type="button" class="chat-channel-info-trigger" id="openChatChannelInfo" aria-label="Настройки чата" title="Настройки чата"><i class="fa fa-cog" aria-hidden="true"></i></button>
             </div>
-            @include('components.chat-call-push-subscription')
+
         @endif
 
-        @if ($chat->type !== 'saved')
-            <div class="chat-call-toolbar">
-                <button type="button" id="openChatMeetings"><i class="fa fa-calendar" aria-hidden="true"></i> Запланировать созвон</button>
-            </div>
-        @endif
-
-        <div class="chat-mute-controls">
-            <label for="chatMuteDuration">{{ __('chats.mute_notifications') }}</label>
-            <select id="chatMuteDuration">
-                <option value="">{{ __('chats.mute_off') }}</option>
-                <option value="60">{{ __('chats.mute_1_hour') }}</option>
-                <option value="480">{{ __('chats.mute_8_hours') }}</option>
-                <option value="1440">{{ __('chats.mute_1_day') }}</option>
-                <option value="10080">{{ __('chats.mute_7_days') }}</option>
-                <option value="43200">{{ __('chats.mute_30_days') }}</option>
-            </select>
-            <button type="button" id="saveChatMute">{{ __('chats.save') }}</button>
-            <span class="chat-mute-status" id="chatMuteStatus" aria-live="polite">
-                @if ($mutedUntil && \Illuminate\Support\Carbon::parse($mutedUntil)->isFuture())
-                    {{ __('chats.muted_until', ['date' => \Illuminate\Support\Carbon::parse($mutedUntil)->format('d.m.Y H:i')]) }}
-                @else
-                    {{ __('chats.notifications_enabled') }}
-                @endif
-            </span>
-        </div>
-
-        <div class="chat-message-search">
-            <button type="button" id="toggleMessageSearch" title="{{ __('chats.search_messages') }}">
-                <i class="fa fa-search" aria-hidden="true"></i>
-            </button>
-            <div id="messageSearchPanel" hidden>
-                <input
-                    type="search"
-                    id="chatMessageSearchInput"
-                    placeholder="{{ __('chats.search_loaded_messages') }}"
-                    autocomplete="off"
+        <div class="chat-header-tools">
+            <div class="chat-mute-controls">
+                <button
+                    type="button"
+                    id="toggleChatMute"
+                    class="chat-mute-toggle"
+                    aria-label="{{ __('chats.mute_notifications') }}"
+                    aria-expanded="false"
+                    aria-controls="chatMuteMenu"
+                    title="{{ __('chats.mute_notifications') }}"
                 >
-                <span id="chatMessageSearchCount" aria-live="polite"></span>
-                <button type="button" id="clearMessageSearch" aria-label="{{ __('chats.clear_search') }}">×</button>
+                    <i class="fa {{ $mutedUntil && \Illuminate\Support\Carbon::parse($mutedUntil)->isFuture() ? 'fa-bell-slash' : 'fa-bell' }}" aria-hidden="true"></i>
+                </button>
+                @if (in_array($chat->type, ['personal', 'group'], true) && ($chat->type !== 'personal' || $otherUser))
+                    <button
+                        type="button"
+                        id="startChatCall"
+                        class="chat-call-header-toggle"
+                        aria-label="Позвонить"
+                        title="Позвонить"
+                    >
+                        <i class="fa fa-phone" aria-hidden="true"></i>
+                    </button>
+                @endif
+                <div class="chat-mute-menu" id="chatMuteMenu" hidden>
+                    <button type="button" data-mute-duration="60">{{ __('chats.mute_1_hour') }}</button>
+                    <button type="button" data-mute-duration="480">{{ __('chats.mute_8_hours') }}</button>
+                    <button type="button" data-mute-duration="1440">{{ __('chats.mute_1_day') }}</button>
+                    <button type="button" data-mute-duration="10080">{{ __('chats.mute_7_days') }}</button>
+                    <button type="button" data-mute-duration="43200">{{ __('chats.mute_30_days') }}</button>
+                    <button type="button" data-mute-duration="">{{ __('chats.mute_off') }}</button>
+                </div>
+                <span class="chat-mute-status" id="chatMuteStatus" aria-live="polite">
+                    @if ($mutedUntil && \Illuminate\Support\Carbon::parse($mutedUntil)->isFuture())
+                        {{ __('chats.muted_until', ['date' => \Illuminate\Support\Carbon::parse($mutedUntil)->format('d.m.Y H:i')]) }}
+                    @else
+                        {{ __('chats.notifications_enabled') }}
+                    @endif
+                </span>
+            </div>
+
+            <div class="chat-message-search">
+                <button type="button" id="toggleMessageSearch" title="{{ __('chats.search_messages') }}" aria-label="{{ __('chats.search_messages') }}">
+                    <i class="fa fa-search" aria-hidden="true"></i>
+                </button>
+                <div id="messageSearchPanel" hidden>
+                    <input
+                        type="search"
+                        id="chatMessageSearchInput"
+                        placeholder="{{ __('chats.search_loaded_messages') }}"
+                        autocomplete="off"
+                    >
+                    <span id="chatMessageSearchCount" aria-live="polite"></span>
+                    <button type="button" id="previousMessageSearch" aria-label="Предыдущее совпадение" title="Предыдущее совпадение"><i class="fa fa-chevron-up" aria-hidden="true"></i></button>
+                    <button type="button" id="nextMessageSearch" aria-label="Следующее совпадение" title="Следующее совпадение"><i class="fa fa-chevron-down" aria-hidden="true"></i></button>
+                    <button type="button" id="clearMessageSearch" aria-label="{{ __('chats.clear_search') }}" title="{{ __('chats.clear_search') }}"><i class="fa fa-times" aria-hidden="true"></i></button>
+                </div>
             </div>
         </div>
 
     </div>
 
+
+    @if (in_array($chat->type, ['group', 'channel'], true))
+        <div class="chat-channel-info-modal" id="chatChannelInfoModal" hidden>
+            <section class="chat-channel-info-card" role="dialog" aria-modal="true" aria-labelledby="chatChannelInfoTitle">
+                <button type="button" class="chat-peer-profile-close" id="closeChatChannelInfo" aria-label="Закрыть">×</button>
+                <div class="chat-channel-info-heading">
+                    <img src="{{ $chat->photo_cid ? '/ipfs/' . $chat->photo_cid : '/img/main/default-avatar.png' }}" alt="">
+                    <div><h3 id="chatChannelInfoTitle">{{ $chat->name }}</h3><p>{{ $chat->type === 'channel' ? __('chats.channel') : __('chats.group_chat') }}</p></div>
+                </div>
+                <nav class="chat-settings-tabs" aria-label="Настройки чата">
+                    <button type="button" class="active" data-settings-tab="general">Участники и настройки</button>
+                    @if (in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                        <button type="button" data-settings-tab="moderation">Модерация</button>
+                    @endif
+                </nav>
+                <div id="chatSettingsGeneral">
+                <div class="chat-channel-info-stats">
+                    <span><strong>{{ $chat->totalParticipantsCount() }}</strong> участников</span>
+                    <span><strong>{{ $chat->onlineParticipantsCount() }}</strong> в сети</span>
+                    <span><strong>{{ __('chats.role_' . $currentRole) }}</strong> — ваша роль</span>
+                </div>
+                <h4 class="chat-channel-info-subtitle">{{ __('chats.participants') }}</h4>
+                <div class="chat-channel-info-members">
+                    @foreach ($chat->users as $channelMember)
+                        <div><span>{{ $channelMember->name }}</span><small>{{ __('chats.role_' . ($channelMember->pivot->role ?? 'member')) }}</small></div>
+                    @endforeach
+                </div>
+                @if ($currentRole === 'owner' && $chat->type === 'channel')
+                    <details class="chat-channel-settings" open>
+                        <summary>{{ __('chats.channel_settings_permissions') }}</summary>
+                        <form id="channelSettingsForm" data-url="{{ route('chats.channel.settings', $chat->id) }}" data-label-saved="{{ __('chats.channel_permissions_saved') }}" data-label-save-error="{{ __('chats.channel_permissions_save_error') }}">
+                            <label><input type="checkbox" name="allow_admin_photo" value="1" @checked($chat->allow_admin_photo)> {{ __('chats.channel_admin_photo_permission') }}</label>
+                            <label><input type="checkbox" name="allow_moderator_photo" value="1" @checked($chat->allow_moderator_photo)> {{ __('chats.channel_moderator_photo_permission') }}</label>
+                            <label><input type="checkbox" name="allow_admin_stories" value="1" @checked($chat->allow_admin_stories)> {{ __('chats.channel_admin_stories_permission') }}</label>
+                            <label><input type="checkbox" name="allow_moderator_stories" value="1" @checked($chat->allow_moderator_stories)> {{ __('chats.channel_moderator_stories_permission') }}</label>
+                            <button type="submit">Сохранить права</button>
+                            <span id="channelSettingsStatus" aria-live="polite"></span>
+                        </form>
+                    </details>
+                @endif
+                @if ($currentRole === 'owner')
+                    <form id="moderationSettingsForm" class="chat-moderation-settings-form" data-url="{{ route('chats.moderation.settings', $chat->id) }}">
+                        <strong>Разрешения участников</strong>
+                        <label><input type="checkbox" name="allow_copy_messages" @checked($chat->allow_copy_messages ?? true)> Разрешить копирование сообщений</label>
+                        <label><input type="checkbox" name="allow_forward_messages" @checked($chat->allow_forward_messages ?? true)> Разрешить пересылку сообщений</label>
+                        <button type="submit">Сохранить разрешения</button>
+                        <span id="moderationSettingsStatus" aria-live="polite"></span>
+                    </form>
+                @endif
+                </div>
+                @if (in_array($currentRole, ['owner', 'admin', 'moderator'], true))
+                    <section id="chatSettingsModeration" class="chat-moderation-panel" hidden data-url="{{ route('chats.moderation.index', $chat->id) }}" data-update-url="{{ url('/chats/' . $chat->id . '/moderation/reports') }}">
+                        <div class="chat-moderation-panel-heading"><h4>Жалобы на сообщения</h4><button type="button" id="refreshChatReports">Обновить</button></div>
+                        <div id="chatModerationReports" aria-live="polite"><p>Загрузка жалоб...</p></div>
+                    </section>
+                @endif
+            </section>
+        </div>
+    @endif
 
     @if ($chat->type === 'personal' && $otherUser)
         <div class="chat-peer-profile-modal" id="chatPeerProfileModal" hidden>
@@ -2916,15 +3575,16 @@ body.chat-media-viewer-open { overflow: hidden; }
 
                     </p>
 
-                </div>
-
-                <div class="message-reactions" data-message-id="{{ $message->id }}">
+                    <div class="message-reactions" data-message-id="{{ $message->id }}">
                     <button type="button" class="add-reaction" aria-label="Add reaction">＋</button>
                     <div class="reaction-picker" hidden>
                         @foreach (['👍', '❤️', '😂', '🔥', '👏', '😮', '😢', '🎉'] as $reaction)
                             <button type="button" class="reaction-choice" data-reaction="{{ $reaction }}">{{ $reaction }}</button>
                         @endforeach
                     </div>
+
+                    </div>
+
                 </div>
 
             </div>
@@ -2932,6 +3592,9 @@ body.chat-media-viewer-open { overflow: hidden; }
         @endforeach
 
     </div>
+    <button type="button" id="chatScrollToBottom" class="chat-scroll-bottom" aria-label="Прокрутить вниз" title="К последним сообщениям" hidden>
+        <i class="fa fa-arrow-down" aria-hidden="true"></i>
+    </button>
 
 
     {{-- =====================================================
@@ -2961,6 +3624,9 @@ body.chat-media-viewer-open { overflow: hidden; }
 
         </div>
 
+        <button type="button" id="editReplyQuote" class="edit-reply-quote" title="Вставить редактируемую копию цитаты">
+            <i class="fa fa-quote-right" aria-hidden="true"></i>
+        </button>
 
         <button
             type="button"
@@ -3096,6 +3762,15 @@ body.chat-media-viewer-open { overflow: hidden; }
 
         @csrf
 
+        <div class="chat-format-toolbar" id="chatFormatToolbar" role="toolbar" aria-label="Форматирование сообщения">
+            <button type="button" data-format="bold" title="Жирный"><strong>B</strong></button>
+            <button type="button" data-format="italic" title="Курсив"><em>I</em></button>
+            <button type="button" data-format="quote" title="Цитата">❝</button>
+            <button type="button" data-format="strike" title="Зачёркнутый"><s>S</s></button>
+            <button type="button" data-format="code" title="Код">&lt;/&gt;</button>
+            <button type="button" data-format="normal" title="Обычный текст">T</button>
+        </div>
+
         <div class="input-group">
 
             <div class="input-wrapper">
@@ -3157,6 +3832,22 @@ body.chat-media-viewer-open { overflow: hidden; }
                         <i class="fa fa-clock-o" aria-hidden="true"></i>
                         <span>Отложенные сообщения</span>
                     </button>
+
+                    @if ($chat->type === 'personal' && $otherUser)
+                        <button type="button" id="startAudioCall" class="composer-tool-btn">
+                            <i class="fa fa-phone" aria-hidden="true"></i><span>Аудиозвонок</span>
+                        </button>
+                        <button type="button" id="startVideoCall" class="composer-tool-btn">
+                            <i class="fa fa-video-camera" aria-hidden="true"></i><span>Видеозвонок</span>
+                        </button>
+                        @include('components.chat-call-push-subscription')
+                    @endif
+
+                    @if ($chat->type !== 'saved')
+                        <button type="button" id="openChatMeetings" class="composer-tool-btn">
+                            <i class="fa fa-calendar" aria-hidden="true"></i><span>Запланировать созвон</span>
+                        </button>
+                    @endif
 
                     <button
                         type="button"
@@ -3231,6 +3922,7 @@ body.chat-media-viewer-open { overflow: hidden; }
             </button>
 
         </div>
+        <div id="chatComposerStatus" class="chat-composer-status" role="status" aria-live="polite" hidden></div>
 
     </form>
 
@@ -3283,7 +3975,11 @@ body.chat-media-viewer-open { overflow: hidden; }
     data-chat-type="{{ $chat->type }}"
     data-topic-id="{{ $initialTopicId ?? '' }}"
     data-current-role="{{ $currentRole }}"
+    data-allow-copy-messages="{{ (int) ($chat->allow_copy_messages ?? true) }}"
+    data-allow-forward-messages="{{ (int) ($chat->allow_forward_messages ?? true) }}"
+    data-report-url="{{ in_array($chat->type, ['group', 'channel'], true) ? route('chats.moderation.reports.store', ['chat' => $chat->id, 'message' => '__MESSAGE__']) : '' }}"
     data-user-id="{{ auth()->id() }}"
+    data-peer-user-id="{{ $otherUser?->id ?? '' }}"
     data-user-name="{{ auth()->user()->name }}"
     data-first-unread="{{ $firstUnreadMessageId ?? '' }}"
     data-muted-until="{{ $mutedUntil ?? '' }}"
@@ -3353,7 +4049,9 @@ body.chat-media-viewer-open { overflow: hidden; }
 
     <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
     @vite('resources/js/chat/index.js')
+    @vite('resources/js/messenger-router.js')
 
 @endpush
 
+</div>
 @endsection

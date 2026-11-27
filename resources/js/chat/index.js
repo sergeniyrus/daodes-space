@@ -15,7 +15,28 @@ import { initChatCalls } from './calls.js';
 import { initChatMeetings } from './meetings.js';
 import { initGroupCalls } from './group-calls.js';
 
-document.addEventListener('DOMContentLoaded', async () => {
+const initializedMessengerRoots = new WeakSet();
+
+const onMessengerPageMounted = callback => {
+    document.addEventListener('messenger:page-mounted', callback);
+    if (document.readyState !== 'complete') {
+        document.addEventListener('DOMContentLoaded', callback, { once: true });
+    }
+};
+
+const initializeChatPage = async () => {
+    // The chat module remains loaded during soft navigation to the chats index.
+    // Do not initialize chat-only services when the current page has no chat config.
+    if (!document.getElementById('chat-config')) return;
+
+    // Initial DOMContentLoaded and messenger:page-mounted may both fire for the same root.
+    // Initialize each mounted DOM root only once to avoid duplicate listeners and API calls.
+    const messengerRoot = document.querySelector('[data-messenger-root]') || document.getElementById('chat-config')?.closest('main') || document.body;
+    if (initializedMessengerRoots.has(messengerRoot)) return;
+    initializedMessengerRoots.add(messengerRoot);
+
+    window.__daodesChatPageCleanup?.();
+    const pageAbortController = new AbortController();
     const config = loadChatConfig();
 
     const storiesBar = document.getElementById('chatStoriesBar');
@@ -75,6 +96,204 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+
+    const moderationSettingsForm = document.getElementById('moderationSettingsForm');
+    moderationSettingsForm?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const formData = new FormData(moderationSettingsForm);
+        const status = document.getElementById('moderationSettingsStatus');
+        try {
+            const response = await fetch(moderationSettingsForm.dataset.url, {
+                method: 'PUT',
+                headers: {
+                    'X-CSRF-TOKEN': config.csrfToken,
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    allow_copy_messages: formData.has('allow_copy_messages'),
+                    allow_forward_messages: formData.has('allow_forward_messages'),
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                throw new Error(data.message || 'Не удалось сохранить разрешения');
+            }
+            config.allowCopyMessages = formData.has('allow_copy_messages');
+            config.allowForwardMessages = formData.has('allow_forward_messages');
+            if (status) status.textContent = 'Разрешения сохранены';
+        } catch (error) {
+            if (status) status.textContent = error.message || 'Ошибка сохранения';
+        }
+    });
+
+    const moderationPanel = document.getElementById('chatSettingsModeration');
+    const moderationReports = document.getElementById('chatModerationReports');
+    const refreshReportsButton = document.getElementById('refreshChatReports');
+    const settingsGeneral = document.getElementById('chatSettingsGeneral');
+    const settingsTabs = document.querySelectorAll('[data-settings-tab]');
+
+    const updateReportStatus = async (reportId, status) => {
+        const response = await fetch(moderationPanel.dataset.updateUrl + '/' + reportId, {
+            method: 'PATCH',
+            headers: {
+                'X-CSRF-TOKEN': config.csrfToken,
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ status }),
+        });
+        const data = await response.json();
+        if (!response.ok || data.status !== 'success') {
+            throw new Error(data.message || 'Не удалось обновить жалобу');
+        }
+    };
+
+    const loadChatReports = async () => {
+        if (!moderationPanel || !moderationReports) return;
+        moderationReports.textContent = 'Загрузка жалоб...';
+        try {
+            const response = await fetch(moderationPanel.dataset.url, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'success') {
+                throw new Error(data.message || 'Не удалось загрузить жалобы');
+            }
+            moderationReports.replaceChildren();
+            if (!data.reports.length) {
+                moderationReports.textContent = 'Жалоб пока нет';
+                return;
+            }
+
+            const reasonLabels = {
+                spam: 'Спам', abuse: 'Оскорбления', harassment: 'Травля',
+                scam: 'Мошенничество', inappropriate: 'Недопустимый контент', other: 'Другое',
+            };
+            const statusLabels = {
+                new: 'Новая', reviewing: 'Рассматривается',
+                resolved: 'Решена', rejected: 'Отклонена',
+            };
+
+            data.reports.forEach(report => {
+                const card = document.createElement('article');
+                card.className = 'chat-report-item';
+
+                const heading = document.createElement('strong');
+                heading.textContent = report.message_author_name || 'Автор сообщения';
+                const meta = document.createElement('div');
+                meta.className = 'chat-report-meta';
+                meta.textContent = 'Жалоба от: ' + (report.reporter_name || 'Пользователь')
+                    + ' · Причина: ' + (reasonLabels[report.reason] || report.reason)
+                    + ' · Статус: ' + (statusLabels[report.status] || report.status);
+                const message = document.createElement('p');
+                message.textContent = report.message_text || '[Текст сообщения недоступен]';
+                card.append(heading, meta, message);
+
+                if (report.handler_name) {
+                    const handled = document.createElement('div');
+                    handled.className = 'chat-report-meta';
+                    handled.textContent = 'Обработал: ' + report.handler_name;
+                    card.appendChild(handled);
+                }
+
+                const actions = document.createElement('div');
+                actions.className = 'chat-report-actions';
+                [
+                    ['reviewing', 'В работу'],
+                    ['resolved', 'Решена'],
+                    ['rejected', 'Отклонить'],
+                ].forEach(([nextStatus, label]) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.dataset.status = nextStatus;
+                    button.textContent = label;
+                    button.addEventListener('click', async () => {
+                        try {
+                            await updateReportStatus(report.id, nextStatus);
+                            await loadChatReports();
+                        } catch (error) {
+                            window.alert(error.message || 'Не удалось обновить жалобу');
+                        }
+                    });
+                    actions.appendChild(button);
+                });
+
+                if (report.message_id) {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.type = 'button';
+                    deleteButton.textContent = 'Удалить сообщение';
+                    deleteButton.addEventListener('click', async () => {
+                        if (!window.confirm('Удалить это сообщение из чата?')) return;
+                        try {
+                            const response = await fetch('/messages/' + report.message_id, {
+                                method: 'DELETE',
+                                headers: { 'X-CSRF-TOKEN': config.csrfToken, Accept: 'application/json' },
+                                credentials: 'same-origin',
+                            });
+                            const result = await response.json();
+                            if (!response.ok || result.status !== 'success') {
+                                throw new Error(result.message || 'Не удалось удалить сообщение');
+                            }
+                            await updateReportStatus(report.id, 'resolved');
+                            await loadChatReports();
+                        } catch (error) {
+                            window.alert(error.message || 'Не удалось удалить сообщение');
+                        }
+                    });
+                    actions.appendChild(deleteButton);
+                }
+
+                card.appendChild(actions);
+                moderationReports.appendChild(card);
+            });
+        } catch (error) {
+            moderationReports.textContent = error.message || 'Ошибка загрузки жалоб';
+        }
+    };
+
+    settingsTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const moderationActive = tab.dataset.settingsTab === 'moderation';
+            settingsTabs.forEach(item => item.classList.toggle('active', item === tab));
+            if (settingsGeneral) settingsGeneral.hidden = moderationActive;
+            if (moderationPanel) moderationPanel.hidden = !moderationActive;
+            if (moderationActive) loadChatReports();
+        });
+    });
+    refreshReportsButton?.addEventListener('click', loadChatReports);
+
+    const channelHeaderPhoto = document.getElementById('channelHeaderPhoto');
+    const openChannelPhoto = () => {
+        if (!channelHeaderPhoto?.src) return;
+        const viewer = document.createElement('div');
+        viewer.className = 'chat-channel-photo-viewer';
+        viewer.setAttribute('role', 'dialog');
+        viewer.setAttribute('aria-modal', 'true');
+        const image = document.createElement('img');
+        image.src = channelHeaderPhoto.src;
+        image.alt = channelHeaderPhoto.alt || 'Логотип канала';
+        viewer.appendChild(image);
+        viewer.addEventListener('click', () => viewer.remove());
+        document.addEventListener('keydown', function closeOnEscape(event) {
+            if (event.key === 'Escape') {
+                viewer.remove();
+                document.removeEventListener('keydown', closeOnEscape);
+            }
+        }, { once: true });
+        document.body.appendChild(viewer);
+    };
+    channelHeaderPhoto?.addEventListener('click', openChannelPhoto);
+    channelHeaderPhoto?.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openChannelPhoto();
+        }
+    });
+
     const channelPhotoInput = document.getElementById('channelPhotoInput');
     channelPhotoInput?.addEventListener('change', async () => {
         const file = channelPhotoInput.files?.[0];
@@ -103,10 +322,150 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ui = new ChatUI(config);
     const sender = new MessageSender(config, ui, crypto);
     const poller = new MessagePoller(config, crypto, ui);
+    window.__daodesChatPageCleanup = () => {
+        pageAbortController.abort();
+        poller.stopPolling();
+        window.__daodesChatRealtimeCleanup?.();
+        document.dispatchEvent(new Event('messenger:chat-cleanup'));
+    };
 
     const form = document.getElementById('messageForm');
     const input = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
+    const composerStatus = document.getElementById('chatComposerStatus');
+    const setComposerStatus = (message, visible = true) => {
+        if (!composerStatus) return;
+        composerStatus.textContent = message;
+        composerStatus.hidden = !visible || !message;
+    };
+
+    // Composer: grow to eight lines, then scroll internally.
+    const resizeComposer = () => {
+        if (!input) return;
+        const style = window.getComputedStyle(input);
+        const lineHeight = Number.parseFloat(style.lineHeight) || 22;
+        const maxHeight = lineHeight * 8
+            + Number.parseFloat(style.paddingTop || 0)
+            + Number.parseFloat(style.paddingBottom || 0)
+            + Number.parseFloat(style.borderTopWidth || 0)
+            + Number.parseFloat(style.borderBottomWidth || 0);
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, maxHeight) + 'px';
+        input.style.overflowY = input.scrollHeight > maxHeight ? 'auto' : 'hidden';
+    };
+    if (input) {
+        input.setAttribute('rows', '1');
+        input.setAttribute('spellcheck', 'true');
+        input.setAttribute('lang', document.documentElement.lang || 'ru');
+        input.addEventListener('input', resizeComposer);
+        const storyReplyParams = new URLSearchParams(window.location.search);
+        const storyReplyId = storyReplyParams.get('story_reply');
+        if (storyReplyId && /^\d+$/.test(storyReplyId)) {
+            const storyAuthor = (storyReplyParams.get('story_author') || 'пользователь').slice(0, 80);
+            input.value = `↪️ Ответ на историю #${storyReplyId} от ${storyAuthor}\n`;
+            storyReplyParams.delete('story_reply');
+            storyReplyParams.delete('story_author');
+            const cleanChatUrl = new URL(window.location.href);
+            cleanChatUrl.searchParams.delete('story_reply');
+            cleanChatUrl.searchParams.delete('story_author');
+            window.history.replaceState({}, '', cleanChatUrl);
+            input.setSelectionRange(input.value.length, input.value.length);
+            resizeComposer();
+            input.focus({ preventScroll: true });
+        } else {
+            resizeComposer();
+        }
+    }
+
+    // Right-click on selected text opens formatting actions. When no text
+    // is selected, leave the native browser context menu available for spelling.
+    if (input) {
+        const selectionMenu = document.createElement('div');
+        selectionMenu.className = 'chat-selection-format-menu';
+        selectionMenu.setAttribute('role', 'toolbar');
+        selectionMenu.setAttribute('aria-label', 'Форматирование выделенного текста');
+        selectionMenu.hidden = true;
+        const formats = [
+            ['bold', 'Жирный', 'B'],
+            ['italic', 'Курсив', 'I'],
+            ['strike', 'Зачёркнутый', 'S'],
+            ['code', 'Код', '</>'],
+            ['quote', 'Цитата', '❝'],
+            ['normal', 'Обычный', 'T'],
+        ];
+        formats.forEach(([format, title, label]) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.format = format;
+            button.title = title;
+            button.textContent = label;
+            button.addEventListener('mousedown', event => event.preventDefault());
+            button.addEventListener('click', () => {
+                const toolbarButton = document.querySelector('#chatFormatToolbar [data-format="' + format + '"]');
+                hideSelectionMenu();
+                toolbarButton?.click();
+                input.focus();
+            });
+            selectionMenu.appendChild(button);
+        });
+        document.body.appendChild(selectionMenu);
+
+        const hideSelectionMenu = () => {
+            selectionMenu.hidden = true;
+        };
+        input.addEventListener('contextmenu', event => {
+            const start = input.selectionStart ?? 0;
+            const end = input.selectionEnd ?? 0;
+            const selectedText = input.value.slice(start, end).trim();
+            // Single-word selections are commonly selected by the browser's
+            // spell checker. Keep its native correction menu intact.
+            if (!selectedText || !/[\s]/.test(selectedText)) {
+                hideSelectionMenu();
+                return;
+            }
+            event.preventDefault();
+            selectionMenu.hidden = false;
+            const width = selectionMenu.offsetWidth || 230;
+            const height = selectionMenu.offsetHeight || 48;
+            selectionMenu.style.left = Math.max(8, Math.min(event.clientX, window.innerWidth - width - 8)) + 'px';
+            selectionMenu.style.top = Math.max(8, Math.min(event.clientY, window.innerHeight - height - 8)) + 'px';
+        });
+        document.addEventListener('pointerdown', event => {
+            if (!selectionMenu.contains(event.target)) hideSelectionMenu();
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') hideSelectionMenu();
+        });
+        window.addEventListener('resize', hideSelectionMenu);
+        window.addEventListener('scroll', hideSelectionMenu, true);
+    }
+    const scrollToBottomButton = document.getElementById('chatScrollToBottom');
+    const editReplyQuoteButton = document.getElementById('editReplyQuote');
+    editReplyQuoteButton?.addEventListener('click', () => {
+        const preview = document.getElementById('replyPreview');
+        const quotedText = preview?.dataset.replyText;
+        if (!quotedText || !input) return;
+        const editableQuote = quotedText.split('\n').map(line => '> ' + line).join('\n') + '\n\n';
+        const cursor = input.selectionStart ?? input.value.length;
+        input.setRangeText(editableQuote, cursor, cursor, 'end');
+        input.focus();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const scrollChatToBottom = () => {
+        if (!chatMessages) return;
+        chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+    };
+    scrollToBottomButton?.addEventListener('click', () => {
+        const notificationMessageId = Number(scrollToBottomButton.dataset.notificationMessageId || 0);
+
+        if (notificationMessageId) {
+            scrollChatToBottom();
+            poller.clearActivityNotification();
+            return;
+        }
+
+        scrollChatToBottom();
+    });
     let composerBusyCount = 0;
     const beginComposerLoading = () => {
         composerBusyCount++;
@@ -139,16 +498,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         toolsToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
     });
     toolsMenu?.addEventListener('click', event => {
-        if (event.target.closest('button')) closeComposerTools();
+        if (event.target.closest('button') && !event.target.closest('#recordVoiceBtn')) closeComposerTools();
     });
     document.addEventListener('click', event => {
-        if (!event.target.closest('.composer-tools')) closeComposerTools();
+        if (!event.target.closest('.composer-tools') && !toolsMenu?.classList.contains('is-recording')) closeComposerTools();
     });
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
+            if (toolsMenu?.classList.contains('is-recording')) {
+                event.preventDefault();
+                return;
+            }
             closeComposerTools();
             closeEmojiPicker();
             if (peerProfileModal && !peerProfileModal.hidden) closePeerProfile();
+            if (channelInfoModal && !channelInfoModal.hidden) closeChannelInfo();
         }
     });
 
@@ -174,6 +538,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (event.target === peerProfileModal) closePeerProfile();
     });
 
+    const channelInfoTrigger = document.getElementById('openChatChannelInfo');
+    const channelInfoModal = document.getElementById('chatChannelInfoModal');
+    const closeChannelInfoButton = document.getElementById('closeChatChannelInfo');
+    const closeChannelInfo = () => {
+        if (!channelInfoModal) return;
+        channelInfoModal.hidden = true;
+        document.body.style.overflow = '';
+        channelInfoTrigger?.focus();
+    };
+    channelInfoTrigger?.addEventListener('click', () => {
+        if (!channelInfoModal) return;
+        channelInfoModal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        closeChannelInfoButton?.focus();
+    });
+    closeChannelInfoButton?.addEventListener('click', closeChannelInfo);
+    channelInfoModal?.addEventListener('click', event => {
+        if (event.target === channelInfoModal) closeChannelInfo();
+    });
+
     // Полноценный emoji-picker с категориями, поиском и вариантами оттенков кожи.
     const emojiToggle = document.getElementById('chatEmojiToggle');
     const emojiPanel = document.getElementById('chatEmojiPanel');
@@ -189,6 +573,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         emojiPanel.hidden = !opening;
         emojiToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
         if (opening) input?.focus({ preventScroll: true });
+    });
+
+    const formatToolbar = document.getElementById('chatFormatToolbar');
+    formatToolbar?.addEventListener('click', event => {
+        const button = event.target.closest('button[data-format]');
+        if (!button || !input || input.disabled) return;
+        const format = button.dataset.format;
+        const start = input.selectionStart ?? input.value.length;
+        const end = input.selectionEnd ?? start;
+        const selected = input.value.slice(start, end);
+        const wrappers = {
+            bold: ['**', '**'],
+            italic: ['*', '*'],
+            strike: ['~~', '~~'],
+            code: ['`', '`'],
+        };
+
+        let replacement = selected;
+        let selectionStart = start;
+        let selectionEnd = start;
+
+        if (format === 'quote') {
+            const source = selected || 'Текст цитаты';
+            replacement = source.split('\n').map(line => line.startsWith('> ') ? line : '> ' + line).join('\n');
+            selectionEnd = start + replacement.length;
+        } else if (format === 'normal') {
+            replacement = selected
+                .replace(/^>\s?/gm, '')
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/~~(.*?)~~/g, '$1')
+                .replace(/`([^`]+)`/g, '$1')
+                .replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1$2');
+            selectionEnd = start + replacement.length;
+        } else {
+            const pair = wrappers[format];
+            if (!pair) return;
+            const content = selected || 'текст';
+            replacement = pair[0] + content + pair[1];
+            selectionStart = start + pair[0].length;
+            selectionEnd = selectionStart + content.length;
+        }
+
+        input.setRangeText(replacement, start, end, 'end');
+        input.setSelectionRange(selectionStart, selectionEnd);
+        input.focus();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
     const setupEmojiPicker = () => {
@@ -250,39 +680,88 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const chatMessages = document.getElementById('chat-messages');
+    const updateScrollButtonVisibility = () => {
+        if (!scrollToBottomButton || !chatMessages) return;
+        const hasNotification = Boolean(scrollToBottomButton.dataset.notificationMessageId);
+        const isAwayFromBottom = chatMessages.scrollHeight - chatMessages.scrollTop > chatMessages.clientHeight + 100;
+        scrollToBottomButton.hidden = !hasNotification && !isAwayFromBottom;
+    };
+    chatMessages?.addEventListener('scroll', updateScrollButtonVisibility, { passive: true });
+    updateScrollButtonVisibility();
     const toggleMessageSearch = document.getElementById('toggleMessageSearch');
     const messageSearchPanel = document.getElementById('messageSearchPanel');
     const messageSearchInput = document.getElementById('chatMessageSearchInput');
     const messageSearchCount = document.getElementById('chatMessageSearchCount');
     const clearMessageSearch = document.getElementById('clearMessageSearch');
+    const previousMessageSearch = document.getElementById('previousMessageSearch');
+    const nextMessageSearch = document.getElementById('nextMessageSearch');
+    let messageSearchMatches = [];
+    let activeMessageSearchIndex = -1;
 
-    const applyMessageSearch = () => {
-        const term = (messageSearchInput?.value || '').trim().toLocaleLowerCase();
-        let matches = 0;
-        chatMessages?.querySelectorAll('.message').forEach(message => {
-            const matched = !term || (message.dataset.searchText || '').includes(term);
-            message.hidden = !matched;
-            if (matched && term) matches++;
+    const focusMessageSearchMatch = index => {
+        if (!messageSearchMatches.length || !chatMessages) return;
+        activeMessageSearchIndex = (index + messageSearchMatches.length) % messageSearchMatches.length;
+        messageSearchMatches.forEach((message, matchIndex) => {
+            message.classList.toggle('search-match-active', matchIndex === activeMessageSearchIndex);
         });
-        if (messageSearchCount) messageSearchCount.textContent = term ? String(matches) : '';
+        const target = messageSearchMatches[activeMessageSearchIndex];
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (messageSearchCount) {
+            messageSearchCount.textContent = `${activeMessageSearchIndex + 1}/${messageSearchMatches.length}`;
+        }
+    };
+
+    const applyMessageSearch = (resetIndex = true, navigateToMatch = true) => {
+        const term = (messageSearchInput?.value || '').trim().toLocaleLowerCase();
+        messageSearchMatches = [];
+        chatMessages?.querySelectorAll('.message').forEach(message => {
+            message.hidden = false;
+            const matched = Boolean(term) && (message.dataset.searchText || '').includes(term);
+            message.classList.toggle('search-match', matched);
+            message.classList.remove('search-match-active');
+            if (matched) messageSearchMatches.push(message);
+        });
+
+        if (resetIndex) activeMessageSearchIndex = -1;
+        if (!term) {
+            if (messageSearchCount) messageSearchCount.textContent = '';
+            return;
+        }
+        if (!messageSearchMatches.length) {
+            if (messageSearchCount) messageSearchCount.textContent = '0/0';
+            return;
+        }
+        if (navigateToMatch) {
+            focusMessageSearchMatch(activeMessageSearchIndex < 0 ? 0 : activeMessageSearchIndex);
+        } else {
+            activeMessageSearchIndex = Math.min(Math.max(activeMessageSearchIndex, 0), messageSearchMatches.length - 1);
+            messageSearchMatches.forEach((message, matchIndex) => {
+                message.classList.toggle('search-match-active', matchIndex === activeMessageSearchIndex);
+            });
+            if (messageSearchCount) messageSearchCount.textContent = `${activeMessageSearchIndex + 1}/${messageSearchMatches.length}`;
+        }
     };
 
     toggleMessageSearch?.addEventListener('click', () => {
         messageSearchPanel.hidden = !messageSearchPanel.hidden;
-        if (!messageSearchPanel.hidden) messageSearchInput?.focus();
-        else {
+        if (!messageSearchPanel.hidden) {
+            messageSearchInput?.focus();
+        } else {
             if (messageSearchInput) messageSearchInput.value = '';
             applyMessageSearch();
         }
     });
 
-    messageSearchInput?.addEventListener('input', applyMessageSearch);
+    messageSearchInput?.addEventListener('input', () => applyMessageSearch());
+    previousMessageSearch?.addEventListener('click', () => focusMessageSearchMatch(activeMessageSearchIndex - 1));
+    nextMessageSearch?.addEventListener('click', () => focusMessageSearchMatch(activeMessageSearchIndex + 1));
+
     clearMessageSearch?.addEventListener('click', () => {
         if (messageSearchInput) messageSearchInput.value = '';
         applyMessageSearch();
         messageSearchInput?.focus();
     });
-    document.addEventListener('chat:message-decrypted', applyMessageSearch);
+    document.addEventListener('chat:message-decrypted', () => applyMessageSearch(false, false), { signal: pageAbortController.signal });
 
     const pinnedMessages = document.getElementById('chatPinnedMessages');
     ui.loadPinnedMessages(pinnedMessages);
@@ -465,10 +944,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     chatMessages.addEventListener('scroll', () => {
         poller.autoScrollEnabled = poller.isAtBottom();
-        if (chatMessages.scrollTop <= 24) {
-            poller.loadOlderMessages();
-        }
+        if (scrollToBottomButton) scrollToBottomButton.hidden = poller.isAtBottom();
+        if (chatMessages.scrollTop <= 24) poller.loadOlderMessages();
     });
+    window.setTimeout(() => {
+        if (scrollToBottomButton) scrollToBottomButton.hidden = poller.isAtBottom();
+    }, 0);
 
     input.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
@@ -601,6 +1082,73 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        ui.forwardMessage = async (messageText) => {
+            const availableChats = [...document.querySelectorAll('#telegramChatList a.telegram-chat-row')]
+                .map(link => {
+                    const segments = (link.getAttribute('href') || '').split('/').filter(Boolean);
+                    const chatIndex = segments.indexOf('chats');
+                    const chatId = chatIndex >= 0 ? Number(segments[chatIndex + 1]) : 0;
+                    return chatId > 0 ? { id: chatId, name: link.querySelector('strong')?.textContent?.trim() || 'Чат' } : null;
+                })
+                .filter(chat => chat && chat.id !== config.chatId);
+
+            if (!availableChats.length) {
+                window.alert('Нет других чатов, доступных для пересылки.');
+                return;
+            }
+
+            const choices = availableChats.map((chat, index) => (index + 1) + '. ' + chat.name).join('\n');
+            const selected = window.prompt('Куда переслать сообщение? Введите номер чата:\n' + choices, '1');
+            if (selected === null) return;
+            const target = availableChats[Number(selected) - 1];
+            if (!target) {
+                window.alert('Выберите номер из списка.');
+                return;
+            }
+
+            try {
+                const keyResponse = await fetch('/chats/' + target.id + '/my-key', {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                const keyData = await keyResponse.json();
+                if (!keyResponse.ok) throw new Error(keyData.error || 'Не удалось получить ключ целевого чата');
+
+                const decode = value => Uint8Array.from(atob(value), char => char.charCodeAt(0));
+                const targetChatKey = nacl.box.open(
+                    decode(keyData.encrypted_key),
+                    decode(keyData.nonce),
+                    decode(keyData.initiator_public_key),
+                    decode(privKeyB64)
+                );
+                if (!targetChatKey) throw new Error('Не удалось расшифровать ключ целевого чата');
+
+                const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+                const encrypted = nacl.secretbox(new TextEncoder().encode(messageText), nonce, targetChatKey);
+                const sendResponse = await fetch('/chats/' + target.id + '/messages', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': config.csrfToken,
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        message: u8ToB64(encrypted),
+                        nonce: u8ToB64(nonce),
+                        message_type: 'text',
+                    }),
+                });
+                const sendData = await sendResponse.json();
+                if (!sendResponse.ok || sendData.status !== 'success') {
+                    throw new Error(sendData.message || 'Не удалось переслать сообщение');
+                }
+                window.alert('Сообщение переслано в чат «' + target.name + '».');
+            } catch (error) {
+                window.alert(error.message || 'Ошибка пересылки сообщения');
+            }
+        };
+
         initScheduledMessages(config, crypto);
         initChatCalls(config, crypto);
         initChatMeetings(config, crypto);
@@ -624,53 +1172,82 @@ document.addEventListener('DOMContentLoaded', async () => {
         poller.startPolling(3000);
         connectChatRealtime(config, poller);
 
-        const muteDuration = document.getElementById('chatMuteDuration');
-        const saveMuteButton = document.getElementById('saveChatMute');
+        const muteToggle = document.getElementById('toggleChatMute');
+        const muteMenu = document.getElementById('chatMuteMenu');
         const muteStatus = document.getElementById('chatMuteStatus');
+        const muteIcon = muteToggle?.querySelector('i');
 
-        if (muteDuration && config.mutedUntil) {
-            const remaining = new Date(config.mutedUntil).getTime() - Date.now();
-            const presets = [60, 480, 1440, 10080, 43200];
-            const matchingPreset = presets.find(minutes =>
-                minutes * 60 * 1000 >= remaining
-            );
-            muteDuration.value = matchingPreset ? String(matchingPreset) : '';
-        }
+        const isChatMuted = () => Boolean(
+            config.mutedUntil && new Date(config.mutedUntil).getTime() > Date.now()
+        );
 
-        saveMuteButton?.addEventListener('click', async () => {
-            saveMuteButton.disabled = true;
-            try {
-                const response = await fetch(`/chats/${config.chatId}/mute`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': config.csrfToken,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({
-                        duration: muteDuration.value ? Number(muteDuration.value) : null,
-                    }),
-                });
-                const data = await response.json();
-                if (!response.ok || data.status !== 'success') {
-                    throw new Error(data.message || 'Не удалось изменить уведомления');
+        const renderMuteState = () => {
+            const muted = isChatMuted();
+            muteToggle?.classList.toggle('is-muted', muted);
+            muteToggle?.setAttribute('aria-pressed', muted ? 'true' : 'false');
+            if (muteIcon) {
+                muteIcon.classList.toggle('fa-bell', !muted);
+                muteIcon.classList.toggle('fa-bell-slash', muted);
+            }
+            muteStatus?.classList.toggle('is-muted', muted);
+        };
+
+        renderMuteState();
+
+        muteToggle?.addEventListener('click', () => {
+            const isOpen = !muteMenu.hidden;
+            muteMenu.hidden = isOpen;
+            muteToggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        });
+
+        muteMenu?.querySelectorAll('[data-mute-duration]').forEach(option => {
+            option.addEventListener('click', async () => {
+                const durationValue = option.dataset.muteDuration;
+                option.disabled = true;
+                try {
+                    const response = await fetch(`/chats/${config.chatId}/mute`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': config.csrfToken,
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            duration: durationValue === '' ? null : Number(durationValue),
+                        }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok || data.status !== 'success') {
+                        throw new Error(data.message || 'Не удалось изменить уведомления');
+                    }
+
+                    config.mutedUntil = data.muted_until;
+                    document.getElementById('chat-config').dataset.mutedUntil = data.muted_until || '';
+                    renderMuteState();
+
+                    if (data.muted_until) {
+                        muteStatus.textContent = (config.translations.mutedUntil || 'Muted until :date')
+                            .replace(':date', new Date(data.muted_until).toLocaleString());
+                    } else {
+                        muteStatus.textContent = config.translations.notificationsEnabled || 'Notifications enabled';
+                    }
+
+                    muteMenu.hidden = true;
+                    muteToggle?.setAttribute('aria-expanded', 'false');
+                } catch (error) {
+                    console.error('Chat mute update failed:', error);
+                    window.alert(error.message || 'Не удалось изменить уведомления');
+                } finally {
+                    option.disabled = false;
                 }
+            });
+        });
 
-                config.mutedUntil = data.muted_until;
-                document.getElementById('chat-config').dataset.mutedUntil = data.muted_until || '';
-                if (data.muted_until) {
-                    muteStatus.textContent = (config.translations.mutedUntil || 'Muted until :date')
-                        .replace(':date', new Date(data.muted_until).toLocaleString());
-                } else {
-                    muteStatus.textContent = config.translations.notificationsEnabled || 'Notifications enabled';
-                    muteDuration.value = '';
-                }
-            } catch (error) {
-                console.error('Chat mute update failed:', error);
-                window.alert(error.message || 'Не удалось изменить уведомления');
-            } finally {
-                saveMuteButton.disabled = false;
+        document.addEventListener('click', event => {
+            if (!event.target.closest('.chat-mute-controls')) {
+                if (muteMenu) muteMenu.hidden = true;
+                muteToggle?.setAttribute('aria-expanded', 'false');
             }
         });
 
@@ -874,8 +1451,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             recordVoiceButton?.classList.remove('recording');
             if (recordVoiceButton) {
                 recordVoiceButton.disabled = false;
-                recordVoiceButton.innerHTML = '<i class="fa fa-microphone" aria-hidden="true"></i>';
+                recordVoiceButton.innerHTML = '<i class="fa fa-microphone" aria-hidden="true"></i><span>' + (config.translations.voiceRecord || 'Записать аудио') + '</span>';
                 recordVoiceButton.title = config.translations.voiceRecord || 'Record voice message';
+                recordVoiceButton.setAttribute('aria-label', config.translations.voiceRecord || 'Записать аудио');
+                toolsMenu?.classList.remove('is-recording');
+                if (toolsToggle) toolsToggle.disabled = false;
+                closeComposerTools();
             }
         };
 
@@ -917,7 +1498,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     voiceStream?.getTracks().forEach(track => track.stop());
                     voiceStream = null;
                     recordVoiceButton.disabled = true;
-                    recordVoiceButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>';
+                    recordVoiceButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i><span>Отправляю…</span>';
+                    recordVoiceButton.setAttribute('aria-label', 'Отправляю голосовое сообщение');
+                    setComposerStatus('Шифрую аудио и готовлю отправку…');
                     const finishComposerLoading = beginComposerLoading();
 
                     try {
@@ -925,6 +1508,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         const audioBytes = new Uint8Array(await audioBlob.arrayBuffer());
                         const audioNonce = nacl.randomBytes(nacl.secretbox.nonceLength);
+                        setComposerStatus('Запечатываю аудио шифрованием…');
                         const encryptedAudio = nacl.secretbox(audioBytes, audioNonce, crypto.chatKey);
                         const encryptedFile = new File(
                             [encryptedAudio],
@@ -938,6 +1522,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         uploadForm.append('original_file_name', recordingFileName(audioBlob.type || mimeType || 'audio/webm', 'voice'));
                         uploadForm.append('encrypted', '1');
 
+                        setComposerStatus('Загружаю зашифрованное аудио в IPFS…');
                         const uploadResponse = await fetch(`/chats/${config.chatId}/attachments`, {
                             method: 'POST',
                             headers: {
@@ -978,6 +1563,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             body.reply_to_message_id = Number(ui.replyingToMessageId);
                         }
 
+                        setComposerStatus('Отправляю сообщение в чат…');
                         const sendResponse = await fetch(config.sendUrl, {
                             method: 'POST',
                             headers: {
@@ -994,9 +1580,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
 
                         ui.cancelReply();
+                        setComposerStatus('Голосовое сообщение отправлено');
+                        window.setTimeout(() => setComposerStatus('', false), 3000);
                         await poller.load();
                     } catch (error) {
                         console.error('Voice message send failed:', error);
+                        setComposerStatus('Ошибка отправки: ' + (error.message || 'не удалось отправить голосовое сообщение'));
+                        window.setTimeout(() => setComposerStatus('', false), 6000);
                         window.alert(error.message || 'Не удалось отправить голосовое сообщение');
                     } finally {
                         finishComposerLoading();
@@ -1007,7 +1597,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 voiceRecorder.start();
                 recordVoiceButton.classList.add('recording');
                 recordVoiceButton.title = config.translations.voiceStop || 'Stop recording';
-                recordVoiceButton.innerHTML = '<i class="fa fa-stop" aria-hidden="true"></i>';
+                recordVoiceButton.setAttribute('aria-label', 'Стоп — завершить запись');
+                recordVoiceButton.innerHTML = '<i class="fa fa-stop" aria-hidden="true"></i><span>Стоп</span>';
+                toolsMenu.hidden = false;
+                toolsMenu.classList.add('is-recording');
+                toolsToggle?.setAttribute('aria-expanded', 'true');
+                if (toolsToggle) toolsToggle.disabled = true;
+                setComposerStatus('Идёт запись… нажмите «Стоп» для отправки');
             } catch (error) {
                 voiceStream?.getTracks().forEach(track => track.stop());
                 voiceStream = null;
@@ -1320,10 +1916,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
     ['click', 'keydown', 'touchstart'].forEach(evt =>
-        document.addEventListener(evt, unlockAudio, { once: true, passive: true })
+        document.addEventListener(evt, unlockAudio, { once: true, passive: true, signal: pageAbortController.signal })
     );
 
     window.addEventListener('beforeunload', () => {
         poller.stopPolling();
     });
-});
+};
+
+onMessengerPageMounted(initializeChatPage);

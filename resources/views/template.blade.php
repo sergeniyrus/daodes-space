@@ -58,8 +58,6 @@
         'resources/css/main.css',
         'resources/css/ckeditor.css',
         'resources/css/organizations.css',
-        'resources/css/chat_index.css',
-    'resources/css/chat_show.css',
         'resources/js/bt_top.js'
     ])
 
@@ -68,12 +66,12 @@
 
 </head>
 
-<body>
+<body class="@yield('body_class')">
     @unless (request()->routeIs('customer.*'))
         @include('menu')
     @endunless
     @yield('main')
-    @unless (request()->routeIs('customer.*'))
+    @unless (request()->routeIs('customer.*') || $__env->hasSection('hide_footer'))
         @include('footer')
     @endunless
     @include('components.cookie-consent')

@@ -4,6 +4,7 @@ export function initChatCalls(config, crypto) {
     const peerId = Number(document.getElementById('chat-config')?.dataset.peerUserId || 0);
     const audioButton = document.getElementById('startAudioCall');
     const videoButton = document.getElementById('startVideoCall');
+    const headerCallButton = document.getElementById('startChatCall');
     const modal = document.getElementById('chatCallModal');
     const title = document.getElementById('chatCallTitle');
     const status = document.getElementById('chatCallStatus');
@@ -18,11 +19,16 @@ export function initChatCalls(config, crypto) {
     const endButton = document.getElementById('endChatCall');
     if (!peerId || !audioButton || !videoButton || !modal) return;
 
+    headerCallButton?.addEventListener('click', () => audioButton.click());
+
     let call = null;
+    let startingCall = false;
     let pc = null;
     let localStream = null;
     let lastSignalId = 0;
     let polling = false;
+    let pollingStopped = false;
+    let pollTimer = null;
     let pendingCandidates = [];
     let pendingRemoteCandidates = [];
     let answering = false;
@@ -104,6 +110,7 @@ export function initChatCalls(config, crypto) {
         if (message) status.textContent = message;
         audioButton.disabled = false;
         videoButton.disabled = false;
+        if (headerCallButton) headerCallButton.disabled = false;
     };
 
     const createPeer = async video => {
@@ -221,7 +228,7 @@ export function initChatCalls(config, crypto) {
     };
 
     const poll = async () => {
-        if (polling) return;
+        if (polling || pollingStopped) return;
         polling = true;
         try {
             const response = await fetch('/chats/' + config.chatId + '/calls/active', {
@@ -256,14 +263,19 @@ export function initChatCalls(config, crypto) {
             console.error('[ChatCall] Poll failed:', error);
         } finally {
             polling = false;
-            window.setTimeout(poll, 1200);
+            if (!pollingStopped) pollTimer = window.setTimeout(poll, 2500);
         }
     };
 
     const start = async type => {
-        if (!crypto.chatKey || call) return;
+        if (!crypto.chatKey || call || startingCall) return;
+
+        // Блокируем все точки запуска до завершения запроса создания звонка.
+        startingCall = true;
         audioButton.disabled = true;
         videoButton.disabled = true;
+        if (headerCallButton) headerCallButton.disabled = true;
+
         try {
             await createPeer(type === 'video');
             const offer = await pc.createOffer();
@@ -294,6 +306,13 @@ export function initChatCalls(config, crypto) {
         } catch (error) {
             finish(error.message || 'Не удалось начать звонок');
             window.alert(error.message || 'Проверьте разрешение на камеру и микрофон.');
+        } finally {
+            startingCall = false;
+            if (!call) {
+                audioButton.disabled = false;
+                videoButton.disabled = false;
+            }
+            if (headerCallButton) headerCallButton.disabled = false;
         }
     };
 
@@ -379,7 +398,19 @@ export function initChatCalls(config, crypto) {
     rejectButton?.addEventListener('click', () => end(true));
     endButton?.addEventListener('click', () => end(false));
 
+    document.addEventListener('messenger:chat-cleanup', () => {
+        pollingStopped = true;
+        if (pollTimer) window.clearTimeout(pollTimer);
+        if (call) end(true).catch(error => console.error('[ChatCall] Cleanup failed:', error));
+        else {
+            closeMedia();
+            modal.hidden = true;
+        }
+    });
+
     window.addEventListener('beforeunload', () => {
+        pollingStopped = true;
+        if (pollTimer) window.clearTimeout(pollTimer);
         if (localStream) localStream.getTracks().forEach(track => track.stop());
         if (pc) pc.close();
     });

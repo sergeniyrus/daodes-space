@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\HandleCors::class,
             \App\Http\Middleware\SetLocale::class,
             \App\Http\Middleware\CheckCookieConsent::class,
+            \App\Http\Middleware\RedirectMessengerToDedicatedHost::class,
         ]);
 
         $middleware->alias([

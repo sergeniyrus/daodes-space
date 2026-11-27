@@ -2,11 +2,12 @@
 
 @section('title_page', __('chats.your_chats'))
 
-@section('main')
-
-{{-- @push('styles')
+@push('styles')
     @vite('resources/css/chat_index.css')
-@endpush --}}
+@endpush
+
+@section('main')
+<div id="messengerAppRoot" data-messenger-root>
 
 
 <style>
@@ -599,11 +600,11 @@
 
 .chat-stories-bar {
     display: flex;
-    align-items: flex-start;
-    gap: 14px;
+    align-items: center;
+    gap: 8px;
     overflow-x: auto;
-    margin: 18px 0 28px;
-    padding: 12px 14px;
+    margin: 14px 0 20px;
+    padding: 8px 10px;
     border: 1px solid rgba(255, 215, 0, .24);
     border-left: 3px solid #00e5ff;
     border-radius: 13px;
@@ -611,28 +612,28 @@
 }
 .chat-story-add, .chat-story-card {
     display: flex;
-    flex: 0 0 76px;
+    flex: 0 0 62px;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     padding: 0;
     border: 0;
     color: #dbe4f0;
     background: transparent;
-    font-size: .72rem;
+    font-size: .66rem;
     cursor: pointer;
 }
 .chat-story-add-avatar, .chat-story-avatar {
     display: grid;
     place-items: center;
-    width: 58px;
-    height: 58px;
+    width: 46px;
+    height: 46px;
     overflow: hidden;
     border: 2px solid #00e5ff;
     border-radius: 50%;
     color: #ffd700;
     background: #111827;
-    font-size: 1.55rem;
+    font-size: 1.25rem;
     object-fit: cover;
 }
 .chat-story-card.unviewed .chat-story-avatar {
@@ -642,7 +643,7 @@
         linear-gradient(135deg,#00e5ff,#ffd700) border-box;
 }
 .chat-story-card.viewed .chat-story-avatar { border-color: #64748b; opacity: .75; }
-.chat-story-name { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-story-name { max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chat-story-viewer {
     position: fixed;
     inset: 0;
@@ -699,6 +700,427 @@
     .chat-story-viewer-content { max-width: 100%; max-height: calc(100vh - 80px); }
 }
 
+
+
+/* =========================================================
+   STORIES — polished horizontal story rail
+   ========================================================= */
+.chat-stories-bar {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    min-width: 0;
+    margin: 18px 0 24px;
+    padding: 13px 14px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 229, 255, .18);
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 0 0, rgba(0, 229, 255, .09), transparent 42%),
+        linear-gradient(135deg, rgba(12, 20, 34, .96), rgba(17, 20, 34, .92));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 8px 24px rgba(0,0,0,.18);
+}
+.chat-story-add,
+.chat-story-card {
+    display: flex;
+    flex: 0 0 76px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 7px;
+    min-width: 0;
+    padding: 2px 3px 4px;
+    color: #dce6f2;
+    background: transparent;
+    border: 0;
+    border-radius: 12px;
+    font: inherit;
+    font-size: .72rem;
+    line-height: 1.2;
+    text-align: center;
+    cursor: pointer;
+    transition: background .18s ease, transform .18s ease;
+}
+.chat-story-add:hover,
+.chat-story-card:hover {
+    background: rgba(0, 229, 255, .07);
+    transform: translateY(-2px);
+}
+.chat-story-add:focus-visible,
+.chat-story-card:focus-visible {
+    outline: 2px solid #00e5ff;
+    outline-offset: 2px;
+}
+.chat-story-add-avatar,
+.chat-story-avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 58px;
+    width: 58px;
+    height: 58px;
+    padding: 3px;
+    overflow: hidden;
+    color: #ffd700;
+    background: #101827;
+    border: 2px solid rgba(0, 229, 255, .72);
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 4px rgba(0, 229, 255, .055), 0 5px 14px rgba(0,0,0,.28);
+}
+.chat-story-add-avatar {
+    color: #071018;
+    background: linear-gradient(135deg, #00e5ff, #00bcd4);
+    border: 2px solid rgba(0, 229, 255, .85);
+    font-size: 1.65rem;
+    font-weight: 400;
+}
+.chat-story-card.unviewed .chat-story-avatar {
+    padding: 3px;
+    border: 3px solid transparent;
+    background:
+        linear-gradient(#101827, #101827) padding-box,
+        linear-gradient(135deg, #00e5ff 0%, #ffd700 52%, #00e5ff 100%) border-box;
+    box-shadow: 0 0 0 3px rgba(0, 229, 255, .08), 0 0 15px rgba(0, 229, 255, .13);
+}
+.chat-story-card.viewed .chat-story-avatar {
+    border: 2px solid #64748b;
+    opacity: .68;
+    filter: saturate(.72);
+}
+.chat-story-name {
+    display: block;
+    width: 100%;
+    max-width: 72px;
+    overflow: hidden;
+    color: #cbd5e1;
+    font-size: .69rem;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.chat-stories-list {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 6px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,229,255,.35) transparent;
+    overscroll-behavior-x: contain;
+}
+.chat-stories-list::-webkit-scrollbar { height: 4px; }
+.chat-stories-list::-webkit-scrollbar-thumb { background: rgba(0,229,255,.35); border-radius: 5px; }
+.chat-stories-list .chat-story-name { max-width: 72px; }
+.chat-stories-list > .chat-story-name {
+    align-self: center;
+    color: #94a3b8;
+    font-size: .82rem;
+}
+.chat-story-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 100100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(66px, env(safe-area-inset-top)) 14px max(76px, env(safe-area-inset-bottom));
+    background: rgba(3, 7, 15, .97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.chat-story-viewer[hidden] { display: none !important; }
+.chat-story-viewer-content {
+    display: block;
+    max-width: min(92vw, 680px);
+    max-height: min(78dvh, 900px);
+    object-fit: contain;
+    border: 1px solid rgba(0,229,255,.32);
+    border-radius: 14px;
+    box-shadow: 0 16px 55px rgba(0,0,0,.55);
+}
+.chat-story-viewer-close {
+    position: absolute;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(14px, env(safe-area-inset-right));
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: #ffd700;
+    background: rgba(15, 23, 42, .94);
+    border: 1px solid rgba(255,215,0,.42);
+    border-radius: 50%;
+    font-size: 27px;
+    cursor: pointer;
+}
+.chat-story-viewer-info {
+    position: absolute;
+    top: max(20px, env(safe-area-inset-top));
+    left: max(18px, env(safe-area-inset-left));
+    max-width: calc(100% - 90px);
+    overflow: hidden;
+    color: #f8fafc;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.chat-story-viewer-actions {
+    position: absolute;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.chat-story-viewer-actions button {
+    min-height: 40px;
+    padding: 8px 13px;
+    color: #00e5ff;
+    background: rgba(12,18,30,.94);
+    border: 1px solid rgba(0,229,255,.4);
+    border-radius: 10px;
+    cursor: pointer;
+}
+.chat-story-viewer-actions button:hover {
+    color: #071018;
+    background: #00e5ff;
+}
+@media (max-width: 600px) {
+    .chat-stories-bar {
+        gap: 9px;
+        margin: 14px -5px 20px;
+        padding: 10px 9px;
+        border-radius: 14px;
+    }
+    .chat-story-add,
+    .chat-story-card { flex-basis: 68px; gap: 6px; }
+    .chat-story-add-avatar,
+    .chat-story-avatar {
+        flex-basis: 52px;
+        width: 52px;
+        height: 52px;
+    }
+    .chat-story-name,
+    .chat-stories-list .chat-story-name { max-width: 66px; font-size: .66rem; }
+    .chat-story-viewer-content {
+        max-width: 100%;
+        max-height: calc(100dvh - 150px);
+    }
+}
+
+
+/* Instagram-like story progress, navigation and reactions */
+.chat-story-progress {
+    position: absolute;
+    z-index: 3;
+    top: max(12px, env(safe-area-inset-top));
+    left: max(14px, env(safe-area-inset-left));
+    right: max(68px, env(safe-area-inset-right));
+    display: flex;
+    gap: 4px;
+}
+.chat-story-progress-track {
+    flex: 1 1 0;
+    height: 3px;
+    overflow: hidden;
+    background: rgba(255,255,255,.28);
+    border-radius: 5px;
+}
+.chat-story-progress-track i {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: #fff;
+    border-radius: inherit;
+    transition: width .05s linear;
+}
+.chat-story-navigation {
+    position: absolute;
+    z-index: 2;
+    inset: 64px 0 64px;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    pointer-events: none;
+}
+.chat-story-navigation button {
+    width: min(20vw, 110px);
+    color: transparent;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    pointer-events: auto;
+}
+.chat-story-navigation button:focus-visible {
+    color: #fff;
+    background: rgba(0,0,0,.2);
+    outline: 1px solid rgba(255,255,255,.4);
+}
+.chat-story-navigation button:disabled { visibility: hidden; }
+.chat-story-reactions {
+    position: absolute;
+    z-index: 4;
+    left: 50%;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    display: flex;
+    gap: 7px;
+    padding: 7px;
+    transform: translateX(-50%);
+    background: rgba(8,14,25,.78);
+    border: 1px solid rgba(0,229,255,.22);
+    border-radius: 28px;
+    backdrop-filter: blur(12px);
+}
+.chat-story-reactions button {
+    display: grid;
+    place-items: center;
+    width: 39px;
+    height: 39px;
+    padding: 0;
+    color: #fff;
+    background: rgba(255,255,255,.08);
+    border: 1px solid transparent;
+    border-radius: 50%;
+    font-size: 21px;
+    cursor: pointer;
+    transition: transform .16s ease, background .16s ease;
+}
+.chat-story-reactions button:hover { transform: translateY(-3px) scale(1.08); }
+.chat-story-reactions button.active {
+    background: rgba(0,229,255,.2);
+    border-color: #00e5ff;
+    box-shadow: 0 0 12px rgba(0,229,255,.28);
+}
+.chat-stories-list { flex-wrap: nowrap; }
+.chat-stories-list > .chat-story-card { flex: 0 0 76px; }
+@media (max-width: 600px) {
+    .chat-story-reactions { gap: 4px; padding: 5px; }
+    .chat-story-reactions button { width: 34px; height: 34px; font-size: 19px; }
+}
+
+
+.chat-story-private-reply {
+    position: absolute;
+    z-index: 5;
+    left: 50%;
+    bottom: max(68px, calc(env(safe-area-inset-bottom) + 62px));
+    transform: translateX(-50%);
+    min-height: 38px;
+    padding: 8px 14px;
+    color: #071018;
+    background: linear-gradient(135deg, #00e5ff, #5eead4);
+    border: 0;
+    border-radius: 20px;
+    font-size: .82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 6px 22px rgba(0,0,0,.4);
+    cursor: pointer;
+}
+.chat-story-private-reply:hover { filter: brightness(1.08); }
+
+
+/* DAODES MESSENGER heading and compact navigation */
+.chats-page-heading {
+    display: flex !important;
+    visibility: visible !important;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 54px;
+    margin: 0 0 22px;
+}
+.chats-page-heading .chats-page-title {
+    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: clamp(1.15rem, 3vw, 2rem);
+    white-space: nowrap;
+}
+.messenger-menu {
+    display: block !important;
+    visibility: visible !important;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    z-index: 2000000;
+    transform: translateY(-50%);
+}
+.messenger-menu-toggle {
+    display: grid !important;
+    visibility: visible !important;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    color: #00e5ff;
+    background: transparent;
+    border: 1px solid rgba(0,229,255,.42);
+    border-radius: 11px;
+    font-size: 1.25rem;
+    cursor: pointer;
+}
+.messenger-menu-toggle:hover,
+.messenger-menu-toggle[aria-expanded="true"] {
+    color: #071018;
+    background: #00e5ff;
+}
+.messenger-menu-panel {
+    position: absolute;
+    top: calc(100% + 9px);
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: min(260px, calc(100vw - 48px));
+    padding: 8px;
+    background: #111827;
+    border: 1px solid rgba(0,229,255,.35);
+    border-radius: 13px;
+    box-shadow: 0 12px 32px rgba(0,0,0,.5);
+}
+.messenger-menu-panel[hidden] { display: none !important; }
+.messenger-menu-panel a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 42px;
+    padding: 8px 11px;
+    color: #e5edf7;
+    text-decoration: none;
+    border-radius: 8px;
+}
+.messenger-menu-panel a i {
+    width: 20px;
+    color: #00e5ff;
+    text-align: center;
+}
+.messenger-menu-panel a:hover {
+    color: #ffd700;
+    background: rgba(0,229,255,.08);
+}
+.chat-stories-bar {
+    flex-wrap: nowrap;
+    min-width: 0;
+}
+.chat-stories-list {
+    flex-flow: row nowrap;
+    align-items: flex-start;
+    white-space: nowrap;
+}
+.chat-story-card {
+    flex: 0 0 76px;
+}
+@media (max-width: 600px) {
+    .chats-page-heading { min-height: 46px; padding-right: 46px; }
+    .chats-page-heading .chats-page-title { font-size: clamp(.95rem, 4.2vw, 1.35rem); }
+    .messenger-menu-toggle { width: 38px; height: 38px; }
+}
+
 </style>
 
 
@@ -708,9 +1130,43 @@
              ЗАГОЛОВОК
              ===================================================== --}}
 
-        <h1 class="big text-center chats-page-title">
-            DESChat
-        </h1>
+        <div class="chats-page-heading">
+            <h1 class="big text-center chats-page-title">
+                DAODES MESSENGER
+            </h1>
+
+            <div class="messenger-menu">
+                <button
+                    type="button"
+                    class="messenger-menu-toggle"
+                    id="messengerMenuToggle"
+                    aria-label="Открыть меню мессенджера"
+                    aria-expanded="false"
+                    aria-controls="messengerMenu"
+                >
+                    <i class="fa fa-bars" aria-hidden="true"></i>
+                </button>
+
+                <nav class="messenger-menu-panel" id="messengerMenu" aria-label="Меню мессенджера" hidden>
+                    <a href="{{ route('contacts.index') }}">
+                        <i class="fa fa-address-book" aria-hidden="true"></i>
+                        <span>Контакты</span>
+                    </a>
+                    <a href="{{ route('chats.notifications') }}">
+                        <i class="fa fa-bell" aria-hidden="true"></i>
+                        <span>Уведомления</span>
+                    </a>
+                    <a href="{{ route('chats.index') }}">
+                        <i class="fa fa-comments" aria-hidden="true"></i>
+                        <span>Чаты</span>
+                    </a>
+                    <a href="{{ route('chats.create') }}">
+                        <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                        <span>Создать чат / канал</span>
+                    </a>
+                </nav>
+            </div>
+        </div>
 
         <section class="chat-stories-bar" id="chatStoriesBar"
                  data-user-id="{{ auth()->id() }}"
@@ -989,12 +1445,6 @@
              ===================================================== --}}
 
         <div class="text-center chat-create-wrapper">
-
-            <a href="{{ route('contacts.index') }}" class="des-btn">
-                <i class="fa fa-address-book" aria-hidden="true"></i>
-                Контакты и друзья
-            </a>
-
             <button
                 type="button"
                 id="openSavedMessages"
@@ -1004,14 +1454,6 @@
                 <i class="fa fa-bookmark" aria-hidden="true"></i>
                 {{ __('chats.saved_messages') }}
             </button>
-
-            <a
-                href="{{ route('chats.create') }}"
-                class="des-btn"
-            >
-                {{ __('chats.create_chat') }}
-            </a>
-
         </div>
 
     </div>
@@ -1026,9 +1468,11 @@
         @push('scripts')
 
             @vite('resources/js/chat_index.js')
+            @vite('resources/js/messenger-router.js')
 
         @endpush
 
     @endif
 
+</div>
 @endsection

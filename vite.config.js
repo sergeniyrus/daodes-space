@@ -24,6 +24,7 @@ export default defineConfig({
                 'resources/js/bt_top.js',
                 'resources/js/chat_index.js',
                 'resources/js/chat/index.js',
+                'resources/js/messenger-router.js',
                 'resources/js/category-modal.js',
                 'resources/js/category-submit.js',
                 'resources/js/ckeditor-init.js',
