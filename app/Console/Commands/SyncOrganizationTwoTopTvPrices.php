@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\MenuItem;
+use App\Models\MenuSection;
 use App\Models\Organization;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
