@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Console\\Commands\\ConfigureOrganizationTwoTvFourMenu;
-use PHPUnit\\Framework\\Attributes\\CoversClass;
+use App\Console\Commands\ConfigureOrganizationTwoTvFourMenu;
+use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionMethod;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 #[CoversClass(ConfigureOrganizationTwoTvFourMenu::class)]
 class ConfigureOrganizationTwoTvFourMenuTest extends TestCase
@@ -27,10 +27,8 @@ class ConfigureOrganizationTwoTvFourMenuTest extends TestCase
 
         $this->assertSame(350, $items['Манго чили']['price']);
         $this->assertSame(300, $items['Манго чили']['weight']);
-
         $this->assertSame(350, $items['Терияки']['price']);
         $this->assertSame(300, $items['Терияки']['weight']);
-
         $this->assertSame(350, $items['Сладкий чили']['price']);
         $this->assertSame(300, $items['Сладкий чили']['weight']);
 
@@ -41,7 +39,6 @@ class ConfigureOrganizationTwoTvFourMenuTest extends TestCase
 
         $this->assertSame(350, $items['Карбонара']['price']);
         $this->assertSame(330, $items['Карбонара']['weight']);
-
         $this->assertSame(350, $items['С курицей и грибами']['price']);
         $this->assertSame(330, $items['С курицей и грибами']['weight']);
     }
