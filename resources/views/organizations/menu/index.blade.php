@@ -1110,6 +1110,15 @@
             @endif
 
             <a
+                href="{{ route('organization.menu.print', $organization) }}"
+                class="menu-admin-button cyan"
+                target="_blank"
+                rel="noopener"
+            >
+                Печать полного меню · A4
+            </a>
+
+            <a
                 href="{{ route($menuRoutePrefix . 'sections.create', $organization) }}"
                 class="menu-admin-button"
             >
@@ -1374,12 +1383,24 @@
                                     </span>
 
                                 @endif
+                                @if(!$item->is_available)
+                                    <span class="menu-item-badge inactive" title="{{ $item->unavailable_reason }}">СТОП-ЛИСТ</span>
+                                @endif
 
                             </div>
 
                             <div class="menu-item-buttons">
 
                                 <div class="menu-item-quick-actions">
+                                    <form method="POST" action="{{ route($menuRoutePrefix . 'items.availability', ['organization' => $organization, 'section' => $section, 'item' => $item]) }}" class="menu-quick-form">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="is_available" value="{{ $item->is_available ? 0 : 1 }}">
+                                        @if($item->is_available)
+                                            <input type="text" name="unavailable_reason" maxlength="255" placeholder="Причина стоп-листа" aria-label="Причина стоп-листа для {{ $item->name }}" class="menu-sort-input" style="width:150px">
+                                        @endif
+                                        <button type="submit" class="menu-admin-button menu-quick-button {{ $item->is_available ? 'danger' : 'cyan' }}">{{ $item->is_available ? 'В стоп-лист' : 'Вернуть' }}</button>
+                                    </form>
                                     <form
                                         method="POST"
                                         action="{{ route($menuRoutePrefix . 'items.sort', [

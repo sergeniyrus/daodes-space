@@ -72,13 +72,13 @@ class CustomerCartController extends Controller
             $hasPaymentAtReceipt = $settings
                 && ($settings->cash_payment_enabled || $settings->card_payment_enabled);
 
-            $deliveryAvailable = $item !== null && $item->is_active && $section !== null
+            $deliveryAvailable = $item !== null && $item->is_active && $item->is_available && $section !== null
                 && $settings?->hasConfiguredDelivery() && $hasPaymentAtReceipt
                 && $item->delivery_enabled && $section->delivery_enabled;
-            $pickupAvailable = $item !== null && $item->is_active && $section !== null
+            $pickupAvailable = $item !== null && $item->is_active && $item->is_available && $section !== null
                 && $settings?->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt
                 && $item->pickup_enabled && $section->pickup_enabled;
-            $dineInAvailable = $item !== null && $item->is_active && $section !== null
+            $dineInAvailable = $item !== null && $item->is_active && $item->is_available && $section !== null
                 && (bool) ($settings?->dine_in_enabled)
                 && $item->dine_in_enabled
                 && $section->dine_in_enabled;
@@ -134,6 +134,7 @@ class CustomerCartController extends Controller
         $item = MenuItem::query()
             ->whereKey($validated['item_id'])
             ->where('is_active', true)
+            ->where('is_available', true)
             ->whereHas('section', function ($query) use ($organization) {
                 $query->where('organization_id', $organization->id)
                     ->where('is_active', true);
@@ -254,6 +255,7 @@ class CustomerCartController extends Controller
             && $organization?->isActive()
             && isset($cart['items'][$menuItem->id])
             && $menuItem->is_active
+            && $menuItem->is_available
             && $section !== null
             && (
                 ($settings?->hasConfiguredDelivery() && $hasPaymentAtReceipt && $menuItem->delivery_enabled && $section->delivery_enabled)

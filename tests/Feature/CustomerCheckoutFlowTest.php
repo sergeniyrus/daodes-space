@@ -130,6 +130,52 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertViewHas('selectedFulfillment', Order::FULFILLMENT_DINE_IN);
     }
 
+    public function test_unavailable_items_are_hidden_from_all_cart_fulfillment_methods(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Stop-list cart cafe');
+
+        $item->update([
+            'is_available' => false,
+            'unavailable_reason' => 'Временно отсутствует',
+        ]);
+
+        $session = [
+            'customer_order_cart' => [
+                'organization_id' => $organization->id,
+                'items' => [$item->id => 1],
+            ],
+        ];
+
+        $this->actingAs($customer, 'customer')
+            ->withSession($session)
+            ->get(route('customer.cart'))
+            ->assertOk()
+            ->assertViewHas('lines', function ($lines) {
+                $line = $lines->first();
+
+                return $line['available'] === false
+                    && $line['delivery_available'] === false
+                    && $line['pickup_available'] === false
+                    && $line['dine_in_available'] === false
+                    && $line['line_total'] === 0;
+            });
+    }
+
+    public function test_a4_print_menu_keeps_active_items_even_when_they_are_in_stop_list(): void
+    {
+        [$organization, $item] = $this->createOrderableMenu('A4 full menu cafe');
+
+        $item->update([
+            'is_available' => false,
+            'unavailable_reason' => 'Временно отсутствует',
+        ]);
+
+        $this->get(route('organization.menu.print', $organization))
+            ->assertOk()
+            ->assertSee($item->name);
+    }
+
     public function test_dine_in_order_uses_guest_account_and_requires_bracelet_or_employee_card(): void
     {
         $customer = $this->createVerifiedCustomer();
@@ -2167,6 +2213,8 @@ class CustomerCheckoutFlowTest extends TestCase
                 $table->string('image_path', 500)->nullable();
                 $table->integer('sort_order')->default(0);
                 $table->boolean('is_active')->default(true);
+                $table->boolean('is_available')->default(true);
+                $table->string('unavailable_reason', 255)->nullable();
                 $table->boolean('delivery_enabled')->default(true);
                 $table->boolean('pickup_enabled')->default(true);
                 $table->boolean('dine_in_enabled')->default(true);

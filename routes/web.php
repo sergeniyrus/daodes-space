@@ -87,6 +87,11 @@ Route::get('/tv2', [TV2Controller::class, 'index'])->name('tv2');
 
 Route::get('/tv3', [TV3Controller::class, 'index'])->name('tv3');
 
+// Печатная версия полного меню организации (формат A4 через браузер).
+Route::get('/organization/{organization}/menu/print', [OrganizationTVController::class, 'printMenu'])
+    ->whereNumber('organization')
+    ->name('organization.menu.print');
+
 // Новые TV-экраны организаций. Старые /tv1, /tv2, /tv3 остаются без изменений.
 Route::get('/organization/{organization}/tv', [OrganizationTVController::class, 'show'])
     ->whereNumber('organization')
@@ -1756,6 +1761,13 @@ Route::middleware('auth')
         )
             ->middleware('organization.manager')
             ->name('menu.items.toggle');
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/items/{item}/availability',
+            [OrganizationMenuController::class, 'toggleItemAvailability']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.availability');
 
     });
 

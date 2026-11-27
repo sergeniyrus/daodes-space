@@ -88,6 +88,7 @@ class CustomerCatalogController extends Controller
 
         $sections = $sectionsQuery
             ->with(['activeItems' => function ($itemQuery) use ($selectedFulfillment) {
+                $itemQuery->where('is_available', true);
                 if ($selectedFulfillment === 'delivery') {
                     $itemQuery->where('delivery_enabled', true);
                 } elseif ($selectedFulfillment === 'pickup') {
@@ -116,7 +117,8 @@ class CustomerCatalogController extends Controller
 
             $cartItemsQuery = MenuItem::query()
                 ->whereIn('id', array_map('intval', array_keys($quantities)))
-                ->where('is_active', true);
+                ->where('is_active', true)
+                ->where('is_available', true);
 
             if ($selectedFulfillment === 'delivery') {
                 $cartItemsQuery->where('delivery_enabled', true);
