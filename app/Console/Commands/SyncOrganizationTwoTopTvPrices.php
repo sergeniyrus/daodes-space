@@ -44,6 +44,12 @@ class SyncOrganizationTwoTopTvPrices extends Command
                     ->lockForUpdate()
                     ->firstOrFail();
 
+                MenuSection::query()
+                    ->where('organization_id', self::ORGANIZATION_ID)
+                    ->whereIn('tv_screen', array_merge(self::SOURCE_SCREENS, self::TARGET_SCREENS))
+                    ->lockForUpdate()
+                    ->get(['id']);
+
                 $plan = $this->buildPlan(true);
 
                 if ($plan['errors'] === []) {
