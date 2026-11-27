@@ -111,6 +111,7 @@ Route::prefix('staff')->name('employee.')->group(function () {
                 Route::delete('/sections/{section}/items/{item}', [\App\Http\Controllers\OrganizationMenuController::class, 'destroyItem'])->name('items.destroy');
                 Route::patch('/sections/{section}/items/{item}/sort', [\App\Http\Controllers\OrganizationMenuController::class, 'updateItemSort'])->name('items.sort');
                 Route::patch('/sections/{section}/items/{item}/toggle', [\App\Http\Controllers\OrganizationMenuController::class, 'toggleItem'])->name('items.toggle');
+                Route::patch('/sections/{section}/items/{item}/availability', [\App\Http\Controllers\OrganizationMenuController::class, 'toggleItemAvailability'])->name('items.availability');
             });
     });
 });
