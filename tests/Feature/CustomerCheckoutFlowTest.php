@@ -130,6 +130,38 @@ class CustomerCheckoutFlowTest extends TestCase
             ->assertViewHas('selectedFulfillment', Order::FULFILLMENT_DINE_IN);
     }
 
+    public function test_unavailable_items_are_hidden_from_all_cart_fulfillment_methods(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Stop-list cart cafe');
+
+        $item->update([
+            'is_available' => false,
+            'unavailable_reason' => 'Временно отсутствует',
+        ]);
+
+        $session = [
+            'customer_order_cart' => [
+                'organization_id' => $organization->id,
+                'items' => [$item->id => 1],
+            ],
+        ];
+
+        $this->actingAs($customer, 'customer')
+            ->withSession($session)
+            ->get(route('customer.cart'))
+            ->assertOk()
+            ->assertViewHas('lines', function ($lines) {
+                $line = $lines->first();
+
+                return $line['available'] === false
+                    && $line['delivery_available'] === false
+                    && $line['pickup_available'] === false
+                    && $line['dine_in_available'] === false
+                    && $line['line_total'] === 0;
+            });
+    }
+
     public function test_dine_in_order_uses_guest_account_and_requires_bracelet_or_employee_card(): void
     {
         $customer = $this->createVerifiedCustomer();
