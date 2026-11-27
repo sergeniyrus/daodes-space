@@ -102,7 +102,8 @@ class ConfigureOrganizationTwoTopTvScreens extends Command
 
         $sourceItems = MenuItem::query()
             ->whereHas('section', function ($query) {
-                $query->where('organization_id', self::ORGANIZATION_ID);
+                $query->where('organization_id', self::ORGANIZATION_ID)
+                    ->where('is_active', true);
             })
             ->where('is_active', true)
             ->with('section')
