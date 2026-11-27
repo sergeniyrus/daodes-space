@@ -1,0 +1,23 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        if (Schema::hasTable('organizations') && !Schema::hasColumn('organizations', 'tv_screens_count')) {
+            Schema::table('organizations', function (Blueprint $table) {
+                $table->unsignedTinyInteger('tv_screens_count')
+                    ->default(3);
+            });
+        }
+    }
+
+    public function down(): void
+    {
+        // Не удаляем существующие таблицы, столбцы и данные при откате.
+    }
+};

@@ -1,0 +1,2254 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Customer;
+use App\Services\CustomerCartService;
+use App\Models\MenuItem;
+use App\Models\MenuSection;
+use App\Models\Order;
+use App\Models\OrderAssignment;
+use App\Models\PaymentWebhookEvent;
+use Tests\Support\FakePaymentGateway;
+use App\Models\Organization;
+use App\Models\OrganizationOrderSetting;
+use App\Models\OrganizationEmployee;
+use App\Models\OrganizationEmployeeMembership;
+use App\Models\User;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Tests\TestCase;
+
+class CustomerCheckoutFlowTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+        $this->createLegacyOrganizationSchema();
+    }
+
+    public function test_customer_cart_is_restored_from_database_in_a_new_session(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $this->actingAs($customer, 'customer')
+            ->withSession([
+                'customer_order_cart' => [
+                    'organization_id' => $organization->id,
+                    'items' => [$item->id => 2],
+                ],
+            ])
+            ->get(route('customer.cart'))
+            ->assertOk()
+            ->assertViewHas('lines', function ($lines) use ($item) {
+                return $lines->first()['item_id'] === $item->id
+                    && $lines->first()['quantity'] === 2;
+            });
+
+        $this->assertDatabaseHas('customer_carts', [
+            'customer_id' => $customer->id,
+            'organization_id' => $organization->id,
+        ]);
+
+        // Имитируем вход того же клиента с другого устройства без сессионной корзины.
+        $this->flushSession();
+
+        $this->actingAs($customer, 'customer')
+            ->get(route('customer.cart'))
+            ->assertOk()
+            ->assertViewHas('lines', function ($lines) use ($item) {
+                return $lines->first()['item_id'] === $item->id
+                    && $lines->first()['quantity'] === 2;
+            });
+    }
+
+    public function test_customer_catalog_filters_dine_in_items_by_item_availability(): void
+    {
+        [$organization, $item] = $this->createOrderableMenu('Dine-in filtering cafe');
+        $item->update([
+            'delivery_enabled' => false,
+            'pickup_enabled' => false,
+            'dine_in_enabled' => false,
+        ]);
+
+        $this->get(route('customer.catalog', [
+            'organization' => $organization->id,
+            'fulfillment' => 'dine_in',
+        ]))
+            ->assertOk()
+            ->assertDontSee('Test dish')
+            ->assertSee('В заведении');
+    }
+
+    public function test_dine_in_only_items_remain_available_in_cart_and_checkout_disables_other_methods(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $item->update([
+            'delivery_enabled' => false,
+            'pickup_enabled' => false,
+        ]);
+
+        $session = [
+            'customer_order_cart' => [
+                'organization_id' => $organization->id,
+                'items' => [$item->id => 2],
+            ],
+        ];
+
+        $this->actingAs($customer, 'customer')
+            ->withSession($session)
+            ->get(route('customer.cart'))
+            ->assertOk()
+            ->assertViewHas('lines', function ($lines) {
+                $line = $lines->first();
+
+                return $line['available'] === true
+                    && $line['delivery_available'] === false
+                    && $line['pickup_available'] === false
+                    && $line['dine_in_available'] === true
+                    && $line['line_total'] === 20.0;
+            });
+
+        $this->actingAs($customer, 'customer')
+            ->withSession($session)
+            ->get(route('customer.checkout'))
+            ->assertOk()
+            ->assertViewHas('canUseDelivery', false)
+            ->assertViewHas('canUsePickup', false)
+            ->assertViewHas('canUseDineIn', true)
+            ->assertViewHas('selectedFulfillment', Order::FULFILLMENT_DINE_IN);
+    }
+
+    public function test_dine_in_order_uses_guest_account_and_requires_bracelet_or_employee_card(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Guest account cafe');
+
+        $organization->orderSettings->update([
+            'cash_payment_enabled' => false,
+            'card_payment_enabled' => false,
+        ]);
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $response = $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_DINE_IN,
+            'payment_method' => Order::PAYMENT_GUEST_ACCOUNT,
+            'guest_card_identifier' => 'BRACELET-125',
+            'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\\TH:i'),
+        ]);
+
+        $order = Order::query()->firstOrFail();
+
+        $response->assertRedirect(route('customer.orders.show', $order));
+        $this->assertSame('BRACELET-125', $order->guest_card_identifier);
+        $this->assertSame(Order::PAYMENT_GUEST_ACCOUNT, $order->payment_method);
+        $this->assertSame(Order::PAYMENT_PENDING, $order->payment_status);
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'method' => Order::PAYMENT_GUEST_ACCOUNT,
+            'status' => Order::PAYMENT_PENDING,
+        ]);
+    }
+
+    public function test_checkout_rejects_requested_time_outside_organization_working_hours(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Closed schedule cafe');
+        $organization->orderSettings->update([
+            'working_hours' => array_fill_keys(range(1, 7), [
+                'enabled' => true,
+                'open' => '00:00',
+                'close' => '00:01',
+            ]),
+        ]);
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'requested_at' => now('Asia/Krasnoyarsk')->addDay()->setTime(12, 0)->format('Y-m-d\\TH:i'),
+            ])
+            ->assertRedirect(route('customer.checkout'))
+            ->assertSessionHasErrors('requested_at');
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_manager_can_save_delivery_zones_and_origin_coordinates(): void
+    {
+        [$organization] = $this->createOrderableMenu('Delivery zones cafe');
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->put(route('organizations.order-settings.update', $organization), [
+                'currency' => 'EUR',
+                'orders_enabled' => '1',
+                'delivery_enabled' => '1',
+                'pickup_enabled' => '1',
+                'dine_in_enabled' => '1',
+                'online_payment_enabled' => '0',
+                'cash_payment_enabled' => '1',
+                'card_payment_enabled' => '1',
+                'pickup_min_minutes' => '30',
+                'working_hours' => array_fill_keys(range(1, 7), [
+                    'enabled' => true,
+                    'open' => '09:00',
+                    'close' => '22:00',
+                ]),
+                'timezone' => 'Asia/Krasnoyarsk',
+                'preorders_enabled' => '1',
+                'order_lead_minutes' => '30',
+                'time_slot_minutes' => '15',
+                'delivery_city' => 'Test city',
+                'pickup_address' => 'Test street 1',
+                'delivery_origin_latitude' => '55.0000000',
+                'delivery_origin_longitude' => '90.0000000',
+                'delivery_zones' => [
+                    ['max_distance_km' => '2', 'minimum_order_amount' => '15'],
+                    ['max_distance_km' => '5', 'minimum_order_amount' => '25'],
+                    ['max_distance_km' => '7', 'minimum_order_amount' => '30'],
+                    ['max_distance_km' => '10', 'minimum_order_amount' => '40'],
+                ],
+            ])
+            ->assertRedirect(route('organizations.manage', $organization));
+
+        $settings = $organization->orderSettings()->firstOrFail();
+        $this->assertTrue($settings->hasConfiguredDelivery());
+        $this->assertSame('55.0000000', $settings->delivery_origin_latitude);
+        $this->assertDatabaseHas('organization_delivery_zones', [
+            'organization_id' => $organization->id,
+            'max_distance_km' => '5.00',
+            'minimum_order_amount' => '25.00',
+        ]);
+        // Legacy columns remain for backward compatibility; delivery zones are now authoritative.
+        $this->assertTrue(Schema::hasColumn('organization_order_settings', 'delivery_fee'));
+        $this->assertTrue(Schema::hasColumn('organization_order_settings', 'minimum_order'));
+    }
+
+    public function test_delivery_outside_ten_kilometres_is_rejected(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $response = $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+                'delivery_latitude' => '55.0000000',
+                'delivery_longitude' => '90.2000000',
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'address_line' => 'Far street 10',
+            ]);
+
+        $response->assertRedirect(route('customer.checkout'));
+        $response->assertSessionHasErrors('address_line');
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_manager_can_save_tv_screen_settings_and_public_tv_uses_them(): void
+    {
+        [$organization] = $this->createOrderableMenu('TV settings cafe');
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.tv.screens.settings', [$organization, 1]), [
+                'screen_name' => 'Основной зал',
+                'background_fit' => 'contain',
+                'rotation_seconds' => 25,
+            ])
+            ->assertRedirect(route('organizations.manage', $organization));
+
+        $this->assertSame('Основной зал', $organization->fresh()->tv_screens_config[1]['name']);
+        $this->assertSame('contain', $organization->fresh()->tv_screens_config[1]['background_fit']);
+        $this->assertSame(25, $organization->fresh()->tv_screens_config[1]['rotation_seconds']);
+
+        $this->assertDatabaseHas('organization_activity_logs', [
+            'organization_id' => $organization->id,
+            'actor_id' => $manager->id,
+            'action' => 'tv_screen.settings_updated',
+            'subject_type' => 'tv_screen',
+            'subject_id' => 1,
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('organizations.manage', $organization))
+            ->assertOk()
+            ->assertSee('История действий')
+            ->assertSee('Обновлены настройки TV-экрана 1');
+
+        $this->get(route('organization.tv', [
+            'organization' => $organization->id,
+            'screen' => 1,
+        ]))
+            ->assertOk()
+            ->assertViewHas('screenName', 'Основной зал')
+            ->assertViewHas('backgroundFit', 'contain')
+            ->assertViewHas('rotationSeconds', 25);
+    }
+
+    public function test_verified_customer_can_create_delivery_order_with_server_calculated_totals_and_snapshots(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+        $idempotencyKey = $checkout->viewData('idempotencyKey');
+
+        $response = $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $idempotencyKey,
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+            'delivery_latitude' => '55.0000000',
+            'delivery_longitude' => '90.0000000',
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'address_line' => 'Test street 10',
+            'entrance' => '2',
+            'floor' => '3',
+            'apartment' => '15',
+            'delivery_comment' => 'Call on arrival',
+        ]);
+
+        $order = Order::query()->firstOrFail();
+
+        $response->assertRedirect(route('customer.orders.show', $order));
+
+        $this->assertSame('20.00', $order->subtotal);
+        $this->assertSame('0.00', $order->delivery_fee);
+        $this->assertSame('20.00', $order->total);
+        $this->assertSame('EUR', $order->currency);
+        $this->assertSame(Order::STATUS_NEW, $order->status);
+        $this->assertSame('Test street 10', $order->delivery_address['address_line']);
+        $this->assertSame('Call on arrival', $order->delivery_address['delivery_comment']);
+
+        $orderItem = $order->items()->firstOrFail();
+
+        $this->assertSame('Test dish', $orderItem->item_name);
+        $this->assertSame('10.00', $orderItem->unit_price);
+        $this->assertSame(2, $orderItem->quantity);
+        $this->assertSame('20.00', $orderItem->line_total);
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'provider' => 'offline',
+            'method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'status' => Order::PAYMENT_PENDING,
+            'amount' => '20.00',
+            'currency' => 'EUR',
+        ]);
+
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => null,
+            'to_status' => Order::STATUS_NEW,
+            'actor_type' => 'customer',
+            'actor_id' => $customer->id,
+        ]);
+
+        $item->update([
+            'name' => 'Renamed dish',
+            'price' => '99.00',
+        ]);
+
+        $this->assertSame('Test dish', $orderItem->fresh()->item_name);
+        $this->assertSame('10.00', $orderItem->fresh()->unit_price);
+        $this->assertSame('99.00', $item->fresh()->price);
+    }
+
+    public function test_delivery_below_zone_minimum_is_rejected_without_a_delivery_fee(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $organization->orderSettings->deliveryZones()->update([
+            'minimum_order_amount' => '25.00',
+        ]);
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $response = $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+                'delivery_latitude' => '55.0000000',
+                'delivery_longitude' => '90.0000000',
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'address_line' => 'Test street 10',
+            ]);
+
+        $response->assertRedirect(route('customer.checkout'));
+        $response->assertSessionHasErrors('cart');
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_minimum_delivery_order_does_not_restrict_pickup(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $organization->orderSettings->deliveryZones()->update([
+            'minimum_order_amount' => '25.00',
+        ]);
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $response = $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\\TH:i'),
+        ]);
+
+        $order = Order::query()->firstOrFail();
+
+        $response->assertRedirect(route('customer.orders.show', $order));
+        $this->assertSame('20.00', $order->subtotal);
+        $this->assertSame('0.00', $order->delivery_fee);
+    }
+
+    public function test_pickup_requires_at_least_thirty_minutes_even_when_no_setting_is_configured(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'requested_at' => now('Asia/Krasnoyarsk')->addMinutes(20)->format('Y-m-d\\TH:i'),
+            ])
+            ->assertRedirect(route('customer.checkout'))
+            ->assertSessionHasErrors('requested_at');
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_delivery_house_number_is_combined_with_street_in_legacy_address_snapshot(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+            'delivery_latitude' => '55.0000000',
+            'delivery_longitude' => '90.0000000',
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'address_line' => 'Main street',
+            'house_number' => '15 корпус 2',
+        ])->assertRedirect();
+
+        $order = Order::query()->firstOrFail();
+
+        $this->assertSame('Main street, 15 корпус 2', $order->delivery_address['address_line']);
+    }
+
+    public function test_customer_can_explicitly_save_a_delivery_address_with_a_custom_label(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $response = $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+            'delivery_latitude' => '55.0000000',
+            'delivery_longitude' => '90.0000000',
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'address_line' => 'Test street 25',
+            'save_address' => '1',
+            'address_label' => 'Дом',
+        ]);
+
+        $order = Order::query()->firstOrFail();
+
+        $response->assertRedirect(route('customer.orders.show', $order));
+
+        $this->assertDatabaseHas('customer_addresses', [
+            'customer_id' => $customer->id,
+            'label' => 'Дом',
+            'address_line' => 'Test street 25',
+        ]);
+    }
+
+    public function test_repeating_checkout_post_with_same_idempotency_key_does_not_create_a_second_order(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+        $payload = [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+        ];
+
+        $firstResponse = $this->post(route('customer.checkout.store'), $payload);
+        $order = Order::query()->firstOrFail();
+
+        $firstResponse->assertRedirect(route('customer.orders.show', $order));
+
+        $secondResponse = $this->post(route('customer.checkout.store'), $payload);
+
+        $secondResponse->assertRedirect(route('customer.orders.show', $order));
+        $this->assertDatabaseCount('orders', 1);
+        $this->assertDatabaseCount('order_items', 1);
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseCount('order_status_history', 1);
+    }
+
+    public function test_checkout_rejects_a_menu_price_changed_after_checkout_page_was_opened(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $item->update(['price' => '11.00']);
+
+        $response = $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+                'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+            ]);
+
+        $response->assertRedirect(route('customer.checkout'));
+        $response->assertSessionHasErrors('cart');
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseCount('payments', 0);
+    }
+
+    public function test_checkout_does_not_accept_a_menu_item_from_another_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization] = $this->createOrderableMenu('First organization');
+        [$otherOrganization, $foreignItem] = $this->createOrderableMenu('Other organization');
+
+        $this->actingAs($customer, 'customer')->withSession([
+            'customer_order_cart' => [
+                'organization_id' => $organization->id,
+                'items' => [
+                    $foreignItem->id => 1,
+                ],
+            ],
+        ]);
+
+        $response = $this->get(route('customer.checkout'));
+
+        $response->assertRedirect(route('customer.cart'));
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertNotSame($organization->id, $otherOrganization->id);
+    }
+
+
+
+    public function test_cook_accepts_new_delivery_order_and_courier_claims_and_completes_it(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\TH:i'),
+            'delivery_latitude' => '55.0000000',
+            'delivery_longitude' => '90.0000000',
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'address_line' => 'Test street 10',
+        ])->assertRedirect();
+
+        $order = Order::query()->firstOrFail();
+        $cook = $this->createOrganizationEmployee($organization, 'cook', '+436601234568');
+        $courier = $this->createOrganizationEmployee($organization, 'courier', '+436601234569');
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_PREPARING,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_READY,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $this->actingAs($courier, 'employee')
+            ->post(route('employee.organization.orders.claim', [$organization, $order]))
+            ->assertRedirect(route('employee.organization.orders.show', [$organization, $order]));
+
+        $this->actingAs($courier, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_IN_TRANSIT,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $this->actingAs($courier, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_DELIVERED,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $this->actingAs($courier, 'employee')
+            ->patch(route('employee.organization.orders.payment', [$organization, $order]))
+            ->assertRedirect(route('employee.organization.orders.show', [$organization, $order]));
+
+        $this->actingAs($courier, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_COMPLETED,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $order = $order->fresh();
+
+        $this->assertSame(Order::STATUS_COMPLETED, $order->status);
+        $this->assertSame(Order::PAYMENT_SUCCEEDED, $order->payment_status);
+        $this->assertSame(7, $order->statusHistory()->count());
+
+        $this->assertDatabaseMissing('order_assignments', [
+            'order_id' => $order->id,
+            'role' => 'cook',
+        ]);
+
+        $courierAssignment = $order->assignments()
+            ->where('role', 'courier')
+            ->firstOrFail();
+
+        $this->assertSame($courier->id, $courierAssignment->employee_id);
+        $this->assertNotNull($courierAssignment->unassigned_at);
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'status' => Order::PAYMENT_SUCCEEDED,
+        ]);
+    }
+
+
+    public function test_manager_cannot_change_an_order_from_another_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$firstOrganization] = $this->createOrderableMenu('First cafe');
+        [$secondOrganization, $secondItem] = $this->createOrderableMenu('Second cafe');
+        $foreignOrder = $this->createPickupOrder($customer, $secondOrganization, $secondItem);
+        $manager = $this->createOrganizationManager($firstOrganization);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.status', [
+                $firstOrganization,
+                $foreignOrder,
+            ]), [
+                'status' => Order::STATUS_CANCELLED,
+            ])
+            ->assertNotFound();
+
+        $this->assertSame(Order::STATUS_NEW, $foreignOrder->fresh()->status);
+    }
+
+    public function test_cook_can_change_confirmed_order_without_a_personal_assignment(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'status' => Order::STATUS_CONFIRMED,
+        ]);
+
+        $cook = $this->createOrganizationEmployee(
+            $organization,
+            'cook',
+            '+436601234568'
+        );
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [
+                $organization,
+                $order,
+            ]), [
+                'status' => Order::STATUS_PREPARING,
+            ])
+            ->assertRedirect(route('employee.organization.orders.index', $organization));
+
+        $this->assertSame(Order::STATUS_PREPARING, $order->fresh()->status);
+        $this->assertDatabaseCount('order_status_history', 2);
+    }
+
+    public function test_employee_cannot_change_order_from_another_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$firstOrganization] = $this->createOrderableMenu('First cafe');
+        [$secondOrganization, $secondItem] = $this->createOrderableMenu('Second cafe');
+        $foreignOrder = $this->createPickupOrder($customer, $secondOrganization, $secondItem);
+        $cook = $this->createOrganizationEmployee(
+            $firstOrganization,
+            'cook',
+            '+436601234568'
+        );
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [
+                $firstOrganization,
+                $foreignOrder,
+            ]), [
+                'status' => Order::STATUS_PREPARING,
+            ])
+            ->assertNotFound();
+
+        $this->assertSame(Order::STATUS_NEW, $foreignOrder->fresh()->status);
+    }
+
+    public function test_customer_cannot_view_another_customers_order(): void
+    {
+        $owner = $this->createVerifiedCustomer();
+        $otherCustomer = Customer::query()->create([
+            'name' => 'Other customer',
+            'phone' => '+436601234568',
+            'phone_verified_at' => now(),
+        ]);
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($owner, $organization, $item);
+
+        $this->actingAs($otherCustomer, 'customer')
+            ->get(route('customer.orders.show', $order))
+            ->assertNotFound();
+
+        $this->assertSame($owner->id, $order->fresh()->customer_id);
+    }
+
+    public function test_new_order_notifies_only_active_managers_of_its_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Notification cafe');
+        [$otherOrganization] = $this->createOrderableMenu('Other notification cafe');
+
+        $manager = $this->createOrganizationManager($organization);
+        $otherManager = $this->createOrganizationManager($otherOrganization);
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+
+        $this->assertDatabaseHas('order_notifications', [
+            'organization_id' => $organization->id,
+            'order_id' => $order->id,
+            'recipient_type' => 'user',
+            'recipient_id' => $manager->id,
+            'event_type' => 'new_order',
+        ]);
+
+        $this->assertDatabaseMissing('order_notifications', [
+            'order_id' => $order->id,
+            'recipient_type' => 'user',
+            'recipient_id' => $otherManager->id,
+        ]);
+
+        $this->assertDatabaseCount('order_notifications', 1);
+    }
+
+
+    public function test_courier_claims_ready_delivery_and_another_courier_cannot_claim_it(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Courier claim cafe');
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_READY,
+        ]);
+
+        $firstCourier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234574'
+        );
+        $secondCourier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234575'
+        );
+
+        $this->actingAs($firstCourier, 'employee')
+            ->post(route('employee.organization.orders.claim', [$organization, $order]))
+            ->assertRedirect(route('employee.organization.orders.show', [$organization, $order]));
+
+        $this->assertDatabaseHas('order_assignments', [
+            'order_id' => $order->id,
+            'employee_id' => $firstCourier->id,
+            'role' => 'courier',
+            'unassigned_at' => null,
+        ]);
+
+        $this->actingAs($secondCourier, 'employee')
+            ->from(route('employee.organization.orders.index', $organization))
+            ->post(route('employee.organization.orders.claim', [$organization, $order]))
+            ->assertRedirect(route('employee.organization.orders.index', $organization))
+            ->assertSessionHasErrors('order');
+
+        $this->assertDatabaseMissing('order_assignments', [
+            'order_id' => $order->id,
+            'employee_id' => $secondCourier->id,
+            'role' => 'courier',
+            'unassigned_at' => null,
+        ]);
+    }
+
+    public function test_manager_can_read_only_own_organization_order_notifications(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Manager notification cafe');
+        [$otherOrganization] = $this->createOrderableMenu('Foreign manager cafe');
+
+        $manager = $this->createOrganizationManager($organization);
+        $foreignManager = $this->createOrganizationManager($otherOrganization);
+        $order = $this->createPickupOrder($customer, $organization, $item);
+
+        $notification = \App\Models\OrderNotification::query()
+            ->where('order_id', $order->id)
+            ->where('recipient_type', 'user')
+            ->where('recipient_id', $manager->id)
+            ->firstOrFail();
+
+        $this->actingAs($manager)
+            ->getJson(route('organizations.orders.notifications', $organization))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.id', $notification->id);
+
+        $this->actingAs($foreignManager)
+            ->getJson(route('organizations.orders.notifications', $organization))
+            ->assertForbidden();
+
+        $this->actingAs($manager)
+            ->postJson(route('organizations.orders.notifications.read', [
+                $organization,
+                $notification,
+            ]))
+            ->assertOk()
+            ->assertJson(['marked_read' => true]);
+
+        $this->assertNotNull($notification->fresh()->read_at);
+    }
+
+
+    public function test_manager_status_change_notifies_only_the_order_customer(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        $otherCustomer = Customer::query()->create([
+            'name' => 'Another customer',
+            'phone' => '+436601234580',
+            'phone_verified_at' => now(),
+        ]);
+
+        [$organization, $item] = $this->createOrderableMenu('Customer status notifications');
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'fulfillment_type' => Order::FULFILLMENT_DINE_IN,
+            'status' => Order::STATUS_READY,
+        ]);
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_SERVED,
+            ])
+            ->assertRedirect();
+
+        $notification = \App\Models\OrderNotification::query()
+            ->where('order_id', $order->id)
+            ->where('recipient_type', 'customer')
+            ->where('recipient_id', $customer->id)
+            ->firstOrFail();
+
+        $this->assertSame('order_status_changed', $notification->event_type);
+        $this->assertStringContainsString('Подан', $notification->message);
+
+        $this->actingAs($customer, 'customer')
+            ->getJson(route('customer.orders.notifications'))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
+            ->assertJsonPath('unread_count', 1)
+            ->assertJsonPath('notifications.0.id', $notification->id)
+            ->assertJsonPath('notifications.0.url', route('customer.orders.show', $order));
+
+        $this->actingAs($otherCustomer, 'customer')
+            ->getJson(route('customer.orders.notifications'))
+            ->assertOk()
+            ->assertJsonPath('unread_count', 0)
+            ->assertJsonCount(0, 'notifications');
+
+        $this->actingAs($otherCustomer, 'customer')
+            ->postJson(route('customer.orders.notifications.read', $notification))
+            ->assertNotFound();
+
+        $this->actingAs($customer, 'customer')
+            ->postJson(route('customer.orders.notifications.read', $notification))
+            ->assertOk()
+            ->assertJson(['marked_read' => true]);
+
+        $this->assertNotNull($notification->fresh()->read_at);
+    }
+
+    public function test_employee_status_change_notifies_the_order_customer(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Employee status notifications');
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update(['status' => Order::STATUS_CONFIRMED]);
+
+        $cook = $this->createOrganizationEmployee(
+            $organization,
+            'cook',
+            '+436601234581'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $order->id,
+            'employee_id' => $cook->id,
+            'role' => 'cook',
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($cook, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_PREPARING,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('order_notifications', [
+            'organization_id' => $organization->id,
+            'order_id' => $order->id,
+            'recipient_type' => 'customer',
+            'recipient_id' => $customer->id,
+            'event_type' => 'order_status_changed',
+        ]);
+    }
+
+
+    public function test_manager_assignment_route_is_not_registered(): void
+    {
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('organizations.orders.assign'));
+    }
+
+
+    public function test_courier_cannot_claim_a_pickup_order(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update(['status' => Order::STATUS_READY]);
+
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234573'
+        );
+
+        $this->actingAs($courier, 'employee')
+            ->from(route('employee.organization.orders.index', $organization))
+            ->post(route('employee.organization.orders.claim', [$organization, $order]))
+            ->assertRedirect(route('employee.organization.orders.index', $organization))
+            ->assertSessionHasErrors('order');
+
+        $this->assertDatabaseMissing('order_assignments', [
+            'order_id' => $order->id,
+            'role' => 'courier',
+            'unassigned_at' => null,
+        ]);
+    }
+
+    public function test_marking_an_offline_payment_paid_twice_is_idempotent(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+
+        $order->update(['status' => Order::STATUS_ISSUED]);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.payment', [$organization, $order]))
+            ->assertRedirect(route('organizations.orders.index', $organization));
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.payment', [$organization, $order]))
+            ->assertRedirect(route('organizations.orders.index', $organization));
+
+        $this->assertSame(Order::PAYMENT_SUCCEEDED, $order->fresh()->payment_status);
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'status' => Order::PAYMENT_SUCCEEDED,
+        ]);
+    }
+
+
+    public function test_manager_cannot_mark_offline_payment_paid_before_customer_receives_order(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.payment', [$organization, $order]))
+            ->assertSessionHasErrors('payment');
+
+        $this->assertSame(Order::PAYMENT_PENDING, $order->fresh()->payment_status);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'status' => Order::PAYMENT_PENDING,
+        ]);
+    }
+
+    public function test_cancelling_unpaid_order_cancels_pending_payment_attempt(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->patch(route('organizations.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_CANCELLED,
+            ])
+            ->assertRedirect(route('organizations.orders.index', $organization));
+
+        $this->assertSame(Order::STATUS_CANCELLED, $order->fresh()->status);
+        $this->assertSame(Order::PAYMENT_CANCELLED, $order->fresh()->payment_status);
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'status' => Order::PAYMENT_CANCELLED,
+        ]);
+
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => Order::STATUS_NEW,
+            'to_status' => Order::STATUS_CANCELLED,
+            'actor_type' => 'user',
+            'actor_id' => $manager->id,
+        ]);
+    }
+
+
+    public function test_checkout_rejects_online_payment_until_a_gateway_is_configured(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->from(route('customer.checkout'))
+            ->post(route('customer.checkout.store'), [
+                'idempotency_key' => $checkout->viewData('idempotencyKey'),
+                'customer_name' => 'Test customer',
+                'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+                'payment_method' => Order::PAYMENT_ONLINE,
+                'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\\TH:i'),
+            ])
+            ->assertRedirect(route('customer.checkout'))
+            ->assertSessionHasErrors('payment_method');
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseCount('payments', 0);
+    }
+
+
+    public function test_signed_payment_webhook_marks_payment_paid_and_duplicate_event_is_idempotent(): void
+    {
+        [$order, $payment] = $this->createFakeOnlinePayment();
+        $payload = json_encode([
+            'event_id' => 'evt_paid_001',
+            'payment_id' => 'provider_payment_001',
+            'status' => Order::PAYMENT_SUCCEEDED,
+            'amount' => '20.00',
+            'currency' => 'EUR',
+        ], JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $payload, 'test-webhook-secret');
+
+        $first = $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => $signature,
+        ], $payload);
+
+        $first->assertOk()->assertJson([
+            'received' => true,
+            'duplicate' => false,
+            'processing_status' => 'processed',
+        ]);
+        $this->assertSame(Order::PAYMENT_SUCCEEDED, $payment->fresh()->status);
+        $this->assertSame(Order::PAYMENT_SUCCEEDED, $order->fresh()->payment_status);
+        $this->assertNotNull($payment->fresh()->paid_at);
+
+        $duplicate = $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => $signature,
+        ], $payload);
+
+        $duplicate->assertOk()->assertJson([
+            'received' => true,
+            'duplicate' => true,
+        ]);
+        $this->assertDatabaseCount('payment_webhook_events', 1);
+        $this->assertSame('processed', PaymentWebhookEvent::query()->firstOrFail()->processing_status);
+    }
+
+    public function test_payment_webhook_rejects_invalid_signature_without_changing_payment(): void
+    {
+        [$order, $payment] = $this->createFakeOnlinePayment();
+        $payload = json_encode([
+            'event_id' => 'evt_invalid_signature',
+            'payment_id' => 'provider_payment_001',
+            'status' => Order::PAYMENT_SUCCEEDED,
+            'amount' => '20.00',
+            'currency' => 'EUR',
+        ], JSON_THROW_ON_ERROR);
+
+        $response = $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => 'invalid-signature',
+        ], $payload);
+
+        $response->assertStatus(400);
+        $this->assertSame(Order::PAYMENT_PENDING, $payment->fresh()->status);
+        $this->assertSame(Order::PAYMENT_PENDING, $order->fresh()->payment_status);
+        $this->assertDatabaseCount('payment_webhook_events', 0);
+    }
+
+    public function test_payment_webhook_rejects_amount_mismatch_and_keeps_payment_pending(): void
+    {
+        [$order, $payment] = $this->createFakeOnlinePayment();
+        $payload = json_encode([
+            'event_id' => 'evt_wrong_amount',
+            'payment_id' => 'provider_payment_001',
+            'status' => Order::PAYMENT_SUCCEEDED,
+            'amount' => '21.00',
+            'currency' => 'EUR',
+        ], JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $payload, 'test-webhook-secret');
+
+        $response = $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => $signature,
+        ], $payload);
+
+        $response->assertOk()->assertJson([
+            'received' => true,
+            'processing_status' => 'rejected',
+        ]);
+        $this->assertSame(Order::PAYMENT_PENDING, $payment->fresh()->status);
+        $this->assertSame(Order::PAYMENT_PENDING, $order->fresh()->payment_status);
+        $this->assertDatabaseHas('payment_webhook_events', [
+            'provider' => 'fake',
+            'event_id' => 'evt_wrong_amount',
+            'processing_status' => 'rejected',
+        ]);
+    }
+
+    public function test_payment_webhook_returns_service_unavailable_without_configured_provider(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+
+        config([
+            'payments.providers' => [],
+            'cache.default' => 'array',
+        ]);
+
+        $response = $this->call('POST', '/api/webhooks/payments/not-configured', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+        ], '{"event_id":"evt_unconfigured"}');
+
+        $response->assertStatus(503);
+        $this->assertDatabaseCount('payment_webhook_events', 0);
+    }
+
+
+    public function test_signed_refund_webhook_changes_succeeded_payment_to_refunded(): void
+    {
+        [$order, $payment] = $this->createFakeOnlinePayment();
+
+        $sendEvent = function (string $eventId, string $status) {
+            $payload = json_encode([
+                'event_id' => $eventId,
+                'payment_id' => 'provider_payment_001',
+                'status' => $status,
+                'amount' => '20.00',
+                'currency' => 'EUR',
+            ], JSON_THROW_ON_ERROR);
+
+            return $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_FAKE_SIGNATURE' => hash_hmac(
+                    'sha256',
+                    $payload,
+                    'test-webhook-secret'
+                ),
+            ], $payload);
+        };
+
+        $sendEvent('evt_paid_before_refund', Order::PAYMENT_SUCCEEDED)
+            ->assertOk()
+            ->assertJson(['processing_status' => 'processed']);
+
+        $sendEvent('evt_refund_001', Order::PAYMENT_REFUNDED)
+            ->assertOk()
+            ->assertJson(['processing_status' => 'processed']);
+
+        $this->assertSame(Order::PAYMENT_REFUNDED, $payment->fresh()->status);
+        $this->assertNotNull($payment->fresh()->refunded_at);
+        $this->assertSame(Order::PAYMENT_REFUNDED, $order->fresh()->payment_status);
+        $this->assertDatabaseCount('payment_webhook_events', 2);
+    }
+
+    public function test_late_success_webhook_does_not_pay_an_already_cancelled_order(): void
+    {
+        [$order, $payment] = $this->createFakeOnlinePayment();
+        $order->update(['status' => Order::STATUS_CANCELLED]);
+
+        $payload = json_encode([
+            'event_id' => 'evt_late_success',
+            'payment_id' => 'provider_payment_001',
+            'status' => Order::PAYMENT_SUCCEEDED,
+            'amount' => '20.00',
+            'currency' => 'EUR',
+        ], JSON_THROW_ON_ERROR);
+
+        $response = $this->call('POST', '/api/webhooks/payments/fake', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_X_FAKE_SIGNATURE' => hash_hmac(
+                'sha256',
+                $payload,
+                'test-webhook-secret'
+            ),
+        ], $payload);
+
+        $response->assertOk()->assertJson([
+            'received' => true,
+            'processing_status' => 'rejected',
+        ]);
+
+        $this->assertSame(Order::PAYMENT_PENDING, $payment->fresh()->status);
+        $this->assertSame(Order::PAYMENT_PENDING, $order->fresh()->payment_status);
+        $this->assertDatabaseHas('payment_webhook_events', [
+            'event_id' => 'evt_late_success',
+            'processing_status' => 'rejected',
+        ]);
+    }
+
+
+    public function test_customer_can_poll_own_order_status_and_history(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+
+        $order->update([
+            'status' => Order::STATUS_CONFIRMED,
+        ]);
+
+        $order->statusHistory()->create([
+            'from_status' => Order::STATUS_NEW,
+            'to_status' => Order::STATUS_CONFIRMED,
+            'actor_type' => 'user',
+            'actor_id' => null,
+            'comment' => 'Заказ подтверждён менеджером.',
+            'created_at' => now(),
+        ]);
+
+        $response = $this->actingAs($customer, 'customer')
+            ->getJson(route('customer.orders.updates', $order));
+
+        $response->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
+            ->assertJsonPath('status', Order::STATUS_CONFIRMED)
+            ->assertJsonPath('payment_status', Order::PAYMENT_PENDING)
+            ->assertJsonPath('history.1.status', Order::STATUS_CONFIRMED);
+    }
+
+    public function test_customer_cannot_poll_another_customers_order_updates(): void
+    {
+        $owner = $this->createVerifiedCustomer();
+        $otherCustomer = Customer::query()->create([
+            'name' => 'Another customer',
+            'phone' => '+436601234568',
+            'phone_verified_at' => now(),
+        ]);
+
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($owner, $organization, $item);
+
+        $this->actingAs($otherCustomer, 'customer')
+            ->getJson(route('customer.orders.updates', $order))
+            ->assertNotFound();
+    }
+
+    public function test_cook_work_queue_renders_kds_lanes_and_preserves_order_actions(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update(['status' => Order::STATUS_CONFIRMED]);
+
+        $cook = $this->createOrganizationEmployee(
+            $organization,
+            'cook',
+            '+436601234572'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $order->id,
+            'employee_id' => $cook->id,
+            'role' => 'cook',
+            'assigned_at' => now(),
+        ]);
+
+        $response = $this->actingAs($cook, 'employee')
+            ->get(route('employee.organization.orders.updates', $organization));
+
+        $response->assertOk()
+            ->assertSee('kds-board')
+            ->assertSee('К приготовлению')
+            ->assertSee('Готовятся')
+            ->assertSee('Готовы')
+            ->assertSee('Заказ №' . $order->order_number)
+            ->assertSee('Test dish')
+            ->assertSee('× 2')
+            ->assertSee('Начать готовить')
+            ->assertSee('name="status" value="preparing"', false);
+    }
+
+    public function test_courier_cannot_start_delivery_for_a_non_delivery_order_even_with_an_active_assignment(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+        ]);
+
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234579'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $order->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($courier, 'employee')
+            ->patch(route('employee.organization.orders.status', [$organization, $order]), [
+                'status' => Order::STATUS_IN_TRANSIT,
+            ])
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(
+            Order::STATUS_HANDED_TO_COURIER,
+            $order->fresh()->status
+        );
+    }
+
+    public function test_courier_can_open_only_their_assigned_delivery_order_details(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+            'delivery_address' => [
+                'address_line' => 'Courier detail street 21, Graz',
+                'entrance' => '3',
+                'floor' => '5',
+                'apartment' => '27',
+                'intercom' => '2727',
+                'delivery_comment' => 'Позвонить перед приездом',
+            ],
+            'customer_comment' => 'Оставить у двери нельзя',
+        ]);
+
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234572'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $order->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($courier, 'employee')
+            ->get(route('employee.organization.orders.show', [$organization, $order]))
+            ->assertOk()
+            ->assertSee('Заказ №' . $order->order_number)
+            ->assertSee('Courier detail street 21, Graz')
+            ->assertSee('Подъезд 3')
+            ->assertSee('этаж 5')
+            ->assertSee('27')
+            ->assertSee('Позвонить перед приездом')
+            ->assertSee('Оставить у двери нельзя')
+            ->assertSee('Принять заказ и начать доставку');
+
+        $unassignedOrder = $this->createPickupOrder($customer, $organization, $item);
+        $unassignedOrder->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+        ]);
+
+        $this->get(route('employee.organization.orders.show', [$organization, $unassignedOrder]))
+            ->assertNotFound();
+    }
+
+    public function test_courier_work_queue_renders_mobile_delivery_details_and_actions(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $order->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+            'delivery_address' => [
+                'address_line' => 'Test street 15, Graz',
+                'entrance' => '2',
+                'floor' => '4',
+                'apartment' => '18',
+                'intercom' => '1818',
+                'delivery_comment' => 'Позвонить у подъезда',
+            ],
+            'customer_comment' => 'Без лука',
+        ]);
+
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234573'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $order->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        $response = $this->actingAs($courier, 'employee')
+            ->get(route('employee.organization.orders.updates', $organization));
+
+        $response->assertOk()
+            ->assertSee('courier-board')
+            ->assertSee('courier-card')
+            ->assertSee('Заказ №' . $order->order_number)
+            ->assertSee('Test street 15, Graz')
+            ->assertSee('Подъезд 2')
+            ->assertSee('этаж 4')
+            ->assertSee('кв./офис 18')
+            ->assertSee('Позвонить у подъезда')
+            ->assertSee('Без лука')
+            ->assertSee('Test customer')
+            ->assertSee('tel:+436601234567')
+            ->assertSee('Открыть маршрут')
+            ->assertSee('Принять заказ и начать доставку')
+            ->assertSee('name="status" value="in_transit"', false);
+    }
+
+    public function test_cook_updates_show_shared_queue_while_courier_updates_require_active_assignments(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $cookOrder = $this->createPickupOrder($customer, $organization, $item);
+        $cookOrder->update([
+            'status' => Order::STATUS_CONFIRMED,
+        ]);
+
+        $courierOrder = $this->createPickupOrder($customer, $organization, $item);
+        $courierOrder->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+            'delivery_address' => [
+                'address_line' => 'Courier test address 10',
+            ],
+        ]);
+
+        $invalidCourierOrder = $this->createPickupOrder($customer, $organization, $item);
+        $invalidCourierOrder->update([
+            'status' => Order::STATUS_HANDED_TO_COURIER,
+        ]);
+
+        $unassignedOrder = $this->createPickupOrder($customer, $organization, $item);
+        $unassignedOrder->update([
+            'status' => Order::STATUS_CONFIRMED,
+        ]);
+
+        $cook = $this->createOrganizationEmployee(
+            $organization,
+            'cook',
+            '+436601234570'
+        );
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234571'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $cookOrder->id,
+            'employee_id' => $cook->id,
+            'role' => 'cook',
+            'assigned_at' => now(),
+        ]);
+
+        OrderAssignment::query()->create([
+            'order_id' => $courierOrder->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        OrderAssignment::query()->create([
+            'order_id' => $invalidCourierOrder->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        $cookResponse = $this->actingAs($cook, 'employee')
+            ->get(route('employee.organization.orders.updates', $organization));
+
+        $cookResponse->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
+            ->assertSee($cookOrder->order_number)
+            ->assertSee($unassignedOrder->order_number)
+            ->assertDontSee($courierOrder->order_number);
+
+        auth()->guard('employee')->logout();
+
+        $courierResponse = $this->actingAs($courier, 'employee')
+            ->get(route('employee.organization.orders.updates', $organization));
+
+        $courierResponse->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private')
+            ->assertSee($courierOrder->order_number)
+            ->assertDontSee($invalidCourierOrder->order_number)
+            ->assertDontSee($cookOrder->order_number)
+            ->assertDontSee($unassignedOrder->order_number);
+    }
+
+
+    public function test_manager_orders_page_does_not_offer_staff_assignment_controls(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $manager = $this->createOrganizationManager($organization);
+        $this->createOrganizationEmployee($organization, 'cook', '+436601234574');
+        $this->createOrganizationEmployee($organization, 'courier', '+436601234575');
+
+        $response = $this->actingAs($manager)
+            ->get(route('organizations.orders.index', $organization));
+
+        $response->assertOk()
+            ->assertDontSee('Назначить повара')
+            ->assertDontSee('Назначить курьера')
+            ->assertDontSee('Courier test')
+            ->assertDontSee('Cook test')
+            ->assertSee($order->order_number);
+    }
+
+    public function test_manager_can_print_80mm_and_a4_receipts_only_for_their_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Receipt cafe');
+        [$otherOrganization, $otherItem] = $this->createOrderableMenu('Other receipt cafe');
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $otherOrder = $this->createPickupOrder($customer, $otherOrganization, $otherItem);
+        $manager = $this->createOrganizationManager($organization);
+
+        $baseUrl = route('organizations.orders.receipt', [
+            'organization' => $organization->id,
+            'order' => $order->id,
+        ]);
+
+        $this->actingAs($manager)
+            ->get($baseUrl . '?format=80mm')
+            ->assertOk()
+            ->assertSee('data-receipt-format="80mm"', false)
+            ->assertSee('ЧЕК №' . $order->order_number)
+            ->assertSee('js/vendor/qrcode.min.js')
+            ->assertSee(route('organizations.orders.show', [$organization, $order]));
+
+        $this->actingAs($manager)
+            ->get($baseUrl . '?format=a4')
+            ->assertOk()
+            ->assertSee('data-receipt-format="a4"', false)
+            ->assertSee('ЧЕК №' . $order->order_number);
+
+        $this->actingAs($manager)
+            ->get(route('organizations.orders.receipt', [
+                'organization' => $organization->id,
+                'order' => $otherOrder->id,
+                'format' => '80mm',
+            ]))
+            ->assertNotFound();
+    }
+
+    public function test_manager_can_view_order_details_only_for_their_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Order details cafe');
+        [$otherOrganization, $otherItem] = $this->createOrderableMenu('Other order details cafe');
+
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $otherOrder = $this->createPickupOrder($customer, $otherOrganization, $otherItem);
+
+        DB::table('order_status_history')->insert([
+            'order_id' => $order->id,
+            'from_status' => Order::STATUS_NEW,
+            'to_status' => Order::STATUS_CONFIRMED,
+            'actor_type' => 'user',
+            'actor_id' => null,
+            'comment' => 'Заказ подтверждён менеджером.',
+            'created_at' => now(),
+        ]);
+
+        $manager = $this->createOrganizationManager($organization);
+
+        $this->actingAs($manager)
+            ->get(route('organizations.orders.show', [$organization, $order]))
+            ->assertOk()
+            ->assertSee('Заказ №' . $order->order_number)
+            ->assertSee('Состав заказа')
+            ->assertSee('Оплата')
+            ->assertSee('Назначенные сотрудники')
+            ->assertSee('История заказа')
+            ->assertSee('Заказ подтверждён менеджером.');
+
+        $this->actingAs($manager)
+            ->get(route('organizations.orders.show', [$organization, $otherOrder]))
+            ->assertNotFound();
+    }
+
+    public function test_manager_order_history_filters_are_scoped_to_the_current_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('History cafe');
+        [$otherOrganization, $otherItem] = $this->createOrderableMenu('Other history cafe');
+
+        $matchingOrder = $this->createPickupOrder($customer, $organization, $item);
+        $matchingOrder->update([
+            'status' => Order::STATUS_COMPLETED,
+            'payment_status' => Order::PAYMENT_SUCCEEDED,
+        ]);
+
+        $nonMatchingOrder = $this->createPickupOrder($customer, $organization, $item);
+        $nonMatchingOrder->update([
+            'status' => Order::STATUS_NEW,
+        ]);
+
+        $otherOrder = $this->createPickupOrder($customer, $otherOrganization, $otherItem);
+        $otherOrder->update([
+            'status' => Order::STATUS_COMPLETED,
+            'payment_status' => Order::PAYMENT_SUCCEEDED,
+        ]);
+
+        $manager = $this->createOrganizationManager($organization);
+
+        $response = $this->actingAs($manager)
+            ->get(route('organizations.orders.index', [
+                'organization' => $organization->id,
+                'status' => Order::STATUS_COMPLETED,
+                'payment_status' => Order::PAYMENT_SUCCEEDED,
+                'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+            ]));
+
+        $response->assertOk()
+            ->assertSee($matchingOrder->order_number)
+            ->assertDontSee($nonMatchingOrder->order_number)
+            ->assertDontSee($otherOrder->order_number)
+            ->assertSee('Найдено заказов: 1');
+    }
+
+    public function test_manager_can_export_only_filtered_orders_from_their_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('CSV history cafe');
+        [$otherOrganization, $otherItem] = $this->createOrderableMenu('Other CSV cafe');
+
+        $includedOrder = $this->createPickupOrder($customer, $organization, $item);
+        $includedOrder->update([
+            'status' => Order::STATUS_COMPLETED,
+        ]);
+
+        $excludedOrder = $this->createPickupOrder($customer, $organization, $item);
+        $excludedOrder->update([
+            'status' => Order::STATUS_NEW,
+        ]);
+
+        $otherOrder = $this->createPickupOrder($customer, $otherOrganization, $otherItem);
+        $otherOrder->update([
+            'status' => Order::STATUS_COMPLETED,
+        ]);
+
+        $manager = $this->createOrganizationManager($organization);
+
+        $response = $this->actingAs($manager)
+            ->get(route('organizations.orders.export', [
+                'organization' => $organization->id,
+                'status' => Order::STATUS_COMPLETED,
+            ]));
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+
+        $csv = $response->streamedContent();
+
+        $this->assertStringContainsString((string) $includedOrder->order_number, $csv);
+        $this->assertStringNotContainsString((string) $excludedOrder->order_number, $csv);
+        $this->assertStringNotContainsString((string) $otherOrder->order_number, $csv);
+    }
+
+    public function test_organization_dashboard_shows_order_metrics_scoped_to_organization(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Dashboard cafe');
+        [$otherOrganization, $otherItem] = $this->createOrderableMenu('Other cafe');
+
+        $newOrder = $this->createPickupOrder($customer, $organization, $item);
+        $kitchenOrder = $this->createPickupOrder($customer, $organization, $item);
+        $readyOrder = $this->createPickupOrder($customer, $organization, $item);
+        $deliveryOrder = $this->createPickupOrder($customer, $organization, $item);
+        $completedOrder = $this->createPickupOrder($customer, $organization, $item);
+        $cancelledOrder = $this->createPickupOrder($customer, $organization, $item);
+        $otherOrder = $this->createPickupOrder($customer, $otherOrganization, $otherItem);
+
+        $kitchenOrder->update(['status' => Order::STATUS_PREPARING]);
+        $readyOrder->update(['status' => Order::STATUS_READY]);
+        $deliveryOrder->update([
+            'fulfillment_type' => Order::FULFILLMENT_DELIVERY,
+            'status' => Order::STATUS_IN_TRANSIT,
+        ]);
+        $completedOrder->update([
+            'status' => Order::STATUS_COMPLETED,
+            'completed_at' => now(),
+        ]);
+        $cancelledOrder->update([
+            'status' => Order::STATUS_CANCELLED,
+            'cancelled_at' => now(),
+        ]);
+        $otherOrder->update(['status' => Order::STATUS_NEW]);
+
+        $courier = $this->createOrganizationEmployee(
+            $organization,
+            'courier',
+            '+436601234576'
+        );
+
+        OrderAssignment::query()->create([
+            'order_id' => $deliveryOrder->id,
+            'employee_id' => $courier->id,
+            'role' => 'courier',
+            'assigned_at' => now(),
+        ]);
+
+        DB::table('payments')->insert([
+            'order_id' => $completedOrder->id,
+            'provider' => 'offline',
+            'method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'status' => Order::PAYMENT_SUCCEEDED,
+            'amount' => '25.00',
+            'currency' => 'EUR',
+            'paid_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $manager = $this->createOrganizationManager($organization);
+
+        $response = $this->actingAs($manager)
+            ->get(route('organizations.manage', $organization));
+
+        $response->assertOk()
+            ->assertSee('Заказов сегодня')
+            ->assertSee('На кухне')
+            ->assertSee('Готовы к выдаче')
+            ->assertSee('У курьеров')
+            ->assertSee('Завершено сегодня')
+            ->assertSee('Отменено сегодня')
+            ->assertSee('25,00 EUR')
+            ->assertSee('Courier test')
+            ->assertSee('1 в доставке');
+
+        $response->assertSee('data-stat="orders-today"', false);
+        $response->assertSee('data-stat="new-orders"', false);
+        $response->assertSee('data-stat="delivery-orders"', false);
+    }
+
+    public function test_public_receipt_requires_a_valid_unexpired_token(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+
+        $this->withoutMiddleware(ThrottleRequests::class);
+
+        $token = str_repeat('b', 64);
+        $order->forceFill([
+            'receipt_token_hash' => hash('sha256', $token),
+            'receipt_token_expires_at' => now()->addDays(30),
+        ])->save();
+
+        $this->get(route('customer.receipt', ['token' => $token]))
+            ->assertOk()
+            ->assertSee('Электронный чек онлайн-заказа')
+            ->assertSee($order->order_number)
+            ->assertHeader('Cache-Control', 'max-age=0, no-store, private');
+
+        $this->get(route('customer.receipt', ['token' => str_repeat('a', 64)]))
+            ->assertNotFound();
+
+        $order->forceFill([
+            'receipt_token_expires_at' => now()->subSecond(),
+        ])->save();
+
+        $this->get(route('customer.receipt', ['token' => $token]))
+            ->assertNotFound();
+    }
+
+    private function createFakeOnlinePayment(): array
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+
+        config([
+            'payments.providers.fake' => FakePaymentGateway::class,
+            'payments.testing_secret' => 'test-webhook-secret',
+            'cache.default' => 'array',
+        ]);
+
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu();
+        $order = $this->createPickupOrder($customer, $organization, $item);
+        $payment = $order->payments()->firstOrFail();
+
+        $payment->update([
+            'provider' => 'fake',
+            'provider_payment_id' => 'provider_payment_001',
+            'method' => Order::PAYMENT_ONLINE,
+        ]);
+        $order->update(['payment_method' => Order::PAYMENT_ONLINE]);
+
+        return [$order, $payment];
+    }
+
+    private function createOrganizationManager(Organization $organization): User
+    {
+        $userId = DB::table('users')->insertGetId([
+            'name' => 'Manager ' . $organization->id,
+            'password' => Hash::make('test-password'),
+            'keyword' => 'test-keyword',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('organization_users')->insert([
+            'organization_id' => $organization->id,
+            'user_id' => $userId,
+            'role' => 'manager',
+            'status' => 'active',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return User::query()->findOrFail($userId);
+    }
+
+    private function createOrganizationEmployee(
+        Organization $organization,
+        string $role,
+        string $phone
+    ): OrganizationEmployee {
+        $employee = OrganizationEmployee::query()->create([
+            'name' => ucfirst($role) . ' test',
+            'phone' => $phone,
+            'password' => 'test-password',
+            'phone_verified_at' => now(),
+        ]);
+
+        OrganizationEmployeeMembership::query()->create([
+            'employee_id' => $employee->id,
+            'organization_id' => $organization->id,
+            'role' => $role,
+            'status' => 'active',
+        ]);
+
+        return $employee;
+    }
+
+    private function createVerifiedCustomer(): Customer
+    {
+        return Customer::query()->create([
+            'name' => 'Test customer',
+            'phone' => '+436601234567',
+            'phone_verified_at' => now(),
+        ]);
+    }
+
+    /**
+     * @return array{0: Organization, 1: MenuItem}
+     */
+    private function createOrderableMenu(string $organizationName = 'Test cafe'): array
+    {
+        $organization = Organization::query()->create([
+            'name' => $organizationName,
+            'status' => 'active',
+        ]);
+
+        $settings = OrganizationOrderSetting::query()->create([
+            'organization_id' => $organization->id,
+            'currency' => 'EUR',
+            'orders_enabled' => true,
+            'delivery_enabled' => true,
+            'pickup_enabled' => true,
+            'dine_in_enabled' => true,
+            'cash_payment_enabled' => true,
+            'card_payment_enabled' => true,
+            'online_payment_enabled' => false,
+            'pickup_min_minutes' => null,
+            'working_hours' => array_fill_keys(range(1, 7), [
+                'enabled' => true,
+                'open' => '00:00',
+                'close' => '23:59',
+            ]),
+            'timezone' => 'Asia/Krasnoyarsk',
+            'preorders_enabled' => true,
+            'order_lead_minutes' => 30,
+            'time_slot_minutes' => 15,
+            'pickup_address' => 'Test street 1',
+            'delivery_origin_latitude' => '55.0000000',
+            'delivery_origin_longitude' => '90.0000000',
+        ]);
+
+        foreach ([2, 5, 7, 10] as $index => $distance) {
+            $settings->deliveryZones()->create([
+                'max_distance_km' => $distance,
+                'minimum_order_amount' => '0.00',
+                'sort_order' => $index,
+            ]);
+        }
+
+        $section = MenuSection::query()->create([
+            'organization_id' => $organization->id,
+            'name' => 'Main menu',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $item = MenuItem::query()->create([
+            'menu_section_id' => $section->id,
+            'name' => 'Test dish',
+            'weight' => 250,
+            'unit' => 'g',
+            'price' => '10.00',
+            'description' => 'Test description',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        return [$organization, $item];
+    }
+
+
+    private function createPickupOrder(
+        Customer $customer,
+        Organization $organization,
+        MenuItem $item
+    ): Order {
+        $checkout = $this->openCheckout($customer, $organization, $item);
+
+        $this->post(route('customer.checkout.store'), [
+            'idempotency_key' => $checkout->viewData('idempotencyKey'),
+            'customer_name' => 'Test customer',
+            'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'requested_at' => now('Asia/Krasnoyarsk')->addHours(2)->startOfHour()->format('Y-m-d\\TH:i'),
+        ])->assertRedirect();
+
+        $order = Order::query()->latest('id')->firstOrFail();
+        $this->assertSame('Test street 1', $order->pickup_address_snapshot);
+
+        return $order;
+    }
+
+    private function openCheckout(
+        Customer $customer,
+        Organization $organization,
+        MenuItem $item
+    ) {
+        return $this->actingAs($customer, 'customer')
+            ->withSession([
+                'customer_order_cart' => [
+                    'organization_id' => $organization->id,
+                    'items' => [
+                        $item->id => 2,
+                    ],
+                ],
+            ])
+            ->get(route('customer.checkout'))
+            ->assertOk();
+    }
+
+    /**
+     * Test-only representation of the existing legacy schema.
+     *
+     * These tables are not production migrations and are created only after
+     * RefreshDatabase has migrated the application's own tables.
+     */
+    private function createLegacyOrganizationSchema(): void
+    {
+        if (!Schema::hasTable('organization_types')) {
+            Schema::create('organization_types', function (Blueprint $table) {
+                $table->id();
+            });
+        }
+
+        if (!Schema::hasTable('organizations')) {
+            Schema::create('organizations', function (Blueprint $table) {
+                $table->id();
+                $table->string('name', 255);
+                $table->unsignedBigInteger('type_id')->nullable();
+                $table->string('status', 20)->default('active');
+                $table->unsignedTinyInteger('tv_screens_count')->default(3);
+                $table->json('tv_screens_config')->nullable();
+                $table->timestamps();
+
+                $table->index('status', 'idx_organizations_status');
+                $table->index('type_id', 'organizations_type_id_index');
+                $table->foreign('type_id')
+                    ->references('id')
+                    ->on('organization_types')
+                    ->nullOnDelete()
+                    ->cascadeOnUpdate();
+            });
+        }
+
+        if (!Schema::hasTable('organization_activity_logs')) {
+            Schema::create('organization_activity_logs', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('organization_id');
+                $table->unsignedBigInteger('actor_id')->nullable();
+                $table->string('action', 80);
+                $table->string('subject_type', 100)->nullable();
+                $table->unsignedBigInteger('subject_id')->nullable();
+                $table->string('description', 255);
+                $table->json('before_values')->nullable();
+                $table->json('after_values')->nullable();
+                $table->timestamps();
+                $table->index(['organization_id', 'created_at'], 'org_activity_org_created_idx');
+            });
+        }
+
+        if (!Schema::hasTable('organization_users')) {
+            Schema::create('organization_users', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('organization_id');
+                $table->unsignedBigInteger('user_id');
+                $table->string('role', 50)->default('manager');
+                $table->string('status', 20)->default('active');
+                $table->timestamps();
+
+                $table->unique(
+                    ['organization_id', 'user_id'],
+                    'uq_organization_user'
+                );
+                $table->index('user_id', 'idx_organization_users_user_id');
+                $table->index('organization_id', 'idx_organization_users_organization_id');
+                $table->index('role', 'idx_organization_users_role');
+
+                $table->foreign('organization_id', 'fk_organization_users_organization')
+                    ->references('id')
+                    ->on('organizations')
+                    ->cascadeOnDelete()
+                    ->cascadeOnUpdate();
+
+                $table->foreign('user_id', 'fk_organization_users_user')
+                    ->references('id')
+                    ->on('users')
+                    ->cascadeOnDelete()
+                    ->cascadeOnUpdate();
+            });
+        }
+
+        if (!Schema::hasTable('menu_sections')) {
+            Schema::create('menu_sections', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('organization_id');
+                $table->string('name', 255);
+                $table->integer('sort_order')->default(0);
+                $table->unsignedTinyInteger('tv_screen')->default(1);
+                $table->boolean('is_active')->default(true);
+                $table->boolean('delivery_enabled')->default(true);
+                $table->boolean('pickup_enabled')->default(true);
+                $table->boolean('dine_in_enabled')->default(true);
+                $table->timestamps();
+
+                $table->unique(
+                    ['organization_id', 'name'],
+                    'uq_section_org_name'
+                );
+                $table->index('organization_id', 'menu_sections_organization_id_index');
+                $table->index(
+                    ['organization_id', 'sort_order'],
+                    'menu_sections_sort_order_index'
+                );
+
+                $table->foreign('organization_id')
+                    ->references('id')
+                    ->on('organizations')
+                    ->cascadeOnDelete()
+                    ->cascadeOnUpdate();
+            });
+        }
+
+        if (!Schema::hasTable('menu_items')) {
+            Schema::create('menu_items', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('menu_section_id');
+                $table->string('name', 255);
+                $table->unsignedInteger('weight')->nullable();
+                $table->string('unit', 20)->nullable();
+                $table->decimal('price', 10, 2)->default(0);
+                $table->text('description')->nullable();
+                $table->string('image_path', 500)->nullable();
+                $table->integer('sort_order')->default(0);
+                $table->boolean('is_active')->default(true);
+                $table->boolean('delivery_enabled')->default(true);
+                $table->boolean('pickup_enabled')->default(true);
+                $table->boolean('dine_in_enabled')->default(true);
+                $table->timestamps();
+
+                $table->unique(
+                    ['menu_section_id', 'name', 'weight', 'price'],
+                    'uq_menu_item_section_name_weight_price'
+                );
+                $table->index('menu_section_id', 'menu_items_menu_section_id_index');
+                $table->index(
+                    ['menu_section_id', 'sort_order'],
+                    'menu_items_sort_order_index'
+                );
+
+                $table->foreign('menu_section_id')
+                    ->references('id')
+                    ->on('menu_sections')
+                    ->cascadeOnDelete()
+                    ->cascadeOnUpdate();
+            });
+        }
+    }
+
+    public function test_mobile_checkout_uses_persistent_quote_and_is_idempotent(): void
+    {
+        $customer = $this->createVerifiedCustomer();
+        [$organization, $item] = $this->createOrderableMenu('Mobile checkout cafe');
+
+        app(CustomerCartService::class)->save($customer, [
+            'organization_id' => $organization->id,
+            'items' => [$item->id => 2],
+        ]);
+
+        $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/mobile/v1/cart')
+            ->assertOk()
+            ->assertJsonPath('data.organization.id', $organization->id)
+            ->assertJsonPath('data.items.0.item_id', $item->id)
+            ->assertJsonPath('data.items.0.quantity', 2);
+
+        $quote = $this->actingAs($customer, 'sanctum')
+            ->getJson('/api/mobile/v1/checkout')
+            ->assertOk()
+            ->assertJsonPath('data.organization.id', $organization->id);
+
+        $idempotencyKey = $quote->json('data.idempotency_key');
+        $requestedAt = $quote->json('data.requested_at_limits.pickup.min');
+
+        $payload = [
+            'idempotency_key' => $idempotencyKey,
+            'customer_name' => 'Mobile customer',
+            'fulfillment_type' => Order::FULFILLMENT_PICKUP,
+            'payment_method' => Order::PAYMENT_CASH_ON_RECEIPT,
+            'requested_at' => $requestedAt,
+        ];
+
+        $created = $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/mobile/v1/checkout', $payload)
+            ->assertCreated()
+            ->assertJsonPath('data.status', Order::STATUS_NEW);
+
+        $orderId = $created->json('data.id');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $orderId,
+            'customer_id' => $customer->id,
+            'organization_id' => $organization->id,
+            'status' => Order::STATUS_NEW,
+        ]);
+
+        $this->assertDatabaseMissing('customer_checkout_snapshots', [
+            'customer_id' => $customer->id,
+            'idempotency_key' => $idempotencyKey,
+        ]);
+
+        $replay = $this->actingAs($customer, 'sanctum')
+            ->postJson('/api/mobile/v1/checkout', $payload)
+            ->assertOk();
+
+        $this->assertSame($orderId, $replay->json('data.id'));
+        $this->assertDatabaseCount('orders', 1);
+    }
+
+}

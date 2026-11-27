@@ -1,0 +1,55 @@
+name: DAODES Mobile API checks
+
+on:
+  push:
+    branches:
+      - feature/mobile-api-foundation
+      - feature/mobile-commerce-api
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  mobile-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, ctype, curl, dom, fileinfo, gd, intl, mbstring, openssl, pdo, pdo_mysql, pdo_sqlite, tokenizer, xml, zip
+          coverage: none
+
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate --force
+
+      - name: PHP syntax
+        run: |
+          php -l app/Http/Controllers/Api/Mobile/V1/AuthController.php
+          php -l app/Http/Controllers/Api/Mobile/V1/OrganizationController.php
+          php -l app/Http/Controllers/Api/Mobile/V1/CartController.php
+          php -l app/Http/Controllers/Api/Mobile/V1/AddressController.php
+          php -l app/Http/Controllers/Api/Mobile/V1/OrderController.php
+          php -l app/Http/Middleware/EnsureMobileApiAbility.php
+          php -l app/Services/OrderPickupConfirmationService.php
+          php -l app/Models/Customer.php
+          php -l routes/api.php
+          php -l tests/Feature/MobileApiAuthTest.php
+
+      - name: Register mobile API routes
+        run: php artisan route:list --path=api/mobile/v1
+
+      - name: Run mobile API feature tests
+        run: vendor/bin/phpunit --filter 'MobileApiAuthTest|MobileCommerceApiTest|CustomerCheckoutFlowTest'

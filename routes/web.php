@@ -1,0 +1,2101 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+
+use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\ReleaseAdmin;
+
+use App\Models\User;
+use App\Models\Chat;
+
+use App\Http\Controllers\{
+    ProfileController,
+    NewsController,
+    OffersController,
+    SeedController,
+    KeywordResetPasswordController,
+    WalletController,
+    VoteController,
+    CommentController,
+    SpamController,
+    DiscussionController,
+    TasksController,
+    CategoryTasksController,
+    BidController,
+    HomeController,
+    TeamController,
+    WpController,
+    UserProfileController,
+    UploadController,
+    ChatController,
+    ChatLinkPreviewController,
+    ChatStoriesController,
+    ChatChannelStoriesController,
+    ChatChannelSettingsController,
+    ChatContactsController,
+    ChatScheduledMessageController,
+    ChatCallController,
+    ChatCallPushDeviceController,
+    ChatMeetingController,
+    ChatGroupCallController,
+    LanguageController,
+    CaptchaController,
+    NotificationController,
+    CookieConsentController,
+    MailerAdminController,
+    MailerTrackController,
+    MailerClickController,
+    MailTemplateController,
+    UserStatusController,
+    UserKeyController,
+    SeedSetupController,
+    MessageController,
+    TV1Controller,
+    TV2Controller,
+    TV3Controller,
+    AIController,
+};
+
+
+use App\Http\Controllers\Admin\ReleaseAdminController;
+
+
+use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\OrganizationMenuController;
+use App\Http\Controllers\OrganizationTVController;
+use App\Http\Controllers\OrganizationStaffController;
+use App\Http\Controllers\OrganizationOrderController;
+use App\Http\Controllers\Customer\CustomerPushController;
+use App\Http\Controllers\OrderNotificationController;
+use App\Http\Controllers\OrganizationFeedbackController;
+
+Route::get('/firebase-messaging-sw.js', [CustomerPushController::class, 'serviceWorker'])
+    ->name('firebase.messaging.sw');
+
+Route::middleware(['auth', ReleaseAdmin::class])
+    ->get('/admin/ai/approval', function () {
+        return view('ai.approval');
+    })
+    ->name('admin.ai.approval');
+
+
+Route::get('/tv1', [TV1Controller::class, 'index'])->name('tv1');
+
+Route::get('/tv2', [TV2Controller::class, 'index'])->name('tv2');
+
+Route::get('/tv3', [TV3Controller::class, 'index'])->name('tv3');
+
+// Печатная версия полного меню организации (формат A4 через браузер).
+Route::get('/organization/{organization}/menu/print', [OrganizationTVController::class, 'printMenu'])
+    ->whereNumber('organization')
+    ->name('organization.menu.print');
+
+// Новые TV-экраны организаций. Старые /tv1, /tv2, /tv3 остаются без изменений.
+Route::get('/organization/{organization}/tv', [OrganizationTVController::class, 'show'])
+    ->whereNumber('organization')
+    ->name('organization.tv');
+
+
+/*
+|--------------------------------------------------------------------------
+| RELEASE ADMIN PANEL
+|--------------------------------------------------------------------------
+|
+| Управление релизами приложения "Ёлки Иголки".
+|
+| Доступ только DAO_Root.
+|
+*/
+
+Route::middleware([
+    'auth',
+    ReleaseAdmin::class,
+])
+    ->prefix('admin/releases')
+    ->name('admin.releases.')
+    ->group(function () {
+
+        // Список релизов
+        Route::get('/', [
+            ReleaseAdminController::class,
+            'index',
+        ])->name('index');
+
+        // Создание релиза (добавлен параметр {organization})
+        Route::get('/create/{organization}', [
+            ReleaseAdminController::class,
+            'create',
+        ])->name('create');
+
+        // Сохранение релиза (добавлен параметр {organization})
+        Route::post('/{organization}', [
+            ReleaseAdminController::class,
+            'store',
+        ])->name('store');
+
+        // Редактирование релиза
+        Route::get('/{release}/edit', [
+            ReleaseAdminController::class,
+            'edit',
+        ])->name('edit');
+
+        // Обновление релиза
+        Route::put('/{release}', [
+            ReleaseAdminController::class,
+            'update',
+        ])->name('update');
+
+        // Удаление релиза
+        Route::delete('/{release}', [
+            ReleaseAdminController::class,
+            'destroy',
+        ])->name('destroy');
+
+        // Активация релиза
+        Route::post('/{release}/activate', [
+            ReleaseAdminController::class,
+            'activate',
+        ])->name('activate');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| E2E / КРИПТОГРАФИЯ ЧАТОВ
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function () {
+
+    // Установка публичного ключа профиля
+    Route::post(
+        '/profile/set-public-key',
+        [UserProfileController::class, 'setPublicKey']
+    );
+
+
+    // Получение собственного ключа чата
+    Route::get('/chats/{chat}/my-key', function (Chat $chat) {
+
+        if (!$chat->users->contains(auth()->id())) {
+            abort(403, 'You are not a member of this chat');
+        }
+
+        $keyRecord = $chat->memberKeys()
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$keyRecord) {
+            return response()->json([
+                'error' => 'Encrypted chat key not found',
+            ], 404);
+        }
+
+        $initiator = $chat->initiator;
+
+        if (
+            !$initiator ||
+            !$initiator->profile?->public_key
+        ) {
+            return response()->json([
+                'error' => 'Chat initiator or their public key not found',
+            ], 400);
+        }
+
+        return response()->json([
+            'encrypted_key' => $keyRecord->encrypted_key,
+            'nonce' => $keyRecord->nonce,
+            'initiator_public_key' => $keyRecord->sender_public_key ?: $initiator->profile->public_key,
+        ]);
+    });
+
+
+    // Список пользователей для нового чата
+    Route::get('/api/users/list-for-chat', function () {
+
+        $users = User::query()
+            ->where('id', '!=', auth()->id())
+            ->whereNotIn('id', [1, 2])
+            ->select([
+                'id',
+                'name',
+            ])
+            ->get();
+
+        return response()->json($users);
+    });
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| ПУБЛИЧНЫЕ КЛЮЧИ ПОЛЬЗОВАТЕЛЕЙ
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/users/public-keys',
+    [UserKeyController::class, 'getPublicKeys']
+)->name('users.public-keys');
+
+
+/*
+|--------------------------------------------------------------------------
+| SEED / НАСТРОЙКА КЛЮЧЕЙ
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function () {
+
+    // Проверка наличия public_key
+    Route::get(
+        '/profile/has-public-key',
+        [SeedSetupController::class, 'hasPublicKey']
+    )->name('profile.has-public-key');
+
+
+    // Страница ввода seed-фразы
+    Route::get(
+        '/setup-keys',
+        [SeedSetupController::class, 'show']
+    )->name('auth.seed.setup');
+
+
+    // Фиксация ошибки seed-фразы
+    Route::post(
+        '/setup-keys/report-invalid',
+        [SeedSetupController::class, 'reportInvalidSeed']
+    );
+
+
+    // Получение публичного ключа
+    Route::get(
+        '/profile/public-key',
+        [SeedSetupController::class, 'getPublicKey']
+    )->name('profile.public-key');
+
+
+    // Проверка seed-фразы
+    Route::post(
+        '/setup-keys/verify',
+        [SeedSetupController::class, 'verifySeedPhrase']
+    )->name('setup-keys.verify');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| СТАТУС ПОЛЬЗОВАТЕЛЯ / ONLINE
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function () {
+
+    Route::post(
+        '/user/online',
+        [UserStatusController::class, 'online']
+    )
+        ->withoutMiddleware([
+            VerifyCsrfToken::class,
+        ])
+        ->name('user.online');
+
+
+    Route::get('/user/{user}/status', function (User $user) {
+
+        return response()->json([
+            'is_online' => $user->isOnline(),
+            'last_seen_human' => $user->lastSeenHuman(),
+        ]);
+    })->name('user.status');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| HEALTH CHECK
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/health', function () {
+    return response('OK', 200)
+        ->header('Content-Type', 'text/plain');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| MAILER ADMIN
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([
+    'auth',
+    'admin',
+])
+    ->prefix('admin/mailer')
+    ->name('mailer.')
+    ->group(function () {
+
+        // Dashboard
+        Route::get('/', [
+            MailerAdminController::class,
+            'dashboard',
+        ])->name('dashboard');
+
+
+        /*
+         * Шаблоны писем
+         */
+
+        Route::prefix('templates')
+            ->name('templates.')
+            ->group(function () {
+
+                Route::get('/', [
+                    MailTemplateController::class,
+                    'index',
+                ])->name('index');
+
+                Route::get('/create', [
+                    MailTemplateController::class,
+                    'create',
+                ])->name('create');
+
+                Route::post('/', [
+                    MailTemplateController::class,
+                    'store',
+                ])->name('store');
+
+                Route::get('/{template}/edit', [
+                    MailTemplateController::class,
+                    'edit',
+                ])->name('edit');
+
+                Route::put('/{template}', [
+                    MailTemplateController::class,
+                    'update',
+                ])->name('update');
+
+                Route::delete('/{template}', [
+                    MailTemplateController::class,
+                    'destroy',
+                ])->name('destroy');
+
+                Route::get('/{template}', [
+                    MailTemplateController::class,
+                    'show',
+                ])->name('show');
+            });
+
+
+        /*
+         * Контакты
+         */
+
+        Route::get('/recipients', [
+            MailerAdminController::class,
+            'recipientsIndex',
+        ])->name('recipients.index');
+
+        Route::get('/recipients/create', [
+            MailerAdminController::class,
+            'recipientsCreate',
+        ])->name('recipients.create');
+
+        Route::post('/recipients', [
+            MailerAdminController::class,
+            'recipientsStore',
+        ])->name('recipients.store');
+
+        Route::get('/recipients/{recipient}/edit', [
+            MailerAdminController::class,
+            'recipientsEdit',
+        ])->name('recipients.edit');
+
+        Route::put('/recipients/{recipient}', [
+            MailerAdminController::class,
+            'recipientsUpdate',
+        ])->name('recipients.update');
+
+        Route::delete('/recipients/{recipient}', [
+            MailerAdminController::class,
+            'recipientsDestroy',
+        ])->name('recipients.destroy');
+
+        Route::get('/recipients/import', [
+            MailerAdminController::class,
+            'recipientsImportForm',
+        ])->name('recipients.import.form');
+
+        Route::post('/recipients/import', [
+            MailerAdminController::class,
+            'recipientsImport',
+        ])->name('recipients.import');
+
+
+        /*
+         * Списки контактов
+         */
+
+        Route::get('/lists', [
+            MailerAdminController::class,
+            'listsIndex',
+        ])->name('lists.index');
+
+        Route::get('/lists/create', [
+            MailerAdminController::class,
+            'listsCreate',
+        ])->name('lists.create');
+
+        Route::post('/lists', [
+            MailerAdminController::class,
+            'listsStore',
+        ])->name('lists.store');
+
+        Route::get('/lists/{list}/edit', [
+            MailerAdminController::class,
+            'listsEdit',
+        ])->name('lists.edit');
+
+        Route::put('/lists/{list}', [
+            MailerAdminController::class,
+            'listsUpdate',
+        ])->name('lists.update');
+
+        Route::delete('/lists/{list}', [
+            MailerAdminController::class,
+            'listsDestroy',
+        ])->name('lists.destroy');
+
+
+        /*
+         * Рассылки
+         */
+
+        Route::get('/send', [
+            MailerAdminController::class,
+            'sendForm',
+        ])->name('send.form');
+
+        Route::post('/send', [
+            MailerAdminController::class,
+            'send',
+        ])->name('send');
+
+        Route::get('/history', [
+            MailerAdminController::class,
+            'history',
+        ])->name('history');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| TRACKING MAILER
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/mailer/track/{logId}',
+    [MailerTrackController::class, 'track']
+)->name('mailer.track');
+
+Route::get(
+    '/mailer/c/{logId}',
+    [MailerClickController::class, 'redirect']
+)->name('mailer.click');
+
+
+/*
+|--------------------------------------------------------------------------
+| COOKIE CONSENT
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/cookies/accept',
+    [CookieConsentController::class, 'accept']
+)->name('cookies.accept');
+
+Route::post(
+    '/cookies/reject',
+    [CookieConsentController::class, 'reject']
+)->name('cookies.reject');
+
+Route::get(
+    '/cookie-policy',
+    [CookieConsentController::class, 'policy']
+)->name('cookie.policy');
+
+
+/*
+|--------------------------------------------------------------------------
+| УВЕДОМЛЕНИЯ
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/notifications/unread-count',
+    [NotificationController::class, 'unreadCount']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| CAPTCHA
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/captcha',
+    [CaptchaController::class, 'show']
+)
+    ->name('captcha.show')
+    ->withoutMiddleware([SetLocale::class]);
+
+Route::post(
+    '/captcha',
+    [CaptchaController::class, 'verify']
+)
+    ->name('captcha.verify')
+    ->withoutMiddleware([SetLocale::class]);
+
+
+/*
+|--------------------------------------------------------------------------
+| ЯЗЫК
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/language/{locale}',
+    [LanguageController::class, 'change']
+)->name('language.change');
+
+
+/*
+|--------------------------------------------------------------------------
+| ЧАТЫ
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function () {
+
+    // Контакты DAODES: заявки, подтверждение, блокировки.
+    Route::get('/contacts', [ChatContactsController::class, 'index'])->name('contacts.index');
+    Route::post('/contacts/{user}/requests', [ChatContactsController::class, 'sendRequest'])->name('contacts.requests.store');
+    Route::post('/contacts/requests/{contactRequest}/accept', [ChatContactsController::class, 'acceptRequest'])->name('contacts.requests.accept');
+    Route::post('/contacts/requests/{contactRequest}/decline', [ChatContactsController::class, 'declineRequest'])->name('contacts.requests.decline');
+    Route::delete('/contacts/{user}', [ChatContactsController::class, 'destroy'])->name('contacts.destroy');
+    Route::post('/contacts/{user}/block', [ChatContactsController::class, 'block'])->name('contacts.block');
+    Route::delete('/contacts/{user}/block', [ChatContactsController::class, 'unblock'])->name('contacts.unblock');
+
+    // Отложенные зашифрованные сообщения.
+    Route::get('/chats/{chat}/scheduled-messages', [ChatScheduledMessageController::class, 'index'])
+        ->middleware('throttle:60,1')->name('chats.scheduledMessages.index');
+    Route::post('/chats/{chat}/scheduled-messages', [ChatScheduledMessageController::class, 'store'])
+        ->middleware('throttle:20,1')->name('chats.scheduledMessages.store');
+    Route::patch('/chats/{chat}/scheduled-messages/{scheduledMessage}', [ChatScheduledMessageController::class, 'update'])
+        ->middleware('throttle:30,1')->name('chats.scheduledMessages.update');
+    Route::delete('/chats/{chat}/scheduled-messages/{scheduledMessage}', [ChatScheduledMessageController::class, 'destroy'])
+        ->middleware('throttle:30,1')->name('chats.scheduledMessages.destroy');
+
+    // Подписка пользователя на push-уведомления о входящих личных звонках.
+    Route::post('/chat-call-push/devices/status', [ChatCallPushDeviceController::class, 'status'])
+        ->middleware('throttle:30,1')->name('chat.callPush.devices.status');
+    Route::post('/chat-call-push/devices', [ChatCallPushDeviceController::class, 'store'])
+        ->middleware('throttle:10,1')->name('chat.callPush.devices.store');
+    Route::delete('/chat-call-push/devices', [ChatCallPushDeviceController::class, 'destroy'])
+        ->middleware('throttle:20,1')->name('chat.callPush.devices.destroy');
+
+    // Временные TURN credentials выдаются только участникам личного чата.
+    Route::get('/chats/{chat}/calls/ice-servers', [ChatCallController::class, 'iceServers'])
+        ->middleware('throttle:20,1')->name('chats.calls.iceServers');
+
+    // WebRTC signaling: SDP и ICE передаются только в зашифрованном виде.
+    Route::get('/chats/{chat}/calls/active', [ChatCallController::class, 'active'])
+        ->middleware('throttle:60,1')->name('chats.calls.active');
+    Route::post('/chats/{chat}/calls', [ChatCallController::class, 'start'])
+        ->middleware('throttle:10,1')->name('chats.calls.start');
+    Route::get('/calls/{call}/signals', [ChatCallController::class, 'signals'])
+        ->middleware('throttle:120,1')->name('chats.calls.signals');
+    Route::post('/calls/{call}/signals', [ChatCallController::class, 'signal'])
+        ->middleware('throttle:120,1')->name('chats.calls.signal');
+
+    // Зашифрованные приглашения на встречи и созвоны по расписанию.
+    Route::get('/chats/{chat}/meetings', [ChatMeetingController::class, 'index'])
+        ->middleware('throttle:60,1')->name('chats.meetings.index');
+    Route::post('/chats/{chat}/meetings', [ChatMeetingController::class, 'store'])
+        ->middleware('throttle:20,1')->name('chats.meetings.store');
+    Route::post('/meetings/{meeting}/response', [ChatMeetingController::class, 'respond'])
+        ->middleware('throttle:30,1')->name('chats.meetings.response');
+    Route::delete('/meetings/{meeting}', [ChatMeetingController::class, 'destroy'])
+        ->middleware('throttle:30,1')->name('chats.meetings.destroy');
+
+    // Короткоживущий токен LiveKit только для принявших приглашение участников групповой встречи.
+    Route::post('/meetings/{meeting}/livekit-token', [ChatGroupCallController::class, 'token'])
+        ->middleware('throttle:10,1')->name('chats.meetings.livekit-token');
+
+    Route::get(
+        '/chat/link-preview',
+        [ChatLinkPreviewController::class, 'show']
+    )->middleware('throttle:30,1')->name('chats.linkPreview');
+
+    // Список чатов
+    Route::get(
+        '/chats',
+        [ChatController::class, 'index']
+    )->name('chats.index');
+
+
+    // Создание чата
+    Route::get(
+        '/chats/create',
+        [ChatController::class, 'create']
+    )->name('chats.create');
+
+
+    Route::post(
+        '/chats',
+        [ChatController::class, 'store']
+    )->name('chats.store');
+
+    Route::post(
+        '/chats/saved',
+        [ChatController::class, 'createSavedMessages']
+    )->middleware('throttle:10,1')->name('chats.saved');
+
+    /*
+     * Зашифрованные истории пользователей.
+     */
+    Route::get('/stories', [ChatStoriesController::class, 'index'])->middleware('throttle:60,1')->name('stories.index');
+    Route::get('/stories/contacts', [ChatStoriesController::class, 'contacts'])->middleware('throttle:30,1')->name('stories.contacts');
+    Route::post('/stories', [ChatStoriesController::class, 'store'])->middleware('throttle:10,1')->name('stories.store');
+    Route::get('/stories/{story}/key', [ChatStoriesController::class, 'key'])->middleware('throttle:60,1')->name('stories.key');
+    Route::get('/stories/{story}/media', [ChatStoriesController::class, 'media'])->middleware('throttle:30,1')->name('stories.media');
+    Route::post('/stories/{story}/view', [ChatStoriesController::class, 'view'])->middleware('throttle:60,1')->name('stories.view');
+    Route::get('/stories/{story}/views', [ChatStoriesController::class, 'views'])->middleware('throttle:30,1')->name('stories.views');
+    Route::delete('/stories/{story}', [ChatStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('stories.destroy');
+
+
+    // Настройки и фото канала: права редактирует только владелец.
+    Route::put('/chats/{chat}/channel-settings', [ChatChannelSettingsController::class, 'update'])
+        ->middleware('throttle:20,1')->name('chats.channel.settings');
+    Route::post('/chats/{chat}/channel-photo', [ChatChannelSettingsController::class, 'photo'])
+        ->middleware('throttle:10,1')->name('chats.channel.photo');
+
+    // Истории, публикуемые от имени канала (шифрование сохраняется).
+    Route::get('/chats/{chat}/stories', [ChatChannelStoriesController::class, 'index'])->middleware('throttle:60,1')->name('chats.channel.stories.index');
+    Route::get('/chats/{chat}/stories/contacts', [ChatChannelStoriesController::class, 'contacts'])->middleware('throttle:30,1')->name('chats.channel.stories.contacts');
+    Route::post('/chats/{chat}/stories', [ChatChannelStoriesController::class, 'store'])->middleware('throttle:10,1')->name('chats.channel.stories.store');
+    Route::get('/chats/{chat}/stories/{story}/key', [ChatChannelStoriesController::class, 'key'])->middleware('throttle:60,1')->name('chats.channel.stories.key');
+    Route::get('/chats/{chat}/stories/{story}/media', [ChatChannelStoriesController::class, 'media'])->middleware('throttle:30,1')->name('chats.channel.stories.media');
+    Route::post('/chats/{chat}/stories/{story}/view', [ChatChannelStoriesController::class, 'view'])->middleware('throttle:60,1')->name('chats.channel.stories.view');
+    Route::get('/chats/{chat}/stories/{story}/views', [ChatChannelStoriesController::class, 'views'])->middleware('throttle:30,1')->name('chats.channel.stories.views');
+    Route::delete('/chats/{chat}/stories/{story}', [ChatChannelStoriesController::class, 'destroy'])->middleware('throttle:30,1')->name('chats.channel.stories.destroy');
+
+
+    // Просмотр чата
+    Route::get(
+        '/chats/{chat}',
+        [ChatController::class, 'show']
+    )->name('chats.show');
+
+
+    // Ключ шифрования
+    Route::get(
+        '/chats/{chat}/my-key',
+        [ChatController::class, 'myKey']
+    );
+
+
+    /*
+     * Сообщения
+     */
+
+    Route::get(
+        '/chats/{chat}/messages',
+        [MessageController::class, 'index']
+    )->name('messages.get');
+
+    Route::post(
+        '/chats/{chat}/attachments',
+        [MessageController::class, 'uploadAttachment']
+    )->middleware('throttle:20,1')->name('messages.attachments.upload');
+
+    Route::get(
+        '/chats/{chat}/messages/{message}/attachments/{attachment}',
+        [MessageController::class, 'downloadAttachment']
+    )->name('messages.attachments.download');
+
+    Route::post(
+        '/messages/{message}/transcribe',
+        [MessageController::class, 'transcribeVoice']
+    )->middleware('throttle:10,1')->name('messages.transcription.create');
+
+    Route::post(
+        '/chats/{chat}/messages',
+        [MessageController::class, 'store']
+    )->name('messages.send');
+
+    Route::patch(
+        '/messages/{message}',
+        [MessageController::class, 'update']
+    );
+
+    Route::delete(
+        '/messages/{message}',
+        [MessageController::class, 'destroy']
+    );
+
+    Route::post(
+        '/messages/{message}/reactions',
+        [MessageController::class, 'toggleReaction']
+    )->middleware('throttle:60,1')->name('messages.reactions.toggle');
+
+    Route::post(
+        '/messages/{message}/pin',
+        [MessageController::class, 'pin']
+    )->middleware('throttle:30,1')->name('messages.pin');
+
+    Route::delete(
+        '/messages/{message}/pin',
+        [MessageController::class, 'unpin']
+    )->middleware('throttle:30,1')->name('messages.unpin');
+
+    Route::get(
+        '/chats/{chat}/pinned-messages',
+        [MessageController::class, 'pinnedMessages']
+    )->middleware('throttle:60,1')->name('chats.pinnedMessages');
+
+    Route::get(
+        '/messages/{message}/poll-results',
+        [MessageController::class, 'pollResults']
+    )->middleware('throttle:60,1')->name('messages.pollResults');
+
+    Route::post(
+        '/messages/{message}/poll-votes',
+        [MessageController::class, 'votePoll']
+    )->middleware('throttle:30,1')->name('messages.pollVotes');
+
+    Route::post(
+        '/messages/{message}/poll-close',
+        [MessageController::class, 'closePoll']
+    )->middleware('throttle:30,1')->name('messages.pollClose');
+
+    Route::patch(
+        '/chats/{chat}/pinned-messages/order',
+        [MessageController::class, 'reorderPinnedMessages']
+    )->middleware('throttle:30,1')->name('chats.pinnedMessages.reorder');
+
+    Route::patch(
+        '/chats/{chat}/pinned-messages/order',
+        [MessageController::class, 'reorderPinnedMessages']
+    )->middleware('throttle:30,1')->name('chats.pinnedMessages.reorder');
+
+    Route::get(
+        '/messages/{message}/reply-info',
+        [MessageController::class, 'getReplyInfo']
+    )->name('messages.replyInfo');
+
+    Route::get(
+        '/chats/{chat}/messages/ids',
+        [MessageController::class, 'getMessageIds']
+    )->name('messages.ids');
+
+    Route::post(
+        '/chats/{chat}/read',
+        [MessageController::class, 'markRead']
+    )->middleware('throttle:120,1')->name('messages.read');
+
+    Route::post(
+        '/chats/{chat}/read-receipts',
+        [MessageController::class, 'readReceipts']
+    )->middleware('throttle:60,1')->name('messages.readReceipts');
+
+
+    Route::post(
+        '/chats/{chat}/mute',
+        [ChatController::class, 'updateMute']
+    )->middleware('throttle:30,1')->name('chats.mute');
+
+    /*
+     * Участники, роли и темы мессенджера
+     */
+    Route::get(
+        '/chats/{chat}/mention-users',
+        [ChatController::class, 'mentionUsers']
+    )->middleware('throttle:60,1')->name('chats.mentionUsers');
+
+    Route::post(
+        '/chats/{chat}/participants',
+        [ChatController::class, 'addParticipant']
+    )->name('chats.participants.add');
+
+    Route::delete(
+        '/chats/{chat}/participants/{user}',
+        [ChatController::class, 'removeParticipant']
+    )->name('chats.participants.remove');
+
+    Route::patch(
+        '/chats/{chat}/participants/{user}/role',
+        [ChatController::class, 'updateParticipantRole']
+    )->name('chats.participants.role');
+
+    Route::post(
+        '/chats/{chat}/topics',
+        [ChatController::class, 'createTopic']
+    )->name('chats.topics.store');
+
+
+    /*
+     * Уведомления чатов
+     */
+
+    Route::get(
+        '/notifications',
+        [ChatController::class, 'notifications']
+    )->name('chats.notifications');
+
+    Route::post(
+        '/notifications/{notification}/mark-as-read',
+        [ChatController::class, 'markAsRead']
+    );
+
+
+    /*
+     * Создание чата с пользователем
+     */
+
+    Route::get(
+        '/chats/create-with-user/{user}',
+        [ChatController::class, 'createWithUser']
+    );
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| СОЗДАНИЕ / ОТКРЫТИЕ ЧАТА
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/chats/create-with-user/{userId}',
+    [ChatController::class, 'createWithUser']
+)->name('chats.createWithUser');
+
+Route::post(
+    '/chats/create-or-open/{userId}',
+    [ChatController::class, 'createOrOpen']
+)->name('chats.createOrOpen');
+
+
+/*
+|--------------------------------------------------------------------------
+| ГЛАВНАЯ
+|--------------------------------------------------------------------------
+*/
+
+Route::view(
+    '/',
+    'home'
+)->name('home');
+
+Route::get(
+    'home',
+    [HomeController::class, 'home']
+)->name('home.alt');
+
+Route::get(
+    'good/{post}/{id}/{action}',
+    [HomeController::class, 'good']
+)->name('good');
+
+
+/*
+|--------------------------------------------------------------------------
+| TEAM
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    'team',
+    [TeamController::class, 'team']
+)->name('team');
+
+
+/*
+|--------------------------------------------------------------------------
+| WHITE PAPER
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/white_paper',
+    [WpController::class, 'whitepaper']
+)->name('white_paper');
+
+
+/*
+|--------------------------------------------------------------------------
+| NEWS
+|--------------------------------------------------------------------------
+*/
+
+// Создание новости
+Route::get(
+    '/news/create',
+    [NewsController::class, 'create']
+)
+    ->name('news.create')
+    ->middleware('auth');
+
+
+Route::prefix('news')->group(function () {
+
+    // Список новостей
+    Route::get(
+        '/',
+        [NewsController::class, 'list']
+    )->name('news.index');
+
+
+    // Просмотр новости
+    Route::get(
+        '/{id}',
+        [NewsController::class, 'show']
+    )->name('news.show');
+
+
+    Route::middleware('auth')->group(function () {
+
+        // Создание
+        Route::post(
+            '/',
+            [NewsController::class, 'store']
+        )->name('news.store');
+
+
+        // Редактирование
+        Route::get(
+            '/{id}/edit',
+            [NewsController::class, 'edit']
+        )->name('news.edit');
+
+
+        // Обновление
+        Route::put(
+            '/{id}',
+            [NewsController::class, 'update']
+        )->name('news.update');
+
+
+        // Удаление
+        Route::delete(
+            '/{id}',
+            [NewsController::class, 'destroy']
+        )->name('news.destroy');
+    });
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| КАТЕГОРИИ НОВОСТЕЙ
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('newscategories')
+    ->name('newscategories.')
+    ->middleware('auth')
+    ->group(function () {
+
+        Route::get(
+            '/',
+            [NewsController::class, 'categoryIndex']
+        )->name('index');
+
+        Route::get(
+            '/create',
+            [NewsController::class, 'categoryCreate']
+        )->name('create');
+
+        Route::post(
+            '/',
+            [NewsController::class, 'categoryStore']
+        )->name('categoryStore');
+
+        Route::get(
+            '/{id}/edit',
+            [NewsController::class, 'categoryEdit']
+        )->name('edit');
+
+        Route::put(
+            '/{id}',
+            [NewsController::class, 'categoryUpdate']
+        )->name('update');
+
+        Route::delete(
+            '/{id}',
+            [NewsController::class, 'categoryDestroy']
+        )->name('destroy');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| OFFERS
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    'offers/create',
+    [OffersController::class, 'create']
+)
+    ->name('offers.create')
+    ->middleware('auth');
+
+Route::post(
+    'offers/store',
+    [OffersController::class, 'store']
+)
+    ->name('offers.store')
+    ->middleware('auth');
+
+
+Route::prefix('offers')->group(function () {
+
+    Route::get(
+        '/',
+        [OffersController::class, 'index']
+    )->name('offers.index');
+
+    Route::get(
+        '/{id}',
+        [OffersController::class, 'show']
+    )->name('offers.show');
+
+
+    Route::middleware('auth')->group(function () {
+
+        Route::get(
+            '/{id}/edit',
+            [OffersController::class, 'edit']
+        )->name('offers.edit');
+
+        Route::put(
+            '/{id}',
+            [OffersController::class, 'update']
+        )->name('offers.update');
+
+        Route::delete(
+            '/{id}',
+            [OffersController::class, 'destroy']
+        )->name('offers.destroy');
+    });
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| КАТЕГОРИИ OFFERS
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')
+    ->prefix('offerscategories')
+    ->name('offerscategories.')
+    ->group(function () {
+
+        Route::get(
+            '/',
+            [OffersController::class, 'categoryIndex']
+        )->name('index');
+
+        Route::get(
+            '/create',
+            [OffersController::class, 'categoryCreate']
+        )->name('create');
+
+        Route::post(
+            '/',
+            [OffersController::class, 'categoryStore']
+        )->name('categoryStore');
+
+        Route::get(
+            '/{id}/edit',
+            [OffersController::class, 'categoryEdit']
+        )->name('edit');
+
+        Route::put(
+            '/{id}',
+            [OffersController::class, 'categoryUpdate']
+        )->name('update');
+
+        Route::delete(
+            '/{id}',
+            [OffersController::class, 'categoryDestroy']
+        )->name('destroy');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| КОММЕНТАРИИ / СПАМ / ОБСУЖДЕНИЯ / ГОЛОСОВАНИЯ
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/commentsoffers',
+    [CommentController::class, 'offers']
+)->name('comments.offers');
+
+Route::post(
+    '/commentsnews',
+    [CommentController::class, 'news']
+)->name('comments.news');
+
+Route::post(
+    '/spam',
+    [SpamController::class, 'store']
+)->name('spam.store');
+
+Route::post(
+    '/discussion',
+    [DiscussionController::class, 'store']
+)->name('discussion.store');
+
+Route::post(
+    '/vote',
+    [VoteController::class, 'store']
+)->name('vote.store');
+
+
+/*
+|--------------------------------------------------------------------------
+| SEED
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('guest')
+    ->prefix('seed')
+    ->name('seed.')
+    ->group(function () {
+
+        Route::get(
+            '/',
+            [SeedController::class, 'index']
+        )->name('index');
+
+        Route::post(
+            '/save',
+            [SeedController::class, 'saveSeed']
+        )->name('save');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| PHP INFO
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/phpinfo',
+    function () {
+        phpinfo();
+    }
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| СБРОС ПАРОЛЯ ПО КЛЮЧЕВОМУ СЛОВУ
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('guest')
+    ->prefix('password')
+    ->name('password.')
+    ->group(function () {
+
+        Route::get(
+            '/forgot',
+            [KeywordResetPasswordController::class, 'showKeywordForm']
+        )->name('keyword');
+
+        Route::post(
+            '/submit',
+            [KeywordResetPasswordController::class, 'submitKeyword']
+        )->name('submit');
+
+        Route::get(
+            '/reset',
+            [KeywordResetPasswordController::class, 'showResetForm']
+        )->name('reset');
+
+        Route::put(
+            '/update',
+            [KeywordResetPasswordController::class, 'updatePassword']
+        )->name('update');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| ОРГАНИЗАЦИИ
+|--------------------------------------------------------------------------
+|
+| Здесь находится ЕДИНСТВЕННЫЙ блок маршрутов организаций.
+|
+| ВАЖНО:
+| organizations.menu.index
+| organizations.menu.manage
+|
+| оба ведут на OrganizationMenuController@index.
+|
+*/
+
+Route::middleware('auth')
+    ->prefix('organizations')
+    ->name('organizations.')
+    ->group(function () {
+
+
+        /*
+         * =====================================================
+         * СПИСОК ОРГАНИЗАЦИЙ
+         * =====================================================
+         */
+
+        Route::get(
+            '/',
+            [OrganizationController::class, 'index']
+        )->name('index');
+
+
+        /*
+         * =====================================================
+         * СОЗДАНИЕ ОРГАНИЗАЦИИ
+         * =====================================================
+         */
+
+        Route::get(
+            '/create',
+            [OrganizationController::class, 'create']
+        )->name('create');
+
+        Route::post(
+            '/',
+            [OrganizationController::class, 'store']
+        )->name('store');
+
+
+        /*
+         * =====================================================
+         * УПРАВЛЕНИЕ ОРГАНИЗАЦИЕЙ
+         * =====================================================
+         */
+
+        Route::get(
+            '/{organization}/manage',
+            [OrganizationController::class, 'manage']
+        )
+            ->middleware('organization.manager')
+            ->name('manage');
+
+        Route::put(
+            '/{organization}/order-settings',
+            [OrganizationController::class, 'updateOrderSettings']
+        )
+            ->middleware('organization.manager')
+            ->name('order-settings.update');
+
+        // Управление количеством TV-экранов организации
+        Route::post(
+            '/{organization}/tv-screens',
+            [OrganizationTVController::class, 'createScreen']
+        )
+            ->middleware('organization.manager')
+            ->name('tv.screens.store');
+
+        Route::patch(
+            '/{organization}/tv-screens/{screen}/settings',
+            [OrganizationTVController::class, 'updateScreenSettings']
+        )
+            ->whereNumber('screen')
+            ->middleware('organization.manager')
+            ->name('tv.screens.settings');
+
+        Route::delete(
+            '/{organization}/tv-screens/{screen}',
+            [OrganizationTVController::class, 'deleteScreen']
+        )
+            ->whereNumber('screen')
+            ->middleware('organization.manager')
+            ->name('tv.screens.delete');
+
+        // Фоновые изображения TV-экранов организации
+        Route::post(
+            '/{organization}/tv-background',
+            [OrganizationTVController::class, 'uploadBackground']
+        )
+            ->middleware('organization.manager')
+            ->name('tv.background.store');
+
+        Route::delete(
+            '/{organization}/tv-background',
+            [OrganizationTVController::class, 'deleteBackground']
+        )
+            ->middleware('organization.manager')
+            ->name('tv.background.delete');
+
+        Route::get(
+            '/{organization}/feedback',
+            [OrganizationFeedbackController::class, 'index']
+        )->middleware('organization.manager')->name('feedback.index');
+
+        Route::post(
+            '/{organization}/feedback/{feedback}/reply',
+            [OrganizationFeedbackController::class, 'reply']
+        )->middleware('organization.manager')->name('feedback.reply');
+
+        Route::patch(
+            '/{organization}/feedback/reviews/{review}/visibility',
+            [OrganizationFeedbackController::class, 'moderateReview']
+        )->middleware('organization.manager')->name('feedback.reviews.visibility');
+
+        Route::get(
+            '/{organization}/orders',
+            [OrganizationOrderController::class, 'index']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.index');
+
+        Route::get(
+            '/{organization}/orders/updates',
+            [OrganizationOrderController::class, 'updates']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.updates');
+
+        Route::get(
+            '/{organization}/orders/export',
+            [OrganizationOrderController::class, 'export']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.export');
+
+        Route::get(
+            '/{organization}/orders/{order}',
+            [OrganizationOrderController::class, 'show']
+        )
+            ->middleware('organization.manager')
+            ->whereNumber('order')
+            ->name('orders.show');
+
+        Route::get(
+            '/{organization}/orders/{order}/receipt',
+            [OrganizationOrderController::class, 'receipt']
+        )
+            ->middleware('organization.manager')
+            ->whereNumber('order')
+            ->name('orders.receipt');
+
+        Route::get(
+            '/{organization}/orders/notifications',
+            [OrderNotificationController::class, 'managerIndex']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.notifications');
+
+        Route::post(
+            '/{organization}/orders/notifications/{notification}/read',
+            [OrderNotificationController::class, 'markManagerRead']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.notifications.read');
+
+        Route::patch(
+            '/{organization}/orders/{order}/status',
+            [OrganizationOrderController::class, 'updateStatus']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.status');
+
+        Route::patch(
+            '/{organization}/orders/{order}/payment',
+            [OrganizationOrderController::class, 'markPaid']
+        )
+            ->middleware('organization.manager')
+            ->name('orders.payment');
+
+
+        /*
+         * =====================================================
+         * СОТРУДНИКИ
+         * =====================================================
+         */
+
+        // Добавление сотрудника
+        Route::post(
+            '/{organization}/employees',
+            [OrganizationController::class, 'storeEmployee']
+        )
+            ->middleware('organization.manager')
+            ->name('employees.store');
+
+
+        // Изменение роли
+        Route::post(
+            '/{organization}/employees/{user}/role',
+            [OrganizationController::class, 'updateEmployeeRole']
+        )
+            ->middleware('organization.manager')
+            ->name('employees.role');
+
+
+        // Изменение статуса
+        Route::post(
+            '/{organization}/employees/{user}/status',
+            [OrganizationController::class, 'updateEmployeeStatus']
+        )
+            ->middleware('organization.manager')
+            ->name('employees.status');
+
+
+        // Удаление сотрудника
+        Route::delete(
+            '/{organization}/employees/{user}',
+            [OrganizationController::class, 'destroyEmployee']
+        )
+            ->middleware('organization.manager')
+            ->name('employees.destroy');
+
+        /*
+         * =====================================================
+         * ПЕРСОНАЛ ОРГАНИЗАЦИИ
+         * Отдельные аккаунты organization_employees.
+         * Не пересекаются с DAODES users / employees выше.
+         * =====================================================
+         */
+
+        Route::post(
+            '/{organization}/staff',
+            [OrganizationStaffController::class, 'store']
+        )
+            ->middleware(['organization.manager', 'throttle:5,1'])
+            ->name('staff.store');
+
+        Route::patch(
+            '/{organization}/staff/{employee}/role',
+            [OrganizationStaffController::class, 'updateRole']
+        )
+            ->middleware('organization.manager')
+            ->name('staff.role');
+
+        Route::patch(
+            '/{organization}/staff/{employee}/status',
+            [OrganizationStaffController::class, 'updateStatus']
+        )
+            ->middleware('organization.manager')
+            ->name('staff.status');
+
+        Route::post(
+            '/{organization}/staff/{employee}/invite',
+            [OrganizationStaffController::class, 'resendInvitation']
+        )
+            ->middleware(['organization.manager', 'throttle:5,1'])
+            ->name('staff.invite');
+
+        Route::delete(
+            '/{organization}/staff/{employee}',
+            [OrganizationStaffController::class, 'destroy']
+        )
+            ->middleware('organization.manager')
+            ->name('staff.destroy');
+
+
+        /*
+         * =====================================================
+         * УПРАВЛЕНИЕ МЕНЮ
+         * =====================================================
+         *
+         * Главное представление меню.
+         *
+         * Основное имя:
+         * organizations.menu.index
+         *
+         * Также оставляем:
+         * organizations.menu.manage
+         *
+         * чтобы существующий код, использующий manage,
+         * продолжал работать.
+         */
+
+
+        Route::get(
+            '/{organization}/menu',
+            [
+                OrganizationMenuController::class,
+                'index',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.index');
+
+
+        Route::get(
+            '/{organization}/menu/manage',
+            [
+                OrganizationMenuController::class,
+                'index',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.manage');
+
+
+        /*
+         * =====================================================
+         * КАТЕГОРИИ МЕНЮ
+         * =====================================================
+         */
+
+
+        // Форма создания категории
+
+        Route::get(
+            '/{organization}/menu/sections/create',
+            [
+                OrganizationMenuController::class,
+                'createSection',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.create');
+
+
+        // Сохранение категории
+
+        Route::post(
+            '/{organization}/menu/sections',
+            [
+                OrganizationMenuController::class,
+                'storeSection',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.store');
+
+
+        // Форма редактирования категории
+
+        Route::get(
+            '/{organization}/menu/sections/{section}/edit',
+            [
+                OrganizationMenuController::class,
+                'editSection',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.edit');
+
+
+        // Обновление категории
+
+        Route::put(
+            '/{organization}/menu/sections/{section}',
+            [
+                OrganizationMenuController::class,
+                'updateSection',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.update');
+
+
+        // Удаление категории
+
+        Route::delete(
+            '/{organization}/menu/sections/{section}',
+            [
+                OrganizationMenuController::class,
+                'destroySection',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.destroy');
+
+
+            
+
+
+        /*
+         * =====================================================
+         * БЛЮДА
+         * =====================================================
+         */
+
+
+        // Форма создания блюда
+
+        Route::get(
+            '/{organization}/menu/sections/{section}/items/create',
+            [
+                OrganizationMenuController::class,
+                'createItem',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.create');
+
+
+        // Сохранение блюда
+
+        Route::post(
+            '/{organization}/menu/sections/{section}/items',
+            [
+                OrganizationMenuController::class,
+                'storeItem',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.store');
+
+
+        // Форма редактирования блюда
+
+        Route::get(
+            '/{organization}/menu/sections/{section}/items/{item}/edit',
+            [
+                OrganizationMenuController::class,
+                'editItem',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.edit');
+
+
+        // Обновление блюда
+
+        Route::put(
+            '/{organization}/menu/sections/{section}/items/{item}',
+            [
+                OrganizationMenuController::class,
+                'updateItem',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.update');
+
+
+                // Удаление блюда
+
+        Route::delete(
+            '/{organization}/menu/sections/{section}/items/{item}',
+            [
+                OrganizationMenuController::class,
+                'destroyItem',
+            ]
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.destroy');
+
+
+        // =========================================================
+        // БЫСТРАЯ СОРТИРОВКА И АКТИВНОСТЬ РАЗДЕЛОВ
+        // =========================================================
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/sort',
+            [OrganizationMenuController::class, 'updateSectionSort']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.sort');
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/toggle',
+            [OrganizationMenuController::class, 'toggleSection']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.toggle');
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/quick-settings',
+            [OrganizationMenuController::class, 'updateSectionQuickSettings']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.sections.quick_settings');
+
+
+        // =========================================================
+        // БЫСТРАЯ СОРТИРОВКА И АКТИВНОСТЬ БЛЮД
+        // =========================================================
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/items/{item}/sort',
+            [OrganizationMenuController::class, 'updateItemSort']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.sort');
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/items/{item}/toggle',
+            [OrganizationMenuController::class, 'toggleItem']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.toggle');
+
+        Route::patch(
+            '/{organization}/menu/sections/{section}/items/{item}/availability',
+            [OrganizationMenuController::class, 'toggleItemAvailability']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.availability');
+
+    });
+
+
+            
+
+/*
+|--------------------------------------------------------------------------
+| КОШЕЛЁК
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')
+    ->prefix('wallet')
+    ->name('wallet.')
+    ->group(function () {
+
+        Route::get(
+            '/',
+            [WalletController::class, 'wallet']
+        )->name('index');
+
+        Route::get(
+            '/transfer',
+            [WalletController::class, 'showTransferForm']
+        )->name('transfer.form');
+
+        Route::post(
+            '/transfer',
+            [WalletController::class, 'transfer']
+        )->name('transfer.submit');
+
+        Route::get(
+            '/history',
+            [WalletController::class, 'history']
+        )->name('history');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| ЗАДАЧИ
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')
+    ->prefix('tasks')
+    ->name('tasks.')
+    ->group(function () {
+
+        // Просмотр задач
+        Route::get(
+            '/',
+            [TasksController::class, 'list']
+        )->name('list');
+
+        Route::get(
+            '/{task}',
+            [TasksController::class, 'show']
+        )->name('show');
+
+
+        // Создание
+        Route::get(
+            '/create',
+            [TasksController::class, 'create']
+        )->name('create');
+
+        Route::post(
+            '/store',
+            [TasksController::class, 'store']
+        )->name('store');
+
+
+        // Редактирование
+        Route::get(
+            '/{task}/edit',
+            [TasksController::class, 'edit']
+        )->name('edit');
+
+        Route::put(
+            '/{task}',
+            [TasksController::class, 'update']
+        )->name('update');
+
+        Route::delete(
+            '/{task}',
+            [TasksController::class, 'destroy']
+        )->name('destroy');
+
+
+        // Взаимодействие
+        Route::post(
+            '/{task}/bid',
+            [TasksController::class, 'bid']
+        )->name('bid');
+
+        Route::post(
+            '/{task}/like',
+            [TasksController::class, 'like']
+        )->name('like');
+
+        Route::post(
+            '/{task}/dislike',
+            [TasksController::class, 'dislike']
+        )->name('dislike');
+
+
+        // Работа
+        Route::post(
+            '/{task}/start-work',
+            [TasksController::class, 'startWork']
+        )->name('start_work');
+
+        Route::post(
+            '/{task}/complete',
+            [TasksController::class, 'complete']
+        )->name('complete');
+
+        Route::post(
+            '/{task}/freelancer-complete',
+            [TasksController::class, 'freelancerComplete']
+        )->name('freelancerComplete');
+
+        Route::post(
+            '/{task}/accept',
+            [TasksController::class, 'acceptTask']
+        )->name('accept');
+
+        Route::post(
+            '/{task}/revision',
+            [TasksController::class, 'requestRevision']
+        )->name('revision');
+
+        Route::post(
+            '/{task}/continue',
+            [TasksController::class, 'continueTask']
+        )->name('continue');
+
+        Route::post(
+            '/{task}/fail',
+            [TasksController::class, 'fail']
+        )->name('fail');
+
+
+        // Оценка и оплата
+        Route::post(
+            '/{task}/rate',
+            [TasksController::class, 'rate']
+        )->name('rate');
+
+        Route::post(
+            '/{task}/accept-bid/{bid}',
+            [TasksController::class, 'acceptBid']
+        )->name('accept-bid');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| АЛЬТЕРНАТИВНОЕ СОЗДАНИЕ ЗАДАЧИ
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/addtask',
+    [TasksController::class, 'create']
+)
+    ->name('addtask')
+    ->middleware('auth');
+
+
+/*
+|--------------------------------------------------------------------------
+| BIDS
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/bids/{bid}/accept',
+    [BidController::class, 'accept']
+)->name('bids.accept');
+
+
+/*
+|--------------------------------------------------------------------------
+| КАТЕГОРИИ ЗАДАЧ
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')
+    ->prefix('taskscategories')
+    ->name('taskscategories.')
+    ->group(function () {
+
+        Route::get(
+            '/',
+            [CategoryTasksController::class, 'index']
+        )->name('index');
+
+        Route::get(
+            '/create',
+            [CategoryTasksController::class, 'create']
+        )->name('create');
+
+        Route::post(
+            '/',
+            [CategoryTasksController::class, 'store']
+        )->name('store');
+
+        Route::get(
+            '/{taskCategory}/edit',
+            [CategoryTasksController::class, 'edit']
+        )->name('edit');
+
+        Route::put(
+            '/{taskCategory}',
+            [CategoryTasksController::class, 'update']
+        )->name('update');
+
+        Route::delete(
+            '/{taskCategory}',
+            [CategoryTasksController::class, 'destroy']
+        )->name('destroy');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| ПРОФИЛЬ
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')
+    ->prefix('profile')
+    ->name('user_profile.')
+    ->group(function () {
+
+        // Свой / расширенный профиль
+        Route::get(
+            '/',
+            [UserProfileController::class, 'index']
+        )->name('index');
+
+
+        // Чужой профиль
+        Route::get(
+            '/{id}',
+            [UserProfileController::class, 'index']
+        )
+            ->whereNumber('id')
+            ->name('show');
+
+
+        // Создание профиля
+        Route::get(
+            '/create',
+            [UserProfileController::class, 'create']
+        )->name('create');
+
+        Route::post(
+            '/store',
+            [UserProfileController::class, 'store']
+        )->name('store');
+
+
+        // Редактирование
+        Route::get(
+            '/edit',
+            [UserProfileController::class, 'edit']
+        )->name('edit');
+
+        Route::put(
+            '/update',
+            [UserProfileController::class, 'updateFullProfile']
+        )->name('update');
+
+
+        // Удаление аккаунта
+        Route::delete(
+            '/',
+            [UserProfileController::class, 'destroy']
+        )->name('destroy');
+    });
+
+
+/*
+|--------------------------------------------------------------------------
+| ЗАГРУЗКА ИЗОБРАЖЕНИЙ CKEDITOR
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/upload-image',
+    [UploadController::class, 'uploadImage']
+)->name('upload.image');
+
+
+/*
+|--------------------------------------------------------------------------
+| DASHBOARD
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware([
+    'auth',
+    'verified',
+])
+    ->get(
+        '/dashboard',
+        function () {
+            return view('dashboard');
+        }
+    )
+    ->name('dashboard');
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH ROUTES
+|--------------------------------------------------------------------------
+*/
+
+/*
+|--------------------------------------------------------------------------
+| EMPLOYEE PORTAL
+|--------------------------------------------------------------------------
+|
+| Отдельный вход персонала. Существующие auth-маршруты DAODES не меняются.
+|
+*/
+
+require __DIR__ . '/employee.php';
+require __DIR__ . '/customer.php';
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTH ROUTES
+|--------------------------------------------------------------------------
+*/
+
+require __DIR__ . '/auth.php';

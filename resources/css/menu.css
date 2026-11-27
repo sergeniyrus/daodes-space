@@ -1,0 +1,255 @@
+/* Стили для мобильного меню */
+.mobile-hamburger-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background-color: #0b0c18d8;
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 200001;
+  border-bottom: 1px solid gold;
+  /* font-family:StandardPoster; */
+
+}
+
+.mobile-logo-name {
+  color: gold;
+  text-decoration: none;
+
+}
+
+.mobile-logo-name:hover {
+  color: goldenrod;
+}
+
+.logout-icon {
+  width: 1em;
+  height: 1em;
+  color: #ffffff;
+}
+
+.mobile-hamburger-button,
+.mobile-auth-buttons,
+.profile-link,
+.log-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: white;
+  font-size: clamp(18px, 1.5vw, 36px);
+  text-decoration: none;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+}
+
+.mobile-hamburger-button:hover,
+.logout-icon:hover {
+  color: goldenrod;
+}
+
+.mobile-hamburger-menu {
+  display: none;
+  flex-direction: column;
+  background-color: rgba(0, 0, 0, 0.81);
+  border-radius: 15px;
+  border: 1px solid gold;
+  color: #f8f9fa;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  padding: 15px;
+  position: fixed;
+  top: 75px;
+  left: 0;
+  transform: translateX(10%);
+  z-index: 200002;
+
+}
+
+.mobile-chapter-container {
+  margin: 5px 0;
+  border: 1px solid #00CCFF;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(11, 12, 24, 0.81);
+  height: auto;
+  transition: all 0.3s ease;
+  text-decoration: none;
+
+}
+
+.mobile-chapter-header {
+  padding: 15px 20px;
+  background: #1a1a2e;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  position: relative;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  text-decoration: none;
+  color: #00CCFF;
+}
+
+.mobile-chapter-header.has-submenu::after {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 12px;
+  flex: 0 0 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.mobile-chapter-header.has-submenu.submenu-expanded::after {
+  transform: rotate(225deg);
+}
+
+.mobile-chapter-header.active {
+  display: block;
+  background-color: #2C3E50;
+  color: gold;
+  text-decoration: none;
+}
+
+.mobile-chapter-header:hover {
+  background-color: #2C3E50;
+  /* Цвет фона при наведении */
+  color: gold;
+  /* Цвет текста при наведении */
+}
+
+
+.mobile-subchapters {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-subchapters.open {
+  max-height: 500px;
+  /* Увеличьте значение, если подменю больше */
+  display: block;
+  /* Убедитесь, что это свойство не переопределяется */
+}
+
+.mobile-subchapter-item {
+  display: block;
+  padding: 15px 25px;
+  border-top: 1px solid rgba(44, 62, 80, 0.5);
+  background: rgba(44, 47, 94, 0.81);
+  color: #ffffff;
+  transition: background 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: Georgia, "Times New Roman", Times, serif;
+}
+
+.mobile-subchapter-item:hover {
+  background: #34495E;
+  color: gold;
+
+}
+
+
+.mobile-header-left,
+.mobile-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  /* Устанавливаем relative для родительского блока */
+}
+
+.mobile-header-left {
+  justify-content: flex-start;
+}
+
+.mobile-header-right {
+  justify-content: flex-end;
+}
+
+
+
+
+
+.auth-buttons-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+
+
+/* Стили для переключателя языков */
+.language-switcher {
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  /* Выравнивание языков по горизонтали */
+
+
+}
+
+.language-switcher a {
+  color: #585858;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.language-switcher a.active {
+  color: #00CCFF;
+}
+
+.language-switcher a:hover {
+  color: goldenrod;
+}
+
+/* оповещения */
+.mobile-notifications {
+  display: flex;
+  align-items: center; /* Это свойство выравнивает элементы по вертикали */
+}
+
+.mobile-notifications a {
+  display: inline-flex;
+  align-items: center; /* Центрирует текст по вертикали */
+  justify-content: center; /* Центрирует по горизонтали (опционально) */
+  background-color: red;
+  border-radius: 5px;
+  cursor: pointer;
+  padding: 0 4px 6px 4px ; 
+  font-family: Georgia, "Times New Roman", Times, serif;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  /* Остальные стили */
+  color: white;
+  font-size: clamp(18px, 1.5vw, 36px);
+  text-decoration: none;
+  font-weight: bold;
+  
+}
+
+.mobile-notifications a:hover {
+  color: gold ;
+}
+
+/* Menu */
+.profile-link a,
+.log-link a {
+  font-family: Georgia, "Times New Roman", Times, serif;
+  color: #00CCFF;
+  text-decoration: none;
+}
+
+.logout-icon:hover,
+.profile-link a:hover,
+.log-link a:hover {
+  color: goldenrod;
+}

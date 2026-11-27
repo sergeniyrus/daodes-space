@@ -1,0 +1,66 @@
+# ═══════════════════════════════════════════════════════════════
+# DAODES LARAVEL - Continue Ignore File
+# ═══════════════════════════════════════════════════════════════
+
+# Dependencies
+vendor/
+node_modules/
+
+# Laravel Storage & Cache
+storage/
+bootstrap/cache/
+
+# Environment & Config
+.env
+.env.*
+!.env.example
+
+# IDE & Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Logs & Temp
+*.log
+storage/logs/*.log
+ai/temp/**
+ai/cache/**
+ai/backups/**
+
+# Database
+*.sqlite
+*.sqlite-journal
+database/*.sqlite
+
+# Compiled Assets
+public/build/
+public/hot
+public/storage
+public/mix-manifest.json
+public/js/
+public/css/
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Testing
+.phpunit.result.cache
+.phpunit.cache/
+coverage/
+
+# Docker
+docker-compose.override.yml
+
+# Misc
+*.bak
+*.tmp
+*.temp
