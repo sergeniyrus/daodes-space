@@ -685,6 +685,15 @@ class OrganizationMenuController extends Controller
                 ->where('name', $locked->name)
                 ->where(fn ($q) => $locked->weight === null ? $q->whereNull('weight') : $q->where('weight', $locked->weight))
                 ->where(fn ($q) => $locked->unit === null ? $q->whereNull('unit') : $q->where('unit', $locked->unit))
+                // Цена может отличаться и синхронизируется отдельной командой.
+                // Остальные характеристики должны совпадать, чтобы не затронуть
+                // самостоятельное блюдо с таким же названием и весом.
+                ->where('description', $locked->description)
+                ->where('image_path', $locked->image_path)
+                ->where('image_cid', $locked->image_cid)
+                ->where('delivery_enabled', (bool) $locked->delivery_enabled)
+                ->where('pickup_enabled', (bool) $locked->pickup_enabled)
+                ->where('dine_in_enabled', (bool) $locked->dine_in_enabled)
                 ->whereHas('section', fn ($q) => $q->where('organization_id', $organization->id))
                 ->orderBy('id')->lockForUpdate()->get();
             $before = $copies->mapWithKeys(fn (MenuItem $copy) => [$copy->id => [
