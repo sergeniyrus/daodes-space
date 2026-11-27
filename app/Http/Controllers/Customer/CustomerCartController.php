@@ -75,10 +75,10 @@ class CustomerCartController extends Controller
             $deliveryAvailable = $item !== null && $item->is_active && $item->is_available && $section !== null
                 && $settings?->hasConfiguredDelivery() && $hasPaymentAtReceipt
                 && $item->delivery_enabled && $section->delivery_enabled;
-            $pickupAvailable = $item !== null && $item->is_active && $section !== null
+            $pickupAvailable = $item !== null && $item->is_active && $item->is_available && $section !== null
                 && $settings?->pickup_enabled && $settings->hasPickupAddress() && $hasPaymentAtReceipt
                 && $item->pickup_enabled && $section->pickup_enabled;
-            $dineInAvailable = $item !== null && $item->is_active && $section !== null
+            $dineInAvailable = $item !== null && $item->is_active && $item->is_available && $section !== null
                 && (bool) ($settings?->dine_in_enabled)
                 && $item->dine_in_enabled
                 && $section->dine_in_enabled;
