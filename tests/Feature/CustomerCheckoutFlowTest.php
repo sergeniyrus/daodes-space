@@ -162,6 +162,20 @@ class CustomerCheckoutFlowTest extends TestCase
             });
     }
 
+    public function test_a4_print_menu_keeps_active_items_even_when_they_are_in_stop_list(): void
+    {
+        [$organization, $item] = $this->createOrderableMenu('A4 full menu cafe');
+
+        $item->update([
+            'is_available' => false,
+            'unavailable_reason' => 'Временно отсутствует',
+        ]);
+
+        $this->get(route('organization.menu.print', $organization))
+            ->assertOk()
+            ->assertSee($item->name);
+    }
+
     public function test_dine_in_order_uses_guest_account_and_requires_bracelet_or_employee_card(): void
     {
         $customer = $this->createVerifiedCustomer();
