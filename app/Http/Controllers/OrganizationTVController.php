@@ -95,6 +95,35 @@ class OrganizationTVController extends Controller
 
 
     /**
+     * Полное меню организации для просмотра и печати на бумаге A4.
+     */
+    public function printMenu(Organization $organization): View
+    {
+        abort_unless($organization->isActive(), 404);
+
+        $sections = $organization->menuSections()
+            ->where('is_active', true)
+            ->whereHas('items', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->with([
+                'items' => function ($query) {
+                    $query->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->orderBy('id');
+                },
+            ])
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        return view('tv.organization-print', [
+            'organization' => $organization,
+            'sections' => $sections,
+        ]);
+    }
+
+    /**
      * Создание дополнительного TV-экрана.
      */
     public function createScreen(Request $request, Organization $organization)
