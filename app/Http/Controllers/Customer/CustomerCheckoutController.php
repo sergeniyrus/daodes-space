@@ -110,7 +110,7 @@ class CustomerCheckoutController extends Controller
             ->whereIn('id', array_map('intval', array_keys($quantities)))
             ->where('is_active', true)
             ->where('is_available', true)
-            ->whereHas('section, function ($query) use ($organizationId) {
+            ->whereHas('section', function ($query) use ($organizationId) {
                 $query->where('organization_id', $organizationId)
                     ->where('is_active', true);
             })
