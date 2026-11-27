@@ -130,8 +130,11 @@
                 padding: 0;
                 box-shadow: none;
             }
-            .menu-grid { gap: 12px 16px; }
-            .section-title { color: #111; border-color: #777; }
+            /* Потоковая печать не обрезает длинные категории на границах A4. */
+            .menu-grid { display: block; }
+            .menu-section { break-inside: auto; page-break-inside: auto; }
+            .section-title { color: #111; border-color: #777; break-after: avoid; page-break-after: avoid; }
+            .menu-item { break-inside: avoid; page-break-inside: avoid; }
             .item-name, .item-price { color: #111; }
             .item-description, .item-weight, .menu-subtitle { color: #444; }
             * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
