@@ -7,11 +7,13 @@ on:
     paths:
       - 'app/Console/Commands/ConfigureOrganizationTwoTvFourMenu.php'
       - 'app/Console/Commands/ConfigureOrganizationTwoTopTvScreens.php'
+      - 'app/Console/Commands/SyncOrganizationTwoTopTvPrices.php'
       - 'app/Http/Controllers/OrganizationTVController.php'
       - 'resources/views/tv/organization-print.blade.php'
       - 'routes/web.php'
       - 'tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php'
       - 'tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php'
+      - 'tests/Unit/SyncOrganizationTwoTopTvPricesTest.php'
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/tv4-menu-checks.yml'
@@ -46,12 +48,15 @@ jobs:
         run: |
           php -l app/Console/Commands/ConfigureOrganizationTwoTvFourMenu.php
           php -l app/Console/Commands/ConfigureOrganizationTwoTopTvScreens.php
+          php -l app/Console/Commands/SyncOrganizationTwoTopTvPrices.php
           php -l app/Http/Controllers/OrganizationTVController.php
           php -l routes/web.php
           php -l tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php
           php -l tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php
+          php -l tests/Unit/SyncOrganizationTwoTopTvPricesTest.php
 
       - name: Run menu unit tests
         run: |
           vendor/bin/phpunit tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php
           vendor/bin/phpunit tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php
+          vendor/bin/phpunit tests/Unit/SyncOrganizationTwoTopTvPricesTest.php
