@@ -9,11 +9,16 @@ on:
       - 'app/Console/Commands/ConfigureOrganizationTwoTopTvScreens.php'
       - 'app/Console/Commands/SyncOrganizationTwoTopTvPrices.php'
       - 'app/Http/Controllers/OrganizationTVController.php'
+      - 'app/Http/Controllers/OrganizationMenuController.php'
+      - 'app/Http/Controllers/Customer/CustomerCartController.php'
+      - 'app/Models/MenuItem.php'
+      - 'database/migrations/2026_11_27_100000_add_availability_fields_to_menu_items_table.php'
       - 'resources/views/tv/organization-print.blade.php'
       - 'routes/web.php'
       - 'tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php'
       - 'tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php'
       - 'tests/Unit/SyncOrganizationTwoTopTvPricesTest.php'
+      - 'tests/Feature/CustomerCheckoutFlowTest.php'
       - 'composer.json'
       - 'composer.lock'
       - '.github/workflows/tv4-menu-checks.yml'
@@ -50,6 +55,10 @@ jobs:
           php -l app/Console/Commands/ConfigureOrganizationTwoTopTvScreens.php
           php -l app/Console/Commands/SyncOrganizationTwoTopTvPrices.php
           php -l app/Http/Controllers/OrganizationTVController.php
+          php -l app/Http/Controllers/OrganizationMenuController.php
+          php -l app/Http/Controllers/Customer/CustomerCartController.php
+          php -l app/Models/MenuItem.php
+          php -l database/migrations/2026_11_27_100000_add_availability_fields_to_menu_items_table.php
           php -l routes/web.php
           php -l tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php
           php -l tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php
@@ -60,3 +69,4 @@ jobs:
           vendor/bin/phpunit tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php
           vendor/bin/phpunit tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php
           vendor/bin/phpunit tests/Unit/SyncOrganizationTwoTopTvPricesTest.php
+          vendor/bin/phpunit tests/Feature/CustomerCheckoutFlowTest.php
