@@ -94,7 +94,6 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
             $createdSections = 0;
             $createdItems = 0;
             $existingItems = 0;
-            $updatedItems = 0;
 
             foreach ($menu as $sectionName => $items) {
                 $section = MenuSection::query()
@@ -117,13 +116,6 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
                     ]);
 
                     $createdSections++;
-                } else {
-                    $section->update([
-                        'is_active' => true,
-                        'delivery_enabled' => true,
-                        'pickup_enabled' => true,
-                        'dine_in_enabled' => true,
-                    ]);
                 }
 
                 foreach ($items as $itemData) {
@@ -133,19 +125,9 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
                         ->first();
 
                     if ($existingItem) {
-                        $existingItem->update([
-                            'weight' => $itemData['weight'],
-                            'unit' => 'г',
-                            'price' => $itemData['price'],
-                            'description' => $itemData['description'],
-                            'is_active' => true,
-                            'delivery_enabled' => true,
-                            'pickup_enabled' => true,
-                            'dine_in_enabled' => true,
-                        ]);
-
+                        // Не перезаписываем существующие блюда: их цена, состав,
+                        // активность и доступность могли быть изменены владельцем.
                         $existingItems++;
-                        $updatedItems++;
 
                         continue;
                     }
@@ -176,7 +158,6 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
                 'created_sections' => $createdSections,
                 'created_items' => $createdItems,
                 'existing_items' => $existingItems,
-                'updated_items' => $updatedItems,
             ];
         });
 
@@ -185,7 +166,7 @@ class ConfigureOrganizationTwoTvFourMenu extends Command
         $this->line('Количество TV-экранов: ' . $result['screen_count']);
         $this->line('Создано разделов: ' . $result['created_sections']);
         $this->line('Создано блюд: ' . $result['created_items']);
-        $this->line('Ранее существовало и обновлено: ' . $result['updated_items']);
+        $this->line('Уже существовало и оставлено без изменений: ' . $result['existing_items']);
         $this->newLine();
         $this->line('Адрес экрана: /organization/2/tv?screen=4');
 
