@@ -1,0 +1,72 @@
+name: DAODES TV4 menu checks
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'app/Console/Commands/ConfigureOrganizationTwoTvFourMenu.php'
+      - 'app/Console/Commands/ConfigureOrganizationTwoTopTvScreens.php'
+      - 'app/Console/Commands/SyncOrganizationTwoTopTvPrices.php'
+      - 'app/Http/Controllers/OrganizationTVController.php'
+      - 'app/Http/Controllers/OrganizationMenuController.php'
+      - 'app/Http/Controllers/Customer/CustomerCartController.php'
+      - 'app/Models/MenuItem.php'
+      - 'database/migrations/2026_11_27_100000_add_availability_fields_to_menu_items_table.php'
+      - 'resources/views/tv/organization-print.blade.php'
+      - 'routes/web.php'
+      - 'tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php'
+      - 'tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php'
+      - 'tests/Unit/SyncOrganizationTwoTopTvPricesTest.php'
+      - 'tests/Feature/CustomerCheckoutFlowTest.php'
+      - 'composer.json'
+      - 'composer.lock'
+      - '.github/workflows/tv4-menu-checks.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  tv4-menu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, ctype, curl, dom, fileinfo, gd, intl, mbstring, openssl, pdo, pdo_mysql, pdo_sqlite, tokenizer, xml, zip
+          coverage: none
+
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate --force
+
+      - name: PHP syntax
+        run: |
+          php -l app/Console/Commands/ConfigureOrganizationTwoTvFourMenu.php
+          php -l app/Console/Commands/ConfigureOrganizationTwoTopTvScreens.php
+          php -l app/Console/Commands/SyncOrganizationTwoTopTvPrices.php
+          php -l app/Http/Controllers/OrganizationTVController.php
+          php -l app/Http/Controllers/OrganizationMenuController.php
+          php -l app/Http/Controllers/Customer/CustomerCartController.php
+          php -l app/Models/MenuItem.php
+          php -l database/migrations/2026_11_27_100000_add_availability_fields_to_menu_items_table.php
+          php -l routes/web.php
+          php -l tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php
+          php -l tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php
+          php -l tests/Unit/SyncOrganizationTwoTopTvPricesTest.php
+
+      - name: Run menu unit tests
+        run: |
+          vendor/bin/phpunit tests/Unit/ConfigureOrganizationTwoTvFourMenuTest.php
+          vendor/bin/phpunit tests/Unit/ConfigureOrganizationTwoTopTvScreensTest.php
+          vendor/bin/phpunit tests/Unit/SyncOrganizationTwoTopTvPricesTest.php
+          vendor/bin/phpunit tests/Feature/CustomerCheckoutFlowTest.php

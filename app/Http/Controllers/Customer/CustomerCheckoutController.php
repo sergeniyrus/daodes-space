@@ -109,6 +109,7 @@ class CustomerCheckoutController extends Controller
             ->with('section')
             ->whereIn('id', array_map('intval', array_keys($quantities)))
             ->where('is_active', true)
+            ->where('is_available', true)
             ->whereHas('section', function ($query) use ($organizationId) {
                 $query->where('organization_id', $organizationId)
                     ->where('is_active', true);
@@ -132,7 +133,7 @@ class CustomerCheckoutController extends Controller
         foreach ($quantities as $itemId => $quantity) {
             $item = $items->get((int) $itemId);
 
-            if (!$item || !$item->is_active || (int) $quantity < 1 || (int) $quantity > 99) {
+            if (!$item || !$item->is_active || !$item->is_available || (int) $quantity < 1 || (int) $quantity > 99) {
                 if ($request->expectsJson()) {
                     throw ValidationException::withMessages(['cart' => 'Корзина содержит недоступную позицию или некорректное количество.']);
                 }
@@ -733,6 +734,7 @@ class CustomerCheckoutController extends Controller
             $items = MenuItem::query()
                 ->whereIn('id', array_map('intval', array_keys($quantities)))
                 ->where('is_active', true)
+                ->where('is_available', true)
                 ->where(function ($query) use ($validated) {
                     if ($validated['fulfillment_type'] === Order::FULFILLMENT_DELIVERY) {
                         $query->where('delivery_enabled', true);
