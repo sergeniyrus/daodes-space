@@ -1110,6 +1110,15 @@
             @endif
 
             <a
+                href="{{ route('organization.menu.print', $organization) }}"
+                class="menu-admin-button cyan"
+                target="_blank"
+                rel="noopener"
+            >
+                Печать полного меню · A4
+            </a>
+
+            <a
                 href="{{ route($menuRoutePrefix . 'sections.create', $organization) }}"
                 class="menu-admin-button"
             >
