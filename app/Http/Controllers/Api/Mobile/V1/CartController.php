@@ -218,7 +218,7 @@ class CartController extends Controller
                     && $section?->dine_in_enabled
                 ),
             ];
-            $available = $item->is_active && $item->is_available && in_array(true, $availability, true)
+            $available = $item->is_active && $item->is_available && in_array(true, $availability, true);
             $lineCents = $this->toCents($item->price) * (int) $quantity;
             if ($available) {
                 $subtotalCents += $lineCents;
