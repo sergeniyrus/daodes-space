@@ -111,6 +111,7 @@ class ConfigureOrganizationTwoTopTvScreens extends Command
             ->get();
 
         $sourceByName = $sourceItems->groupBy(fn (MenuItem $item) => $this->normalizeName($item->name));
+        $ambiguous = [];
 
         foreach (self::SCREENS as $screen => $screenData) {
             $this->newLine();
@@ -121,13 +122,36 @@ class ConfigureOrganizationTwoTopTvScreens extends Command
 
                 foreach ($names as $name) {
                     $matches = $sourceByName->get($this->normalizeName($name), collect());
-                    $source = $matches->first();
 
-                    if (!$source) {
+                    if ($matches->isEmpty()) {
                         $missing[] = $name;
                         $this->error('    НЕ НАЙДЕНО в активном меню: ' . $name);
                         continue;
                     }
+
+                    // Не выбираем случайную цену, если одинаковое название есть
+                    // в нескольких разделах с разными характеристиками.
+                    $sourceVariants = $matches->map(function (MenuItem $item) {
+                        return sha1(json_encode([
+                            'price' => (string) $item->price,
+                            'weight' => (string) $item->weight,
+                            'unit' => $item->unit,
+                            'description' => $item->description,
+                            'image_path' => $item->image_path,
+                            'image_cid' => $item->image_cid,
+                            'delivery_enabled' => (bool) $item->delivery_enabled,
+                            'pickup_enabled' => (bool) $item->pickup_enabled,
+                            'dine_in_enabled' => (bool) $item->dine_in_enabled,
+                        ], JSON_UNESCAPED_UNICODE));
+                    })->unique();
+
+                    if ($sourceVariants->count() > 1) {
+                        $ambiguous[] = $name;
+                        $this->error('    НЕОДНОЗНАЧНО: одинаковое название имеет разные данные в активном меню: ' . $name);
+                        continue;
+                    }
+
+                    $source = $matches->first();
 
                     $matched[$screen][$sectionName][] = [
                         'name' => $name,
@@ -145,10 +169,56 @@ class ConfigureOrganizationTwoTopTvScreens extends Command
             }
         }
 
-        if ($missing !== []) {
+        $inactiveTargets = [];
+
+        foreach (self::SCREENS as $screen => $screenData) {
+            foreach ($screenData['sections'] as $sectionName => $names) {
+                $targetSection = MenuSection::query()
+                    ->where('organization_id', self::ORGANIZATION_ID)
+                    ->where('tv_screen', $screen)
+                    ->where('name', $sectionName)
+                    ->first();
+
+                if (!$targetSection) {
+                    continue;
+                }
+
+                if (!$targetSection->is_active) {
+                    $inactiveTargets[] = 'раздел TV' . $screen . ': ' . $sectionName;
+                    continue;
+                }
+
+                $targetItems = $targetSection->items()->get();
+
+                foreach ($names as $name) {
+                    $existing = $targetItems->first(
+                        fn (MenuItem $item) => $this->normalizeName($item->name) === $this->normalizeName($name)
+                    );
+
+                    if ($existing && !$existing->is_active) {
+                        $inactiveTargets[] = 'блюдо TV' . $screen . ': ' . $name;
+                    }
+                }
+            }
+        }
+
+        if ($missing !== [] || $ambiguous !== [] || $inactiveTargets !== []) {
             $this->newLine();
-            $this->error('Нельзя применить настройку: отсутствуют активные позиции из отчёта продаж.');
-            $this->line('Сначала сверьте названия и активность этих позиций в меню организации №2.');
+            $this->error('Нельзя применить настройку: предварительная проверка обнаружила проблемы.');
+
+            if ($missing !== []) {
+                $this->line('Не найдены активные позиции: ' . implode('; ', $missing));
+            }
+
+            if ($ambiguous !== []) {
+                $this->line('Неоднозначные исходные позиции: ' . implode('; ', $ambiguous));
+            }
+
+            if ($inactiveTargets !== []) {
+                $this->line('Уже существующие неактивные целевые записи (не будут автоматически активированы): ' . implode('; ', $inactiveTargets));
+            }
+
+            $this->line('Исправьте данные меню организации №2 и повторите dry-run. База данных не изменена.');
 
             return self::FAILURE;
         }
