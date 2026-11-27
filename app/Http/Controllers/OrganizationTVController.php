@@ -103,6 +103,7 @@ class OrganizationTVController extends Controller
 
         $sections = $organization->menuSections()
             ->where('is_active', true)
+            ->where('tv_screen', '<=', 4)
             ->whereHas('items', function ($query) {
                 $query->where('is_active', true);
             })
