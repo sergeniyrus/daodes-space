@@ -1750,6 +1750,13 @@ Route::middleware('auth')
             ->middleware('organization.manager')
             ->name('menu.items.toggle');
 
+        Route::patch(
+            '/{organization}/menu/sections/{section}/items/{item}/availability',
+            [OrganizationMenuController::class, 'toggleItemAvailability']
+        )
+            ->middleware('organization.manager')
+            ->name('menu.items.availability');
+
     });
 
 

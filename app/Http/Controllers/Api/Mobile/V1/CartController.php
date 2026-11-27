@@ -44,6 +44,7 @@ class CartController extends Controller
         $item = MenuItem::query()
             ->whereKey($validated['item_id'])
             ->where('is_active', true)
+            ->where('is_available', true)
             ->whereHas('section', function ($query) use ($organization) {
                 $query->where('organization_id', $organization->id)->where('is_active', true);
             })
@@ -98,6 +99,7 @@ class CartController extends Controller
         $item = MenuItem::query()
             ->whereKey($menuItem)
             ->where('is_active', true)
+            ->where('is_available', true)
             ->whereHas('section', fn ($query) => $query
                 ->where('organization_id', $organizationId)
                 ->where('is_active', true))
@@ -216,7 +218,7 @@ class CartController extends Controller
                     && $section?->dine_in_enabled
                 ),
             ];
-            $available = $item->is_active && in_array(true, $availability, true);
+            $available = $item->is_active && $item->is_available && in_array(true, $availability, true)
             $lineCents = $this->toCents($item->price) * (int) $quantity;
             if ($available) {
                 $subtotalCents += $lineCents;

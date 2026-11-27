@@ -48,6 +48,7 @@ class OrganizationTVController extends Controller
             ->with([
                 'items' => function ($query) {
                     $query->where('is_active', true)
+                        ->where('is_available', true)
                         ->orderBy('sort_order')
                         ->orderBy('id');
                 },

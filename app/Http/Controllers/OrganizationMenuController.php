@@ -9,6 +9,7 @@ use App\Services\IPFSService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class OrganizationMenuController extends Controller
@@ -660,6 +661,56 @@ class OrganizationMenuController extends Controller
                     ? 'Блюдо «' . $item->name . '» включено.'
                     : 'Блюдо «' . $item->name . '» выключено.'
             );
+    }
+
+    /**
+     * Отдельное управление стоп-листом без изменения активности блюда.
+     * Синхронизирует точные копии позиции внутри одной организации.
+     */
+    public function toggleItemAvailability(Request $request, Organization $organization, MenuSection $section, MenuItem $item): RedirectResponse
+    {
+        $this->ensureSectionBelongsToOrganization($section, $organization);
+        $this->ensureItemBelongsToSection($item, $section);
+
+        $validated = $request->validate([
+            'is_available' => ['required', 'boolean'],
+            'unavailable_reason' => ['nullable', 'string', 'max:255'],
+        ]);
+        $isAvailable = (bool) $validated['is_available'];
+        $reason = $isAvailable ? null : (trim((string) ($validated['unavailable_reason'] ?? '')) ?: 'Временно отсутствует');
+
+        $result = DB::transaction(function () use ($organization, $item, $isAvailable, $reason) {
+            $locked = MenuItem::query()->whereKey($item->id)->lockForUpdate()->firstOrFail();
+            $copies = MenuItem::query()
+                ->where('name', $locked->name)
+                ->where(fn ($q) => $locked->weight === null ? $q->whereNull('weight') : $q->where('weight', $locked->weight))
+                ->where(fn ($q) => $locked->unit === null ? $q->whereNull('unit') : $q->where('unit', $locked->unit))
+                ->whereHas('section', fn ($q) => $q->where('organization_id', $organization->id))
+                ->orderBy('id')->lockForUpdate()->get();
+            $before = $copies->mapWithKeys(fn (MenuItem $copy) => [$copy->id => [
+                'is_available' => (bool) $copy->is_available,
+                'unavailable_reason' => $copy->unavailable_reason,
+            ]])->all();
+            MenuItem::query()->whereIn('id', $copies->modelKeys())->update([
+                'is_available' => $isAvailable,
+                'unavailable_reason' => $reason,
+                'updated_at' => now(),
+            ]);
+            return ['count' => $copies->count(), 'before' => $before];
+        });
+
+        app(\App\Services\OrganizationActivityLogger::class)->record(
+            $organization,
+            $isAvailable ? 'menu_item.available' : 'menu_item.unavailable',
+            ($isAvailable ? 'Возвращено в меню' : 'Добавлено в стоп-лист') . ' блюдо «' . $item->name . '»',
+            $result['before'],
+            ['is_available' => $isAvailable, 'unavailable_reason' => $reason, 'synchronized_items' => $result['count']],
+            'menu_item',
+            $item->id
+        );
+
+        return redirect()->route($this->menuIndexRoute(), $organization)
+            ->with('success', $isAvailable ? 'Блюдо «' . $item->name . '» возвращено в меню.' : 'Блюдо «' . $item->name . '» добавлено в стоп-лист.');
     }
 
     /**
